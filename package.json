@@ -1,0 +1,25 @@
+{
+  "name": "wb-bop-standard-workflow",
+  "version": "1.0.0",
+  "description": "",
+  "main": "BOP.test.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:chromium": "npx playwright test --project=chromium"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@playwright/test": "^1.57.0",
+    "playwright": "^1.57.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "nodemailer": "^7.0.11",
+    "xlsx": "^0.18.5"
+  }
+}
