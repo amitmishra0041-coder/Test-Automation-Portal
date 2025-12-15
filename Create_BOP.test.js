@@ -1,10 +1,15 @@
 import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
+const { getEnvUrls } = require('./helpers/envConfig');
 
 test('test', async ({ page }) => {
-  test.setTimeout(300000); // 5 minutes total test timeout
+  test.setTimeout(480000); // 8 minutes total test timeout
   page.setDefaultTimeout(60000); // 60 seconds default timeout for all actions
+
+  // Select environment via TEST_ENV (qa|test). Defaults to qa.
+  const envName = process.env.TEST_ENV || 'qa';
+  const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
 
   // Helper function to generate a random 717 phone number
   function randPhone717() {
@@ -24,7 +29,7 @@ test('test', async ({ page }) => {
   }
 
   // Navigate and login
-  await page.goto('https://writebizqa.donegalgroup.com/agentlogin.aspx');
+  await page.goto(writeBizUrl);
   await page.getByRole('textbox', { name: 'User ID:' }).fill('amitmish');
   await page.getByRole('textbox', { name: 'Password:' }).fill('Bombay12$');
   await page.getByRole('button', { name: 'Log In' }).click();
@@ -254,7 +259,9 @@ test('test', async ({ page }) => {
   await page.locator('#for_xrdo_Question_Form_BP7UnderwritingQuestion_Ext_0_BP7CertificateQuestion_Ext_Yes').click();
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.waitForLoadState('networkidle');
   await page.waitForSelector('#lblQuoteNumValue', { timeout: 60000 });
+
 
   // Capture quote number
   const quoteNumber = await page.locator('#lblQuoteNumValue').textContent();
@@ -279,7 +286,7 @@ test('test', async ({ page }) => {
   // Now submit policy for approval in the same browser session
   console.log('Starting policy submission workflow...');
 
-  await submitPolicyForApproval(page, submissionNumber);
+  await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl });
 
   console.log('Test completed successfully');
 });

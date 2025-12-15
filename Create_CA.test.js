@@ -1,62 +1,25 @@
-import { test, expect } from '@playwright/test';
+const { test } = require('@playwright/test');
+const { blinqClick } = require('./utils/blinqClick');
+const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow_simplified');
 
-test('test', async ({ page }) => {
-  await page.getByTitle('Client Summary').click();
-  await page.goto('https://writebizqa.donegalgroup.com/crystal.aspx?p=ClientSummary.aspx&sid=408F98DF136749228D45A65EEFD1085B');
-  await page.getByRole('button', { name: 'Add New Quote' }).click();
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.locator('.ui-button.ui-widget.ui-state-default.ui-button-icon-only.ui-corner-right.ui-button-icon').click();
-  await page.locator('.ui-button.ui-widget.ui-state-default.ui-button-icon-only.ui-corner-right.ui-button-icon').click();
-  await page.locator('.ui-button.ui-widget.ui-state-default.ui-button-icon-only.ui-corner-right.ui-button-icon').click();
-  await page.locator('#ui-id-16').getByText('DE', { exact: true }).click();
-  await page.locator('.ui-checkbox.ui-state-default.ui-corner-all.ui-state-hover').click();
-  await page.locator('div').filter({ hasText: /^Commercial Package$/ }).click();
-  await page.locator('.ui-checkbox.ui-state-default.ui-corner-all.ui-state-focus').click();
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.locator('.ui-button.ui-widget.ui-state-default.ui-button-icon-only.ui-corner-right.ui-button-icon').click();
-  await page.locator('#ui-id-26').getByText('Business Auto Coverage Form').click();
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await page.locator('.ui-radiobutton.ui-state-default.ui-corner-all.ui-state-hover').click();
-  await page.locator('#xrgn_AutoFillingsRequiredInd_Ext_AutoFillingsRequiredInd_Ext_Question_Control > div > .ui-xcontrols-row > div:nth-child(2) > div > .ui-xcontrols > div:nth-child(2) > span').click();
-  await page.locator('.ui-radiobutton.ui-state-default.ui-corner-all.ui-state-hover').click();
-  await page.locator('.ui-radiobutton.ui-state-default.ui-corner-all.ui-state-hover').click();
-  await page.locator('.ui-radiobutton.ui-state-default.ui-corner-all.ui-state-hover').click();
-  await page.locator('.ui-radiobutton.ui-state-default.ui-corner-all.ui-state-hover').click();
-  await page.getByRole('button', { name: 'Ok' }).click();
-  await page.locator('.ui-radiobutton.ui-state-default.ui-corner-all.ui-state-hover').click();
-  await page.locator('#xrgn_AutoFillingsRequiredInd_Ext_AutoFillingsRequiredInd_Ext_Question_Row').click();
-  await page.getByRole('button', { name: 'Finish' }).click();
-  await page.goto('https://writebizqa.donegalgroup.com/crystal.aspx?a=init&p=ClientSummary.aspx&undkey=453733&sid=2717A293215D42968FD67AA9CD52D2BC');
-  await page.locator('[id="5731332"] > td:nth-child(15) > button').first().click();
-  await page.locator('#ddlPriorCarrier').selectOption('Allstate');
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('combobox', { name: 'Add New Vehicle' }).click();
-  await page.locator('#bs-select-2-1').click();
-  await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
-  await page.locator('#bs-select-3-1').click();
-  await page.getByRole('button', { name: 'Confirm' }).click();
-  await page.locator('#txt_Vin').click();
-  await page.locator('#txt_Vin').fill('1FT7W2BT9GEA38226');
-  await page.getByText('Details Garaging Location 1:').click();
-  await page.getByRole('combobox', { name: 'Please select' }).click();
-  await page.locator('#bs-select-2-1').click();
-  await page.getByRole('textbox', { name: 'Stated Amount' }).click();
-  await page.getByRole('textbox', { name: 'Stated Amount' }).fill('1500');
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Save Vehicle ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: ' Close' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: ' Close' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+test('Run Guidewire workflow using Blinq locators', async ({ page, context }) => {
+  // Increase test timeout for longer UI workflows that interact with PolicyCenter
+  test.setTimeout(120000);
+  const page1 = await context.newPage();
+
+  // run your workflow up to Risk Analysis
+  await submitPolicyForApproval(page, page1, "3003177722"); 
+
+  // define Blinq-style locators
+  const riskAnalysisLocators = [
+    'internal:text="Risk Analysis"i',
+    'internal:text="Risk Analysis"s',
+    'div >> internal:has-text=/^Risk Analysis$/',
+    'internal:text="QuQualificationPCPolicy"i >> div >> internal:has-text="Risk Analysis"i',
+    'internal:text="QuQualificationPCPolicy ContractPIPolicy"i >> div >> internal:has-text="Risk Analysis"i'
+  ];
+
+  // click Risk Analysis on the same page we used for navigation (`page1`)
+  const ok = await blinqClick(page1, riskAnalysisLocators, { aggressive: true });
+  if (!ok) throw new Error("Risk Analysis click failed");
 });

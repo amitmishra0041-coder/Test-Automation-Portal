@@ -1,26 +1,37 @@
 const nodemailer = require("nodemailer");
 
-// Replace with your company's SMTP relay info
+// Configure transport for internal SMTP relay
 const transporter = nodemailer.createTransport({
-  host: "smtp.donegalgroup.com", // your internal SMTP server
-  port: 25,                 // usually 25 or 587
-  secure: false,            // false for internal relay
-  tls: { rejectUnauthorized: false } // bypass TLS cert check
+  host: "smtp.donegalgroup.com", // internal SMTP server
+  port: 25,                      // typical port for internal relay
+  secure: false,                 // no TLS for internal relay
+  logger: true,                  // enable debug logging
+  debug: true                    // print SMTP conversation to console
 });
 
 // Test email details
 const mailOptions = {
-  from: "automation@company.com", // generic sender allowed by relay
-  to: "amitmishra@donegalgroup.com",          // your email
+  from: "automation@donegalgroup.com", // generic sender allowed by relay
+  to: "amitmishra@donegalgroup.com",   // your email
   subject: "SMTP Relay Test",
   text: "This is a test email sent via internal SMTP relay."
 };
 
-// Send the test email
-transporter.sendMail(mailOptions, (err, info) => {
+// Verify connection to SMTP server
+transporter.verify((err, success) => {
   if (err) {
-    console.error("❌ Failed to send test email:", err.message);
+    console.error("❌ Connection to SMTP server failed:", err.message);
   } else {
-    console.log("✅ Test email sent successfully:", info.response);
+    console.log("✅ SMTP server is ready. Sending test email...");
+    
+    // Send the email
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.error("❌ Failed to send test email:", err.message);
+      } else {
+        console.log("✅ Test email sent successfully!");
+        console.log("Response:", info.response);
+      }
+    });
   }
 });
