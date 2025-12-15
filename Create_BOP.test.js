@@ -1,13 +1,26 @@
 import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
+const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 
 test('test', async ({ page }) => {
-  test.setTimeout(300000); // 5 minutes timeout
+  test.setTimeout(300000); // 5 minutes total test timeout
+  page.setDefaultTimeout(60000); // 60 seconds default timeout for all actions
 
   // Helper function to generate a random 717 phone number
   function randPhone717() {
     const randomDigits = Math.floor(1000000 + Math.random() * 9000000); // 7 random digits
     return `717${randomDigits}`;
+  }
+
+  // Helper function to click optional buttons
+  async function clickIfExists(buttonName) {
+    try {
+      const button = page.getByRole('button', { name: buttonName });
+      await button.click({ timeout: 5000 });
+      console.log(`✅ "${buttonName}" button clicked`);
+    } catch (error) {
+      console.log(`⏭️  "${buttonName}" button not present, skipping`);
+    }
   }
 
   // Navigate and login
@@ -34,13 +47,15 @@ test('test', async ({ page }) => {
   await page.locator('#txtPhone').fill(randPhone717());
   await page.getByRole('textbox', { name: 'Email Address' }).fill(randEmail());
   await page.getByRole('button', { name: 'Next' }).click();
+  
+  // Click optional buttons - they may or may not appear depending on the flow
+  await clickIfExists('Use Suggested');
+  await clickIfExists('Accept As-Is');
+  await clickIfExists('Client not listed');
+  await clickIfExists('Continue');
 
-  // Accept defaults
-  await page.getByRole('button', { name: 'Accept As-Is' }).click();
-  await page.getByRole('button', { name: 'Client not listed' }).click();
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  await page.waitForTimeout(40000);
+  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   // Business Description
   await page.getByRole('textbox', { name: 'Business Description' }).fill('test desc');
@@ -68,10 +83,10 @@ test('test', async ({ page }) => {
   await page.locator('#xddl_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').selectOption('13');
   await page.locator('#txt_AnnualGrossSales_All_008_AnnualGrossSales_All_008_Integer_Question').fill('45555');
   await page.locator('#xrgn_CertifyQuestion_101_Ext_CertifyQuestion_101_Ext_Question_Control > div > .ui-xcontrols-row > div > div > .ui-xcontrols > div:nth-child(2) > span').first().click();
-
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
+  await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForTimeout(5000);
+  await page.waitForLoadState('networkidle');
   console.log('Account qualification completed');
   // Businessowners quote
   await page.getByText('Businessowners (v7)').click();
@@ -109,21 +124,21 @@ test('test', async ({ page }) => {
   await page.getByRole('button', { name: ' Save' }).click();
 
   //existing code
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  //await page.getByRole('button', { name: 'Next ' }).click();
-  //await page.waitForTimeout(5000);
-  //await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
+  //await page.getByRole('button', { name: 'Next ' }).click();
+  //await page.waitForLoadState('networkidle');
+  //await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
   console.log('BOP quote - preliminary info completed');
   // Add building
   await page.locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]').click();
   await page.locator('.dropdown-menu.show .text').filter({ hasText: /^[0-9]+: .*/ }).first().click();
-  await page.waitForTimeout(3000);
+  await page.waitForLoadState('load');
   // Click the dropdown button
   await page.locator('button[data-id="ddlConstructionType"]').click();
 
@@ -166,90 +181,105 @@ test('test', async ({ page }) => {
   await page.getByRole('combobox', { name: 'Nothing selected' }).click();
   await page.locator('#bs-select-9-1').click();
   await page.getByRole('button', { name: ' Save' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
   // Classification
-  await page.waitForTimeout(5000);
+  await page.waitForLoadState('networkidle');
   await page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll > .input-group-text > .fas').click();
   await page.getByRole('gridcell', { name: 'Carpentry - Interior - Office' }).click();
-  //await page.locator('#txtClassificationSquareFootage_integerWithCommas').fill('999');
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(2000);
+  
   const squareFootageInput = page.locator('#txtClassificationSquareFootage_integerWithCommas');
-
-  // Focus the field
-  await squareFootageInput.click({ clickCount: 3 }); // select existing value
-
-  // Clear existing content
+  await squareFootageInput.waitFor({ state: 'visible', timeout: 10000 });
+  await squareFootageInput.waitFor({ state: 'attached', timeout: 10000 });
+  await page.waitForTimeout(1000);
+  
+  // Click to focus and select all
+  await squareFootageInput.click({ clickCount: 3 });
+  await page.waitForTimeout(1000);
+  
+  // Clear by pressing Backspace
   await page.keyboard.press('Backspace');
-
-  // Type the value
+  await page.waitForTimeout(500);
+  
+  // Type character by character for comma formatting
   await page.keyboard.type('999');
-
-  // Trigger blur
+  await page.waitForTimeout(1000);
+  
+  // Blur to trigger validation
   await squareFootageInput.blur();
-
-
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
   //Business Personal Propert
   await page.getByTitle('Edit Coverage').click();
-  //await page.locator('#txtexposure_integerWithCommas').click();
-  //await page.locator('#txtexposure_integerWithCommas').fill('25300');
-
+  await page.waitForTimeout(1000);
+  
   const exposureInput = page.locator('#txtexposure_integerWithCommas');
-
-  // Focus the field and select existing content
+  await exposureInput.waitFor({ state: 'visible', timeout: 10000 });
+  
+  // Click to focus and select all
   await exposureInput.click({ clickCount: 3 });
-
-  // Clear any existing value
+  await page.waitForTimeout(500);
+  
+  // Clear by pressing Backspace
   await page.keyboard.press('Backspace');
-
-  // Type the value manually to trigger comma formatting
+  await page.waitForTimeout(300);
+  
+  // Type character by character for comma formatting
   await page.keyboard.type('25300');
-
-  // Trigger blur so the UI processes and formats the value
+  await page.waitForTimeout(500);
+  
+  // Blur to trigger validation
   await exposureInput.blur();
+  await page.waitForTimeout(2000);
 
   await page.getByRole('button', { name: 'Save' }).click();
 
-  //await page.getByRole('button', { name: ' Close' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  //await page.getByRole('button', { name: ' Close' }).click();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Next ' }).click();
   await page.getByRole('button', { name: 'Save Building/Classification' }).click();
   console.log('Building and classification added');
   // Continue workflow
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
-  await page.waitForTimeout(5000);
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.waitForLoadState('networkidle');
   await page.locator('#for_xrdo_Question_Form_BP7UnderwritingQuestion_Ext_0_BP7MortgageonProp_Ext_No').click();
   await page.locator('#for_xrdo_Question_Form_BP7UnderwritingQuestion_Ext_0_BP7CertificateQuestion_Ext_Yes').click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
-  await page.waitForTimeout(5000);
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.waitForSelector('#lblQuoteNumValue', { timeout: 60000 });
 
   // Capture quote number
   const quoteNumber = await page.locator('#lblQuoteNumValue').textContent();
   console.log('Quote Number:', quoteNumber.trim());
 
-  const quoteValue = await page.locator('#lblQuoteNumValue').textContent();
-  console.log('Quote Number:', quoteValue.trim());
+
+  const submissionNumber = quoteNumber.trim();
+
   // Add these at the very top of your test file
   const fs = require('fs');
   const path = require('path');
 
   // Append to file
   const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] Quote Number: ${quoteValue.trim()}\n`;
+  const line = `[${timestamp}] Quote Number: ${submissionNumber}\n`;
 
   const filePath = path.join(__dirname, 'quoteNumbers.txt');
   fs.appendFileSync(filePath, line, 'utf8');
 
-
   console.log(`Quote Number appended to ${filePath}`);
+
+  // Now submit policy for approval in the same browser session
+  console.log('Starting policy submission workflow...');
+
+  await submitPolicyForApproval(page, submissionNumber);
+
+  console.log('Test completed successfully');
 });
-
-
