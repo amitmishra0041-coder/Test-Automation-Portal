@@ -1,17 +1,44 @@
 const { blinqClick } = require('../utils/blinqClick');
 
-async function submitPolicyForApproval(page, submissionNumber) {
+async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl } = {}) {
   // Set 40 second timeout for this workflow
   page.setDefaultTimeout(40000);
 
   // ===== PART 1: WriteBiz submission (uses same tab 'page') =====
   console.log('📋 Step 1: Submitting policy in WriteBiz...');
 
-  // Click Contact Underwriter accordion header
-  await page.locator('#UnderwriterComm').click();
+  // Click Submit For Approval button first
+  try {
+    const submitAgentBtn = page.locator('#btnSubmitAgent');
+    const isVisible = await submitAgentBtn.isVisible({ timeout: 5000 });
+    if (isVisible) {
+      console.log('🔘 Clicking Submit For Approval button...');
+      await submitAgentBtn.click({ timeout: 10000 });
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(3000);
+      console.log('✅ Submit For Approval button clicked');
+    }
+  } catch (e) {
+    console.log('⏭️ Submit For Approval button not found, continuing...');
+  }
+
+ await page.reload();
+  
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(10000); // Wait for grid to load
-  await page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`).click();
+  
+  // Wait for submission row to be visible before clicking
+  const submissionRow = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
+  try {
+    await submissionRow.waitFor({ state: 'visible', timeout: 15000 });
+    console.log(`✅ Submission row ${submissionNumber} is visible`);
+  } catch (e) {
+    console.warn(`⚠️ Submission row not found with selector, attempting scroll...`);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(2000);
+  }
+  
+  await submissionRow.click();
   await page.getByRole('button', { name: 'Submit For Approval' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('radio').first().click();
@@ -31,7 +58,9 @@ async function submitPolicyForApproval(page, submissionNumber) {
 
   // 1️⃣ Login to PolicyCenter
   console.log(`🔎 Submitting number to PolicyCenter: ${submissionNumber}`);
-  await page1.goto('https://qa-policycenter.donegalgroup.com/pc/PolicyCenter.do');
+  const pcUrl = policyCenterUrl || 'https://qa-policycenter.donegalgroup.com/pc/PolicyCenter.do';
+  await page1.goto(pcUrl);
+  
   await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
   await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
   await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
@@ -73,37 +102,19 @@ async function submitPolicyForApproval(page, submissionNumber) {
   }
 
   // 4️⃣ Special Approve Buttons
-  console.log('⏳ Waiting for Risk Analysis screen to load...');
   try {
     await page1.locator('div[id*="RiskAnalysis"], #SubmissionWizard-Job_RiskAnalysisScreen')
       .first()
       .waitFor({ state: 'visible', timeout: 15000 })
       .catch(() => { });
   } catch (e) {
-    console.warn('Risk Analysis screen not found, continuing anyway');
+    // Risk Analysis screen not found, continuing anyway
   }
 
   await page1.waitForLoadState('networkidle');
 
   // Wait for Risk Analysis elements to fully render and stabilize
-  console.log('⏳ Waiting 3 seconds for Risk Analysis screen to fully render...');
   await page1.waitForTimeout(10000);
-
-  // Diagnostics: log counts for each selector before attempting clicks
-  try {
-    const diagSelectors = [
-      '#SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-1-UWIssueRowSet-SpecialApprove',
-      '[id^="SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-"][id$="-UWIssueRowSet-SpecialApprove"]',
-      '[data-gw-click*="UWIssueRowSet-SpecialApprove"]',
-      '#SubmissionWizard-Job_RiskAnalysisScreen button:has-text("Special Approve")',
-    ];
-    for (const sel of diagSelectors) {
-      const count = await page1.locator(sel).count().catch(() => 0);
-      console.log(`🧪 Pre-check selector count: ${sel} -> ${count}`);
-    }
-  } catch (diagErr) {
-    console.warn(`Diagnostics error: ${diagErr?.message}`);
-  }
   // Robust Special Approve detection: IDs can shift; try multiple selectors
   const specialApproveSelectors = [
     '#SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-1-UWIssueRowSet-SpecialApprove',
@@ -120,7 +131,6 @@ async function submitPolicyForApproval(page, submissionNumber) {
       const loc = page1.locator(sel);
       const count = await loc.count().catch(() => 0);
       if (count > 0) {
-        console.log(`🔎 Selector: ${sel} (count=${count})`);
         // Prefer selectors that find more buttons (more likely to find all remaining ones)
         if (count > bestCount) {
           bestLocator = loc;
@@ -130,7 +140,6 @@ async function submitPolicyForApproval(page, submissionNumber) {
     }
 
     if (bestLocator) {
-      console.log(`✅ Selected best locator with ${bestCount} buttons available`);
       return bestLocator.first();
     }
     return null;
@@ -140,26 +149,22 @@ async function submitPolicyForApproval(page, submissionNumber) {
   while (true) {
     const locator = await findSpecialApproveLocator();
     if (!locator) {
-      console.log(`✅ No Special Approve button found. Total clicked: ${clickCount}`);
       // Capture screenshot for troubleshooting
       try {
         const ts = new Date().toISOString().replace(/[:.]/g, '-');
         await page1.screenshot({ path: `test-results/special-approve-not-found-${ts}.png`, fullPage: true });
-        console.log('🖼️ Screenshot captured: test-results/special-approve-not-found-*.png');
       } catch (ssErr) {
-        console.warn(`Screenshot capture failed: ${ssErr?.message}`);
+        // Screenshot capture failed
       }
       break;
     }
 
     clickCount++;
-    console.log(`🔘 Click #${clickCount}: Attempting Special Approve`);
 
     await locator.scrollIntoViewIfNeeded().catch(() => { });
     await page1.waitForLoadState('domcontentloaded');
 
     page1.once('dialog', dialog => {
-      console.log(`📍 Dialog detected: ${dialog.type()}`);
       if (dialog.type() === 'confirm' || dialog.type() === 'alert') {
         dialog.accept().catch(() => { });
       } else {
@@ -169,7 +174,6 @@ async function submitPolicyForApproval(page, submissionNumber) {
 
     await locator.focus().catch(() => { });
     await locator.click({ timeout: 10000 }).catch(async (err) => {
-      console.warn(`⚠️ Click failed: ${err?.message}. Retrying via evaluate...`);
       try {
         const el = await locator.elementHandle();
         if (el) await page1.evaluate((node) => node.click(), el);
@@ -177,8 +181,6 @@ async function submitPolicyForApproval(page, submissionNumber) {
         throw e2;
       }
     });
-
-    console.log(`✅ Clicked Special Approve`);
 
     // Wait a moment for the dialog to appear
     await page1.waitForTimeout(500);
@@ -195,9 +197,7 @@ async function submitPolicyForApproval(page, submissionNumber) {
       const okBtn = page1.getByRole('button', { name: 'OK' });
       const okExists = await okBtn.count().catch(() => 0);
       if (okExists > 0) {
-        console.log(`🔍 Found page OK button, attempting click...`);
         await okBtn.click({ timeout: 5000 });
-        console.log(`✅ Clicked page OK button`);
 
         // Wait for this OK click to settle before next iteration
         await page1.waitForLoadState('networkidle');
@@ -206,17 +206,24 @@ async function submitPolicyForApproval(page, submissionNumber) {
         // Wait for the button to be removed from DOM and next button to render
         await page1.waitForLoadState('domcontentloaded');
         await page1.waitForTimeout(2000);
-      } else {
-        console.log(`⏭️ No page OK button found after Special Approve`);
       }
     } catch (okErr) {
-      console.warn(`⚠️ Page OK click failed: ${okErr?.message}`);
+      // Page OK click failed
     }
   }
   
   // ===== PART 3: Submit for issuance (back to WriteBiz tab 'page') =====
   console.log('⏳ Step 3: Submitting for issuance in WriteBiz...');
-  await page1.locator('div[aria-label="Release Lock"]').click();
+  // Release lock in PolicyCenter if present (do not fail if absent)
+  try {
+    const releaseLock = page1.locator('div[aria-label="Release Lock"]');
+    if (await releaseLock.count({ timeout: 2000 }).catch(() => 0)) {
+      await releaseLock.click({ timeout: 5000 });
+      await page1.waitForTimeout(500);
+    }
+  } catch (e) {
+    console.warn(`Release Lock not clicked (continuing): ${e?.message}`);
+  }
   // Close PolicyCenter tab to free up resources
   await page1.close();
   
@@ -224,26 +231,68 @@ async function submitPolicyForApproval(page, submissionNumber) {
   await page.bringToFront();
   await page.waitForTimeout(2000); // Give time for tab to focus
   
-  // Open the Contact Underwriter accordion and wait for grid
-  //await page.locator('#UnderwriterComm').click();
-  //await page.waitForLoadState('domcontentloaded');
-  //await page.waitForTimeout(3000); // Wait for grid to load
   await page.reload();
   // Click the submission using the same selector as Part 1
   await page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`).click();
   await page.getByRole('button', { name: 'Submit For Issuance' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
+  await page.waitForLoadState('domcontentloaded');
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.locator('.ui-radiobutton.ui-state-default.ui-corner-all.ui-state-hover').click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(5000);
+  
+  // Wait for page to fully load and radio button to be available
+  console.log('⏳ Waiting for radio button to be available...');
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(2000);
+  
+  // Click "Bill Insured By Mail" radio button (rbBIM_FullPay)
+  console.log('🔘 Clicking Bill Insured By Mail radio button...');
+  try {
+    // Remove overlay if present
+    await page.evaluate(() => {
+      const overlay = document.querySelector('.ui-widget-overlay.ui-front');
+      if (overlay) overlay.remove();
+    }).catch(() => {});
+    await page.waitForTimeout(300);
+    
+    // Click the radio button by ID
+    const radioButton = page.locator('#rbBIM_FullPay').locator('xpath=..'); // Get parent div
+    await radioButton.click({ timeout: 10000, force: true });
+    console.log('✅ Bill Insured By Mail radio button clicked');
+  } catch (e) {
+    console.warn(`⚠️ Failed to click rbBIM_FullPay: ${e?.message}. Trying fallback...`);
+    // Fallback: click by CSS class
+    await page.locator('div[role="radio"][aria-pressed="true"]').first().click({ timeout: 10000, force: true });
+  }
   await page.getByRole('button', { name: 'Next' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+
   await page.getByRole('button', { name: 'Next' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+
+  // Remove overlay before Bind and Issue click
+  await page.evaluate(() => {
+    const overlay = document.querySelector('.ui-widget-overlay.ui-front');
+    if (overlay) overlay.remove();
+  }).catch(() => {});
+  await page.waitForTimeout(300);
+
   await page.getByRole('button', { name: 'Bind and Issue' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(5000);
+
   await page.locator('.esign-button.esign-paper').click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+
   await page.getByRole('button', { name: 'Finish' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+
   await page.getByRole('button', { name: 'Send' }).click();
-  //await page.getByText('1002228140').click();
-  //await page.locator('.ui-widget-overlay.ui-front').click();
-  //await page.getByLabel('', { exact: true }).click();
   await page.getByRole('button', { name: 'Ok' }).click();
   await page.getByRole('tab', { name: 'Client Summary' }).click();
   
