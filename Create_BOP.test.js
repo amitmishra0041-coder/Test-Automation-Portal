@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
+const fs = require('fs');
+const path = require('path');
 
 test('test', async ({ page }) => {
   test.setTimeout(480000); // 8 minutes total test timeout
@@ -10,6 +12,50 @@ test('test', async ({ page }) => {
   // Select environment via TEST_ENV (qa|test). Defaults to qa.
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
+  
+  // Initialize milestone tracking for email report
+  global.testData = global.testData || {};
+  global.testData.milestones = [];
+  let currentStepStartTime = null;
+  
+  // Helper to persist test data to JSON file
+  function saveTestData() {
+    try {
+      const testDataFile = path.join(__dirname, 'test-data.json');
+      fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+    } catch (e) {
+      console.log('⚠️ Could not save test-data.json:', e.message);
+    }
+  }
+  
+  function trackMilestone(name, status = 'PASSED', details = '') {
+    const now = new Date();
+    let duration = null;
+    
+    // Calculate duration since last milestone (excluding wait times)
+    if (currentStepStartTime) {
+      duration = ((now - currentStepStartTime) / 1000).toFixed(2); // in seconds
+    }
+    
+    const milestone = {
+      name,
+      status,
+      timestamp: now,
+      details,
+      duration: duration ? `${duration}s` : null
+    };
+    global.testData.milestones.push(milestone);
+    console.log(`${status === 'PASSED' ? '\u2705' : '\u274c'} ${name}${duration ? ` (${duration}s)` : ''}`);
+    
+    // Save data to file immediately so reporter can read it
+    saveTestData();
+    
+    // Reset timer for next step
+    currentStepStartTime = new Date();
+  }
+  
+  // Start timing from first milestone
+  currentStepStartTime = new Date();
 
   // Helper function to generate a random 717 phone number
   function randPhone717() {
@@ -59,11 +105,14 @@ test('test', async ({ page }) => {
   await clickIfExists('Client not listed');
   await clickIfExists('Continue');
 
-  await page.waitForLoadState('networkidle');
+  // Wait for the page to be ready - more reliable than networkidle
   await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(3000); // Give page time to fully render
 
-  // Business Description
-  await page.getByRole('textbox', { name: 'Business Description' }).fill('test desc');
+  // Business Description - wait for it to be visible and enabled
+  const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
+  await businessDescField.waitFor({ state: 'visible', timeout: 30000 });
+  await businessDescField.fill('test desc');
   await page.locator('#xrgn_det_BusinessEntity > div > div > div:nth-child(2) > div > div > span > input').click();
   await page.locator('#ui-id-67').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#ui-id-67').click();
@@ -78,9 +127,17 @@ test('test', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Contact Phone' }).fill('7175551212');
   await page.getByRole('textbox', { name: 'Contact Email' }).fill(randEmail());
   await page.getByRole('button', { name: 'Next' }).click();
+  trackMilestone('Account Created Successfully');
   console.log('Account creation completed');
-  // Coverage selections
-  await page.locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question').selectOption('BOP');
+  
+  // Wait for the qualification page to load
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(3000);
+  
+  // Coverage selections - wait for dropdown to be available
+  const coverageDropdown = page.locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question');
+  await coverageDropdown.waitFor({ state: 'visible', timeout: 30000 });
+  await coverageDropdown.selectOption('BOP');
   await page.locator('#xrgn_WillBuildingCoverageBeRequested_124_WillBuildingCoverageBeRequested_124_Question_Control').getByText('No', { exact: true }).click();
   await page.getByRole('radio').first().click();
   await page.locator('#xddl_WhatIsTheTotalNumberOfPowerUnits_121_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').selectOption('01');
@@ -89,9 +146,11 @@ test('test', async ({ page }) => {
   await page.locator('#txt_AnnualGrossSales_All_008_AnnualGrossSales_All_008_Integer_Question').fill('45555');
   await page.locator('#xrgn_CertifyQuestion_101_Ext_CertifyQuestion_101_Ext_Question_Control > div > .ui-xcontrols-row > div > div > .ui-xcontrols > div:nth-child(2) > span').first().click();
   await page.waitForTimeout(2000);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+  trackMilestone('Account Qualification Completed');
   console.log('Account qualification completed');
   // Businessowners quote
   await page.getByText('Businessowners (v7)').click();
@@ -130,15 +189,14 @@ test('test', async ({ page }) => {
 
   //existing code
   await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(1500);
   await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(1500);
   await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForLoadState('networkidle');
-  //await page.getByRole('button', { name: 'Next ' }).click();
-  //await page.waitForLoadState('networkidle');
-  //await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
   console.log('BOP quote - preliminary info completed');
   // Add building
   await page.locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]').click();
@@ -246,6 +304,7 @@ test('test', async ({ page }) => {
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.getByRole('button', { name: 'Save Building/Classification' }).click();
+  trackMilestone('Building and Classification Added');
   console.log('Building and classification added');
   // Continue workflow
   await page.waitForLoadState('networkidle');
@@ -269,6 +328,7 @@ test('test', async ({ page }) => {
 
 
   const submissionNumber = quoteNumber.trim();
+  trackMilestone('Quote Rated Successfully', 'PASSED', `Quote #: ${submissionNumber}`);
 
   // Add these at the very top of your test file
   const fs = require('fs');
@@ -283,10 +343,28 @@ test('test', async ({ page }) => {
 
   console.log(`Quote Number appended to ${filePath}`);
 
+  // Store submission number globally for email reporter
+  global.testData.quoteNumber = submissionNumber;
+  saveTestData();
+  
   // Now submit policy for approval in the same browser session
   console.log('Starting policy submission workflow...');
+  trackMilestone('Submitting for Approval');
 
-  await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl });
+  const policyNumber = await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl });
+  
+  trackMilestone('UW Issues Approved');
+  trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${policyNumber}`);
+  
+  // Store policy number globally for email reporter
+  global.testData.policyNumber = policyNumber;
+  saveTestData();
+  console.log('📋 Test Data:', global.testData);
+
+  // Write test data to JSON file so reporter can read it
+  const testDataFile = path.join(__dirname, 'test-data.json');
+  fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+  console.log('💾 Test data written to test-data.json');
 
   console.log('Test completed successfully');
 });

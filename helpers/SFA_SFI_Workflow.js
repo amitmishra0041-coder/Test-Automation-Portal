@@ -22,22 +22,29 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     console.log('⏭️ Submit For Approval button not found, continuing...');
   }
 
- await page.reload();
-  
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(10000); // Wait for grid to load
-  
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(5000); // Wait for grid to load
+
+  // Try to reload, but handle errors gracefully
+  try {
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(3000);
+  } catch (e) {
+    console.log('⚠️ Page reload failed, continuing without reload:', e.message);
+  }
+
   // Wait for submission row to be visible before clicking
   const submissionRow = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
   try {
-    await submissionRow.waitFor({ state: 'visible', timeout: 15000 });
+    await submissionRow.waitFor({ state: 'visible', timeout: 20000 });
     console.log(`✅ Submission row ${submissionNumber} is visible`);
   } catch (e) {
     console.warn(`⚠️ Submission row not found with selector, attempting scroll...`);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(2000);
+    await submissionRow.waitFor({ state: 'visible', timeout: 10000 });
   }
-  
+
   await submissionRow.click();
   await page.getByRole('button', { name: 'Submit For Approval' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
@@ -60,7 +67,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   console.log(`🔎 Submitting number to PolicyCenter: ${submissionNumber}`);
   const pcUrl = policyCenterUrl || 'https://qa-policycenter.donegalgroup.com/pc/PolicyCenter.do';
   await page1.goto(pcUrl);
-  
+
   await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
   await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
   await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
@@ -211,7 +218,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
       // Page OK click failed
     }
   }
-  
+
   // ===== PART 3: Submit for issuance (back to WriteBiz tab 'page') =====
   console.log('⏳ Step 3: Submitting for issuance in WriteBiz...');
   // Release lock in PolicyCenter if present (do not fail if absent)
@@ -226,11 +233,11 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   }
   // Close PolicyCenter tab to free up resources
   await page1.close();
-  
+
   // Switch focus back to WriteBiz page
   await page.bringToFront();
   await page.waitForTimeout(2000); // Give time for tab to focus
-  
+
   await page.reload();
   // Click the submission using the same selector as Part 1
   await page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`).click();
@@ -240,12 +247,12 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   await page.getByRole('button', { name: 'Next' }).click();
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(5000);
-  
+
   // Wait for page to fully load and radio button to be available
   console.log('⏳ Waiting for radio button to be available...');
-  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForLoadState('networkidle').catch(() => { });
   await page.waitForTimeout(2000);
-  
+
   // Click "Bill Insured By Mail" radio button (rbBIM_FullPay)
   console.log('🔘 Clicking Bill Insured By Mail radio button...');
   try {
@@ -253,9 +260,9 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     await page.evaluate(() => {
       const overlay = document.querySelector('.ui-widget-overlay.ui-front');
       if (overlay) overlay.remove();
-    }).catch(() => {});
+    }).catch(() => { });
     await page.waitForTimeout(300);
-    
+
     // Click the radio button by ID
     const radioButton = page.locator('#rbBIM_FullPay').locator('xpath=..'); // Get parent div
     await radioButton.click({ timeout: 10000, force: true });
@@ -277,7 +284,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   await page.evaluate(() => {
     const overlay = document.querySelector('.ui-widget-overlay.ui-front');
     if (overlay) overlay.remove();
-  }).catch(() => {});
+  }).catch(() => { });
   await page.waitForTimeout(300);
 
   await page.getByRole('button', { name: 'Bind and Issue' }).click();
@@ -295,12 +302,14 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   await page.getByRole('button', { name: 'Send' }).click();
   await page.getByRole('button', { name: 'Ok' }).click();
   await page.getByRole('tab', { name: 'Client Summary' }).click();
-  
+
   const policyCell = page.locator(
     'td[aria-describedby="dgPolicies_DISPLAY_POLICY_NUMBER"]').first();
   await policyCell.waitFor({ state: 'visible' });
   const policyNumber = (await policyCell.innerText()).trim();
   console.log(`📄 Policy Number generated: ${policyNumber}`);
+
+  return policyNumber;
 }
 
 module.exports = { submitPolicyForApproval };
