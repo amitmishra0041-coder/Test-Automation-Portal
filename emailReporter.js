@@ -12,14 +12,21 @@ class EmailReporter {
   }
 
   onBegin() {
-    // Clear iterations file at the start of a test run
+    // Clear iterations file and test data at the start of a test run
     try {
       if (fs.existsSync(this.iterationsFile)) {
         fs.unlinkSync(this.iterationsFile);
         console.log('🗑️ Cleared previous iterations data');
       }
+      
+      // Also clear test-data.json to prevent stale data
+      const testDataFile = path.join(__dirname, 'test-data.json');
+      if (fs.existsSync(testDataFile)) {
+        fs.unlinkSync(testDataFile);
+        console.log('🗑️ Cleared previous test-data.json');
+      }
     } catch (e) {
-      console.log('⚠️ Could not clear iterations file:', e.message);
+      console.log('⚠️ Could not clear data files:', e.message);
     }
   }
 
@@ -48,6 +55,8 @@ class EmailReporter {
         iterations.push({
           iterationNumber: iterations.length + 1,
           status: result.status.toUpperCase(),
+          state: testData.state || 'N/A',
+          stateName: testData.stateName || 'N/A',
           quoteNumber: testData.quoteNumber || 'N/A',
           policyNumber: testData.policyNumber || 'N/A',
           milestones: testData.milestones || [],
@@ -101,7 +110,7 @@ class EmailReporter {
           <th style="padding:8px;text-align:left;border:1px solid #a5d6a7;position:sticky;left:0;background:#c8e6c9;z-index:10;width:150px;">Milestone</th>
           ${iterations.map((it, idx) => `
             <th colspan="2" style="padding:8px;text-align:center;border:1px solid #a5d6a7;background:#b2dfdb;">
-              #${it.iterationNumber}<br/>
+              #${it.iterationNumber} - ${it.state} (${it.stateName})<br/>
               <span style="font-size:0.85em;font-weight:normal;">Quote: ${it.quoteNumber}</span><br/>
               <span style="font-size:0.85em;font-weight:normal;">Policy: ${it.policyNumber}</span>
             </th>

@@ -47,7 +47,32 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
   await submissionRow.click();
   await page.getByRole('button', { name: 'Submit For Approval' }).click();
+
+  await page.waitForTimeout(3000);
+  
+  // Fill Specify other entity Description field if present
+  try {
+    const businessDescInput = page.locator('#txtDescBusinessEnt');
+    const isVisible = await businessDescInput.isVisible({ timeout: 3000 });
+
+    if (isVisible) {
+      console.log('✅ Business Entity Description field found, filling with "Test"...');
+      await businessDescInput.fill('Test');
+      console.log('✅ Business Entity Description filled');
+    }
+  } catch (e) {
+    console.log('⏭️ Business Entity Description field not present, skipping...');
+  }
+
+  // Wait before clicking Next button
+  await page.waitForTimeout(1000);
   await page.getByRole('button', { name: 'Next' }).click();
+  
+  // Wait for page to load after Next click
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+  
+  // Now click the radio button
   await page.getByRole('radio').first().click();
   await page.getByRole('button', { name: 'Finish' }).click();
   await page.getByRole('button', { name: 'Send' }).click();

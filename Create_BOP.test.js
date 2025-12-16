@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
+const { getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,9 +14,17 @@ test('test', async ({ page }) => {
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
   
+  // Select state via TEST_STATE (DE|PA|MD|OH|MI). Defaults to DE.
+  const testState = process.env.TEST_STATE || 'DE';
+  const stateConfig = getStateConfig(testState);
+  console.log(`🗺️ Running test for state: ${testState} (${stateConfig.name})`);
+  
   // Initialize milestone tracking for email report
-  global.testData = global.testData || {};
-  global.testData.milestones = [];
+  global.testData = {
+    state: testState,
+    stateName: stateConfig.name,
+    milestones: []
+  };
   let currentStepStartTime = null;
   
   // Helper to persist test data to JSON file
@@ -83,18 +92,18 @@ test('test', async ({ page }) => {
   // Create new client
   await page.getByRole('button', { name: 'Create a New Client' }).click();
   await page.getByText('Enter Search Text here or').click();
-  await page.locator('#txtAgency_input').fill('8707');
-  await page.getByRole('gridcell', { name: '0008707' }).click();
-  await page.locator('#ui-id-9').getByText('BRENT W. PARENTEAU').click();
+  await page.locator('#txtAgency_input').fill('0000988');
+  await page.getByRole('gridcell', { name: '0000988' }).click();
+  await page.locator('#ui-id-9').getByText('CHRISTINA M. BOWER').click();
   await page.getByRole('button', { name: 'Next' }).click();
 
   // Fill client info
   await page.getByRole('textbox', { name: 'Company/ Individual Name' }).fill(randCompany());
   await page.getByRole('textbox', { name: 'Street Line 1' }).fill(randAddress());
-  await page.getByRole('textbox', { name: 'City' }).fill(randCity());
+  await page.getByRole('textbox', { name: 'City' }).fill(randCityForState(testState));
   await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click();
-  await page.locator('#ui-id-30').click();
-  await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill('19709');
+  await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click();
+  await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill(randZipForState(testState));
   await page.locator('#txtPhone').fill(randPhone717());
   await page.getByRole('textbox', { name: 'Email Address' }).fill(randEmail());
   await page.getByRole('button', { name: 'Next' }).click();
@@ -113,9 +122,15 @@ test('test', async ({ page }) => {
   const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
   await businessDescField.waitFor({ state: 'visible', timeout: 30000 });
   await businessDescField.fill('test desc');
+  
+  // Click the Business Entity input to open dropdown
   await page.locator('#xrgn_det_BusinessEntity > div > div > div:nth-child(2) > div > div > span > input').click();
-  await page.locator('#ui-id-67').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#ui-id-67').click();
+  
+  // Wait for dropdown and click first non-empty option
+  await page.waitForTimeout(500);
+  const firstOption = page.locator('.ui-menu.ui-widget:visible .ui-menu-item').first();
+  await firstOption.waitFor({ state: 'visible', timeout: 5000 });
+  await firstOption.click();
   await page.locator('#txtYearBusinessStarted').fill('2014');
   await page.getByRole('textbox', { name: 'Federal ID Number' }).fill(randSSN());
   await page.locator('#txtNAICSCode_input').fill('812210');
@@ -156,10 +171,18 @@ test('test', async ({ page }) => {
   await page.getByText('Businessowners (v7)').click();
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button').filter({ hasText: /^$/ }).nth(1).click();
-  await page.locator('#ddlPriorCarrier').selectOption('Allstate');
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('combobox', { name: 'Nothing selected' }).click();
-  await page.locator('#bs-select-2-3').click();
+  await page.locator('#ddlPriorCarrier').selectOption('Progressive');
+  await page.getByRole('button', { name: 'Next ' }).click();
+  
+  // Select Legal Entity - Association
+  await page.locator('button.dropdown-toggle').first().click();
+  await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ }).click();
+  
+  // Select Business Type - Contractor
+  await page.locator('button.dropdown-toggle').nth(1).click();
+  await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Contractor$/ }).click();
+  
+  
   await page.getByRole('button', { name: 'Next ' }).click();
   //Contractors' Tools And Equip
   await page.getByTitle('Edit Coverage').nth(3).click();
@@ -291,7 +314,7 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(300);
   
   // Type character by character for comma formatting
-  await page.keyboard.type('25300');
+  await page.keyboard.type('35000');
   await page.waitForTimeout(500);
   
   // Blur to trigger validation

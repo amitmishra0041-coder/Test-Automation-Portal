@@ -30,7 +30,14 @@ echo.
 
 echo Running BOP Test in Chromium (headed mode)...
 echo.
-npx playwright test .\Create_BOP.test.js --project=chromium --headed
+$states = @('PA', 'DE', 'MD', 'OH', 'MI')
+foreach ($state in $states) {
+    Start-Job -ScriptBlock {
+        $env:TEST_STATE = $using:state
+        Write-Host "Running tests for state: $using:state"
+        npx playwright test Create_BOP.test.js --headed --project=chromium
+    }
+}
 
 if errorlevel 1 (
     echo.
