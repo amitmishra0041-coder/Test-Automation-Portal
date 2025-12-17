@@ -145,7 +145,8 @@ class EmailReporter {
         }
       } catch (e) {
         console.log('⚠️ Error managing lock file:', e.message);
-        // Continue to send email if there's an issue with lock file
+        console.log('📧 Skipping email to avoid duplicates during parallel run');
+        return; // Skip sending email if lock file has issues during parallel run
       }
     }
 
