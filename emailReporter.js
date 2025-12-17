@@ -13,25 +13,21 @@ class EmailReporter {
   }
 
   onBegin() {
-    // Clear iterations file and test data at the start of a test run
+    // In parallel runs, the orchestrator (PowerShell) initializes/cleans files.
+    // Only clear files when no lock file exists (single-run scenarios).
     try {
-      if (fs.existsSync(this.iterationsFile)) {
-        fs.unlinkSync(this.iterationsFile);
-        console.log('🗑️ Cleared previous iterations data');
-      }
-      
-      // Also clear test-data.json to prevent stale data
-      const testDataFile = path.join(__dirname, 'test-data.json');
-      if (fs.existsSync(testDataFile)) {
-        fs.unlinkSync(testDataFile);
-        console.log('🗑️ Cleared previous test-data.json');
-      }
-      
-      // Clear lock file if this is the first state in a parallel run
-      const currentState = process.env.TEST_STATE;
-      if (currentState === 'DE' && fs.existsSync(this.lockFile)) {
-        fs.unlinkSync(this.lockFile);
-        console.log('🗑️ Cleared parallel run lock file (starting fresh)');
+      if (!fs.existsSync(this.lockFile)) {
+        if (fs.existsSync(this.iterationsFile)) {
+          fs.unlinkSync(this.iterationsFile);
+          console.log('🗑️ Cleared previous iterations data (single run)');
+        }
+        const testDataFile = path.join(__dirname, 'test-data.json');
+        if (fs.existsSync(testDataFile)) {
+          fs.unlinkSync(testDataFile);
+          console.log('🗑️ Cleared previous test-data.json (single run)');
+        }
+      } else {
+        console.log('🔒 Lock file present; skipping cleanup (parallel run)');
       }
     } catch (e) {
       console.log('⚠️ Could not clear data files:', e.message);
@@ -99,34 +95,48 @@ class EmailReporter {
 
     // Check if this is a parallel run with multiple states
     const currentState = process.env.TEST_STATE;
-    const expectedStates = ['DE', 'PA', 'WI', 'OH', 'MI'];
-    
-    if (currentState && expectedStates.includes(currentState)) {
-      console.log(`🔄 Parallel run detected for state: ${currentState}`);
-      
-      // Update lock file with completed state
-      let lockData = { completedStates: [], startTime: new Date().toISOString() };
+    let targetStates = ['DE', 'PA', 'WI', 'OH', 'MI'];
+    if (fs.existsSync(this.lockFile)) {
       try {
+        const lockData = JSON.parse(fs.readFileSync(this.lockFile, 'utf-8'));
+        if (Array.isArray(lockData.targetStates) && lockData.targetStates.length > 0) {
+          targetStates = lockData.targetStates;
+        }
+      } catch (e) {
+        console.log('⚠️ Failed to read lock file for targetStates:', e.message);
+      }
+    }
+
+    if (currentState && targetStates.includes(currentState)) {
+      console.log(`🔄 Parallel run detected for state: ${currentState}`);
+
+      // Update lock file with completed state and send email only when all targetStates complete
+      try {
+        let lockData = { targetStates, completedStates: [], startTime: new Date().toISOString() };
         if (fs.existsSync(this.lockFile)) {
           lockData = JSON.parse(fs.readFileSync(this.lockFile, 'utf-8'));
+          if (!Array.isArray(lockData.targetStates) || lockData.targetStates.length === 0) {
+            lockData.targetStates = targetStates;
+          }
+          if (!Array.isArray(lockData.completedStates)) {
+            lockData.completedStates = [];
+          }
         }
-        
+
         if (!lockData.completedStates.includes(currentState)) {
           lockData.completedStates.push(currentState);
           fs.writeFileSync(this.lockFile, JSON.stringify(lockData, null, 2));
-          console.log(`✅ State ${currentState} marked as complete. Total completed: ${lockData.completedStates.length}/${expectedStates.length}`);
+          console.log(`✅ State ${currentState} marked as complete. Total completed: ${lockData.completedStates.length}/${lockData.targetStates.length}`);
         }
-        
-        // Only send email if all states are complete
-        if (lockData.completedStates.length < expectedStates.length) {
-          console.log(`⏳ Waiting for remaining states: ${expectedStates.filter(s => !lockData.completedStates.includes(s)).join(', ')}`);
-          console.log('📧 Email will be sent after all states complete');
+
+        const remaining = lockData.targetStates.filter(s => !lockData.completedStates.includes(s));
+        if (remaining.length > 0) {
+          console.log(`⏳ Waiting for remaining states: ${remaining.join(', ')}`);
+          console.log('📧 Email will be sent after all target states complete');
           return; // Skip sending email
         }
-        
-        console.log('🎉 All states completed! Sending consolidated email report...');
-        
-        // Clean up lock file
+
+        console.log('🎉 All target states completed! Sending consolidated email report...');
         try {
           fs.unlinkSync(this.lockFile);
           console.log('🗑️ Lock file cleaned up');
@@ -139,10 +149,21 @@ class EmailReporter {
       }
     }
 
-    const total = this.results.length;
-    const passed = this.results.filter(r => r.status === 'PASSED').length;
-    const failed = total - passed;
-    const overallPassed = failed === 0;
+    // Prefer iteration-based aggregation when available (parallel runs)
+    let total = this.results.length;
+    let passed = this.results.filter(r => r.status === 'PASSED').length;
+    let failed = total - passed;
+    let overallPassed = failed === 0;
+
+    if (iterations.length > 0) {
+      // Derive overall from all iterations collected across states
+      const itPassed = iterations.filter(it => it.status === 'PASSED').length;
+      const itFailed = iterations.filter(it => it.status !== 'PASSED').length;
+      total = iterations.length;
+      passed = itPassed;
+      failed = itFailed;
+      overallPassed = itFailed === 0;
+    }
 
     // Calculate average duration
     const avgDuration = iterations.length > 0 
