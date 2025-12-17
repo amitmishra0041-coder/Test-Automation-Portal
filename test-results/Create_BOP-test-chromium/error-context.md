@@ -1,0 +1,219 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003178441-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Treutel and Sons
+            - generic [ref=e14]: FRANKLIN AVE
+            - generic [ref=e15]: CINCINNATI, OH 45212
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - alert [ref=e20]:
+        - text: Protection Class is required.
+        - button "Close" [ref=e21] [cursor=pointer]: ×
+      - list [ref=e25]:
+        - listitem [ref=e26]:
+          - link " Policy Details" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+            - generic [ref=e28]: 
+            - text: Policy Details
+        - listitem [ref=e29]:
+          - link " Businessowners" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+            - generic [ref=e31]: 
+            - text: Businessowners
+        - listitem [ref=e32]:
+          - link "Locations" [ref=e33] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+        - listitem [ref=e34]:
+          - link "State Specific Info" [ref=e35] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+        - listitem [ref=e36]:
+          - link "Buildings/Classifications" [ref=e37] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+        - listitem [ref=e38]:
+          - link "Blankets" [ref=e39] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+        - listitem [ref=e40]:
+          - link "Mortgagees" [ref=e41] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+        - listitem [ref=e42]:
+          - link "UW Questions" [ref=e43] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+        - listitem [ref=e44]:
+          - link "Rate" [ref=e45] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+        - listitem [ref=e46]:
+          - link "Review" [ref=e47] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178441_tabContent"
+      - generic [ref=e48]:
+        - list [ref=e51]:
+          - listitem [ref=e52]:
+            - link "" [ref=e53] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e54]: 
+          - listitem [ref=e55]:
+            - link "" [ref=e56] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e57]: 
+          - listitem [ref=e58]:
+            - link "" [ref=e59] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e60]: 
+          - listitem [ref=e61]:
+            - link "" [ref=e62] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e63]: 
+        - generic [ref=e67]:
+          - list [ref=e69]:
+            - listitem [ref=e70]:
+              - link "Details" [ref=e71] [cursor=pointer]:
+                - /url: "#ajtc_BOPLocations_tabContent"
+            - listitem [ref=e72]:
+              - text: "|"
+              - link "Coverages" [ref=e73] [cursor=pointer]:
+                - /url: "#ajtc_BOPLocations_tabContent"
+            - listitem [ref=e74]:
+              - text: "|"
+              - link "Additional Coverages" [ref=e75] [cursor=pointer]:
+                - /url: "#ajtc_BOPLocations_tabContent"
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - generic [ref=e80]: "Selected Location:"
+              - generic [ref=e82]:
+                - textbox [ref=e83]: FRANKLIN AVE CINCINNATI OH 45212
+                - generic [ref=e86] [cursor=pointer]: 
+              - button "Return to Summary" [ref=e88] [cursor=pointer]
+            - generic [ref=e89]:
+              - generic [ref=e90]: Physical Location Address
+              - generic [ref=e91]:
+                - generic [ref=e92]:
+                  - generic [ref=e93]:
+                    - generic [ref=e94]: Street Line 1
+                    - generic [ref=e96]:
+                      - textbox [ref=e97]: FRANKLIN AVE
+                      - generic [ref=e98]: "*"
+                  - generic [ref=e99]:
+                    - generic [ref=e100]: Street Line 2
+                    - textbox [ref=e103]
+                  - generic [ref=e104]:
+                    - generic [ref=e105]: City
+                    - generic [ref=e107]:
+                      - textbox [ref=e108]: CINCINNATI
+                      - generic [ref=e109]: "*"
+                  - generic [ref=e110]:
+                    - generic [ref=e111]: State
+                    - generic [ref=e113]:
+                      - generic [ref=e114]:
+                        - combobox [ref=e115]:
+                          - option
+                          - option "AL"
+                          - option "CO"
+                          - option "DE"
+                          - option "GA"
+                          - option "IA"
+                          - option "IL"
+                          - option "IN"
+                          - option "MI"
+                          - option "NC"
+                          - option "NE"
+                          - option "OH" [selected]
+                          - option "PA"
+                          - option "SC"
+                          - option "TN"
+                          - option "TX"
+                          - option "VA"
+                          - option "WI"
+                        - combobox "OH" [ref=e116] [cursor=pointer]:
+                          - generic [ref=e119]: OH
+                      - generic [ref=e120]: "*"
+                  - generic [ref=e121]:
+                    - generic [ref=e122]: Zip Code
+                    - generic [ref=e124]:
+                      - textbox [ref=e125]: "45212"
+                      - generic [ref=e126]: "*"
+                  - button "Verify Address" [ref=e128] [cursor=pointer]
+                  - generic [ref=e129]:
+                    - generic [ref=e132]: Territory Code
+                    - generic [ref=e135]:
+                      - combobox [disabled] [ref=e136]:
+                        - option "712" [selected]
+                      - combobox "712" [disabled] [ref=e137]:
+                        - generic [ref=e140]: "712"
+                  - generic [ref=e141]:
+                    - generic [ref=e144]: Protection Class
+                    - generic [ref=e146]:
+                      - generic [ref=e147]:
+                        - combobox [ref=e148]:
+                          - option "Nothing Selected" [selected]
+                          - option "1"
+                          - option "2"
+                          - option "3"
+                          - option "4"
+                          - option "5"
+                          - option "6"
+                          - option "7"
+                          - option "8"
+                          - option "8B"
+                          - option "9"
+                          - option "10"
+                          - option "1X"
+                          - option "2X"
+                          - option "3X"
+                          - option "4X"
+                          - option "5X"
+                          - option "6X"
+                          - option "7X"
+                          - option "8X"
+                          - option "1Y"
+                          - option "2Y"
+                          - option "3Y"
+                          - option "4Y"
+                          - option "5Y"
+                          - option "6Y"
+                          - option "7Y"
+                          - option "8Y"
+                          - option "10W"
+                        - combobox "Nothing Selected" [ref=e149] [cursor=pointer]:
+                          - generic [ref=e152]: Nothing Selected
+                      - generic [ref=e153]: "*"
+                - generic [ref=e155]:
+                  - generic [ref=e156]:
+                    - generic [ref=e159]: Verified Address
+                    - generic "Address is verified" [ref=e164]:
+                      - generic [ref=e165]: 
+                  - generic [ref=e166]:
+                    - generic [ref=e169]: Verified Non-Coastal Risk
+                    - generic "Verified no geographic risk on zip code." [ref=e174]:
+                      - generic [ref=e175]: 
+                  - generic [ref=e176]:
+                    - generic [ref=e179]: Verified Non-Earthquake Risk
+                    - generic "Verified no geographic risk on address." [ref=e184]:
+                      - generic [ref=e185]: 
+                  - generic [ref=e186]:
+                    - generic [ref=e189]: Verified Non-Flood Risk
+                    - generic "Address is pending verification." [ref=e194]:
+                      - generic [ref=e195]: 
+            - generic [ref=e196]:
+              - button "Next " [active] [ref=e197] [cursor=pointer]:
+                - text: Next
+                - generic [ref=e198]: 
+              - button " Previous" [ref=e199] [cursor=pointer]:
+                - generic [ref=e200]: 
+                - text: Previous
+    - generic [ref=e203]:
+      - paragraph [ref=e204]:
+        - link "Technical Support" [ref=e205] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e206]: © 2025 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e207]: Jira Service Management Widget
+  - log [ref=e208]
+  - log [ref=e209]
+  - log [ref=e210]
+  - log [ref=e211]
+```

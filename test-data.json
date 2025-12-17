@@ -1,57 +1,57 @@
 {
-  "state": "OH",
-  "stateName": "Ohio",
+  "state": "PA",
+  "stateName": "Pennsylvania",
   "milestones": [
     {
       "name": "Account Created Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:22:53.027Z",
+      "timestamp": "2025-12-17T13:38:58.004Z",
       "details": "",
-      "duration": "33.57s"
+      "duration": "42.71s"
     },
     {
       "name": "Account Qualification Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:23:01.517Z",
+      "timestamp": "2025-12-17T13:39:06.377Z",
       "details": "",
-      "duration": "8.49s"
+      "duration": "8.37s"
     },
     {
       "name": "Building and Classification Added",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:25:01.567Z",
+      "timestamp": "2025-12-17T13:41:48.803Z",
       "details": "",
-      "duration": "120.05s"
+      "duration": "162.42s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:25:25.245Z",
-      "details": "Quote #: 3003178433",
-      "duration": "23.68s"
+      "timestamp": "2025-12-17T13:42:23.831Z",
+      "details": "Quote #: 3003178440",
+      "duration": "35.03s"
     },
     {
       "name": "Submitting for Approval",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:25:25.250Z",
+      "timestamp": "2025-12-17T13:42:23.835Z",
       "details": "",
       "duration": "0.00s"
     },
     {
       "name": "UW Issues Approved",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:28:17.991Z",
+      "timestamp": "2025-12-17T13:45:23.292Z",
       "details": "",
-      "duration": "172.74s"
+      "duration": "179.46s"
     },
     {
       "name": "Policy Issued Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:28:17.993Z",
-      "details": "Policy #: 1003052543",
+      "timestamp": "2025-12-17T13:45:23.295Z",
+      "details": "Policy #: 1003052547",
       "duration": "0.00s"
     }
   ],
-  "quoteNumber": "3003178433",
-  "policyNumber": "1003052543"
+  "quoteNumber": "3003178440",
+  "policyNumber": "1003052547"
 }
