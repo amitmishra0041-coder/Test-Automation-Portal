@@ -65,7 +65,8 @@ while (-not $allComplete) {
         $activeJobs = $jobs | Where-Object { $_.State -eq 'Running' }
         $minutes = [Math]::Floor($elapsedSeconds / 60)
         $seconds = [Math]::Floor($elapsedSeconds % 60)
-        Write-Host "Still running... Elapsed: ${minutes}:$('{0:d2}' -f $seconds)s | Active jobs: $($activeJobs.Count)" -ForegroundColor Yellow
+        $secondsFormatted = "{0:d2}" -f $seconds
+        Write-Host "Still running... Elapsed: ${minutes}:${secondsFormatted}s | Active jobs: $($activeJobs.Count)" -ForegroundColor Yellow
     }
     
     foreach ($job in $jobs) {
@@ -109,12 +110,13 @@ $now = [DateTime]::Now
 $totalTime = ($now - $startTime).TotalSeconds
 $totalMinutes = [Math]::Floor($totalTime / 60)
 $totalSeconds = [Math]::Floor($totalTime % 60)
+$totalSecondsFormatted = "{0:d2}" -f $totalSeconds
 
 Write-Host "`n========================================" -ForegroundColor Yellow
 Write-Host "TEST RESULTS SUMMARY" -ForegroundColor Yellow
 Write-Host "========================================`n" -ForegroundColor Yellow
 
-Write-Host "Total Execution Time: ${totalMinutes}:$('{0:d2}' -f $totalSeconds)s" -ForegroundColor Cyan
+Write-Host "Total Execution Time: ${totalMinutes}:${totalSecondsFormatted}s" -ForegroundColor Cyan
 
 $passed = 0
 $failed = 0
