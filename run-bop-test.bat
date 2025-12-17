@@ -34,24 +34,9 @@ if "%ENV%"=="" set ENV=qa
 
 echo Running BOP Test in Chromium (headless mode) for ALL states in PARALLEL...
 echo.
-echo Starting 5 parallel test workers for: DE, PA, WI, OH, MI
-echo.
 
-REM Launch all 5 states in parallel
-echo Launching tests for DE, PA, WI, OH, MI...
-start "DE Test" cmd /k "set TEST_STATE=DE& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "PA Test" cmd /k "set TEST_STATE=PA& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "WI Test" cmd /k "set TEST_STATE=WI& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "OH Test" cmd /k "set TEST_STATE=OH& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "MI Test" cmd /k "set TEST_STATE=MI& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
+REM Call PowerShell script to run tests in parallel within same terminal
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV%
 
-echo.
-echo ========================================
-echo All 5 test windows launched!
-echo ========================================
-echo.
-echo Tests are running in parallel in separate windows.
-echo Check each window for test progress.
-echo Email report will be sent after all tests complete.
 echo.
 pause
