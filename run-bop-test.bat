@@ -40,7 +40,7 @@ for %%S in (DE PA WI OH MI) do (
     set "TEST_STATE=%%S"
     set "TEST_ENV=%ENV%"
     echo ===== State: !TEST_STATE! (ENV=!TEST_ENV!) =====
-    npx playwright test Create_BOP.test.js --headed --project=chromium || goto :error
+    npx playwright test Create_BOP.test.js --project=chromium || goto :error
 )
 
 if errorlevel 1 (
