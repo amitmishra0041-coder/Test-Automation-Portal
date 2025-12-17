@@ -4,87 +4,122 @@
     "status": "PASSED",
     "state": "DE",
     "stateName": "Delaware",
-    "quoteNumber": "3003178534",
-    "policyNumber": "1003052571",
+    "quoteNumber": "3003178565",
+    "policyNumber": "1003052579",
     "milestones": [
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:46:29.409Z",
+        "timestamp": "2025-12-17T18:19:32.452Z",
         "details": "",
-        "duration": "45.09s"
+        "duration": "43.99s"
       },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:46:38.852Z",
+        "timestamp": "2025-12-17T18:19:40.754Z",
         "details": "",
-        "duration": "9.44s"
+        "duration": "8.30s"
       },
       {
         "name": "Building and Classification Added",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:48:45.732Z",
+        "timestamp": "2025-12-17T18:22:18.411Z",
         "details": "",
-        "duration": "126.88s"
+        "duration": "157.65s"
       },
       {
         "name": "Quote Rated Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:49:07.891Z",
-        "details": "Quote #: 3003178534",
-        "duration": "22.16s"
+        "timestamp": "2025-12-17T18:22:44.935Z",
+        "details": "Quote #: 3003178565",
+        "duration": "26.52s"
       },
       {
         "name": "Submitting for Approval",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:49:07.897Z",
+        "timestamp": "2025-12-17T18:22:44.941Z",
         "details": "",
         "duration": "0.00s"
       },
       {
         "name": "UW Issues Approved",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:52:27.843Z",
+        "timestamp": "2025-12-17T18:25:54.903Z",
         "details": "",
-        "duration": "199.94s"
+        "duration": "189.96s"
       },
       {
         "name": "Policy Issued Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:52:27.845Z",
-        "details": "Policy #: 1003052571",
+        "timestamp": "2025-12-17T18:25:54.905Z",
+        "details": "Policy #: 1003052579",
         "duration": "0.00s"
       }
     ],
-    "timestamp": "2025-12-17T15:52:28.237Z",
-    "duration": "403.51"
+    "timestamp": "2025-12-17T18:25:55.137Z",
+    "duration": "426.42"
   },
   {
     "iterationNumber": 2,
-    "status": "FAILED",
-    "state": "DE",
-    "stateName": "Delaware",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
+    "status": "PASSED",
+    "state": "WI",
+    "stateName": "Wisconsin",
+    "quoteNumber": "3003178566",
+    "policyNumber": "1003052580",
     "milestones": [
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:19.261Z",
+        "timestamp": "2025-12-17T18:19:42.800Z",
         "details": "",
-        "duration": "46.80s"
+        "duration": "42.64s"
       },
       {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-17T15:53:52.343Z",
-        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
-        "duration": "33.08s"
+        "name": "Account Qualification Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:19:51.095Z",
+        "details": "",
+        "duration": "8.29s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:22:22.655Z",
+        "details": "",
+        "duration": "151.56s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:23:00.350Z",
+        "details": "Quote #: 3003178566",
+        "duration": "37.69s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:23:00.355Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:26:04.988Z",
+        "details": "",
+        "duration": "184.63s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:26:04.990Z",
+        "details": "Policy #: 1003052580",
+        "duration": "0.00s"
       }
     ],
-    "timestamp": "2025-12-17T15:54:11.302Z",
-    "duration": "79.88"
+    "timestamp": "2025-12-17T18:26:05.320Z",
+    "duration": "424.81"
   },
   {
     "iterationNumber": 3,
@@ -97,160 +132,141 @@
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:19.261Z",
+        "timestamp": "2025-12-17T18:26:52.709Z",
         "details": "",
-        "duration": "46.80s"
+        "duration": "41.76s"
       },
       {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-17T15:53:52.343Z",
-        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
-        "duration": "33.08s"
+        "name": "Account Qualification Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:27:01.142Z",
+        "details": "",
+        "duration": "8.43s"
       }
     ],
-    "timestamp": "2025-12-17T15:54:15.486Z",
-    "duration": "79.88"
+    "timestamp": "2025-12-17T18:27:20.715Z",
+    "duration": "50.19"
   },
   {
     "iterationNumber": 4,
-    "status": "FAILED",
-    "state": "WI",
-    "stateName": "Wisconsin",
-    "quoteNumber": "3003178537",
-    "policyNumber": "N/A",
-    "milestones": [
-      {
-        "name": "Account Created Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:09.399Z",
-        "details": "",
-        "duration": "37.37s"
-      },
-      {
-        "name": "Account Qualification Completed",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:17.812Z",
-        "details": "",
-        "duration": "8.41s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:55:18.409Z",
-        "details": "",
-        "duration": "120.60s"
-      },
-      {
-        "name": "Quote Rated Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:55:39.255Z",
-        "details": "Quote #: 3003178537",
-        "duration": "20.84s"
-      },
-      {
-        "name": "Submitting for Approval",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:55:43.384Z",
-        "details": "",
-        "duration": "0.02s"
-      }
-    ],
-    "timestamp": "2025-12-17T15:56:07.031Z",
-    "duration": "187.24"
-  },
-  {
-    "iterationNumber": 5,
-    "status": "FAILED",
-    "state": "OH",
-    "stateName": "Ohio",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
-    "milestones": [
-      {
-        "name": "Account Created Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:18.198Z",
-        "details": "",
-        "duration": "42.17s"
-      },
-      {
-        "name": "Account Qualification Completed",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:26.489Z",
-        "details": "",
-        "duration": "8.29s"
-      },
-      {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-17T15:56:20.456Z",
-        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#bs-select-9-1')\u001b[22m\n\u001b[2m    - locator resolved to <a tabindex=\"0\" role=\"option\" id=\"bs-select-9-1\" class=\"dropdown-item\">…</a>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    109 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is not visible\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
-        "duration": "173.97s"
-      }
-    ],
-    "timestamp": "2025-12-17T15:56:58.549Z",
-    "duration": "224.43"
-  },
-  {
-    "iterationNumber": 6,
     "status": "PASSED",
-    "state": "WI",
-    "stateName": "Wisconsin",
-    "quoteNumber": "3003178537",
-    "policyNumber": "1003052572",
+    "state": "MI",
+    "stateName": "Michigan",
+    "quoteNumber": "3003178571",
+    "policyNumber": "1003052581",
     "milestones": [
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:09.399Z",
+        "timestamp": "2025-12-17T18:26:51.373Z",
         "details": "",
-        "duration": "37.37s"
+        "duration": "41.46s"
       },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:53:17.812Z",
+        "timestamp": "2025-12-17T18:26:59.658Z",
         "details": "",
-        "duration": "8.41s"
+        "duration": "8.28s"
       },
       {
         "name": "Building and Classification Added",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:55:18.409Z",
+        "timestamp": "2025-12-17T18:29:11.162Z",
         "details": "",
-        "duration": "120.60s"
+        "duration": "131.50s"
       },
       {
         "name": "Quote Rated Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:55:39.255Z",
-        "details": "Quote #: 3003178537",
-        "duration": "20.84s"
+        "timestamp": "2025-12-17T18:29:30.357Z",
+        "details": "Quote #: 3003178571",
+        "duration": "19.19s"
       },
       {
         "name": "Submitting for Approval",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:55:43.384Z",
+        "timestamp": "2025-12-17T18:29:30.363Z",
         "details": "",
-        "duration": "0.02s"
+        "duration": "0.00s"
       },
       {
         "name": "UW Issues Approved",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:59:25.755Z",
+        "timestamp": "2025-12-17T18:32:45.510Z",
         "details": "",
-        "duration": "222.36s"
+        "duration": "195.14s"
       },
       {
         "name": "Policy Issued Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:59:25.757Z",
-        "details": "Policy #: 1003052572",
+        "timestamp": "2025-12-17T18:32:45.512Z",
+        "details": "Policy #: 1003052581",
         "duration": "0.00s"
       }
     ],
-    "timestamp": "2025-12-17T15:59:27.006Z",
-    "duration": "409.60"
+    "timestamp": "2025-12-17T18:32:45.757Z",
+    "duration": "395.57"
+  },
+  {
+    "iterationNumber": 5,
+    "status": "PASSED",
+    "state": "OH",
+    "stateName": "Ohio",
+    "quoteNumber": "3003178570",
+    "policyNumber": "1003052582",
+    "milestones": [
+      {
+        "name": "Account Created Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:26:50.396Z",
+        "details": "",
+        "duration": "41.05s"
+      },
+      {
+        "name": "Account Qualification Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:26:58.621Z",
+        "details": "",
+        "duration": "8.22s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:29:08.578Z",
+        "details": "",
+        "duration": "129.96s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:29:29.146Z",
+        "details": "Quote #: 3003178570",
+        "duration": "20.57s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:29:29.152Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:32:50.105Z",
+        "details": "",
+        "duration": "200.95s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T18:32:50.108Z",
+        "details": "Policy #: 1003052582",
+        "duration": "0.00s"
+      }
+    ],
+    "timestamp": "2025-12-17T18:32:50.396Z",
+    "duration": "400.75"
   }
 ]

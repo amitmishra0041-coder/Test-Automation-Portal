@@ -26,7 +26,8 @@ function randLastName() {
 }
 
 function randAddress() {
-  return faker.location.streetAddress();
+  // Ensure house number precedes street name (e.g., "742 Evergreen Terrace")
+  return `${faker.location.buildingNumber()} ${faker.location.street()}`;
 }
 
 function randCity() {
