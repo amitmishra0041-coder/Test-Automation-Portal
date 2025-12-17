@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo BOP Test Runner
+echo BOP Test Runner - Parallel Execution
 echo ========================================
 echo.
 
@@ -34,33 +34,32 @@ REM Usage: run-bop-test.bat [qa|test]
 set ENV=%1
 if "%ENV%"=="" set ENV=qa
 
-echo Running BOP Test in Chromium (headed mode) for all states...
+echo Running BOP Test in Chromium (headed mode) for ALL states in PARALLEL...
 echo.
-for %%S in (DE PA WI OH MI) do (
-    set "TEST_STATE=%%S"
-    set "TEST_ENV=%ENV%"
-    echo ===== State: !TEST_STATE! (ENV=!TEST_ENV!) =====
-    npx playwright test Create_BOP.test.js --project=chromium || goto :error
-)
+echo Starting 5 parallel test workers for: DE, PA, WI, OH, MI
+echo.
 
-if errorlevel 1 (
-    echo.
-    echo ========================================
-    echo TEST FAILED!
-    echo ========================================
-) else (
-    echo.
-    echo ========================================
-    echo TEST PASSED!
-    echo ========================================
-)
+REM Launch all states in parallel using separate command windows
+start "DE Test" cmd /C "set TEST_STATE=DE& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
+start "PA Test" cmd /C "set TEST_STATE=PA& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
+start "WI Test" cmd /C "set TEST_STATE=WI& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
+start "OH Test" cmd /C "set TEST_STATE=OH& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
+start "MI Test" cmd /C "set TEST_STATE=MI& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
 
 echo.
-echo BOP tests completed for all states.
+echo ========================================
+echo All 5 parallel test workers started!
+echo ========================================
+echo.
+echo Each state runs in its own browser window:
+echo   - DE (Delaware)
+echo   - PA (Pennsylvania)
+echo   - WI (Wisconsin)
+echo   - OH (Ohio)
+echo   - MI (Michigan)
+echo.
+echo You can monitor each window for progress or errors.
+echo Tests will continue to run independently.
+echo.
 pause
-goto :eof
-
-:error
-echo.
-echo BOP test failed for state %TEST_STATE% (ENV=%ENV%).
-exit /b 1
+endlocal
