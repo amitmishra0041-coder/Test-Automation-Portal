@@ -111,7 +111,10 @@ while (-not $allComplete) {
                 $elapsedForJob = ($now - $startTime).TotalSeconds
                 Write-Host "`nJob [$($job.Name)] finished with state: $($job.State) (after $([Math]::Round($elapsedForJob))s)" -ForegroundColor Yellow
                 
-                $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+                $jobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+                
+                # Extract only the hashtable result (State and ExitCode), ignore verbose output
+                $result = $jobOutput | Where-Object { $_ -is [hashtable] -and $_.State -and $null -ne $_.ExitCode } | Select-Object -First 1
                 
                 if ($result) {
                     Write-Host "    [$($result.State)] Test completed" -ForegroundColor Cyan
