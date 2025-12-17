@@ -42,20 +42,39 @@ foreach ($state in $states) {
 
 Write-Host "`nAll 5 tests started in parallel. Showing real-time output below...`n" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Yellow
+Write-Host "📊 Progress Monitor:" -ForegroundColor Cyan
+Write-Host "   - Tests will run in background PowerShell jobs" -ForegroundColor Gray
+Write-Host "   - Completion status will update every 30 seconds" -ForegroundColor Gray
+Write-Host "   - Each test takes ~5-8 minutes" -ForegroundColor Gray
+Write-Host "   - Total expected time: 5-8 minutes (running in parallel)" -ForegroundColor Gray
+Write-Host "============================================================`n" -ForegroundColor Yellow
 
 # Stream output from all jobs as they complete
 $completedJobs = @()
 $allComplete = $false
+$startTime = Get-Date
+$checkCount = 0
 
 while (-not $allComplete) {
+    $checkCount++
+    $elapsedSeconds = (Get-Date - $startTime).TotalSeconds
+    
+    # Show progress every 30 seconds
+    if ($checkCount % 15 -eq 0) {
+        $activeJobs = $jobs | Where-Object { $_.State -eq 'Running' }
+        Write-Host "⏳ Still running... Elapsed: $('{0:d2}:{1:d2}' -f [Math]::Floor($elapsedSeconds/60), [Math]::Floor($elapsedSeconds%60))s | Active jobs: $($activeJobs.Count)" -ForegroundColor Yellow
+    }
+    
     foreach ($job in $jobs) {
         if ($job -notin $completedJobs) {
             if ($job.State -eq 'Completed' -or $job.State -eq 'Failed') {
-                Write-Host "`n>>> Job [$($job.Name)] finished with state: $($job.State)" -ForegroundColor Yellow
-                $result = Receive-Job -Job $job
+                $elapsedForJob = (Get-Date - $startTime).TotalSeconds
+                Write-Host "`n>>> Job [$($job.Name)] finished with state: $($job.State) (after $([Math]::Round($elapsedForJob))s)" -ForegroundColor Yellow
+                
+                $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
                 
                 if ($result) {
-                    Write-Host "[$($result.State)] Test completed" -ForegroundColor Cyan
+                    Write-Host "    [$($result.State)] Test completed" -ForegroundColor Cyan
                 }
                 
                 $completedJobs += $job
@@ -82,9 +101,12 @@ foreach ($job in $jobs) {
 $jobs | Remove-Job
 
 # Display results
+$totalTime = (Get-Date - $startTime).TotalSeconds
 Write-Host "`n========================================" -ForegroundColor Yellow
 Write-Host "TEST RESULTS SUMMARY" -ForegroundColor Yellow
 Write-Host "========================================`n" -ForegroundColor Yellow
+
+Write-Host "⏱️  Total Execution Time: $('{0:d2}:{1:d2}' -f [Math]::Floor($totalTime/60), [Math]::Floor($totalTime%60))s" -ForegroundColor Cyan
 
 $passed = 0
 $failed = 0
