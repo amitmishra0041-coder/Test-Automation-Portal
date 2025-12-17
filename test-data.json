@@ -1,57 +1,42 @@
 {
-  "state": "PA",
-  "stateName": "Pennsylvania",
+  "state": "WI",
+  "stateName": "Wisconsin",
   "milestones": [
     {
       "name": "Account Created Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:53:03.103Z",
+      "timestamp": "2025-12-17T14:03:07.485Z",
       "details": "",
-      "duration": "32.76s"
+      "duration": "40.26s"
     },
     {
       "name": "Account Qualification Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:53:14.283Z",
+      "timestamp": "2025-12-17T14:03:15.880Z",
       "details": "",
-      "duration": "11.18s"
+      "duration": "8.39s"
     },
     {
       "name": "Building and Classification Added",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:55:36.452Z",
+      "timestamp": "2025-12-17T14:05:19.407Z",
       "details": "",
-      "duration": "142.17s"
+      "duration": "123.53s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:56:08.802Z",
-      "details": "Quote #: 3003178451",
-      "duration": "32.35s"
+      "timestamp": "2025-12-17T14:05:45.655Z",
+      "details": "Quote #: 3003178460",
+      "duration": "26.25s"
     },
     {
       "name": "Submitting for Approval",
       "status": "PASSED",
-      "timestamp": "2025-12-17T13:56:08.808Z",
+      "timestamp": "2025-12-17T14:05:45.660Z",
       "details": "",
-      "duration": "0.00s"
-    },
-    {
-      "name": "UW Issues Approved",
-      "status": "PASSED",
-      "timestamp": "2025-12-17T13:59:05.059Z",
-      "details": "",
-      "duration": "176.25s"
-    },
-    {
-      "name": "Policy Issued Successfully",
-      "status": "PASSED",
-      "timestamp": "2025-12-17T13:59:05.061Z",
-      "details": "Policy #: 1003052550",
       "duration": "0.00s"
     }
   ],
-  "quoteNumber": "3003178451",
-  "policyNumber": "1003052550"
+  "quoteNumber": "3003178460"
 }

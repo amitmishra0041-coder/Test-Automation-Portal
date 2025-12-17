@@ -93,16 +93,43 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   const pcUrl = policyCenterUrl || 'https://qa-policycenter.donegalgroup.com/pc/PolicyCenter.do';
   await page1.goto(pcUrl);
 
+  // Wait for login form to be visible
+  await page1.getByRole('textbox', { name: 'Username' }).waitFor({ state: 'visible', timeout: 10000 });
+  
   await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
   await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
+  
+  // Wait for login to complete
   await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
+  await page1.waitForLoadState('networkidle');
+  await page1.waitForTimeout(5000); // Give the application time to initialize
+  
+  // Check if login was successful (look for any error messages)
+  try {
+    const errorText = await page1.locator('text=/user configuration|error occurred/i').first().textContent({ timeout: 5000 });
+    if (errorText && errorText.includes('error') || errorText.includes('configuration')) {
+      throw new Error(`PolicyCenter login error: ${errorText}`);
+    }
+  } catch (e) {
+    if (e.message.includes('PolicyCenter login error')) throw e;
+    // Otherwise just a timeout, which is fine
+  }
 
   // 2️⃣ Navigate to submission
+  console.log('📍 Opening Policy menu...');
   await page1.getByRole('menuitem', { name: 'Policy', exact: true }).click();
+  await page1.waitForTimeout(2000);
+  
+  console.log('📍 Expanding Policy Tab...');
   await page1.locator('#TabBar-PolicyTab > .gw-action--expand-button > .gw-icon').click();
+  await page1.waitForTimeout(2000);
+  
+  console.log(`📍 Searching for submission: ${submissionNumber}...`);
   await page1.locator('input[name="TabBar-PolicyTab-PolicyTab_SubmissionNumberSearchItem"]').fill(submissionNumber);
   await page1.getByLabel('Sub #').getByRole('button', { name: 'gw-search-icon' }).click();
   await page1.waitForLoadState('networkidle');
+  await page1.waitForTimeout(3000);
+  console.log('✅ Submission search completed');
 
   // 3️⃣ Click Risk Analysis
   const riskAnalysisLocators = [

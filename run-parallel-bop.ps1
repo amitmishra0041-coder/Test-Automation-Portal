@@ -30,22 +30,55 @@ foreach ($state in $states) {
         
         Write-Host "[$s] Running test from: $(Get-Location)" -ForegroundColor Cyan
         
-        # Run the test and capture output
-        $output = & npx playwright test Create_BOP.test.js --project=chromium 2>&1 | Out-String
+        # Run the test with real-time output streaming
+        & npx playwright test Create_BOP.test.js --project=chromium 2>&1
         
         return @{
             State = $s
             ExitCode = $LASTEXITCODE
-            Output = $output
         }
     } -ArgumentList $state, $TestEnv, $projectPath
 }
 
-Write-Host "`nAll 5 tests started in parallel. Waiting for completion..." -ForegroundColor Cyan
-Write-Host "This may take several minutes...`n" -ForegroundColor Yellow
+Write-Host "`nAll 5 tests started in parallel. Showing real-time output below...`n" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Yellow
 
-# Wait for all jobs to complete and get results
-$results = $jobs | Wait-Job | Receive-Job
+# Stream output from all jobs as they complete
+$completedJobs = @()
+$allComplete = $false
+
+while (-not $allComplete) {
+    foreach ($job in $jobs) {
+        if ($job -notin $completedJobs) {
+            if ($job.State -eq 'Completed' -or $job.State -eq 'Failed') {
+                Write-Host "`n>>> Job [$($job.Name)] finished with state: $($job.State)" -ForegroundColor Yellow
+                $result = Receive-Job -Job $job
+                
+                if ($result) {
+                    Write-Host "[$($result.State)] Test completed" -ForegroundColor Cyan
+                }
+                
+                $completedJobs += $job
+            }
+        }
+    }
+    
+    if ($completedJobs.Count -eq $jobs.Count) {
+        $allComplete = $true
+    } else {
+        Start-Sleep -Seconds 2
+    }
+}
+
+# Collect all final results
+$results = @()
+foreach ($job in $jobs) {
+    $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+    if ($result) {
+        $results += $result
+    }
+}
+
 $jobs | Remove-Job
 
 # Display results
