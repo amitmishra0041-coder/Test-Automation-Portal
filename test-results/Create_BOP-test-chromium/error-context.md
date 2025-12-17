@@ -1,0 +1,220 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003178539-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Cronin - Cassin
+            - generic [ref=e14]: EAST ST
+            - generic [ref=e15]: WESTERVILLE, OH 43081
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - list [ref=e22]:
+        - listitem [ref=e23]:
+          - link " Policy Details" [ref=e24] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+            - generic [ref=e25]: 
+            - text: Policy Details
+        - listitem [ref=e26]:
+          - link " Businessowners" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+            - generic [ref=e28]: 
+            - text: Businessowners
+        - listitem [ref=e29]:
+          - link " Locations" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+            - generic [ref=e31]: 
+            - text: Locations
+        - listitem [ref=e32]:
+          - link " State Specific Info" [ref=e33] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+            - generic [ref=e34]: 
+            - text: State Specific Info
+        - listitem [ref=e35]:
+          - link "Buildings/Classifications" [ref=e36] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+        - listitem [ref=e37]:
+          - link "Blankets" [ref=e38] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+        - listitem [ref=e39]:
+          - link "Mortgagees" [ref=e40] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+        - listitem [ref=e41]:
+          - link "UW Questions" [ref=e42] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+        - listitem [ref=e43]:
+          - link "Rate" [ref=e44] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+        - listitem [ref=e45]:
+          - link "Review" [ref=e46] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178539_tabContent"
+      - generic [ref=e47]:
+        - list [ref=e50]:
+          - listitem [ref=e51]:
+            - link "" [ref=e52] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e53]: 
+          - listitem [ref=e54]:
+            - link "" [ref=e55] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e56]: 
+          - listitem [ref=e57]:
+            - link "" [ref=e58] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e59]: 
+          - listitem [ref=e60]:
+            - link "" [ref=e61] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e62]: 
+        - generic [ref=e66]:
+          - list [ref=e68]:
+            - listitem [ref=e69]:
+              - link "Bldg Details" [ref=e70] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e71]:
+              - text: "|"
+              - link "Bldg Cov" [ref=e72] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e73]:
+              - text: "|"
+              - link "Bldg Add'l Cov" [ref=e74] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e75]:
+              - text: "|"
+              - link "Class Details":
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e76]:
+              - text: "|"
+              - link "Class Cov":
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e77]:
+              - text: "|"
+              - link "Class Add'l Cov":
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e82]: "Selected Building:"
+              - generic [ref=e84]:
+                - textbox [disabled] [ref=e85]: EAST ST WESTERVILLE OH 43081
+                - text: 
+              - button "Return to Summary" [ref=e87] [cursor=pointer]
+            - button "Collapse All Coverages" [ref=e89] [cursor=pointer]
+            - generic [ref=e90]:
+              - generic [ref=e93]: Building Coverages
+              - generic [ref=e94]:
+                - tablist [ref=e96]:
+                  - tab "Building " [expanded] [selected] [ref=e97] [cursor=pointer]:
+                    - text: Building
+                    - button
+                    - generic "Add Coverage" [ref=e98]: 
+                - tablist [ref=e100]:
+                  - tab "Damage To Premises Rented To You " [expanded] [selected] [ref=e101] [cursor=pointer]:
+                    - text: Damage To Premises Rented To You
+                    - button
+                    - generic "Add Coverage" [ref=e102]: 
+                - tablist [ref=e104]:
+                  - tab "Protective Safeguards " [expanded] [selected] [ref=e105] [cursor=pointer]:
+                    - text: Protective Safeguards
+                    - button
+                    - generic "Add Coverage" [ref=e106]: 
+            - generic [ref=e107]:
+              - button "Next " [ref=e108] [cursor=pointer]:
+                - text: Next
+                - generic [ref=e109]: 
+              - button " Previous" [ref=e110] [cursor=pointer]:
+                - generic [ref=e111]: 
+                - text: Previous
+    - generic [ref=e114]:
+      - paragraph [ref=e115]:
+        - link "Technical Support" [ref=e116] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e117]: © 2025 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e118]: Jira Service Management Widget
+  - dialog [active] [ref=e119]:
+    - document:
+      - generic [ref=e120]:
+        - heading "Edit Building" [level=5] [ref=e122]
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - generic [ref=e131]:
+              - generic [ref=e134]: Valuation
+              - generic [ref=e136]:
+                - generic [ref=e137]:
+                  - combobox [ref=e138]:
+                    - option "Replacement Cost" [selected]
+                    - option "Not Applicable"
+                  - combobox "Replacement Cost" [ref=e139] [cursor=pointer]:
+                    - generic [ref=e142]: Replacement Cost
+                - generic [ref=e143]: "*"
+            - generic [ref=e144]:
+              - generic [ref=e147]: Limit
+              - generic [ref=e149]:
+                - textbox [ref=e150]: 297,644
+                - generic [ref=e151]: "*"
+            - generic [ref=e152]:
+              - generic [ref=e155]: Automatic Increase Percent
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - combobox [disabled] [ref=e159]:
+                    - option "8%" [selected]
+                  - combobox "8%" [disabled] [ref=e160]:
+                    - generic [ref=e163]: 8%
+                - generic [ref=e164]: "*"
+            - generic [ref=e165]:
+              - generic [ref=e168]: Percentage Owner Occupied
+              - generic [ref=e170]:
+                - generic [ref=e171]:
+                  - combobox [ref=e172]:
+                    - option [selected]
+                    - option "10% or less"
+                    - option "Over 10%"
+                  - combobox "Nothing selected" [ref=e173] [cursor=pointer]:
+                    - generic [ref=e176]: Nothing selected
+                - generic [ref=e177]: "*"
+            - generic [ref=e178]:
+              - generic [ref=e181]: Building Square Footage
+              - generic [ref=e182]:
+                - generic [ref=e183]:
+                  - textbox [disabled] [ref=e184]: "999"
+                  - generic [ref=e185]: "*"
+                - generic [ref=e188]: 
+            - generic [ref=e189]:
+              - generic [ref=e192]: Number of Stories
+              - generic [ref=e193]:
+                - textbox [disabled] [ref=e195]: "1"
+                - generic [ref=e198]: 
+          - generic [ref=e199]:
+            - generic [ref=e204]:
+              - generic [ref=e205]: 
+              - text: Property Information Found
+            - generic [ref=e206]:
+              - generic [ref=e208]:
+                - generic [ref=e211]: Estimated Replacement Cost
+                - generic [ref=e212]:
+                  - textbox [disabled] [ref=e214]: 297,644
+                  - generic [ref=e219]: 
+              - generic [ref=e221]:
+                - generic [ref=e224]: Estimator ID Number
+                - textbox [disabled] [ref=e227]: AD9N-G8RJ
+            - generic [ref=e230]:
+              - link "View Estimator" [ref=e231] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link "Edit Estimator" [ref=e232] [cursor=pointer]:
+                - /url: javascript:void(0)
+        - generic [ref=e233]:
+          - button " Save" [ref=e234] [cursor=pointer]:
+            - generic [ref=e235]: 
+            - text: Save
+          - button " Remove Coverage" [ref=e236] [cursor=pointer]:
+            - generic [ref=e237]: 
+            - text: Remove Coverage
+  - text: 
+  - text: 
+  - log [ref=e240]
+  - log [ref=e241]
+  - log [ref=e242]
+```

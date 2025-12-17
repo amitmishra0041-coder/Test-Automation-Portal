@@ -41,7 +41,8 @@ try {
         startTime = [DateTime]::Now.ToString('o')
     }
     $lockJson = $lockData | ConvertTo-Json -Depth 3
-    $lockJson | Out-File -FilePath $lockFile -Encoding UTF8
+    # Use UTF8 without BOM to prevent JSON parsing issues in Node.js
+    [System.IO.File]::WriteAllText($lockFile, $lockJson, [System.Text.UTF8Encoding]$false)
     Write-Host "Initialized parallel run lock with targetStates: $($states -join ', ')" -ForegroundColor Green
 } catch {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
@@ -158,6 +159,16 @@ foreach ($result in $results) {
 }
 
 Write-Host "`nTotal: $($results.Count) | Passed: $passed | Failed: $failed`n" -ForegroundColor Cyan
+
+# Clean up lock file after all tests complete so next run starts fresh
+try {
+    if (Test-Path $lockFile) {
+        Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+        Write-Host "🗑️ Lock file cleaned up`n" -ForegroundColor Gray
+    }
+} catch {
+    Write-Host "⚠️ Could not clean lock file: $($_.Exception.Message)`n" -ForegroundColor Yellow
+}
 
 # Exit with error code if any tests failed
 if ($failed -gt 0) {

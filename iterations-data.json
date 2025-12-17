@@ -1,29 +1,64 @@
 [
   {
     "iterationNumber": 1,
-    "status": "FAILED",
-    "state": "WI",
-    "stateName": "Wisconsin",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
+    "status": "PASSED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003178534",
+    "policyNumber": "1003052571",
     "milestones": [
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:32:11.553Z",
+        "timestamp": "2025-12-17T15:46:29.409Z",
         "details": "",
-        "duration": "40.24s"
+        "duration": "45.09s"
       },
       {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-17T15:32:44.584Z",
-        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
-        "duration": "33.03s"
+        "name": "Account Qualification Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:46:38.852Z",
+        "details": "",
+        "duration": "9.44s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:48:45.732Z",
+        "details": "",
+        "duration": "126.88s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:49:07.891Z",
+        "details": "Quote #: 3003178534",
+        "duration": "22.16s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:49:07.897Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:52:27.843Z",
+        "details": "",
+        "duration": "199.94s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:52:27.845Z",
+        "details": "Policy #: 1003052571",
+        "duration": "0.00s"
       }
     ],
-    "timestamp": "2025-12-17T15:32:47.686Z",
-    "duration": "73.27"
+    "timestamp": "2025-12-17T15:52:28.237Z",
+    "duration": "403.51"
   },
   {
     "iterationNumber": 2,
@@ -36,87 +71,186 @@
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:32:10.582Z",
+        "timestamp": "2025-12-17T15:53:19.261Z",
         "details": "",
-        "duration": "41.66s"
-      },
-      {
-        "name": "Account Qualification Completed",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T15:32:18.859Z",
-        "details": "",
-        "duration": "8.28s"
+        "duration": "46.80s"
       },
       {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-17T15:34:32.398Z",
-        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
-        "duration": "133.54s"
+        "timestamp": "2025-12-17T15:53:52.343Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
+        "duration": "33.08s"
       }
     ],
-    "timestamp": "2025-12-17T15:34:36.464Z",
-    "duration": "183.48"
+    "timestamp": "2025-12-17T15:54:11.302Z",
+    "duration": "79.88"
   },
   {
     "iterationNumber": 3,
-    "status": "PASSED",
-    "state": "PA",
-    "stateName": "Pennsylvania",
-    "quoteNumber": "3003178527",
-    "policyNumber": "1003052568",
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
     "milestones": [
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:32:10.375Z",
+        "timestamp": "2025-12-17T15:53:19.261Z",
         "details": "",
-        "duration": "41.25s"
+        "duration": "46.80s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-17T15:53:52.343Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
+        "duration": "33.08s"
+      }
+    ],
+    "timestamp": "2025-12-17T15:54:15.486Z",
+    "duration": "79.88"
+  },
+  {
+    "iterationNumber": 4,
+    "status": "FAILED",
+    "state": "WI",
+    "stateName": "Wisconsin",
+    "quoteNumber": "3003178537",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:53:09.399Z",
+        "details": "",
+        "duration": "37.37s"
       },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:32:19.458Z",
+        "timestamp": "2025-12-17T15:53:17.812Z",
         "details": "",
-        "duration": "9.08s"
+        "duration": "8.41s"
       },
       {
         "name": "Building and Classification Added",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:34:25.709Z",
+        "timestamp": "2025-12-17T15:55:18.409Z",
         "details": "",
-        "duration": "126.25s"
+        "duration": "120.60s"
       },
       {
         "name": "Quote Rated Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:34:53.862Z",
-        "details": "Quote #: 3003178527",
-        "duration": "28.15s"
+        "timestamp": "2025-12-17T15:55:39.255Z",
+        "details": "Quote #: 3003178537",
+        "duration": "20.84s"
       },
       {
         "name": "Submitting for Approval",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:34:53.867Z",
+        "timestamp": "2025-12-17T15:55:43.384Z",
         "details": "",
-        "duration": "0.00s"
+        "duration": "0.02s"
+      }
+    ],
+    "timestamp": "2025-12-17T15:56:07.031Z",
+    "duration": "187.24"
+  },
+  {
+    "iterationNumber": 5,
+    "status": "FAILED",
+    "state": "OH",
+    "stateName": "Ohio",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:53:18.198Z",
+        "details": "",
+        "duration": "42.17s"
+      },
+      {
+        "name": "Account Qualification Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:53:26.489Z",
+        "details": "",
+        "duration": "8.29s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-17T15:56:20.456Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#bs-select-9-1')\u001b[22m\n\u001b[2m    - locator resolved to <a tabindex=\"0\" role=\"option\" id=\"bs-select-9-1\" class=\"dropdown-item\">…</a>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    109 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is not visible\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+        "duration": "173.97s"
+      }
+    ],
+    "timestamp": "2025-12-17T15:56:58.549Z",
+    "duration": "224.43"
+  },
+  {
+    "iterationNumber": 6,
+    "status": "PASSED",
+    "state": "WI",
+    "stateName": "Wisconsin",
+    "quoteNumber": "3003178537",
+    "policyNumber": "1003052572",
+    "milestones": [
+      {
+        "name": "Account Created Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:53:09.399Z",
+        "details": "",
+        "duration": "37.37s"
+      },
+      {
+        "name": "Account Qualification Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:53:17.812Z",
+        "details": "",
+        "duration": "8.41s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:55:18.409Z",
+        "details": "",
+        "duration": "120.60s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:55:39.255Z",
+        "details": "Quote #: 3003178537",
+        "duration": "20.84s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:55:43.384Z",
+        "details": "",
+        "duration": "0.02s"
       },
       {
         "name": "UW Issues Approved",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:38:06.125Z",
+        "timestamp": "2025-12-17T15:59:25.755Z",
         "details": "",
-        "duration": "192.26s"
+        "duration": "222.36s"
       },
       {
         "name": "Policy Issued Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T15:38:06.127Z",
-        "details": "Policy #: 1003052568",
+        "timestamp": "2025-12-17T15:59:25.757Z",
+        "details": "Policy #: 1003052572",
         "duration": "0.00s"
       }
     ],
-    "timestamp": "2025-12-17T15:38:06.415Z",
-    "duration": "396.99"
+    "timestamp": "2025-12-17T15:59:27.006Z",
+    "duration": "409.60"
   }
 ]

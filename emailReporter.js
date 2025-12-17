@@ -69,7 +69,7 @@ class EmailReporter {
         });
         
         // Save updated iterations
-        fs.writeFileSync(this.iterationsFile, JSON.stringify(iterations, null, 2));
+        fs.writeFileSync(this.iterationsFile, JSON.stringify(iterations, null, 2), 'utf8');
         console.log(`💾 Iteration ${iterations.length} data saved`);
       }
     } catch (e) {
@@ -125,7 +125,7 @@ class EmailReporter {
 
         if (!lockData.completedStates.includes(currentState)) {
           lockData.completedStates.push(currentState);
-          fs.writeFileSync(this.lockFile, JSON.stringify(lockData, null, 2));
+          fs.writeFileSync(this.lockFile, JSON.stringify(lockData, null, 2), 'utf8');
           console.log(`✅ State ${currentState} marked as complete. Total completed: ${lockData.completedStates.length}/${lockData.targetStates.length}`);
         }
 

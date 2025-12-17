@@ -1,42 +1,57 @@
 {
-  "state": "MI",
-  "stateName": "Michigan",
+  "state": "WI",
+  "stateName": "Wisconsin",
   "milestones": [
     {
       "name": "Account Created Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T15:38:52.623Z",
+      "timestamp": "2025-12-17T15:53:09.399Z",
       "details": "",
-      "duration": "41.87s"
+      "duration": "37.37s"
     },
     {
       "name": "Account Qualification Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-17T15:39:00.863Z",
+      "timestamp": "2025-12-17T15:53:17.812Z",
       "details": "",
-      "duration": "8.24s"
+      "duration": "8.41s"
     },
     {
       "name": "Building and Classification Added",
       "status": "PASSED",
-      "timestamp": "2025-12-17T15:41:22.307Z",
+      "timestamp": "2025-12-17T15:55:18.409Z",
       "details": "",
-      "duration": "141.44s"
+      "duration": "120.60s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T15:41:47.088Z",
-      "details": "Quote #: 3003178530",
-      "duration": "24.78s"
+      "timestamp": "2025-12-17T15:55:39.255Z",
+      "details": "Quote #: 3003178537",
+      "duration": "20.84s"
     },
     {
       "name": "Submitting for Approval",
       "status": "PASSED",
-      "timestamp": "2025-12-17T15:41:47.093Z",
+      "timestamp": "2025-12-17T15:55:43.384Z",
       "details": "",
+      "duration": "0.02s"
+    },
+    {
+      "name": "UW Issues Approved",
+      "status": "PASSED",
+      "timestamp": "2025-12-17T15:59:25.755Z",
+      "details": "",
+      "duration": "222.36s"
+    },
+    {
+      "name": "Policy Issued Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-17T15:59:25.757Z",
+      "details": "Policy #: 1003052572",
       "duration": "0.00s"
     }
   ],
-  "quoteNumber": "3003178530"
+  "quoteNumber": "3003178537",
+  "policyNumber": "1003052572"
 }
