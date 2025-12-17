@@ -28,38 +28,17 @@ echo Node.js found:
 node --version
 echo.
 
-setlocal enabledelayedexpansion
-
 REM Usage: run-bop-test.bat [qa|test]
 set ENV=%1
 if "%ENV%"=="" set ENV=qa
 
-echo Running BOP Test in Chromium (headed mode) for ALL states in PARALLEL...
+echo Running BOP Test in Chromium (headless mode) for ALL states in PARALLEL...
 echo.
 echo Starting 5 parallel test workers for: DE, PA, WI, OH, MI
 echo.
 
-REM Launch all states in parallel using separate command windows
-start "DE Test" cmd /C "set TEST_STATE=DE& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "PA Test" cmd /C "set TEST_STATE=PA& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "WI Test" cmd /C "set TEST_STATE=WI& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "OH Test" cmd /C "set TEST_STATE=OH& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
-start "MI Test" cmd /C "set TEST_STATE=MI& set TEST_ENV=%ENV%& npx playwright test Create_BOP.test.js --project=chromium"
+REM Use PowerShell to run tests in parallel within same terminal
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:TEST_ENV='%ENV%'; $states = @('DE', 'PA', 'WI', 'OH', 'MI'); $jobs = @(); foreach ($state in $states) { Write-Host \"Starting test for state: $state\" -ForegroundColor Cyan; $jobs += Start-Job -ScriptBlock { param($s, $e); $env:TEST_STATE = $s; $env:TEST_ENV = $e; $output = & npx playwright test Create_BOP.test.js --project=chromium 2>&1; return @{State=$s; Output=$output; ExitCode=$LASTEXITCODE}; } -ArgumentList $state, $env:TEST_ENV; }; Write-Host \"`nAll 5 tests started in parallel. Waiting for completion...`n\" -ForegroundColor Green; $results = $jobs | Wait-Job | Receive-Job; $jobs | Remove-Job; Write-Host \"`n========================================\" -ForegroundColor Yellow; Write-Host \"TEST RESULTS SUMMARY\" -ForegroundColor Yellow; Write-Host \"========================================`n\" -ForegroundColor Yellow; $passed = 0; $failed = 0; foreach ($r in $results) { if ($r.ExitCode -eq 0) { Write-Host \"[$($r.State)] PASSED\" -ForegroundColor Green; $passed++; } else { Write-Host \"[$($r.State)] FAILED\" -ForegroundColor Red; $failed++; } }; Write-Host \"`nTotal: $($results.Count) | Passed: $passed | Failed: $failed`n\" -ForegroundColor Cyan; exit $(if ($failed -gt 0) {1} else {0})"
 
 echo.
-echo ========================================
-echo All 5 parallel test workers started!
-echo ========================================
-echo.
-echo Each state runs in its own browser window:
-echo   - DE (Delaware)
-echo   - PA (Pennsylvania)
-echo   - WI (Wisconsin)
-echo   - OH (Ohio)
-echo   - MI (Michigan)
-echo.
-echo You can monitor each window for progress or errors.
-echo Tests will continue to run independently.
-echo.
 pause
-endlocal
