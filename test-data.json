@@ -1,42 +1,42 @@
 {
-  "state": "WI",
-  "stateName": "Wisconsin",
+  "state": "MI",
+  "stateName": "Michigan",
   "milestones": [
     {
       "name": "Account Created Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T14:03:07.485Z",
+      "timestamp": "2025-12-17T15:38:52.623Z",
       "details": "",
-      "duration": "40.26s"
+      "duration": "41.87s"
     },
     {
       "name": "Account Qualification Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-17T14:03:15.880Z",
+      "timestamp": "2025-12-17T15:39:00.863Z",
       "details": "",
-      "duration": "8.39s"
+      "duration": "8.24s"
     },
     {
       "name": "Building and Classification Added",
       "status": "PASSED",
-      "timestamp": "2025-12-17T14:05:19.407Z",
+      "timestamp": "2025-12-17T15:41:22.307Z",
       "details": "",
-      "duration": "123.53s"
+      "duration": "141.44s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-17T14:05:45.655Z",
-      "details": "Quote #: 3003178460",
-      "duration": "26.25s"
+      "timestamp": "2025-12-17T15:41:47.088Z",
+      "details": "Quote #: 3003178530",
+      "duration": "24.78s"
     },
     {
       "name": "Submitting for Approval",
       "status": "PASSED",
-      "timestamp": "2025-12-17T14:05:45.660Z",
+      "timestamp": "2025-12-17T15:41:47.093Z",
       "details": "",
       "duration": "0.00s"
     }
   ],
-  "quoteNumber": "3003178460"
+  "quoteNumber": "3003178530"
 }

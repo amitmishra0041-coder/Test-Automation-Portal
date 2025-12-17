@@ -10,20 +10,20 @@
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T14:03:07.485Z",
+        "timestamp": "2025-12-17T15:32:11.553Z",
         "details": "",
-        "duration": "40.26s"
+        "duration": "40.24s"
       },
       {
-        "name": "Account Qualification Completed",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T14:03:15.880Z",
-        "details": "",
-        "duration": "8.39s"
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-17T15:32:44.584Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
+        "duration": "33.03s"
       }
     ],
-    "timestamp": "2025-12-17T14:03:15.992Z",
-    "duration": "48.65"
+    "timestamp": "2025-12-17T15:32:47.686Z",
+    "duration": "73.27"
   },
   {
     "iterationNumber": 2,
@@ -36,26 +36,87 @@
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-17T14:03:06.939Z",
+        "timestamp": "2025-12-17T15:32:10.582Z",
         "details": "",
-        "duration": "42.66s"
+        "duration": "41.66s"
       },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T14:03:15.204Z",
+        "timestamp": "2025-12-17T15:32:18.859Z",
         "details": "",
-        "duration": "8.26s"
+        "duration": "8.28s"
       },
       {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-17T14:05:26.550Z",
-        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xrgn_AddBuilding button.dropdown-toggle[role=\"combobox\"]')\u001b[22m\n",
-        "duration": "131.34s"
+        "timestamp": "2025-12-17T15:34:32.398Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
+        "duration": "133.54s"
       }
     ],
-    "timestamp": "2025-12-17T14:05:30.983Z",
-    "duration": "182.26"
+    "timestamp": "2025-12-17T15:34:36.464Z",
+    "duration": "183.48"
+  },
+  {
+    "iterationNumber": 3,
+    "status": "PASSED",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "3003178527",
+    "policyNumber": "1003052568",
+    "milestones": [
+      {
+        "name": "Account Created Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:32:10.375Z",
+        "details": "",
+        "duration": "41.25s"
+      },
+      {
+        "name": "Account Qualification Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:32:19.458Z",
+        "details": "",
+        "duration": "9.08s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:34:25.709Z",
+        "details": "",
+        "duration": "126.25s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:34:53.862Z",
+        "details": "Quote #: 3003178527",
+        "duration": "28.15s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:34:53.867Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:38:06.125Z",
+        "details": "",
+        "duration": "192.26s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T15:38:06.127Z",
+        "details": "Policy #: 1003052568",
+        "duration": "0.00s"
+      }
+    ],
+    "timestamp": "2025-12-17T15:38:06.415Z",
+    "duration": "396.99"
   }
 ]
