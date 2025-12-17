@@ -125,15 +125,20 @@ class EmailReporter {
         </tr>
       `;
 
-      // Build milestone rows
-      const milestoneRows = milestoneNames.map((milestoneName, mIdx) => {
+      // Build milestone rows - include ALL milestones from first iteration as template
+      const allMilestoneNames = iterations.length > 0 
+        ? Array.from(new Set(iterations.flatMap(it => it.milestones.map(m => m.name))))
+        : milestoneNames;
+      
+      const milestoneRows = allMilestoneNames.map((milestoneName, mIdx) => {
         const bg = mIdx % 2 === 0 ? '#ffffff' : '#f1f8f4';
         const cells = iterations.map(it => {
           const milestone = it.milestones.find(m => m.name === milestoneName);
-          const icon = milestone?.status === 'PASSED' ? '✅' : (milestone?.status === 'FAILED' ? '❌' : '-');
+          const icon = milestone?.status === 'PASSED' ? '✅' : (milestone?.status === 'FAILED' ? '❌' : (milestone?.status === 'SKIPPED' ? '⏭️' : '◌'));
           const duration = milestone?.duration || '-';
+          const titleAttr = milestone?.details ? `title="${milestone.details}"` : '';
           return `
-            <td style="padding:6px;text-align:center;border:1px solid #ddd;">${icon}</td>
+            <td style="padding:6px;text-align:center;border:1px solid #ddd;" ${titleAttr}>${icon}</td>
             <td style="padding:6px;text-align:right;border:1px solid #ddd;color:#1565c0;font-weight:bold;">${duration}</td>
           `;
         }).join('');
@@ -188,6 +193,9 @@ class EmailReporter {
         ${milestonesHtml ? `
           <div style="background:#e8f5e9;padding:15px;margin:10px 0;border-radius:5px;border-left:4px solid #4CAF50;">
             <h3 style="margin-top:0;color:#2e7d32;">🎯 Test Milestones - ${iterations.length > 1 ? 'All Iterations' : 'Single Iteration'}</h3>
+            <div style="margin-bottom:15px;padding:10px;background:#fff3e0;border-radius:3px;font-size:0.9em;">
+              <b>Status Legend:</b> ✅ = Passed | ❌ = Failed | ⏭️ = Skipped | ◌ = Not Executed
+            </div>
             ${milestonesHtml}
           </div>
         ` : '<p style="color:#666;">No milestones tracked</p>'}

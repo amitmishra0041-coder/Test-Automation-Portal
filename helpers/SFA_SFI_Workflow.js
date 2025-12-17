@@ -261,7 +261,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
   // Switch focus back to WriteBiz page
   await page.bringToFront();
-  await page.waitForTimeout(2000); // Give time for tab to focus
+  await page.waitForTimeout(10000); // Give time for tab to focus
 
   await page.reload();
   // Click the submission using the same selector as Part 1

@@ -26,6 +26,7 @@ test('test', async ({ page }) => {
     milestones: []
   };
   let currentStepStartTime = null;
+  let testFailed = false;
   
   // Helper to persist test data to JSON file
   function saveTestData() {
@@ -54,7 +55,7 @@ test('test', async ({ page }) => {
       duration: duration ? `${duration}s` : null
     };
     global.testData.milestones.push(milestone);
-    console.log(`${status === 'PASSED' ? '\u2705' : '\u274c'} ${name}${duration ? ` (${duration}s)` : ''}`);
+    console.log(`${status === 'PASSED' ? '\u2705' : status === 'FAILED' ? '\u274c' : '\u23eb'} ${name}${duration ? ` (${duration}s)` : ''}`);
     
     // Save data to file immediately so reporter can read it
     saveTestData();
@@ -62,26 +63,28 @@ test('test', async ({ page }) => {
     // Reset timer for next step
     currentStepStartTime = new Date();
   }
-  
+
   // Start timing from first milestone
   currentStepStartTime = new Date();
 
-  // Helper function to generate a random 717 phone number
-  function randPhone717() {
-    const randomDigits = Math.floor(1000000 + Math.random() * 9000000); // 7 random digits
-    return `717${randomDigits}`;
-  }
-
-  // Helper function to click optional buttons
-  async function clickIfExists(buttonName) {
-    try {
-      const button = page.getByRole('button', { name: buttonName });
-      await button.click({ timeout: 5000 });
-      console.log(`✅ "${buttonName}" button clicked`);
-    } catch (error) {
-      console.log(`⏭️  "${buttonName}" button not present, skipping`);
+  try {
+    // Main test flow wrapped in try-catch
+    // Helper function to generate a random 717 phone number
+    function randPhone717() {
+      const randomDigits = Math.floor(1000000 + Math.random() * 9000000); // 7 random digits
+      return `717${randomDigits}`;
     }
-  }
+
+    // Helper function to click optional buttons
+    async function clickIfExists(buttonName) {
+      try {
+        const button = page.getByRole('button', { name: buttonName });
+        await button.click({ timeout: 5000 });
+        console.log(`✅ "${buttonName}" button clicked`);
+      } catch (error) {
+        console.log(`⏭️  "${buttonName}" button not present, skipping`);
+      }
+    }
 
   // Navigate and login
   await page.goto(writeBizUrl);
@@ -290,7 +293,7 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(500);
   
   // Type character by character for comma formatting
-  await page.keyboard.type('999');
+  await page.keyboard.type('2999');
   await page.waitForTimeout(1000);
   
   // Blur to trigger validation
@@ -314,7 +317,7 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(300);
   
   // Type character by character for comma formatting
-  await page.keyboard.type('35000');
+  await page.keyboard.type('40000');
   await page.waitForTimeout(500);
   
   // Blur to trigger validation
@@ -390,4 +393,20 @@ test('test', async ({ page }) => {
   console.log('💾 Test data written to test-data.json');
 
   console.log('Test completed successfully');
+  
+  } catch (error) {
+    // Test failed - mark the failure as a milestone
+    testFailed = true;
+    console.error('❌ Test execution failed:', error.message);
+    
+    trackMilestone('Test Execution Failed', 'FAILED', error.message);
+    
+    // Write final test data with failure info
+    const testDataFile = path.join(__dirname, 'test-data.json');
+    fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+    console.log('💾 Test data written to test-data.json with failure info');
+    
+    // Re-throw to mark test as failed in Playwright
+    throw error;
+  }
 });

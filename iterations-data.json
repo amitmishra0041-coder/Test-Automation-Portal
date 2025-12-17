@@ -1,49 +1,63 @@
 [
   {
     "iterationNumber": 1,
-    "status": "INTERRUPTED",
-    "state": "DE",
-    "stateName": "Delaware",
-    "quoteNumber": "3003178393",
-    "policyNumber": "N/A",
+    "status": "PASSED",
+    "state": "OH",
+    "stateName": "Ohio",
+    "quoteNumber": "3003178433",
+    "policyNumber": "1003052543",
     "milestones": [
       {
         "name": "Account Created Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-16T21:28:14.215Z",
+        "timestamp": "2025-12-17T13:22:53.027Z",
         "details": "",
-        "duration": "40.40s"
+        "duration": "33.57s"
       },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-16T21:28:22.514Z",
+        "timestamp": "2025-12-17T13:23:01.517Z",
         "details": "",
-        "duration": "8.30s"
+        "duration": "8.49s"
       },
       {
         "name": "Building and Classification Added",
         "status": "PASSED",
-        "timestamp": "2025-12-16T21:30:18.583Z",
+        "timestamp": "2025-12-17T13:25:01.567Z",
         "details": "",
-        "duration": "116.07s"
+        "duration": "120.05s"
       },
       {
         "name": "Quote Rated Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-16T21:30:41.594Z",
-        "details": "Quote #: 3003178393",
-        "duration": "23.01s"
+        "timestamp": "2025-12-17T13:25:25.245Z",
+        "details": "Quote #: 3003178433",
+        "duration": "23.68s"
       },
       {
         "name": "Submitting for Approval",
         "status": "PASSED",
-        "timestamp": "2025-12-16T21:30:41.599Z",
+        "timestamp": "2025-12-17T13:25:25.250Z",
         "details": "",
-        "duration": "0.01s"
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T13:28:17.991Z",
+        "details": "",
+        "duration": "172.74s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-17T13:28:17.993Z",
+        "details": "Policy #: 1003052543",
+        "duration": "0.00s"
       }
     ],
-    "timestamp": "2025-12-16T21:32:57.514Z",
-    "duration": "187.79"
+    "timestamp": "2025-12-17T13:28:18.313Z",
+    "duration": "358.53"
   }
 ]

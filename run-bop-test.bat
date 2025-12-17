@@ -28,16 +28,20 @@ echo Node.js found:
 node --version
 echo.
 
-echo Running BOP Test in Chromium (headed mode)...
+setlocal enabledelayedexpansion
+
+REM Usage: run-bop-test.bat [qa|test]
+set ENV=%1
+if "%ENV%"=="" set ENV=qa
+
+echo Running BOP Test in Chromium (headed mode) for all states...
 echo.
-$states = @('PA', 'DE', 'MD', 'OH', 'MI')
-foreach ($state in $states) {
-    Start-Job -ScriptBlock {
-        $env:TEST_STATE = $using:state
-        Write-Host "Running tests for state: $using:state"
-        npx playwright test Create_BOP.test.js --headed --project=chromium
-    }
-}
+for %%S in (DE PA WI OH MI) do (
+    set "TEST_STATE=%%S"
+    set "TEST_ENV=%ENV%"
+    echo ===== State: !TEST_STATE! (ENV=!TEST_ENV!) =====
+    npx playwright test Create_BOP.test.js --headed --project=chromium || goto :error
+)
 
 if errorlevel 1 (
     echo.
@@ -52,4 +56,11 @@ if errorlevel 1 (
 )
 
 echo.
+echo BOP tests completed for all states.
 pause
+goto :eof
+
+:error
+echo.
+echo BOP test failed for state %TEST_STATE% (ENV=%ENV%).
+exit /b 1

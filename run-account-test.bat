@@ -1,8 +1,24 @@
 @echo off
 cd /d "c:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal"
-echo Running Account Test in Chromium (headed mode)...
+setlocal enabledelayedexpansion
+
+REM Usage: run-account-test.bat [qa|test]
+set ENV=%1
+if "%ENV%"=="" set ENV=qa
+
+echo Running Account Test in Chromium (headed mode) for all states...
+for %%S in (DE PA WI OH MI) do (
+	set "TEST_STATE=%%S"
+	set "TEST_ENV=%ENV%"
+	echo ===== State: !TEST_STATE! (ENV=!TEST_ENV!) =====
+	npx playwright test .\Create_Account.test.js --project=chromium --headed || goto :error
+)
 echo.
-npx playwright test .\Create_Account.test.js --project=chromium --headed
-echo.
-echo Test completed!
+echo Account test completed for all states!
 pause
+goto :eof
+
+:error
+echo.
+echo Account test failed for state %TEST_STATE% (ENV=%ENV%).
+exit /b 1
