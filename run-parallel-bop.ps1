@@ -52,23 +52,27 @@ Write-Host "============================================================`n" -For
 # Stream output from all jobs as they complete
 $completedJobs = @()
 $allComplete = $false
-$startTime = Get-Date
+$startTime = [DateTime]::Now
 $checkCount = 0
 
 while (-not $allComplete) {
     $checkCount++
-    $elapsedSeconds = (Get-Date - $startTime).TotalSeconds
+    $now = [DateTime]::Now
+    $elapsedSeconds = ($now - $startTime).TotalSeconds
     
     # Show progress every 30 seconds
     if ($checkCount % 15 -eq 0) {
         $activeJobs = $jobs | Where-Object { $_.State -eq 'Running' }
-        Write-Host "Still running... Elapsed: $('{0:d2}:{1:d2}' -f [Math]::Floor($elapsedSeconds/60), [Math]::Floor($elapsedSeconds%60))s | Active jobs: $($activeJobs.Count)" -ForegroundColor Yellow
+        $minutes = [Math]::Floor($elapsedSeconds / 60)
+        $seconds = [Math]::Floor($elapsedSeconds % 60)
+        Write-Host "Still running... Elapsed: ${minutes}:$('{0:d2}' -f $seconds)s | Active jobs: $($activeJobs.Count)" -ForegroundColor Yellow
     }
     
     foreach ($job in $jobs) {
         if ($job -notin $completedJobs) {
             if ($job.State -eq 'Completed' -or $job.State -eq 'Failed') {
-                $elapsedForJob = (Get-Date - $startTime).TotalSeconds
+                $now = [DateTime]::Now
+                $elapsedForJob = ($now - $startTime).TotalSeconds
                 Write-Host "`nJob [$($job.Name)] finished with state: $($job.State) (after $([Math]::Round($elapsedForJob))s)" -ForegroundColor Yellow
                 
                 $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
@@ -101,12 +105,16 @@ foreach ($job in $jobs) {
 $jobs | Remove-Job
 
 # Display results
-$totalTime = (Get-Date - $startTime).TotalSeconds
+$now = [DateTime]::Now
+$totalTime = ($now - $startTime).TotalSeconds
+$totalMinutes = [Math]::Floor($totalTime / 60)
+$totalSeconds = [Math]::Floor($totalTime % 60)
+
 Write-Host "`n========================================" -ForegroundColor Yellow
 Write-Host "TEST RESULTS SUMMARY" -ForegroundColor Yellow
 Write-Host "========================================`n" -ForegroundColor Yellow
 
-Write-Host "Total Execution Time: $('{0:d2}:{1:d2}' -f [Math]::Floor($totalTime/60), [Math]::Floor($totalTime%60))s" -ForegroundColor Cyan
+Write-Host "Total Execution Time: ${totalMinutes}:$('{0:d2}' -f $totalSeconds)s" -ForegroundColor Cyan
 
 $passed = 0
 $failed = 0
