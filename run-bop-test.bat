@@ -28,7 +28,7 @@ echo Node.js found:
 node --version
 echo.
 
-REM Usage: run-bop-test.bat [qa|test]
+REM Usage: run-bop-test.bat [qa^|test]
 set ENV=%1
 if "%ENV%"=="" set ENV=qa
 
