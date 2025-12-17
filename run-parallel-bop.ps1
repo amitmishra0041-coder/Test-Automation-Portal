@@ -5,23 +5,30 @@ param(
 
 $states = @('DE', 'PA', 'WI', 'OH', 'MI')
 $jobs = @()
+$projectPath = Split-Path -Parent $PSCommandPath
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "BOP Test Runner - Parallel Execution" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 Write-Host "Environment: $TestEnv" -ForegroundColor Yellow
-Write-Host "States: $($states -join ', ')`n" -ForegroundColor Yellow
+Write-Host "States: $($states -join ', ')" -ForegroundColor Yellow
+Write-Host "Project Path: $projectPath`n" -ForegroundColor Yellow
 
 # Start a job for each state
 foreach ($state in $states) {
     Write-Host "Starting test for state: $state" -ForegroundColor Green
     
     $jobs += Start-Job -ScriptBlock {
-        param($s, $e)
+        param($s, $e, $projPath)
+        
+        # Change to project directory in this job's context
+        Set-Location $projPath
         
         $env:TEST_STATE = $s
         $env:TEST_ENV = $e
+        
+        Write-Host "[$s] Running test from: $(Get-Location)" -ForegroundColor Cyan
         
         # Run the test and capture output
         $output = & npx playwright test Create_BOP.test.js --project=chromium 2>&1 | Out-String
@@ -31,7 +38,7 @@ foreach ($state in $states) {
             ExitCode = $LASTEXITCODE
             Output = $output
         }
-    } -ArgumentList $state, $TestEnv
+    } -ArgumentList $state, $TestEnv, $projectPath
 }
 
 Write-Host "`nAll 5 tests started in parallel. Waiting for completion..." -ForegroundColor Cyan
