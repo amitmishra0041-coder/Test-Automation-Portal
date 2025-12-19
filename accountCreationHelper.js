@@ -131,7 +131,8 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
 
   // Wait for dropdown and click first option
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await page.waitForTimeout(1500);
   await menuOption.waitFor({ state: 'visible', timeout: 15000 });
   await menuOption.click();
   await page.locator('#txtYearBusinessStarted').fill('2014');

@@ -3,11 +3,13 @@
   "stateName": "Delaware",
   "milestones": [
     {
-      "name": "Account Qualification Completed",
-      "status": "PASSED",
-      "timestamp": "2025-12-19T15:24:28.505Z",
-      "details": "",
-      "duration": "82.10s"
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2025-12-19T15:51:36.634Z",
+      "details": "page.waitForLoadState: Timeout 60000ms exceeded.",
+      "duration": "132.43s"
     }
-  ]
+  ],
+  "status": "FAILED",
+  "error": "page.waitForLoadState: Timeout 60000ms exceeded."
 }

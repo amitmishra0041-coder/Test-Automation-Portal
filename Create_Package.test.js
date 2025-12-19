@@ -68,43 +68,42 @@ test('Package Submission', async ({ page }) => {
   // Start timing from first milestone
   currentStepStartTime = new Date();
 
-  // Helper function to click optional buttons
-  async function clickIfExists(buttonName) {
-    try {
-      const button = page.getByRole('button', { name: buttonName });
-      await button.click({ timeout: 5000 });
-      console.log(`✅ "${buttonName}" button clicked`);
-    } catch (error) {
-      console.log(`⏭️  "${buttonName}" button not present, skipping`);
+  try {
+    // Main test flow wrapped in try-catch
+
+    // Helper function to click optional buttons
+    async function clickIfExists(buttonName) {
+      try {
+        const button = page.getByRole('button', { name: buttonName });
+        await button.click({ timeout: 5000 });
+        console.log(`✅ "${buttonName}" button clicked`);
+      } catch (error) {
+        console.log(`⏭️  "${buttonName}" button not present, skipping`);
+      }
     }
-  }
 
-  // Account creation and qualification (reuses same page/tab)
-  await createAccountAndQualify(page, {
-    writeBizUrl,
-    testState,
-    clickIfExists,
-    trackMilestone
-  });
+    // Account creation and qualification (reuses same page/tab)
+    await createAccountAndQualify(page, {
+      writeBizUrl,
+      testState,
+      clickIfExists,
+      trackMilestone
+    });
 
-  // Wait for next page to fully load before interacting with package selection
-  await page.waitForTimeout(3000);
-  await page.waitForLoadState('networkidle');
+    // Wait for next page to fully load before interacting with package selection
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
 
+    // Select Commercial Package by clicking its visible UI checkbox icon
+    const commercialPackageIcon = page.locator('#chk_CommercialPackage + .ui-checkbox-icon');
+    await commercialPackageIcon.scrollIntoViewIfNeeded();
+    await commercialPackageIcon.waitFor({ state: 'visible', timeout: 15000 });
+    await commercialPackageIcon.click();
 
-
-
-
-  // Select Commercial Package by clicking its visible UI checkbox icon
-  const commercialPackageIcon = page.locator('#chk_CommercialPackage + .ui-checkbox-icon');
-  await commercialPackageIcon.scrollIntoViewIfNeeded();
-  await commercialPackageIcon.waitFor({ state: 'visible', timeout: 15000 });
-  await commercialPackageIcon.click();
-
-  await page.getByRole('button', { name: 'Next' }).click();
-  // Wait for any overlay to disappear
-  await page.waitForSelector('.ui-widget-overlay.ui-front', { state: 'hidden' }).catch(() => { });
-  // Click button with force to bypass pointer interception
+    await page.getByRole('button', { name: 'Next' }).click();
+    // Wait for any overlay to disappear
+    await page.waitForSelector('.ui-widget-overlay.ui-front', { state: 'hidden' }).catch(() => { });
+    // Click button with force to bypass pointer interception
   await page.getByRole('button').filter({ hasText: /^$/ }).nth(1).click({ force: true });
 
   // Wait for page to load after button click
@@ -594,28 +593,27 @@ trackMilestone('General Liability Entry Started');
 
   console.log('✅ Test completed successfully');
 
-} catch (error) {
-  // Test failed - mark the failure as a milestone
-  testFailed = true;
-  console.error('❌ Test execution failed:', error.message);
-  console.error('📍 Stack:', error.stack);
+  } catch (error) {
+    // Test failed - mark the failure as a milestone
+    testFailed = true;
+    console.error('❌ Test execution failed:', error.message);
+    console.error('📍 Stack:', error.stack);
 
-  trackMilestone('Test Execution Failed', 'FAILED', `${error.message}`);
+    trackMilestone('Test Execution Failed', 'FAILED', `${error.message}`);
 
-  // Ensure test data has failure status
-  global.testData.status = 'FAILED';
-  global.testData.error = error.message;
+    // Ensure test data has failure status
+    global.testData.status = 'FAILED';
+    global.testData.error = error.message;
 
-  // Write final test data with failure info
-  const testDataFile = path.join(__dirname, 'test-data.json');
-  fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
-  console.log('💾 Test data written to test-data.json with failure info');
+    // Write final test data with failure info
+    const testDataFile = path.join(__dirname, 'test-data.json');
+    fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+    console.log('💾 Test data written to test-data.json with failure info');
 
-  // Re-throw to mark test as failed in Playwright
-  throw error;
-
-}
-);
+    // Re-throw to mark test as failed in Playwright
+    throw error;
+  }
+});
 
 
 
