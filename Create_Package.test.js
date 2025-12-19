@@ -538,8 +538,8 @@ trackMilestone('General Liability Entry Started');
   await page.getByRole('button', { name: 'Continue ' }).click();
   console.log('Crime data entered successfully.');
   trackMilestone('Crime Completed', 'PASSED', 'Crime coverage details entered');
-  console.log('Finalizing policy and navigating to LOB Review page.');
-  await page.getByRole('button', { name: 'Finalize Policy ' }).click();
+  //console.log('Finalizing policy and navigating to LOB Review page.');
+  //await page.getByRole('button', { name: 'Finalize Policy ' }).click();
 
   //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=LOBReview.aspx&wf=true&sid=2F5067F927AC411EBD7F7103528A95FC');
   await page.waitForSelector('#lblQuoteNumValue', { timeout: 60000 });
