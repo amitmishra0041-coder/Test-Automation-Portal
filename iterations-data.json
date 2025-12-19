@@ -4,269 +4,94 @@
     "status": "PASSED",
     "state": "DE",
     "stateName": "Delaware",
-    "quoteNumber": "3003178565",
-    "policyNumber": "1003052579",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
     "milestones": [
-      {
-        "name": "Account Created Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:19:32.452Z",
-        "details": "",
-        "duration": "43.99s"
-      },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T18:19:40.754Z",
+        "timestamp": "2025-12-18T17:05:33.035Z",
         "details": "",
-        "duration": "8.30s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:22:18.411Z",
-        "details": "",
-        "duration": "157.65s"
-      },
-      {
-        "name": "Quote Rated Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:22:44.935Z",
-        "details": "Quote #: 3003178565",
-        "duration": "26.52s"
-      },
-      {
-        "name": "Submitting for Approval",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:22:44.941Z",
-        "details": "",
-        "duration": "0.00s"
-      },
-      {
-        "name": "UW Issues Approved",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:25:54.903Z",
-        "details": "",
-        "duration": "189.96s"
-      },
-      {
-        "name": "Policy Issued Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:25:54.905Z",
-        "details": "Policy #: 1003052579",
-        "duration": "0.00s"
+        "duration": "79.61s"
       }
     ],
-    "timestamp": "2025-12-17T18:25:55.137Z",
-    "duration": "426.42"
+    "timestamp": "2025-12-18T17:07:28.719Z",
+    "duration": "79.61"
   },
   {
     "iterationNumber": 2,
     "status": "PASSED",
-    "state": "WI",
-    "stateName": "Wisconsin",
-    "quoteNumber": "3003178566",
-    "policyNumber": "1003052580",
-    "milestones": [
-      {
-        "name": "Account Created Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:19:42.800Z",
-        "details": "",
-        "duration": "42.64s"
-      },
-      {
-        "name": "Account Qualification Completed",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:19:51.095Z",
-        "details": "",
-        "duration": "8.29s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:22:22.655Z",
-        "details": "",
-        "duration": "151.56s"
-      },
-      {
-        "name": "Quote Rated Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:23:00.350Z",
-        "details": "Quote #: 3003178566",
-        "duration": "37.69s"
-      },
-      {
-        "name": "Submitting for Approval",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:23:00.355Z",
-        "details": "",
-        "duration": "0.00s"
-      },
-      {
-        "name": "UW Issues Approved",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:26:04.988Z",
-        "details": "",
-        "duration": "184.63s"
-      },
-      {
-        "name": "Policy Issued Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:26:04.990Z",
-        "details": "Policy #: 1003052580",
-        "duration": "0.00s"
-      }
-    ],
-    "timestamp": "2025-12-17T18:26:05.320Z",
-    "duration": "424.81"
-  },
-  {
-    "iterationNumber": 3,
-    "status": "FAILED",
     "state": "DE",
     "stateName": "Delaware",
     "quoteNumber": "N/A",
     "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Account Created Successfully",
+        "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T18:26:52.709Z",
+        "timestamp": "2025-12-18T17:05:33.035Z",
         "details": "",
-        "duration": "41.76s"
-      },
+        "duration": "79.61s"
+      }
+    ],
+    "timestamp": "2025-12-18T17:07:46.060Z",
+    "duration": "79.61"
+  },
+  {
+    "iterationNumber": 3,
+    "status": "PASSED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T18:27:01.142Z",
+        "timestamp": "2025-12-18T17:05:33.035Z",
         "details": "",
-        "duration": "8.43s"
+        "duration": "79.61s"
       }
     ],
-    "timestamp": "2025-12-17T18:27:20.715Z",
-    "duration": "50.19"
+    "timestamp": "2025-12-18T17:23:32.142Z",
+    "duration": "79.61"
   },
   {
     "iterationNumber": 4,
     "status": "PASSED",
-    "state": "MI",
-    "stateName": "Michigan",
-    "quoteNumber": "3003178571",
-    "policyNumber": "1003052581",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
     "milestones": [
-      {
-        "name": "Account Created Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:26:51.373Z",
-        "details": "",
-        "duration": "41.46s"
-      },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T18:26:59.658Z",
+        "timestamp": "2025-12-18T17:46:59.110Z",
         "details": "",
-        "duration": "8.28s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:29:11.162Z",
-        "details": "",
-        "duration": "131.50s"
-      },
-      {
-        "name": "Quote Rated Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:29:30.357Z",
-        "details": "Quote #: 3003178571",
-        "duration": "19.19s"
-      },
-      {
-        "name": "Submitting for Approval",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:29:30.363Z",
-        "details": "",
-        "duration": "0.00s"
-      },
-      {
-        "name": "UW Issues Approved",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:32:45.510Z",
-        "details": "",
-        "duration": "195.14s"
-      },
-      {
-        "name": "Policy Issued Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:32:45.512Z",
-        "details": "Policy #: 1003052581",
-        "duration": "0.00s"
+        "duration": "79.13s"
       }
     ],
-    "timestamp": "2025-12-17T18:32:45.757Z",
-    "duration": "395.57"
+    "timestamp": "2025-12-18T17:52:16.885Z",
+    "duration": "79.13"
   },
   {
     "iterationNumber": 5,
     "status": "PASSED",
-    "state": "OH",
-    "stateName": "Ohio",
-    "quoteNumber": "3003178570",
-    "policyNumber": "1003052582",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
     "milestones": [
-      {
-        "name": "Account Created Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:26:50.396Z",
-        "details": "",
-        "duration": "41.05s"
-      },
       {
         "name": "Account Qualification Completed",
         "status": "PASSED",
-        "timestamp": "2025-12-17T18:26:58.621Z",
+        "timestamp": "2025-12-18T17:46:59.110Z",
         "details": "",
-        "duration": "8.22s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:29:08.578Z",
-        "details": "",
-        "duration": "129.96s"
-      },
-      {
-        "name": "Quote Rated Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:29:29.146Z",
-        "details": "Quote #: 3003178570",
-        "duration": "20.57s"
-      },
-      {
-        "name": "Submitting for Approval",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:29:29.152Z",
-        "details": "",
-        "duration": "0.00s"
-      },
-      {
-        "name": "UW Issues Approved",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:32:50.105Z",
-        "details": "",
-        "duration": "200.95s"
-      },
-      {
-        "name": "Policy Issued Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-17T18:32:50.108Z",
-        "details": "Policy #: 1003052582",
-        "duration": "0.00s"
+        "duration": "79.13s"
       }
     ],
-    "timestamp": "2025-12-17T18:32:50.396Z",
-    "duration": "400.75"
+    "timestamp": "2025-12-18T17:58:50.732Z",
+    "duration": "79.13"
   }
 ]

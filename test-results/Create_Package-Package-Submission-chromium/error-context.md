@@ -1,0 +1,131 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003178821-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Stehr, Conroy and Keebler
+            - generic [ref=e14]: 119 HANSEN RAPID
+            - generic [ref=e15]: DOVER, DE 19701
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - list [ref=e22]:
+        - listitem [ref=e23]:
+          - link " Policy Details" [ref=e24] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+            - generic [ref=e25]: 
+            - text: Policy Details
+        - listitem [ref=e26]:
+          - link " Line Selection" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+            - generic [ref=e28]: 
+            - text: Line Selection
+        - listitem [ref=e29]:
+          - link " Locations" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+            - generic [ref=e31]: 
+            - text: Locations
+        - listitem [ref=e32]:
+          - link " Commercial Property" [ref=e33] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+            - generic [ref=e34]: 
+            - text: Commercial Property
+        - text:      
+        - listitem [ref=e35]:
+          - link " General Liability" [ref=e36] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+            - generic [ref=e37]: 
+            - text: General Liability
+        - text:    
+        - listitem [ref=e38]:
+          - link " Inland Marine" [ref=e39] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+            - generic [ref=e40]: 
+            - text: Inland Marine
+        - text:      
+        - listitem [ref=e41]:
+          - link " Crime" [ref=e42] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+            - generic [ref=e43]: 
+            - text: Crime
+        - text:   
+        - listitem [ref=e44]:
+          - link "UW Questions" [ref=e45] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+        - listitem [ref=e46]:
+          - link "Rate" [ref=e47] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+        - listitem [ref=e48]:
+          - link "Review" [ref=e49] [cursor=pointer]:
+            - /url: "#XNav_POL_3003178821_tabContent"
+      - generic [ref=e50]:
+        - list [ref=e53]:
+          - listitem [ref=e54]:
+            - link "" [ref=e55] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e56]: 
+          - listitem [ref=e57]:
+            - link "" [ref=e58] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e59]: 
+          - listitem [ref=e60]:
+            - link "" [ref=e61] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e62]: 
+          - listitem [ref=e63]:
+            - link "" [ref=e64] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e65]: 
+        - generic [ref=e70]:
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e76]: Are there mortgagees on this property?
+              - generic [ref=e77]:
+                - generic [ref=e78] [cursor=pointer]:
+                  - radio "Yes"
+                  - text: "Yes"
+                - generic [ref=e79] [cursor=pointer]:
+                  - radio "No" [checked]
+                  - text: "No"
+                - generic [ref=e80]: "*"
+            - generic [ref=e81]:
+              - generic [ref=e84]: Does the applicant do cremations for other funeral homes?
+              - generic [ref=e85]:
+                - generic [ref=e86] [cursor=pointer]:
+                  - radio "Yes"
+                  - text: "Yes"
+                - generic [ref=e87] [cursor=pointer]:
+                  - radio "No" [checked]
+                  - text: "No"
+                - generic [ref=e88]: "*"
+            - generic [ref=e89]:
+              - generic [ref=e92]: To the best of my knowledge, information, and belief, these answers are true and correct based on the information provided by the applicant.
+              - generic [ref=e93]:
+                - generic [ref=e94] [cursor=pointer]:
+                  - radio "Yes" [checked]
+                  - text: "Yes"
+                - generic [ref=e95] [cursor=pointer]:
+                  - radio "No"
+                  - text: "No"
+                - generic [ref=e96]: "*"
+          - generic [ref=e97]:
+            - button "Continue " [ref=e98] [cursor=pointer]:
+              - text: Continue
+              - generic [ref=e99]: 
+            - button " Return to Line Selection" [ref=e100] [cursor=pointer]:
+              - generic [ref=e101]: 
+              - text: Return to Line Selection
+    - generic [ref=e104]:
+      - paragraph [ref=e105]:
+        - link "Technical Support" [ref=e106] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e107]: © 2025 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e108]: Jira Service Management Widget
+  - dialog [active] [ref=e110]:
+    - document:
+      - paragraph [ref=e115]: Validating and Quoting Submission...
+```

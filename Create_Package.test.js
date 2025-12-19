@@ -3,6 +3,7 @@ const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddr
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
+const { createAccountAndQualify } = require('./accountCreationHelper');
 const fs = require('fs');
 const path = require('path');
 
@@ -67,13 +68,6 @@ test('Package Submission', async ({ page }) => {
   // Start timing from first milestone
   currentStepStartTime = new Date();
 
-  // Main test flow
-  // Helper function to generate a random 717 phone number
-  function randPhone717() {
-    const randomDigits = Math.floor(1000000 + Math.random() * 9000000); // 7 random digits
-    return `717${randomDigits}`;
-  }
-
   // Helper function to click optional buttons
   async function clickIfExists(buttonName) {
     try {
@@ -85,117 +79,21 @@ test('Package Submission', async ({ page }) => {
     }
   }
 
-  // Navigate and login
-  await page.goto(writeBizUrl);
-  await page.getByRole('textbox', { name: 'User ID:' }).fill('amitmish');
-  await page.getByRole('textbox', { name: 'Password:' }).fill('Bombay12$');
-  await page.getByRole('button', { name: 'Log In' }).click();
-  console.log('WB Login successful');
-  // Create new client
-  await page.getByRole('button', { name: 'Create a New Client' }).click();
-  await page.getByText('Enter Search Text here or').click();
-  await page.locator('#txtAgency_input').fill('0000988');
-  await page.getByRole('gridcell', { name: '0000988' }).click();
-  await page.locator('#ui-id-9').getByText('CHRISTINA M. BOWER').click();
-  await page.getByRole('button', { name: 'Next' }).click();
-
-  // Fill client info
-  await page.getByRole('textbox', { name: 'Company/ Individual Name' }).fill(randCompany());
-  await page.waitForTimeout(800);
-  await page.getByRole('textbox', { name: 'Street Line 1' }).fill(randAddress());
-  await page.waitForTimeout(800);
-  await page.getByRole('textbox', { name: 'City' }).fill(randCityForState(testState));
-  await page.waitForTimeout(800);
-  await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click();
-  await page.waitForTimeout(1000);
-  await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click();
-  await page.waitForTimeout(800);
-  await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill(randZipForState(testState));
-  await page.waitForTimeout(800);
-  await page.locator('#txtPhone').fill(randPhone717());
-  await page.waitForTimeout(800);
-  await page.getByRole('textbox', { name: 'Email Address' }).fill(randEmail());
-  await page.waitForTimeout(1000);
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
-
-  // Click optional buttons - they may or may not appear depending on the flow
-  await clickIfExists('Use Suggested');
-  await clickIfExists('Accept As-Is');
-  await clickIfExists('Client not listed');
-  await clickIfExists('Continue');
-
-  // Wait for the page to be ready - more reliable than networkidle
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(3000); // Give page time to fully render
-
-  // Business Description - wait for it to be visible and enabled
-  const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
-  await businessDescField.waitFor({ state: 'visible', timeout: 30000 });
-  await businessDescField.fill('test desc');
-
-  // Click the Business Entity input to open dropdown
-  await page.locator('#xrgn_det_BusinessEntity > div > div > div:nth-child(2) > div > div > span > input').click();
-
-  // Wait for dropdown and click first non-empty option
-  await page.waitForLoadState('networkidle');
-  const firstOption = page.locator('.ui-menu.ui-widget:visible .ui-menu-item').first();
-  await firstOption.waitFor({ state: 'visible', timeout: 15000 });
-  await firstOption.click();
-  await page.locator('#txtYearBusinessStarted').fill('2014');
-  await page.getByRole('textbox', { name: 'Federal ID Number' }).fill(randSSN());
-  await page.locator('#txtNAICSCode_input').fill('812210');
-  await page.getByRole('gridcell', { name: 'Director services, funeral' }).click();
-
-  // Contact info
-  await page.getByRole('textbox', { name: 'Contact First Name' }).fill('test');
-  await page.waitForTimeout(800);
-  await page.getByRole('textbox', { name: 'Contact Last Name' }).fill('desc');
-  await page.waitForTimeout(800);
-  await page.getByRole('textbox', { name: 'Contact Phone' }).fill('7175551212');
-  await page.waitForTimeout(800);
-  await page.getByRole('textbox', { name: 'Contact Email' }).fill(randEmail());
-  await page.waitForTimeout(1000);
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
-  console.log('Account creation completed');
-
-  // Wait for the qualification page to load
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(3000);
-
-  // Coverage selections - wait for dropdown to be available
-  const coverageDropdown = page.locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question');
-  await coverageDropdown.waitFor({ state: 'visible', timeout: 30000 });
-  await coverageDropdown.selectOption('BOP');
-  await page.waitForTimeout(1200);
-  await page.locator('#xrgn_WillBuildingCoverageBeRequested_124_WillBuildingCoverageBeRequested_124_Question_Control').getByText('No', { exact: true }).click();
-  await page.waitForTimeout(1000);
-  await page.getByRole('radio').first().click();
-  await page.waitForTimeout(1000);
-  await page.locator('#xddl_WhatIsTheTotalNumberOfPowerUnits_121_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').selectOption('01');
-  await page.waitForTimeout(1000);
-  await page.getByRole('radio').nth(2).click();
-  await page.waitForTimeout(1000);
-  await page.locator('#xddl_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').selectOption('13');
-  await page.waitForTimeout(1200);
-  await page.locator('#txt_AnnualGrossSales_All_008_AnnualGrossSales_All_008_Integer_Question').fill('45555');
-  await page.waitForTimeout(1200);
-  await page.locator('#xrgn_CertifyQuestion_101_Ext_CertifyQuestion_101_Ext_Question_Control > div > .ui-xcontrols-row > div > div > .ui-xcontrols > div:nth-child(2) > span').first().click();
-  await page.waitForTimeout(1500);
-  await page.waitForTimeout(2000);
-  await page.waitForLoadState('domcontentloaded');
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
-  trackMilestone('Account Qualification Completed');
-  console.log('Account qualification completed');
+  // Account creation and qualification (reuses same page/tab)
+  await createAccountAndQualify(page, {
+    writeBizUrl,
+    testState,
+    clickIfExists,
+    trackMilestone
+  });
 
   // Wait for next page to fully load before interacting with package selection
   await page.waitForTimeout(3000);
   await page.waitForLoadState('networkidle');
+
+
+
+
 
   // Select Commercial Package by clicking its visible UI checkbox icon
   const commercialPackageIcon = page.locator('#chk_CommercialPackage + .ui-checkbox-icon');
@@ -217,25 +115,36 @@ test('Package Submission', async ({ page }) => {
   await page.getByRole('button', { name: 'Next ' }).click();
 
   // Toggle Inland Marine and Crime to "Yes" if not already selected (slider style controls)
-  // Toggle Inland Marine and Crime via JS to bypass hidden slider labels
-  await page.waitForTimeout(500); // slight pause to allow slider rendering
-  await page.evaluate(() => {
-    const inland = document.getElementById('cbInlandMarine');
-    if (inland && !inland.checked) {
-      inland.checked = true;
-      inland.dispatchEvent(new Event('click', { bubbles: true }));
-      inland.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    const crime = document.getElementById('cbCrime');
-    if (crime && !crime.checked) {
-      crime.checked = true;
-      crime.dispatchEvent(new Event('click', { bubbles: true }));
-      crime.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  });
-  
+  // Scroll into view and use JavaScript to click the actual checkbox element
+  await page.waitForTimeout(1000); // Wait for slider rendering
+
+  // Toggle Inland Marine - scroll and click via JavaScript
+  await page.locator('#cbInlandMarine').scrollIntoViewIfNeeded();
+  const inlandChecked = await page.locator('#cbInlandMarine').isChecked();
+  if (!inlandChecked) {
+    await page.locator('#cbInlandMarine').evaluate(el => el.click());
+    await page.waitForTimeout(500);
+    console.log('✅ Inland Marine toggled to Yes');
+  }
+
+  // Toggle Crime - scroll and click via JavaScript
+  await page.locator('#cbCrime').scrollIntoViewIfNeeded();
+  const crimeChecked = await page.locator('#cbCrime').isChecked();
+  if (!crimeChecked) {
+    await page.locator('#cbCrime').evaluate(el => el.click());
+    await page.waitForTimeout(500);
+    console.log('✅ Crime toggled to Yes');
+  }
+
+  // Click Confirm Selections button after both toggles are selected
+  await page.waitForTimeout(1000);
+  await page.locator('#btnConfirmSelections').click();
+  await page.waitForTimeout(1500);
+  console.log('✅ Confirm Selections clicked');
+
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.waitForLoadState('domcontentloaded');
+  console.log('Commercial Package data entry started.');
   await page.waitForTimeout(2500);
   await page.getByTitle('Edit Location').click();
   await page.waitForTimeout(2000);
@@ -282,7 +191,7 @@ test('Package Submission', async ({ page }) => {
   await page.getByRole('button', { name: 'Next ' }).click();
   //State specific info, Blankets and Buildings
 
-   await page.getByRole('button', { name: 'Save Location ' }).click();
+  await page.getByRole('button', { name: 'Save Location ' }).click();
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.locator('button').filter({ hasText: 'Add Building' }).click();
@@ -293,6 +202,7 @@ test('Package Submission', async ({ page }) => {
   await page.getByRole('gridcell', { name: 'Airports - Hangars with repairing or servicing' }).click();
   await page.locator('#xrgn_CLPropertyBuildingDetails_ConstructionTypeToUseValue').getByRole('combobox', { name: 'Nothing selected' }).click();
   await page.locator('#bs-select-6-0').click();
+  await page.waitForTimeout(1000);
   await page.locator('#txtNumberOfStories').click();
   await page.locator('#txtNumberOfStories').fill('15');
   await page.waitForTimeout(1000);
@@ -312,6 +222,7 @@ test('Package Submission', async ({ page }) => {
   await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').click();
   await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').fill('3256');
   await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').press('Tab');
+  await page.waitForTimeout(500);
   await page.locator('#PRI-XT_TEMPLATE_ID_PRIMARY-VAL').click();
   await page.getByText('Apartment / Condominium').click();
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -319,8 +230,9 @@ test('Package Submission', async ({ page }) => {
   await page.getByRole('button', { name: 'Finish' }).click();
   await page.getByRole('button', { name: 'Import Data' }).click();
   await page.getByRole('button', { name: ' Save' }).click();
-
+  await page.waitForTimeout(500);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(2000);
   await page.locator('#CP7OutdoorTreesShrubsAndPlants > td:nth-child(4) > .btn-sm').click();
   await page.locator('#txtCP7EachTreeLimit_integerWithCommas').click();
   await page.locator('#txtCP7EachTreeLimit_integerWithCommas').fill('015');
@@ -332,7 +244,7 @@ test('Package Submission', async ({ page }) => {
   //await page.locator('#txtCP7AllItemLimit_integerWithCommas').fill('15');
 
 
-const allItemInput = page.locator('#txtCP7AllItemLimit_integerWithCommas');
+  const allItemInput = page.locator('#txtCP7AllItemLimit_integerWithCommas');
   await allItemInput.click({ clickCount: 3 });
   await page.waitForTimeout(500);
   await page.keyboard.press('Backspace');
@@ -341,8 +253,8 @@ const allItemInput = page.locator('#txtCP7AllItemLimit_integerWithCommas');
   await page.waitForTimeout(800);
   await allItemInput.blur();
   await page.waitForTimeout(1000);
-
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: ' Save' }).click();
+  //await page.getByRole('button', { name: 'Next ' }).click();
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Save Building & Add Business' }).click();
@@ -433,22 +345,39 @@ const allItemInput = page.locator('#txtCP7AllItemLimit_integerWithCommas');
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.getByRole('button', { name: 'Save Building Personal' }).click();
   await page.getByRole('button', { name: 'Next ' }).click();
+  //Error handeling for buildings tab 
+  // Check if Attention dialog is visible
+  const attentionHeading = page.getByRole('heading', { name: 'Attention' });
+  try {
+    await attentionHeading.waitFor({ state: 'visible', timeout: 5000 });
+    // Attention dialog found - execute the block
+    console.log('⏭️  Attention dialog found')
+    await page.getByRole('heading', { name: 'Attention' }).click();
+    await page.getByRole('button', { name: ' Close' }).click();
+    await page.getByTitle('Edit Building').click();
+    await page.locator('#xrgn_CLPropertyBuildingDetails_ConstructionTypeToUseValue').getByRole('combobox', { name: 'Nothing selected' }).click();
+    await page.locator('#bs-select-6-0').click();
+    //await page.locator('#bs-select-6-0').click();
+    await page.waitForTimeout(1000);
+    //await page.getByRole('button', { name: 'Next ' }).click();
+    await page.locator('#btnNext_CLPropertyBuildingDetails').click();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
 
+    //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingCoverages.aspx&sid=8FF799FC9CCA4036945F7A17BAD76A22');
+    await page.getByRole('button', { name: 'Next ' }).click();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000)
+    //await page.getByRole('button', { name: 'Save Building ' }).click();
+    await page.locator('#btnNext_CLPackageBuildingAdditionalCoverages').click();
+    await page.waitForTimeout(2000);
+    await page.getByRole('button', { name: 'Next ' }).click();
+  } catch (error) {
+    console.log('⏭️  Attention dialog not found, skipping block');
+  }
 
-  await page.locator('#xacc_CP7StructureBldg').getByTitle('Edit Coverage').click();
-  await page.getByRole('link', { name: 'Create Estimator' }).click();
-  await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').click();
-  await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').fill('3256');
-  await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').press('Tab');
-  await page.locator('#PRI-XT_TEMPLATE_ID_PRIMARY-VAL').click();
-  await page.getByText('Apartment / Condominium').click();
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Calculate Now' }).click();
-  await page.getByRole('button', { name: 'Finish' }).click();
-  await page.getByRole('button', { name: 'Import Data' }).click();
-  await page.getByRole('button', { name: ' Save' }).click();
-  await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingCoverages.aspx&sid=A50D343A7A484188A618C62784EA98B8');
-  await page.getByRole('combobox', { name: 'Location 1: 956 TRENTON PL,' }).click();
+  // Special Classes
+  await page.locator('div.filter-option-inner-inner').filter({ hasText: 'Add Special Class' }).click();
   await page.locator('#bs-select-1-0').click();
   await page.locator('#txtNewSpecialClassDescription').click();
   await page.locator('#txtNewSpecialClassDescription').fill('special class desc');
@@ -456,51 +385,237 @@ const allItemInput = page.locator('#txtCP7AllItemLimit_integerWithCommas');
   await page.locator('#bs-select-1-1').click();
   await page.locator('#txtSpecialClassesClassificationDescriptions_displayAll > .input-group-text > .fas').click();
   await page.getByRole('gridcell', { name: 'Awnings or Canopies (when Insured Separately) - Entirely Non-combustible,' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLPropertySpecialClassCoverages.aspx&sid=0780278C9FB44ABCADFEB9E0ED129FBC');
+  await page.waitForTimeout(5000);
+  await page.getByRole('button', { name: 'Next ' }).click();
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLPropertySpecialClassCoverages.aspx&sid=0780278C9FB44ABCADFEB9E0ED129FBC');
   await page.locator('#xacc_CP7SpecialClassCvrg').getByTitle('Edit Coverage').click();
-  await page.locator('#txtCP7Limit19_integerWithCommas').click();
-  await page.locator('#txtCP7Limit19_integerWithCommas').fill('6,5666');
-  await page.getByRole('button', { name: ' Save' }).click();
+  const limit19Input = page.locator('#txtCP7Limit19_integerWithCommas');
+  await limit19Input.waitFor({ state: 'visible', timeout: 10000 });
+  await limit19Input.waitFor({ state: 'attached', timeout: 10000 });
+  await page.waitForTimeout(1000);
+  await limit19Input.click({ clickCount: 3 });
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Backspace');
+  await page.waitForTimeout(500);
+  await page.keyboard.type('65666');
+  await page.waitForTimeout(1000);
+  await limit19Input.blur();
+  await page.waitForTimeout(1500);
+  await page.getByRole('button', { name: ' Save' }).click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Save Special Class ' }).click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Continue ' }).click();
 
-  //special class and mortage
-  await page.locator('#xacc_CP7StructureBldg').getByTitle('Edit Coverage').click();
-  await page.getByRole('link', { name: 'Create Estimator' }).click();
-  await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').click();
-  await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').fill('3256');
-  await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').press('Tab');
-  await page.locator('#PRI-XT_TEMPLATE_ID_PRIMARY-VAL').click();
-  await page.getByText('Apartment / Condominium').click();
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Calculate Now' }).click();
+  console.log('Commercial property package data entered  successfully.');
+  trackMilestone('Commercial Property Package Completed', 'PASSED', 'Building, Business Income, Occupancy, Personal Property entered');
+
+console.log('General Liability data entry started.');
+trackMilestone('General Liability Entry Started');
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLCoverages.aspx&sid=DB02C8659EC1486FA06AF850885BB1FE');
+  await page.locator('#xacc_z84icg3rbgvk328k3ahq8cqedu8 > .fa.fa-edit').click();
+  await page.locator('input[name="txtz9bj8va1kj4g50uehc6ubms4q19"]').click();
+  await page.locator('input[name="txtz9bj8va1kj4g50uehc6ubms4q19"]').press('CapsLock');
+  await page.locator('input[name="txtz9bj8va1kj4g50uehc6ubms4q19"]').fill('N');
+  await page.locator('input[name="txtz9bj8va1kj4g50uehc6ubms4q19"]').press('CapsLock');
+  await page.locator('input[name="txtz9bj8va1kj4g50uehc6ubms4q19"]').fill('No limitations');
+  await page.getByRole('button', { name: ' Save' }).click();
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLCoverages.aspx&sid=8F4104755ACC4408A10F0A28450980F8');
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByTitle('Edit the Coverage').nth(1).click();
+  const glCoverageField = page.locator('input[name="txtzh4h8eu1sdr3q3h40nqv6fdk65a_integerWithCommas"]');
+  await glCoverageField.click({ clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('15');
+  await glCoverageField.blur();
+  await page.locator('.input-group-text').first().click();
+  await page.getByRole('cell', { name: '31' }).click();
+  await page.locator('#xrgn_zgni6as6fl4tt7q4qkleqpts9jaValue > .ui-xcontrols > .input-group-append > .input-group-text > .fas').click();
+  await page.getByTitle('Next Month').click();
+  await page.getByRole('cell', { name: '30' }).nth(1).click();
+  await page.getByRole('button', { name: ' Save' }).click();
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLAdditionalCoverages.aspx&sid=C44457B5B33B46888B07158DDD5B9F24');
+  await page.locator('#GL7AddlInsdChurchMbrOffcrVolunWrkr').getByTitle('Add the Coverage').click();
   await page.getByRole('button', { name: 'Finish' }).click();
-  await page.getByRole('button', { name: 'Import Data' }).click();
-  await page.getByRole('button', { name: ' Save' }).click();
-
-  await page.getByRole('combobox', { name: 'Location 1: 956 TRENTON PL,' }).click();
-  await page.locator('#bs-select-1-0').click();
-  await page.locator('#txtNewSpecialClassDescription').click();
-  await page.locator('#txtNewSpecialClassDescription').fill('special class desc');
-  await page.locator('#xrgn_Coverage_Form_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Finish' }).click();
+  await page.getByRole('combobox', { name: new RegExp(`: .* ${testState}$`) }).click();
+  await page.locator('ul.dropdown-menu.inner.show').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('ul.dropdown-menu.inner.show li').filter({ hasText: /^1:/ }).first().click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Add Exposure ' }).click();
+  await page.getByRole('combobox', { name: 'Select Location' }).click();
   await page.locator('#bs-select-1-1').click();
-  await page.locator('#txtSpecialClassesClassificationDescriptions_displayAll > .input-group-text > .fas').click();
-  await page.getByRole('gridcell', { name: 'Awnings or Canopies (when Insured Separately) - Entirely Non-combustible,' }).click();
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLExposuresDetails.aspx&selectedsubline=%22Premises/Operations%20and%20Products/Completed%20Operations%22&sid=E9265AB5DF924567BB72F7434525E340');
+  await page.getByRole('combobox', { name: 'Select Class Code' }).click();
+  await page.locator('#bs-select-2-1').click();
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLExposuresDetails.aspx&selectedsubline=%22Premises/Operations%20and%20Products/Completed%20Operations%22&sid=E1A86E1405BA4536A6D78577D333850B');
+  await page.locator('#txtExposure_Prem').click();
+  await page.locator('#txtExposure_Prem').click();
+  await page.locator('#txtExposure_Prem').fill('15566');
   await page.getByRole('button', { name: 'Next ' }).click();
-  
-  await page.locator('#xacc_CP7SpecialClassCvrg').getByTitle('Edit Coverage').click();
-  await page.locator('#txtCP7Limit19_integerWithCommas').click();
-  await page.locator('#txtCP7Limit19_integerWithCommas').fill('6,5666');
-  await page.getByRole('button', { name: ' Save' }).click();
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLExposuresCoverages.aspx&sid=B7D53EFD48D34942B45549FB2627936C');
   await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Save Special Class ' }).click();
+  await page.getByRole('button', { name: 'Save Exposure ' }).click();
+  await page.getByRole('button', { name: 'Continue ' }).click();
+
+  console.log('General Liability data entered successfully.');
+
+  console.log('Inland Marine data entry started.');
+  await page.getByRole('combobox', { name: 'Add New Form' }).click();
+  await page.locator('#bs-select-1-1').click();
+  await page.waitForTimeout(2000);
+  await page.getByRole('combobox', { name: 'Select Location' }).click();
+  await page.locator('#bs-select-1-1').click();
+  await page.waitForTimeout(2000);
+  await page.getByRole('combobox', { name: 'None' }).click();
+  await page.locator('#bs-select-2-1').click();
+  await page.waitForTimeout(5000);
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(2000);
+  await page.getByTitle('Edit Coverage').click();
+
+  const inlandMarine1 = page.locator('input[name="txtz66jk360ek2gv3redungtmut688_integerWithCommas"]');
+  await inlandMarine1.click({ clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('15600');
+  await inlandMarine1.blur();
+
+  const inlandMarine2 = page.locator('input[name="txtzv2ikdh26eivu9n0pgub3ph6k19_integerWithCommas"]');
+  await inlandMarine2.click({ clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('15000');
+  await inlandMarine2.blur();
+
+  const inlandMarine3 = page.locator('input[name="txtznrjmb0kmf659ck5liulv1qj6rb_integerWithCommas"]');
+  await inlandMarine3.click({ clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('1500');
+  await inlandMarine3.blur();
+
+  await page.getByRole('combobox', { name: 'Nothing selected' }).nth(3).click();
+  await page.locator('#bs-select-5-1').click();
+  await page.getByRole('combobox', { name: 'Nothing selected' }).nth(3).click();
+  await page.locator('#bs-select-7-1').click();
+  await page.locator('#xrgn_CoverageDetails').getByRole('combobox', { name: 'Nothing selected' }).click();
+  await page.locator('#bs-select-8-1').click();
+  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Save Form' }).click();
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.getByRole('button', { name: 'Continue ' }).click();
-});
+
+  console.log('Inland Marine data entered successfully.');
+  trackMilestone('Inland Marine Completed', 'PASSED', 'Coverage limits and deductibles entered');
+  console.log('Crime data entry started.');
+  trackMilestone('Crime Entry Started');
+  await page.getByRole('combobox', { name: new RegExp(`: .* ${testState}$`) }).click();
+  await page.locator('ul.dropdown-menu.inner.show').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('ul.dropdown-menu.inner.show li').filter({ hasText: /^1:/ }).first().click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.locator('#txtTotalNumberRatableEmployees').click();
+  await page.locator('#txtTotalNumberRatableEmployees').fill('15');
+  await page.locator('#txtTotalNumberERISAPlanOfficials').click();
+  await page.locator('#txtTotalNumberERISAPlanOfficials').fill('02');
+  await page.locator('#xrgn_PredominantActivityValue').getByRole('combobox', { name: 'Nothing selected' }).click();
+  await page.locator('#bs-select-6-1').click();
+  await page.locator('.fas.fa-th').click();
+  await page.getByRole('gridcell', { name: 'Car washes - self-service and' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.locator('#for_xrdo_Question_Form_CPPUnderwritingQuestion_Ext_0_CPPBestInfoByApplicant_Ext_Yes').click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(10000);
+  await page.getByRole('button', { name: 'Continue ' }).click();
+  console.log('Crime data entered successfully.');
+  trackMilestone('Crime Completed', 'PASSED', 'Crime coverage details entered');
+  console.log('Finalizing policy and navigating to LOB Review page.');
+  await page.getByRole('button', { name: 'Finalize Policy ' }).click();
+
+  //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=LOBReview.aspx&wf=true&sid=2F5067F927AC411EBD7F7103528A95FC');
+  await page.waitForSelector('#lblQuoteNumValue', { timeout: 60000 });
 
 
-  
+  // Capture quote number
+  const quoteNumber = await page.locator('#lblQuoteNumValue').textContent();
+  console.log('Quote Number:', quoteNumber.trim());
+
+
+  const submissionNumber = quoteNumber.trim();
+  trackMilestone('Quote Rated Successfully', 'PASSED', `Quote #: ${submissionNumber}`);
+
+  // Add these at the very top of your test file
+  const fs = require('fs');
+  const path = require('path');
+
+  // Append to file
+  const timestamp = new Date().toISOString();
+  const line = `[${timestamp}] Quote Number: ${submissionNumber}\n`;
+
+  const filePath = path.join(__dirname, 'quoteNumbers.txt');
+  fs.appendFileSync(filePath, line, 'utf8');
+
+  console.log(`Quote Number appended to ${filePath}`);
+
+  // Store submission number globally for email reporter
+  global.testData.quoteNumber = submissionNumber;
+  saveTestData();
+
+  // Now submit policy for approval in the same browser session
+  console.log('Starting policy submission workflow...');
+  trackMilestone('Submitting for Approval');
+
+  const policyNumber = await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl });
+
+  trackMilestone('UW Issues Approved');
+  trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${policyNumber}`);
+
+  // Store quote and policy numbers globally for email reporter
+  global.testData.policyNumber = policyNumber;
+  global.testData.quoteNumber = submissionNumber;
+  global.testData.status = 'PASSED';
+  saveTestData();
+  console.log('📋 Test Data:', global.testData);
+
+  // Write test data to JSON file so reporter can read it
+  const testDataFile = path.join(__dirname, 'test-data.json');
+  fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+  console.log('💾 Test data written to test-data.json');
+
+  console.log('✅ Test completed successfully');
+
+} catch (error) {
+  // Test failed - mark the failure as a milestone
+  testFailed = true;
+  console.error('❌ Test execution failed:', error.message);
+  console.error('📍 Stack:', error.stack);
+
+  trackMilestone('Test Execution Failed', 'FAILED', `${error.message}`);
+
+  // Ensure test data has failure status
+  global.testData.status = 'FAILED';
+  global.testData.error = error.message;
+
+  // Write final test data with failure info
+  const testDataFile = path.join(__dirname, 'test-data.json');
+  fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+  console.log('💾 Test data written to test-data.json with failure info');
+
+  // Re-throw to mark test as failed in Playwright
+  throw error;
+
+}
+);
+
+
 
