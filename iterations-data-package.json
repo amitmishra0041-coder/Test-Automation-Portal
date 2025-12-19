@@ -1,0 +1,121 @@
+[
+  {
+    "iterationNumber": 1,
+    "status": "PASSED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003178884",
+    "policyNumber": "1003052632",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:32:00.897Z",
+        "details": "",
+        "duration": "109.00s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:34:24.521Z",
+        "details": "",
+        "duration": "143.62s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:34:51.516Z",
+        "details": "Quote #: 3003178884",
+        "duration": "26.99s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:34:51.521Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:38:10.673Z",
+        "details": "",
+        "duration": "199.15s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:38:10.676Z",
+        "details": "Policy #: 1003052632",
+        "duration": "0.00s"
+      }
+    ],
+    "timestamp": "2025-12-19T20:38:11.506Z",
+    "duration": "478.76",
+    "runId": "2025-12-19T20:30:08.671Z",
+    "suite": "Package"
+  },
+  {
+    "iterationNumber": 2,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003178883",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:31:36.349Z",
+        "details": "",
+        "duration": "84.53s"
+      },
+      {
+        "name": "Commercial Property Package Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:36:27.510Z",
+        "details": "Building, Business Income, Occupancy, Personal Property entered",
+        "duration": "291.16s"
+      },
+      {
+        "name": "Inland Marine Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:38:32.603Z",
+        "details": "Coverage limits and deductibles entered",
+        "duration": "125.09s"
+      },
+      {
+        "name": "Crime Completed",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:38:54.922Z",
+        "details": "Crime coverage details entered",
+        "duration": "22.32s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:39:55.190Z",
+        "details": "Quote #: 3003178883",
+        "duration": "60.27s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-19T20:39:55.195Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-19T20:43:37.958Z",
+        "details": "locator.click: Timeout 40000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.esign-button.esign-paper')\u001b[22m\n",
+        "duration": "222.76s"
+      }
+    ],
+    "timestamp": "2025-12-19T20:43:39.597Z",
+    "duration": "806.13",
+    "runId": "2025-12-19T20:30:08.671Z",
+    "suite": "Package"
+  }
+]

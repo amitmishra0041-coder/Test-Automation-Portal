@@ -3,55 +3,56 @@
   "stateName": "Delaware",
   "milestones": [
     {
-      "name": "Account Qualification Completed",
+      "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-19T15:53:42.307Z",
+      "timestamp": "2025-12-19T20:31:36.349Z",
       "details": "",
-      "duration": "85.80s"
+      "duration": "84.53s"
     },
     {
       "name": "Commercial Property Package Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-19T15:58:08.411Z",
+      "timestamp": "2025-12-19T20:36:27.510Z",
       "details": "Building, Business Income, Occupancy, Personal Property entered",
-      "duration": "266.10s"
-    },
-    {
-      "name": "General Liability Entry Started",
-      "status": "PASSED",
-      "timestamp": "2025-12-19T15:58:08.414Z",
-      "details": "",
-      "duration": "0.00s"
+      "duration": "291.16s"
     },
     {
       "name": "Inland Marine Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-19T15:59:44.688Z",
+      "timestamp": "2025-12-19T20:38:32.603Z",
       "details": "Coverage limits and deductibles entered",
-      "duration": "96.27s"
-    },
-    {
-      "name": "Crime Entry Started",
-      "status": "PASSED",
-      "timestamp": "2025-12-19T15:59:44.690Z",
-      "details": "",
-      "duration": "0.00s"
+      "duration": "125.09s"
     },
     {
       "name": "Crime Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-19T16:00:04.356Z",
+      "timestamp": "2025-12-19T20:38:54.922Z",
       "details": "Crime coverage details entered",
-      "duration": "19.66s"
+      "duration": "22.32s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-19T20:39:55.190Z",
+      "details": "Quote #: 3003178883",
+      "duration": "60.27s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2025-12-19T20:39:55.195Z",
+      "details": "",
+      "duration": "0.00s"
     },
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2025-12-19T16:00:16.414Z",
-      "details": "locator.click: Test timeout of 480000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Finalize Policy ' })\u001b[22m\n",
-      "duration": "12.06s"
+      "timestamp": "2025-12-19T20:43:37.958Z",
+      "details": "locator.click: Timeout 40000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.esign-button.esign-paper')\u001b[22m\n",
+      "duration": "222.76s"
     }
   ],
+  "quoteNumber": "3003178883",
   "status": "FAILED",
-  "error": "locator.click: Test timeout of 480000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Finalize Policy ' })\u001b[22m\n"
+  "error": "locator.click: Timeout 40000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.esign-button.esign-paper')\u001b[22m\n"
 }

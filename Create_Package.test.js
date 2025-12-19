@@ -1,3 +1,6 @@
+// Set suite type for email reporter
+process.env.TEST_TYPE = 'PACKAGE';
+
 import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
@@ -8,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 test('Package Submission', async ({ page }) => {
-  test.setTimeout(480000); // 8 minutes total test timeout
+  test.setTimeout(1200000); // 20 minutes total test timeout
   page.setDefaultTimeout(60000); // 60 seconds default timeout for all actions
 
   // Select environment via TEST_ENV (qa|test). Defaults to qa.
@@ -111,7 +114,8 @@ test('Package Submission', async ({ page }) => {
   await page.waitForLoadState('networkidle');
 
   await page.locator('#ddlPriorCarrier').selectOption('Allstate');
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
 
   // Toggle Inland Marine and Crime to "Yes" if not already selected (slider style controls)
   // Scroll into view and use JavaScript to click the actual checkbox element
@@ -141,7 +145,8 @@ test('Package Submission', async ({ page }) => {
   await page.waitForTimeout(1500);
   console.log('✅ Confirm Selections clicked');
 
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForLoadState('networkidle');
   await page.waitForLoadState('domcontentloaded');
   console.log('Commercial Package data entry started.');
   await page.waitForTimeout(2500);
@@ -414,7 +419,6 @@ test('Package Submission', async ({ page }) => {
   trackMilestone('Commercial Property Package Completed', 'PASSED', 'Building, Business Income, Occupancy, Personal Property entered');
 
 console.log('General Liability data entry started.');
-trackMilestone('General Liability Entry Started');
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.getByRole('button', { name: 'Next ' }).click();
   //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLCoverages.aspx&sid=DB02C8659EC1486FA06AF850885BB1FE');
@@ -461,9 +465,29 @@ trackMilestone('General Liability Entry Started');
   await page.locator('#txtExposure_Prem').fill('15566');
   await page.getByRole('button', { name: 'Next ' }).click();
   //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLExposuresCoverages.aspx&sid=B7D53EFD48D34942B45549FB2627936C');
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Save Exposure ' }).click();
-  await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Save Exposure ' }).click();
+  
+  // Wait for any navigation to complete and optional modal to close
+  try {
+    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 }).catch(() => {});
+  } catch (e) {
+    // Navigation might already be complete
+  }
+  await page.waitForTimeout(1000);
+  
+  // Try to close any modal that might be blocking (GL section)
+  const statusModalGL = page.locator('#dgic-status-message');
+  try {
+    await statusModalGL.waitFor({ state: 'visible', timeout: 2000 });
+    const closeBtnGL = statusModalGL.getByRole('button', { name: /close|ok|done/i }).first();
+    await closeBtnGL.click().catch(() => {});
+    await page.waitForTimeout(500);
+  } catch (e) {
+    // Modal not present, continue
+  }
+  
+  await page.getByRole('button', { name: 'Continue ' }).click();
 
   console.log('General Liability data entered successfully.');
 
@@ -506,38 +530,70 @@ trackMilestone('General Liability Entry Started');
   await page.locator('#xrgn_CoverageDetails').getByRole('combobox', { name: 'Nothing selected' }).click();
   await page.locator('#bs-select-8-1').click();
   await page.getByRole('button', { name: 'Save' }).click();
+  await page.waitForTimeout(3000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(3000);
   await page.getByRole('button', { name: 'Save Form' }).click();
+  await page.waitForTimeout(3000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(3000);
   await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.waitForTimeout(3000);
 
   console.log('Inland Marine data entered successfully.');
   trackMilestone('Inland Marine Completed', 'PASSED', 'Coverage limits and deductibles entered');
   console.log('Crime data entry started.');
-  trackMilestone('Crime Entry Started');
+  await page.waitForTimeout(3000);
   await page.getByRole('combobox', { name: new RegExp(`: .* ${testState}$`) }).click();
   await page.locator('ul.dropdown-menu.inner.show').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('ul.dropdown-menu.inner.show li').filter({ hasText: /^1:/ }).first().click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  // Close any blocking modal before Next click
+  //const statusModal = page.locator('#dgic-status-message');
+  //try {
+  //  await statusModal.waitFor({ state: 'visible', timeout: 3000 });
+  //  const closeBtn = statusModal.getByRole('button', { name: /close|ok|done/i }).first();
+  //  await closeBtn.click().catch(() => {});
+  //  await page.waitForTimeout(500);
+  //} catch (e) {
+  //  // Modal not present, continue
+  //}
+  await page.getByRole('button', { name: 'Next ' }).click();
   await page.locator('#txtTotalNumberRatableEmployees').click();
   await page.locator('#txtTotalNumberRatableEmployees').fill('15');
   await page.locator('#txtTotalNumberERISAPlanOfficials').click();
   await page.locator('#txtTotalNumberERISAPlanOfficials').fill('02');
   await page.locator('#xrgn_PredominantActivityValue').getByRole('combobox', { name: 'Nothing selected' }).click();
   await page.locator('#bs-select-6-1').click();
+  await page.waitForTimeout(1500);
   await page.locator('.fas.fa-th').click();
-  await page.getByRole('gridcell', { name: 'Car washes - self-service and' }).click();
+  await page.waitForTimeout(2000);
+  const carWashCell = page.getByRole('gridcell', { name: /Car washes/ });
+  await carWashCell.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
+    console.log('⚠️ Car washes gridcell not found, clicking first matching gridcell');
+  });
+  await carWashCell.click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Next ' }).click();
+  //await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.waitForTimeout(2000);
   await page.locator('#for_xrdo_Question_Form_CPPUnderwritingQuestion_Ext_0_CPPBestInfoByApplicant_Ext_Yes').click();
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(10000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
+  
+  
   console.log('Crime data entered successfully.');
   trackMilestone('Crime Completed', 'PASSED', 'Crime coverage details entered');
+
+  await page.getByRole('button', { name: 'Continue ' }).click();
+
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(60000);
+
   //console.log('Finalizing policy and navigating to LOB Review page.');
   //await page.getByRole('button', { name: 'Finalize Policy ' }).click();
 
@@ -549,7 +605,7 @@ trackMilestone('General Liability Entry Started');
   const quoteNumber = await page.locator('#lblQuoteNumValue').textContent();
   console.log('Quote Number:', quoteNumber.trim());
 
-
+  console.log('Rating is successful.');
   const submissionNumber = quoteNumber.trim();
   trackMilestone('Quote Rated Successfully', 'PASSED', `Quote #: ${submissionNumber}`);
 

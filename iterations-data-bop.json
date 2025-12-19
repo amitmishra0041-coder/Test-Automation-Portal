@@ -1,0 +1,23 @@
+[
+  {
+    "iterationNumber": 1,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-19T20:19:31.526Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Enter Search Text here or')\u001b[22m\n",
+        "duration": "64.16s"
+      }
+    ],
+    "timestamp": "2025-12-19T20:19:35.411Z",
+    "duration": "64.16",
+    "runId": "2025-12-19T20:18:24.509Z",
+    "suite": "BOP"
+  }
+]

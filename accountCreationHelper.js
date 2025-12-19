@@ -205,7 +205,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
   if (trackMilestone) {
-    trackMilestone('Account Qualification Completed');
+    trackMilestone('Account Created');
   }
   console.log('Account qualification completed');
 }

@@ -2,130 +2,263 @@
 
 ```yaml
 - generic [ref=e1]:
-  - generic [ref=e3]:
-    - generic [ref=e4]:
-      - generic [ref=e7]:
-        - generic [ref=e10]: "3003178823-1: CUSTOM - New Business"
-        - generic [ref=e11]:
-          - generic [ref=e12]:
-            - generic [ref=e13]: Ward - Nitzsche
-            - generic [ref=e14]: 1794 QUITZON TRACK
-            - generic [ref=e15]: WILMINGTON, DE 19806
-          - button "" [ref=e17] [cursor=pointer]:
-            - generic "Close Client" [ref=e18]: 
-      - list [ref=e22]:
-        - listitem [ref=e23]:
-          - link " Policy Details" [ref=e24] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-            - generic [ref=e25]: 
-            - text: Policy Details
-        - listitem [ref=e26]:
-          - link " Line Selection" [ref=e27] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-            - generic [ref=e28]: 
-            - text: Line Selection
-        - listitem [ref=e29]:
-          - link " Locations" [ref=e30] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-            - generic [ref=e31]: 
-            - text: Locations
-        - listitem [ref=e32]:
-          - link " Commercial Property" [ref=e33] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-            - generic [ref=e34]: 
-            - text: Commercial Property
-        - text:      
-        - listitem [ref=e35]:
-          - link " General Liability" [ref=e36] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-            - generic [ref=e37]: 
-            - text: General Liability
-        - text:    
-        - listitem [ref=e38]:
-          - link " Inland Marine" [ref=e39] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-            - generic [ref=e40]: 
-            - text: Inland Marine
-        - text:      
-        - listitem [ref=e41]:
-          - link " Crime" [ref=e42] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-            - generic [ref=e43]: 
-            - text: Crime
-        - text:   
-        - listitem [ref=e44]:
-          - link "UW Questions" [ref=e45] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-        - listitem [ref=e46]:
-          - link "Rate" [ref=e47] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-        - listitem [ref=e48]:
-          - link "Review" [ref=e49] [cursor=pointer]:
-            - /url: "#XNav_POL_3003178823_tabContent"
-      - generic [ref=e50]:
-        - list [ref=e53]:
-          - listitem [ref=e54]:
-            - link "" [ref=e55] [cursor=pointer]:
-              - /url: "#ClientNavigation_tabContent"
-              - generic [ref=e56]: 
-          - listitem [ref=e57]:
-            - link "" [ref=e58] [cursor=pointer]:
-              - /url: javascript:navigationClickHandler(true);
-              - generic [ref=e59]: 
-          - listitem [ref=e60]:
-            - link "" [ref=e61] [cursor=pointer]:
-              - /url: "#ClientNavigation_tabContent"
-              - generic [ref=e62]: 
-          - listitem [ref=e63]:
-            - link "" [ref=e64] [cursor=pointer]:
-              - /url: "#ClientNavigation_tabContent"
-              - generic [ref=e65]: 
-        - generic [ref=e70]:
-          - generic [ref=e72]:
-            - generic [ref=e73]:
-              - generic [ref=e76]: Are there mortgagees on this property?
-              - generic [ref=e77]:
-                - generic [ref=e78] [cursor=pointer]:
-                  - radio "Yes"
-                  - text: "Yes"
-                - generic [ref=e79] [cursor=pointer]:
-                  - radio "No" [checked]
-                  - text: "No"
-                - generic [ref=e80]: "*"
-            - generic [ref=e81]:
-              - generic [ref=e84]: Does the applicant do cremations for other funeral homes?
-              - generic [ref=e85]:
-                - generic [ref=e86] [cursor=pointer]:
-                  - radio "Yes"
-                  - text: "Yes"
-                - generic [ref=e87] [cursor=pointer]:
-                  - radio "No" [checked]
-                  - text: "No"
-                - generic [ref=e88]: "*"
-            - generic [ref=e89]:
-              - generic [ref=e92]: To the best of my knowledge, information, and belief, these answers are true and correct based on the information provided by the applicant.
-              - generic [ref=e93]:
-                - generic [ref=e94] [cursor=pointer]:
-                  - radio "Yes" [checked]
-                  - text: "Yes"
-                - generic [ref=e95] [cursor=pointer]:
-                  - radio "No"
-                  - text: "No"
-                - generic [ref=e96]: "*"
-          - generic [ref=e97]:
-            - button "Continue " [ref=e98] [cursor=pointer]:
-              - text: Continue
-              - generic [ref=e99]: 
-            - button " Return to Line Selection" [ref=e100] [cursor=pointer]:
-              - generic [ref=e101]: 
-              - text: Return to Line Selection
-    - generic [ref=e104]:
-      - paragraph [ref=e105]:
-        - link "Technical Support" [ref=e106] [cursor=pointer]:
+  - generic [ref=e4]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Koepp - Hoppe
+        - generic [ref=e11]: 833 MULLER VISTA
+        - generic [ref=e12]: SMYRNA, DE 19701
+      - button "Close This Client" [ref=e14] [cursor=pointer]:
+        - generic [ref=e16]: Close This Client
+    - generic [ref=e17]:
+      - tablist [ref=e19]:
+        - tab "Client Summary" [ref=e20] [cursor=pointer]
+        - tab "Package 3003178883 $2,763,711" [ref=e21] [cursor=pointer]:
+          - 'generic "{\"index\":1432926,\"lastUpdate\":\"0001-01-01T00:00:00\",\"policyNumber\":\"3003178883\",\"policyDateTime\":\"12/19/2025 3:31 PM\",\"displayPolicyNumber\":\"3003178883\",\"ratingState\":\"DE\",\"planCode\":\"\",\"company\":\"Atlantic States Insurance Company\",\"version\":1,\"description\":\"CUSTOM\",\"tranType\":\"New Business\",\"status\":\"C_Approved\",\"isActive\":true,\"isHidden\":false,\"isReadOnly\":true,\"isUserAttached\":true}" [ref=e23]':
+            - generic [ref=e24]: Package
+            - button [ref=e27]
+            - generic [ref=e31]: "3003178883"
+            - generic [ref=e32]: $2,763,711
+        - tab "Contact Underwriter" [expanded] [selected] [ref=e34] [cursor=pointer]
+        - tab "Documents" [ref=e35] [cursor=pointer]
+        - tab "Reports" [ref=e36] [cursor=pointer]: Reports
+        - tab "UW Workstation" [ref=e38] [cursor=pointer]: UW Workstation
+        - tab "Manage Contacts" [ref=e40] [cursor=pointer]
+      - generic [ref=e47]:
+        - tablist [ref=e48]:
+          - tab "Submissions" [expanded] [selected] [ref=e49]:
+            - link "Submissions" [ref=e50]:
+              - /url: "#ajtcUnderwriterComm_tabContent"
+        - tabpanel "Submissions" [ref=e51]:
+          - generic [ref=e53]:
+            - generic [ref=e56]:
+              - generic [ref=e59]:
+                - generic:
+                  - generic [ref=e62]: Submit Quote(s) For Approval
+                  - button "Set Status" [ref=e64] [cursor=pointer]:
+                    - generic [ref=e66]: Set Status
+                - generic [ref=e69]: Please check the quote(s) you will like to submit for approval
+                - grid [ref=e72]:
+                  - 'table "Active Line of Business Quote Number Description Premium Status Term Agency Producer directIssue Umbrella 3003178887-1 Version #1 $ 387,786 In Progress (C) 12/19/2025 - 12/19/2026 0000988 CHRISTINA M BOWER" [ref=e75]':
+                    - row "Active Line of Business Quote Number Description Premium Status Term Agency Producer directIssue" [ref=e76]:
+                      - columnheader [ref=e77]:
+                        - checkbox [ref=e79]
+                      - columnheader "Active" [ref=e80]:
+                        - generic [ref=e82] [cursor=pointer]: Active
+                      - columnheader "Line of Business" [ref=e83]:
+                        - generic [ref=e85] [cursor=pointer]: Line of Business
+                      - columnheader "Quote Number" [ref=e86]:
+                        - generic [ref=e88] [cursor=pointer]: Quote Number
+                      - columnheader "Description" [ref=e89]:
+                        - generic [ref=e91] [cursor=pointer]: Description
+                      - columnheader "Premium" [ref=e92]:
+                        - generic [ref=e94] [cursor=pointer]: Premium
+                      - columnheader "Status" [ref=e95]:
+                        - generic [ref=e97] [cursor=pointer]: Status
+                      - columnheader "Term" [ref=e98]:
+                        - generic [ref=e100] [cursor=pointer]: Term
+                      - columnheader "Agency" [ref=e101]:
+                        - generic [ref=e103] [cursor=pointer]: Agency
+                      - columnheader "Producer" [ref=e104]:
+                        - generic [ref=e106] [cursor=pointer]: Producer
+                      - columnheader "directIssue" [ref=e107]:
+                        - generic [ref=e109] [cursor=pointer]: directIssue
+                  - 'table "Active Line of Business Quote Number Description Premium Status Term Agency Producer directIssue Umbrella 3003178887-1 Version #1 $ 387,786 In Progress (C) 12/19/2025 - 12/19/2026 0000988 CHRISTINA M BOWER" [ref=e112]':
+                    - rowgroup [ref=e113]:
+                      - row [ref=e114]:
+                        - gridcell [ref=e115]
+                        - gridcell [ref=e116]
+                        - gridcell [ref=e117]
+                        - gridcell [ref=e118]
+                        - gridcell [ref=e119]
+                        - gridcell [ref=e120]
+                        - gridcell [ref=e121]
+                        - gridcell [ref=e122]
+                        - gridcell [ref=e123]
+                        - gridcell [ref=e124]
+                        - gridcell [ref=e125]
+                      - 'row "Umbrella 3003178887-1 Version #1 $ 387,786 In Progress (C) 12/19/2025 - 12/19/2026 0000988 CHRISTINA M BOWER" [ref=e126]':
+                        - gridcell [ref=e127]:
+                          - checkbox [ref=e128]
+                        - gridcell [ref=e129]:
+                          - img [ref=e130]
+                        - gridcell "Umbrella" [ref=e131]
+                        - gridcell "3003178887-1" [ref=e132]
+                        - 'gridcell "Version #1" [ref=e133]'
+                        - gridcell "$ 387,786" [ref=e134]
+                        - gridcell "In Progress (C)" [ref=e135]
+                        - gridcell "12/19/2025 - 12/19/2026" [ref=e136]
+                        - gridcell "0000988" [ref=e137]
+                        - gridcell "CHRISTINA M BOWER" [ref=e138]
+                        - gridcell [ref=e139]:
+                          - button "Edit the Quote" [ref=e141] [cursor=pointer]
+                - button "Submit For Approval" [ref=e145] [cursor=pointer]:
+                  - generic [ref=e147]: Submit For Approval
+              - generic [ref=e151]:
+                - generic [ref=e154]: Submit Quote(s) For Issuance
+                - generic [ref=e157]: Please check the quote(s) you will like to submit for issuance
+                - grid [ref=e160]:
+                  - table "Active Line of Business Quote Number Description Premium Status Term Agency Producer Edit Click the pencil icon to edit quote information such as Term, Producer, Drivers/Auto Symbols and Mortgagees. Package 3003178883-1 CUSTOM $ 2,763,711 Approved (C) 12/19/2025 - 12/19/2026 0000988 CHRISTINA M BOWER" [ref=e163]:
+                    - row "Active Line of Business Quote Number Description Premium Status Term Agency Producer Edit Click the pencil icon to edit quote information such as Term, Producer, Drivers/Auto Symbols and Mortgagees." [ref=e164]:
+                      - columnheader [ref=e165]:
+                        - checkbox [ref=e167]
+                      - columnheader "Active" [ref=e168]:
+                        - generic [ref=e170] [cursor=pointer]: Active
+                      - columnheader "Line of Business" [ref=e171]:
+                        - generic [ref=e173] [cursor=pointer]: Line of Business
+                      - columnheader "Quote Number" [ref=e174]:
+                        - generic [ref=e176] [cursor=pointer]: Quote Number
+                      - columnheader "Description" [ref=e177]:
+                        - generic [ref=e179] [cursor=pointer]: Description
+                      - columnheader "Premium" [ref=e180]:
+                        - generic [ref=e182] [cursor=pointer]: Premium
+                      - columnheader "Status" [ref=e183]:
+                        - generic [ref=e185] [cursor=pointer]: Status
+                      - columnheader "Term" [ref=e186]:
+                        - generic [ref=e188] [cursor=pointer]: Term
+                      - columnheader "Agency" [ref=e189]:
+                        - generic [ref=e191] [cursor=pointer]: Agency
+                      - columnheader "Producer" [ref=e192]:
+                        - generic [ref=e194] [cursor=pointer]: Producer
+                      - columnheader "Edit Click the pencil icon to edit quote information such as Term, Producer, Drivers/Auto Symbols and Mortgagees." [ref=e195]:
+                        - generic [ref=e197] [cursor=pointer]:
+                          - text: Edit
+                          - generic "Click the pencil icon to edit quote information such as Term, Producer, Drivers/Auto Symbols and Mortgagees." [ref=e198]
+                          - strong
+                  - table "Active Line of Business Quote Number Description Premium Status Term Agency Producer Edit Click the pencil icon to edit quote information such as Term, Producer, Drivers/Auto Symbols and Mortgagees. Package 3003178883-1 CUSTOM $ 2,763,711 Approved (C) 12/19/2025 - 12/19/2026 0000988 CHRISTINA M BOWER" [ref=e201]:
+                    - rowgroup [ref=e202]:
+                      - row [ref=e203]:
+                        - gridcell [ref=e204]
+                        - gridcell [ref=e205]
+                        - gridcell [ref=e206]
+                        - gridcell [ref=e207]
+                        - gridcell [ref=e208]
+                        - gridcell [ref=e209]
+                        - gridcell [ref=e210]
+                        - gridcell [ref=e211]
+                        - gridcell [ref=e212]
+                        - gridcell [ref=e213]
+                        - gridcell [ref=e214]
+                      - row "Package 3003178883-1 CUSTOM $ 2,763,711 Approved (C) 12/19/2025 - 12/19/2026 0000988 CHRISTINA M BOWER" [selected] [ref=e215]:
+                        - gridcell [ref=e216]:
+                          - checkbox [checked] [ref=e217]
+                        - gridcell [ref=e218]:
+                          - img [ref=e219]
+                        - gridcell "Package" [ref=e220]
+                        - gridcell "3003178883-1" [ref=e221]
+                        - gridcell "CUSTOM" [ref=e222]
+                        - gridcell "$ 2,763,711" [ref=e223]
+                        - gridcell "Approved (C)" [ref=e224]
+                        - gridcell "12/19/2025 - 12/19/2026" [ref=e225]
+                        - gridcell "0000988" [ref=e226]
+                        - gridcell "CHRISTINA M BOWER" [ref=e227]
+                        - gridcell [ref=e228]:
+                          - button "Edit the Quote" [ref=e230] [cursor=pointer]
+                - button "Submit For Issuance" [ref=e234] [cursor=pointer]:
+                  - generic [ref=e236]: Submit For Issuance
+            - generic [ref=e240]:
+              - generic:
+                - generic [ref=e243]:
+                  - generic [ref=e247]: Items Required For Approval
+                  - generic [ref=e249]:
+                    - generic:
+                      - generic:
+                        - button [ref=e251] [cursor=pointer]
+                        - generic [ref=e256]: Verify Client
+                        - generic [ref=e261]:
+                          - img [ref=e262]
+                          - text: (Complete)
+                  - generic [ref=e264]:
+                    - generic:
+                      - generic:
+                        - button [ref=e266] [cursor=pointer]
+                        - generic [ref=e271]: Prior Carriers
+                        - generic [ref=e276]:
+                          - img [ref=e277]
+                          - text: (Incomplete)
+                  - generic [ref=e279]:
+                    - generic:
+                      - generic:
+                        - button [ref=e281] [cursor=pointer]
+                        - generic [ref=e286]: Loss History
+                        - generic [ref=e291]:
+                          - img [ref=e292]
+                          - text: (Complete)
+                - generic [ref=e295]:
+                  - generic [ref=e299]: Items Required For Issue
+                  - generic [ref=e301]:
+                    - generic:
+                      - generic:
+                        - button [ref=e303] [cursor=pointer]
+                        - generic [ref=e308]: Application
+                        - 'generic "Please Note: Applications are only required for the Product Lines being submitted for Issuance. You may click on the Edit icon to review all Applications for all Lines, or use the Issuance Wizard to guide you through the required sections only." [ref=e313]':
+                          - img [ref=e314]
+    - generic [ref=e319]:
+      - paragraph [ref=e320]:
+        - link "Technical Support" [ref=e321] [cursor=pointer]:
           - /url: "#/"
-      - paragraph [ref=e107]: © 2025 Donegal Insurance Group, All Rights Reserved.
-  - generic [ref=e108]: Jira Service Management Widget
-  - dialog [active] [ref=e110]:
-    - document:
-      - paragraph [ref=e115]: Validating and Quoting Submission...
+      - paragraph [ref=e322]: © 2025 Donegal Insurance Group, All Rights Reserved.
+  - log [ref=e323]
+  - log [ref=e324]
+  - log [ref=e325]
+  - generic [ref=e326]: Jira Service Management Widget
+  - status [ref=e327]
+  - dialog "Deposits" [ref=e328]:
+    - generic [ref=e330]: Deposits
+    - generic [ref=e335]:
+      - generic [ref=e338]:
+        - list [ref=e341]:
+          - listitem [ref=e342]:
+            - link "1 Client Info" [ref=e343] [cursor=pointer]:
+              - /url: "#wizIssue_stepContent"
+              - generic [ref=e344]: "1"
+              - text: Client Info
+          - listitem [ref=e345]:
+            - link "2 Application" [ref=e346] [cursor=pointer]:
+              - /url: "#wizIssue_stepContent"
+              - generic [ref=e347]: "2"
+              - text: Application
+          - listitem [ref=e348]:
+            - link "3 Billing" [ref=e349] [cursor=pointer]:
+              - /url: "#wizIssue_stepContent"
+              - generic [ref=e350]: "3"
+              - text: Billing
+          - listitem [ref=e351]:
+            - link "4 Deposits" [ref=e352] [cursor=pointer]:
+              - /url: "#wizIssue_stepContent"
+              - generic [ref=e353]: "4"
+              - text: Deposits
+          - listitem [ref=e354]:
+            - link "5 ESign" [ref=e355] [cursor=pointer]:
+              - /url: "#wizIssue_stepContent"
+              - generic [ref=e356]: "5"
+              - text: ESign
+        - generic [ref=e360]: Deposits
+      - generic [ref=e363]:
+        - generic [ref=e368]:
+          - text: Clicking “Bind and Issue” will bind and issue all of the previously selected submissions.
+          - text: If you do not wish to bind and issue a particular submission, click “Close” and restart the wizard without that submission.
+        - generic [ref=e372]:
+          - generic [ref=e376]: The option for deposit is not available based on the billing selections, please continue to bind and issuance.
+          - generic [ref=e378]:
+            - generic:
+              - generic:
+                - generic [ref=e381]: Line of Business
+                - generic [ref=e384]: Submission Number
+                - generic [ref=e387]: Premium
+          - generic [ref=e392]:
+            - generic:
+              - generic:
+                - generic [ref=e395]: Package
+                - generic [ref=e398]: 3003178883-1
+                - generic [ref=e401]: $2,625,619.00
+    - generic [ref=e403]:
+      - button "Previous" [ref=e404] [cursor=pointer]:
+        - generic [ref=e406]: Previous
+      - button "Close" [ref=e407] [cursor=pointer]:
+        - generic [ref=e409]: Close
+      - button "Bind and Issue" [ref=e410] [cursor=pointer]:
+        - generic [ref=e411]: Bind and Issue
+  - dialog [active] [ref=e414]:
+    - paragraph [ref=e416]: Processing your request to issue the policy. Please allow up to 100 seconds for this process to complete.
 ```

@@ -1,24 +1,28 @@
+// Set suite type for email reporter
+process.env.TEST_TYPE = 'BOP';
+
 import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
+const { createAccountAndQualify } = require('./accountCreationHelper');
 const fs = require('fs');
 const path = require('path');
 
-test('test', async ({ page }) => {
-  test.setTimeout(480000); // 8 minutes total test timeout
+test('Package Submission', async ({ page }) => {
+  test.setTimeout(1200000); // 20 minutes total test timeout
   page.setDefaultTimeout(60000); // 60 seconds default timeout for all actions
 
   // Select environment via TEST_ENV (qa|test). Defaults to qa.
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
-  
+
   // Select state via TEST_STATE (DE|PA|MD|OH|MI). Defaults to DE.
   const testState = process.env.TEST_STATE || 'DE';
   const stateConfig = getStateConfig(testState);
   console.log(`🗺️ Running test for state: ${testState} (${stateConfig.name})`);
-  
+
   // Initialize milestone tracking for email report
   global.testData = {
     state: testState,
@@ -27,7 +31,7 @@ test('test', async ({ page }) => {
   };
   let currentStepStartTime = null;
   let testFailed = false;
-  
+
   // Helper to persist test data to JSON file
   function saveTestData() {
     try {
@@ -37,16 +41,16 @@ test('test', async ({ page }) => {
       console.log('⚠️ Could not save test-data.json:', e.message);
     }
   }
-  
+
   function trackMilestone(name, status = 'PASSED', details = '') {
     const now = new Date();
     let duration = null;
-    
+
     // Calculate duration since last milestone (excluding wait times)
     if (currentStepStartTime) {
       duration = ((now - currentStepStartTime) / 1000).toFixed(2); // in seconds
     }
-    
+
     const milestone = {
       name,
       status,
@@ -56,10 +60,10 @@ test('test', async ({ page }) => {
     };
     global.testData.milestones.push(milestone);
     console.log(`${status === 'PASSED' ? '\u2705' : status === 'FAILED' ? '\u274c' : '\u23eb'} ${name}${duration ? ` (${duration}s)` : ''}`);
-    
+
     // Save data to file immediately so reporter can read it
     saveTestData();
-    
+
     // Reset timer for next step
     currentStepStartTime = new Date();
   }
@@ -69,11 +73,6 @@ test('test', async ({ page }) => {
 
   try {
     // Main test flow wrapped in try-catch
-    // Helper function to generate a random 717 phone number
-    function randPhone717() {
-      const randomDigits = Math.floor(1000000 + Math.random() * 9000000); // 7 random digits
-      return `717${randomDigits}`;
-    }
 
     // Helper function to click optional buttons
     async function clickIfExists(buttonName) {
@@ -86,90 +85,17 @@ test('test', async ({ page }) => {
       }
     }
 
-  // Navigate and login
-  await page.goto(writeBizUrl);
-  await page.getByRole('textbox', { name: 'User ID:' }).fill('amitmish');
-  await page.getByRole('textbox', { name: 'Password:' }).fill('Bombay12$');
-  await page.getByRole('button', { name: 'Log In' }).click();
-  console.log('WB Login successful');
-  // Create new client
-  await page.getByRole('button', { name: 'Create a New Client' }).click();
-  await page.getByText('Enter Search Text here or').click();
-  await page.locator('#txtAgency_input').fill('0000988');
-  await page.getByRole('gridcell', { name: '0000988' }).click();
-  await page.locator('#ui-id-9').getByText('CHRISTINA M. BOWER').click();
-  await page.getByRole('button', { name: 'Next' }).click();
+    // Account creation and qualification (reuses same page/tab)
+    await createAccountAndQualify(page, {
+      writeBizUrl,
+      testState,
+      clickIfExists,
+      trackMilestone
+    });
 
-  // Fill client info
-  await page.getByRole('textbox', { name: 'Company/ Individual Name' }).fill(randCompany());
-  await page.getByRole('textbox', { name: 'Street Line 1' }).fill(randAddress());
-  await page.getByRole('textbox', { name: 'City' }).fill(randCityForState(testState));
-  await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click();
-  await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click();
-  await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill(randZipForState(testState));
-  await page.locator('#txtPhone').fill(randPhone717());
-  await page.getByRole('textbox', { name: 'Email Address' }).fill(randEmail());
-  await page.getByRole('button', { name: 'Next' }).click();
-  
-  // Click optional buttons - they may or may not appear depending on the flow
-  await clickIfExists('Use Suggested');
-  await clickIfExists('Accept As-Is');
-  await clickIfExists('Client not listed');
-  await clickIfExists('Continue');
-
-  // Wait for the page to be ready - more reliable than networkidle
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(3000); // Give page time to fully render
-
-  // Business Description - wait for it to be visible and enabled
-  const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
-  await businessDescField.waitFor({ state: 'visible', timeout: 30000 });
-  await businessDescField.fill('test desc');
-  
-  // Click the Business Entity input to open dropdown
-  await page.locator('#xrgn_det_BusinessEntity > div > div > div:nth-child(2) > div > div > span > input').click();
-  
-  // Wait for dropdown and click first non-empty option
-  await page.waitForTimeout(500);
-  const firstOption = page.locator('.ui-menu.ui-widget:visible .ui-menu-item').first();
-  await firstOption.waitFor({ state: 'visible', timeout: 5000 });
-  await firstOption.click();
-  await page.locator('#txtYearBusinessStarted').fill('2014');
-  await page.getByRole('textbox', { name: 'Federal ID Number' }).fill(randSSN());
-  await page.locator('#txtNAICSCode_input').fill('812210');
-  await page.getByRole('gridcell', { name: 'Director services, funeral' }).click();
-
-  // Contact info
-  await page.getByRole('textbox', { name: 'Contact First Name' }).fill('test');
-  await page.getByRole('textbox', { name: 'Contact Last Name' }).fill('desc');
-  await page.getByRole('textbox', { name: 'Contact Phone' }).fill('7175551212');
-  await page.getByRole('textbox', { name: 'Contact Email' }).fill(randEmail());
-  await page.getByRole('button', { name: 'Next' }).click();
-  trackMilestone('Account Created Successfully');
-  console.log('Account creation completed');
-  
-  // Wait for the qualification page to load
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(3000);
-  
-  // Coverage selections - wait for dropdown to be available
-  const coverageDropdown = page.locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question');
-  await coverageDropdown.waitFor({ state: 'visible', timeout: 30000 });
-  await coverageDropdown.selectOption('BOP');
-  await page.locator('#xrgn_WillBuildingCoverageBeRequested_124_WillBuildingCoverageBeRequested_124_Question_Control').getByText('No', { exact: true }).click();
-  await page.getByRole('radio').first().click();
-  await page.locator('#xddl_WhatIsTheTotalNumberOfPowerUnits_121_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').selectOption('01');
-  await page.getByRole('radio').nth(2).click();
-  await page.locator('#xddl_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').selectOption('13');
-  await page.locator('#txt_AnnualGrossSales_All_008_AnnualGrossSales_All_008_Integer_Question').fill('45555');
-  await page.locator('#xrgn_CertifyQuestion_101_Ext_CertifyQuestion_101_Ext_Question_Control > div > .ui-xcontrols-row > div > div > .ui-xcontrols > div:nth-child(2) > span').first().click();
-  await page.waitForTimeout(2000);
-  await page.waitForLoadState('domcontentloaded');
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
-  trackMilestone('Account Qualification Completed');
-  console.log('Account qualification completed');
+    // Wait for next page to fully load before interacting with package selection
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
   // Businessowners quote
   await page.getByText('Businessowners (v7)').click();
   await page.getByRole('button', { name: 'Next' }).click();

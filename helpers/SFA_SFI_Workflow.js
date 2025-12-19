@@ -341,7 +341,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
   await page.getByRole('button', { name: 'Bind and Issue' }).click();
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(60000);
 
   await page.locator('.esign-button.esign-paper').click();
   await page.waitForLoadState('domcontentloaded');
