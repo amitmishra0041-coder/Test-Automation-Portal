@@ -52,8 +52,9 @@ try {
     $lockJson = $lockData | ConvertTo-Json -Depth 3 -Compress
     # Use UTF8 without BOM to prevent JSON parsing issues in Node.js
     [System.IO.File]::WriteAllText($lockFilePkg, $lockJson, [System.Text.UTF8Encoding]$false)
-    Write-Host "✓ Initialized parallel run lock (Package suite) with runId: $runId" -ForegroundColor Green
-    Write-Host "✓ Target states: $($states -join ', ')`n" -ForegroundColor Green
+    Write-Host "Initialized parallel run lock (Package suite) with runId: $runId" -ForegroundColor Green
+    Write-Host "Target states: $($states -join ', ')" -ForegroundColor Green
+    Write-Host ""
 } catch {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
 }
@@ -173,14 +174,16 @@ foreach ($result in $results) {
 
 Write-Host "`nTotal: $($results.Count) | Passed: $passed | Failed: $failed`n" -ForegroundColor Cyan
 
-# Clean up lock file after all tests complete so next run starts fresh
+    # Clean up lock file after all tests complete so next run starts fresh
 try {
     if (Test-Path $lockFilePkg) {
         Remove-Item $lockFilePkg -Force -ErrorAction SilentlyContinue
-        Write-Host "🗑️ Package lock file cleaned up`n" -ForegroundColor Gray
+        Write-Host "Lock file cleaned up" -ForegroundColor Gray
+        Write-Host ""
     }
 } catch {
-    Write-Host "⚠️ Could not clean lock file: $($_.Exception.Message)`n" -ForegroundColor Yellow
+    Write-Host "Could not clean lock file: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host ""
 }
 
 # Exit with error code if any tests failed
