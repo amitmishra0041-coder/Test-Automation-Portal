@@ -166,12 +166,22 @@ class EmailReporter {
     console.log('📊 Suite:', suiteLabel);
     console.log('🆔 RunId:', this.runId);
 
-    // Check for batch marker file; if present, skip email (batch will send combined email at end)
+    // Check for batch marker file OR lock files; if present, skip email (batch will send combined email at end)
     const batchMarkerFile = path.join(__dirname, '.batch-run-in-progress');
-    const isBatchRun = fs.existsSync(batchMarkerFile);
+    const lockFileBop = path.join(__dirname, 'parallel-run-lock-bop.json');
+    const lockFilePkg = path.join(__dirname, 'parallel-run-lock-package.json');
+    
+    console.log(`🔍 Checking for batch marker at: ${batchMarkerFile}`);
+    const hasBatchMarker = fs.existsSync(batchMarkerFile);
+    const hasLockFile = fs.existsSync(lockFileBop) || fs.existsSync(lockFilePkg);
+    const isBatchRun = hasBatchMarker || hasLockFile;
+    
+    console.log(`📍 Batch marker exists: ${hasBatchMarker}`);
+    console.log(`📍 Lock file exists: ${hasLockFile}`);
+    console.log(`📍 Is batch run: ${isBatchRun}`);
     
     if (isBatchRun) {
-      console.log('⏸️  Batch run detected (.batch-run-in-progress exists). Deferring email until batch completes.');
+      console.log('⏸️  Batch run detected - Deferring email until batch completes.');
       return;
     }
 
