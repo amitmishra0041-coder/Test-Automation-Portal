@@ -42,9 +42,34 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     await page.waitForTimeout(800);
     await page.getByRole('textbox', { name: 'City' }).fill(randCityForState(testState));
     await page.waitForTimeout(800);
-    await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click();
-    await page.waitForTimeout(1000);
-    await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click();
+    
+    // State dropdown click - retry if blocked by dialog overlay
+    let stateClickSuccess = false;
+    for (let attempt = 1; attempt <= 3 && !stateClickSuccess; attempt++) {
+      try {
+        if (attempt > 1) {
+          console.log(`🔄 Retry ${attempt}/3: Clicking state dropdown...`);
+          // Check for blocking dialog overlay
+          const overlay = page.locator('.ui-widget-overlay');
+          if (await overlay.isVisible().catch(() => false)) {
+            console.log('⚠️ Dialog overlay detected, waiting for it to clear...');
+            await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+          }
+        }
+        await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click({ timeout: 10000 });
+        await page.waitForTimeout(1000);
+        await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click({ timeout: 5000 });
+        stateClickSuccess = true;
+        if (attempt > 1) console.log('✅ State dropdown clicked successfully');
+      } catch (e) {
+        if (attempt === 3) {
+          console.log(`❌ Failed to click state dropdown after ${attempt} attempts: ${e.message}`);
+          throw e;
+        }
+        await page.waitForTimeout(2000);
+      }
+    }
+    
     await page.waitForTimeout(800);
     await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill(randZipForState(testState));
     await page.waitForTimeout(800);
@@ -110,6 +135,20 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await clickIfExists('Accept As-Is');
   await clickIfExists('Client not listed');
   await clickIfExists('Continue');
+  // CRITICAL: Wait for any address validation dialogs to fully close before proceeding
+  // In parallel runs, dialogs can linger and block subsequent interactions
+  await page.waitForTimeout(2000);
+  
+  // Check if any modal/dialog is still present and wait for it to close
+  const modalOverlay = page.locator('.ui-widget-overlay');
+  const dialogPresent = await modalOverlay.isVisible().catch(() => false);
+  if (dialogPresent) {
+    console.log('⏳ Waiting for dialog overlay to disappear...');
+    await modalOverlay.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {
+      console.log('⚠️ Dialog overlay still present, attempting to continue');
+    });
+  }
+
 
   // Wait for the page to be ready - more reliable than networkidle
   await page.waitForLoadState('domcontentloaded');
