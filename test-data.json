@@ -5,54 +5,32 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-19T20:31:36.349Z",
+      "timestamp": "2025-12-20T02:57:47.074Z",
       "details": "",
-      "duration": "84.53s"
+      "duration": "85.29s"
     },
     {
       "name": "Commercial Property Package Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-19T20:36:27.510Z",
+      "timestamp": "2025-12-20T03:02:17.678Z",
       "details": "Building, Business Income, Occupancy, Personal Property entered",
-      "duration": "291.16s"
+      "duration": "270.60s"
     },
     {
       "name": "Inland Marine Completed",
       "status": "PASSED",
-      "timestamp": "2025-12-19T20:38:32.603Z",
+      "timestamp": "2025-12-20T03:04:18.383Z",
       "details": "Coverage limits and deductibles entered",
-      "duration": "125.09s"
-    },
-    {
-      "name": "Crime Completed",
-      "status": "PASSED",
-      "timestamp": "2025-12-19T20:38:54.922Z",
-      "details": "Crime coverage details entered",
-      "duration": "22.32s"
-    },
-    {
-      "name": "Quote Rated Successfully",
-      "status": "PASSED",
-      "timestamp": "2025-12-19T20:39:55.190Z",
-      "details": "Quote #: 3003178883",
-      "duration": "60.27s"
-    },
-    {
-      "name": "Submitting for Approval",
-      "status": "PASSED",
-      "timestamp": "2025-12-19T20:39:55.195Z",
-      "details": "",
-      "duration": "0.00s"
+      "duration": "120.70s"
     },
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2025-12-19T20:43:37.958Z",
-      "details": "locator.click: Timeout 40000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.esign-button.esign-paper')\u001b[22m\n",
-      "duration": "222.76s"
+      "timestamp": "2025-12-20T03:04:24.313Z",
+      "details": "locator.click: Test ended.\nCall log:\n\u001b[2m  - waiting for locator('#xrgn_PredominantActivityValue').getByRole('combobox', { name: 'Nothing selected' })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" role=\"combobox\" aria-expanded=\"false\" data-toggle=\"dropdown\" aria-owns=\"bs-select-6\" aria-haspopup=\"listbox\" title=\"Nothing selected\" data-id=\"ddlPredominantActivity\" class=\"btn dropdown-toggle bs-placeholder btn-light btn-sm\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n",
+      "duration": "5.92s"
     }
   ],
-  "quoteNumber": "3003178883",
   "status": "FAILED",
-  "error": "locator.click: Timeout 40000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.esign-button.esign-paper')\u001b[22m\n"
+  "error": "locator.click: Test ended.\nCall log:\n\u001b[2m  - waiting for locator('#xrgn_PredominantActivityValue').getByRole('combobox', { name: 'Nothing selected' })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" role=\"combobox\" aria-expanded=\"false\" data-toggle=\"dropdown\" aria-owns=\"bs-select-6\" aria-haspopup=\"listbox\" title=\"Nothing selected\" data-id=\"ddlPredominantActivity\" class=\"btn dropdown-toggle bs-placeholder btn-light btn-sm\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n"
 }

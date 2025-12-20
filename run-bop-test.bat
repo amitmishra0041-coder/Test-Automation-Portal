@@ -16,6 +16,10 @@ if errorlevel 1 (
 echo Current directory: %CD%
 echo.
 
+REM Create batch marker file to prevent individual test runs from sending emails
+echo {^"inBatch^": true} > .batch-run-in-progress
+echo ✓ Created batch marker - emails will be deferred until batch completion
+
 REM Check if node is available
 where node >nul 2>nul
 if errorlevel 1 (
@@ -46,21 +50,22 @@ shift
 goto collect
 :aftercollect
 set "STATES=%STATES_RAW%"
-set STATES=%2
 
-if "%STATES%"=="" goto ALL
+if "%STATES%"=="" set STATES=DE,PA,WI,OH,MI
 echo Running BOP Test in Chromium (headless mode) for STATES: %STATES% in PARALLEL...
-set PSARGS=-TestEnv %ENV% -States "%STATES%"
-goto RUN
-
-:ALL
-echo Running BOP Test in Chromium (headless mode) for ALL states in PARALLEL...
-set PSARGS=-TestEnv %ENV%
-
-:RUN
 echo.
 REM Call PowerShell script to run tests in parallel within same terminal
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" %PSARGS%
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "%STATES%"
+
+REM After all tests complete, send the combined batch email
+echo.
+echo ========================================
+echo Sending Combined Batch Email Report...
+echo ========================================
+node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport();"
+
+REM Clean up batch marker
+if exist .batch-run-in-progress del .batch-run-in-progress
 
 echo.
 endlocal

@@ -490,6 +490,7 @@ console.log('General Liability data entry started.');
   await page.getByRole('button', { name: 'Continue ' }).click();
 
   console.log('General Liability data entered successfully.');
+  trackMilestone('General Liability Completed', 'PASSED', 'Coverage limits and deductibles entered');
 
   console.log('Inland Marine data entry started.');
   await page.getByRole('combobox', { name: 'Add New Form' }).click();

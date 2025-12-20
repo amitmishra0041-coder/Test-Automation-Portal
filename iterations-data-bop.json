@@ -10,14 +10,574 @@
       {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-19T20:19:31.526Z",
-        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Enter Search Text here or')\u001b[22m\n",
-        "duration": "64.16s"
+        "timestamp": "2025-12-20T02:18:29.988Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first()\u001b[22m\n\u001b[2m    - locator resolved to <input title=\"DE\" autocomplete=\"off\" class=\"ui-widget ui-widget-content ui-combobox-input ui-autocomplete-input ui-corner-left\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <td role=\"gridcell\" title=\"MILFORD ST\" aria-describedby=\"dgAddressCorrections_AddressLine1\">MILFORD ST</td> from <div tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"ui-id-57\" aria-describedby=\"ui-id-56\" class=\"ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-dialog-shadow no-close ui-draggable ui-dialog-buttons\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <td role=\"gridcell\" title=\"MILFORD ST\" aria-describedby=\"dgAddressCorrections_AddressLine1\">MILFORD ST</td> from <div tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"ui-id-57\" aria-describedby=\"ui-id-56\" class=\"ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-dialog-shadow no-close ui-draggable ui-dialog-buttons\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    112 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <td role=\"gridcell\" title=\"MILFORD ST\" aria-describedby=\"dgAddressCorrections_AddressLine1\">MILFORD ST</td> from <div tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"ui-id-57\" aria-describedby=\"ui-id-56\" class=\"ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-dialog-shadow no-close ui-draggable ui-dialog-buttons\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+        "duration": "82.57s"
       }
     ],
-    "timestamp": "2025-12-19T20:19:35.411Z",
-    "duration": "64.16",
-    "runId": "2025-12-19T20:18:24.509Z",
+    "timestamp": "2025-12-20T02:18:30.455Z",
+    "duration": "82.57",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 2,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:18:36.200Z",
+        "details": "",
+        "duration": "87.53s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:19:39.230Z",
+        "details": "page.waitForLoadState: Timeout 60000ms exceeded.",
+        "duration": "63.02s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:19:51.876Z",
+    "duration": "150.55",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 3,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:21:28.867Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first()\u001b[22m\n\u001b[2m    - locator resolved to <input title=\"DE\" autocomplete=\"off\" class=\"ui-widget ui-widget-content ui-combobox-input ui-autocomplete-input ui-corner-left\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <td role=\"gridcell\" title=\"ANDREA RD\" aria-describedby=\"dgAddressCorrections_AddressLine1\">ANDREA RD</td> from <div tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"ui-id-57\" aria-describedby=\"ui-id-56\" class=\"ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-dialog-shadow no-close ui-draggable ui-dialog-buttons\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <td role=\"gridcell\" title=\"ANDREA RD\" aria-describedby=\"dgAddressCorrections_AddressLine1\">ANDREA RD</td> from <div tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"ui-id-57\" aria-describedby=\"ui-id-56\" class=\"ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-dialog-shadow no-close ui-draggable ui-dialog-buttons\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    104 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <td role=\"gridcell\" title=\"ANDREA RD\" aria-describedby=\"dgAddressCorrections_AddressLine1\">ANDREA RD</td> from <div tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"ui-id-57\" aria-describedby=\"ui-id-56\" class=\"ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-dialog-shadow no-close ui-draggable ui-dialog-buttons\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+        "duration": "87.05s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:21:29.524Z",
+    "duration": "87.05",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 4,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:22:14.841Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first()\u001b[22m\n\u001b[2m    - locator resolved to <input title=\"DE\" autocomplete=\"off\" class=\"ui-widget ui-widget-content ui-combobox-input ui-autocomplete-input ui-corner-left\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    109 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n",
+        "duration": "95.05s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:22:17.491Z",
+    "duration": "95.05",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 5,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:23:36.630Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first()\u001b[22m\n\u001b[2m    - locator resolved to <input title=\"DE\" autocomplete=\"off\" class=\"ui-widget ui-widget-content ui-combobox-input ui-autocomplete-input ui-corner-left\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    108 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+        "duration": "84.02s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:23:37.149Z",
+    "duration": "84.02",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 6,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003178963",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:18:36.362Z",
+        "details": "",
+        "duration": "88.78s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:20:59.085Z",
+        "details": "",
+        "duration": "142.72s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:21:23.924Z",
+        "details": "Quote #: 3003178963",
+        "duration": "24.84s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:21:23.933Z",
+        "details": "",
+        "duration": "0.01s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:24:13.266Z",
+        "details": "locator.click: Timeout 40000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next' })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" role=\"button\" class=\"ui-button ui-widget ui-state-default ui-corner-all ui-button-text-icon-secondary\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    72 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n",
+        "duration": "169.33s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:24:21.654Z",
+    "duration": "425.68",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 7,
+    "status": "PASSED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003178966",
+    "policyNumber": "1003052652",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:19:59.246Z",
+        "details": "",
+        "duration": "86.34s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:22:13.282Z",
+        "details": "",
+        "duration": "133.97s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:22:34.623Z",
+        "details": "Quote #: 3003178966",
+        "duration": "21.34s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:22:34.630Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:26:25.406Z",
+        "details": "",
+        "duration": "230.77s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:26:25.410Z",
+        "details": "Policy #: 1003052652",
+        "duration": "0.00s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:26:29.446Z",
+    "duration": "472.42",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 8,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:28:06.083Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first()\u001b[22m\n\u001b[2m    - locator resolved to <input title=\"DE\" autocomplete=\"off\" class=\"ui-widget ui-widget-content ui-combobox-input ui-autocomplete-input ui-corner-left\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    93 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n",
+        "duration": "90.20s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:28:08.009Z",
+    "duration": "90.20",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 9,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003178971",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:25:19.350Z",
+        "details": "",
+        "duration": "98.10s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:27:54.971Z",
+        "details": "",
+        "duration": "155.62s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:28:18.105Z",
+        "details": "Quote #: 3003178971",
+        "duration": "23.13s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:28:18.116Z",
+        "details": "",
+        "duration": "0.01s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:29:03.850Z",
+        "details": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('span.ui-jqgrid-cursor-default:text(\"3003178971\")') to be visible\u001b[22m\n",
+        "duration": "45.72s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:29:11.072Z",
+    "duration": "322.58",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 10,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:30:35.259Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first()\u001b[22m\n\u001b[2m    - locator resolved to <input title=\"DE\" autocomplete=\"off\" class=\"ui-widget ui-widget-content ui-combobox-input ui-autocomplete-input ui-corner-left\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    113 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+        "duration": "80.86s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:30:35.893Z",
+    "duration": "80.86",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 11,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:30:26.539Z",
+        "details": "",
+        "duration": "85.10s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:31:29.552Z",
+        "details": "page.waitForLoadState: Timeout 60000ms exceeded.",
+        "duration": "63.01s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:31:37.032Z",
+    "duration": "148.11",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 12,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:31:58.511Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first()\u001b[22m\n\u001b[2m    - locator resolved to <input title=\"DE\" autocomplete=\"off\" class=\"ui-widget ui-widget-content ui-combobox-input ui-autocomplete-input ui-corner-left\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    108 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+        "duration": "80.03s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:31:59.159Z",
+    "duration": "80.03",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 13,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:32:39.327Z",
+        "details": "",
+        "duration": "96.95s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:33:54.400Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.dropdown-toggle').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" role=\"combobox\" aria-expanded=\"false\" data-id=\"ddlProducer\" data-toggle=\"dropdown\" title=\"MICHAEL JACOBS\" aria-owns=\"bs-select-1\" aria-haspopup=\"listbox\" class=\"btn dropdown-toggle btn-sm btn-light\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-status-message\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-status-message\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 100ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m  - element was detached from the DOM, retrying\u001b[22m\n\u001b[2m    - waiting for\" https://nautilusqa.donegalgroup.com/error.aspx?e=no_config\" navigation to finish...\u001b[22m\n\u001b[2m    - navigated to \"https://nautilusqa.donegalgroup.com/error.aspx?e=no_config\"\u001b[22m\n",
+        "duration": "75.07s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:34:10.352Z",
+    "duration": "172.02",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 14,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:35:52.112Z",
+        "details": "",
+        "duration": "95.34s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:36:55.135Z",
+        "details": "page.waitForLoadState: Timeout 60000ms exceeded.",
+        "duration": "63.02s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:36:56.419Z",
+    "duration": "158.36",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 15,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:35:52.112Z",
+        "details": "",
+        "duration": "95.34s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:36:55.135Z",
+        "details": "page.waitForLoadState: Timeout 60000ms exceeded.",
+        "duration": "63.02s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:36:59.758Z",
+    "duration": "158.36",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 16,
+    "status": "FAILED",
+    "state": "OH",
+    "stateName": "Ohio",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:47:17.572Z",
+        "details": "",
+        "duration": "85.27s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-20T02:48:20.600Z",
+        "details": "page.waitForLoadState: Timeout 60000ms exceeded.",
+        "duration": "63.03s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:48:26.816Z",
+    "duration": "148.30",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 17,
+    "status": "PASSED",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "3003178986",
+    "policyNumber": "1003052657",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:47:17.281Z",
+        "details": "",
+        "duration": "84.43s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:49:23.336Z",
+        "details": "",
+        "duration": "126.05s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:49:43.513Z",
+        "details": "Quote #: 3003178986",
+        "duration": "20.18s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:49:43.519Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:53:23.123Z",
+        "details": "",
+        "duration": "219.60s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:53:23.125Z",
+        "details": "Policy #: 1003052657",
+        "duration": "0.00s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:53:23.373Z",
+    "duration": "450.26",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 18,
+    "status": "PASSED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003178985",
+    "policyNumber": "1003052658",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:47:16.323Z",
+        "details": "",
+        "duration": "84.39s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:49:20.002Z",
+        "details": "",
+        "duration": "123.68s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:49:42.443Z",
+        "details": "Quote #: 3003178985",
+        "duration": "22.44s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:49:42.449Z",
+        "details": "",
+        "duration": "0.00s"
+      },
+      {
+        "name": "UW Issues Approved",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:53:31.507Z",
+        "details": "",
+        "duration": "229.06s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-20T02:53:31.509Z",
+        "details": "Policy #: 1003052658",
+        "duration": "0.00s"
+      }
+    ],
+    "timestamp": "2025-12-20T02:53:31.903Z",
+    "duration": "459.57",
+    "runId": "2025-12-19T21:16:50.7380249-05:00",
     "suite": "BOP"
   }
 ]
