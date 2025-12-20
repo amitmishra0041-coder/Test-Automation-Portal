@@ -411,7 +411,7 @@ class EmailReporter {
   static async sendBatchEmailReport() {
     console.log('📨 Sending final combined batch email...');
     
-    const projectPath = path.dirname(require.main.filename);
+    const projectPath = __dirname;
     
     // Load iterations for all suites from current runId
     let iterations = [];
