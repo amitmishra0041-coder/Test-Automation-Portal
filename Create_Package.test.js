@@ -299,6 +299,29 @@ test('Package Submission', async ({ page }) => {
   
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
+  
+  // Close any lingering modal dialogs before clicking "Save Building & Add Business"
+  try {
+    const modal = page.locator('#dgic-modal-clpropertyaddlcoveragesscheduledialog');
+    const isVisible = await modal.isVisible({ timeout: 2000 }).catch(() => false);
+    if (isVisible) {
+      console.log('⏭️ Closing lingering modal dialog...');
+      // Try to click the close button in the modal (X or similar)
+      const closeBtn = modal.locator('.close, [aria-label="Close"], button:has-text("×")').first();
+      const hasClose = await closeBtn.count({ timeout: 1000 }).catch(() => 0);
+      if (hasClose > 0) {
+        await closeBtn.click({ timeout: 3000 }).catch(() => {});
+        await page.waitForTimeout(500);
+      } else {
+        // If no close button, try pressing Escape
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+      }
+    }
+  } catch (modalErr) {
+    console.log('ℹ️ No modal to close');
+  }
+  
   await page.getByRole('button', { name: 'Save Building & Add Business' }).click();
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2500);
