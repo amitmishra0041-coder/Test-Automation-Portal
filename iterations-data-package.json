@@ -2,78 +2,64 @@
   {
     "iterationNumber": 1,
     "status": "FAILED",
-    "state": "WI",
-    "stateName": "Wisconsin",
+    "state": "DE",
+    "stateName": "Delaware",
     "quoteNumber": "N/A",
     "policyNumber": "N/A",
     "milestones": [
       {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-22T01:37:10.514Z",
-        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
-        "duration": "83.67s"
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
       }
     ],
-    "timestamp": "2025-12-22T01:37:11.613Z",
-    "duration": "83.67",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:57.972Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "Package"
   },
   {
     "iterationNumber": 2,
     "status": "FAILED",
-    "state": "PA",
-    "stateName": "Pennsylvania",
+    "state": "DE",
+    "stateName": "Delaware",
     "quoteNumber": "N/A",
     "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:37:33.339Z",
-        "details": "",
-        "duration": "106.45s"
-      },
-      {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-22T01:38:54.844Z",
-        "details": "locator.selectOption: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#ddlPriorCarrier')\u001b[22m\n\u001b[2m    - locator resolved to <select id=\"ddlPriorCarrier\" name=\"ddlPriorCarrier\" class=\"form-control form-control-sm\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - did not find some options\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - did not find some options\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    93 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m       - did not find some options\u001b[22m\n\u001b[2m     - retrying select option action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
-        "duration": "81.50s"
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
       }
     ],
-    "timestamp": "2025-12-22T01:38:57.501Z",
-    "duration": "187.95",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:58.228Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "Package"
   },
   {
     "iterationNumber": 3,
     "status": "FAILED",
-    "state": "PA",
-    "stateName": "Pennsylvania",
+    "state": "DE",
+    "stateName": "Delaware",
     "quoteNumber": "N/A",
     "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:37:33.339Z",
-        "details": "",
-        "duration": "106.45s"
-      },
-      {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-22T01:38:54.844Z",
-        "details": "locator.selectOption: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#ddlPriorCarrier')\u001b[22m\n\u001b[2m    - locator resolved to <select id=\"ddlPriorCarrier\" name=\"ddlPriorCarrier\" class=\"form-control form-control-sm\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - did not find some options\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - did not find some options\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    93 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m       - did not find some options\u001b[22m\n\u001b[2m     - retrying select option action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
-        "duration": "81.50s"
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
       }
     ],
-    "timestamp": "2025-12-22T01:39:03.311Z",
-    "duration": "187.95",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:58.390Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "Package"
   },
   {
@@ -85,23 +71,37 @@
     "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:37:22.073Z",
-        "details": "",
-        "duration": "95.32s"
-      },
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
+      }
+    ],
+    "timestamp": "2025-12-22T01:53:58.457Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
+    "suite": "Package"
+  },
+  {
+    "iterationNumber": 5,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
       {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-22T01:39:43.611Z",
-        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#txtBuildingDescription')\u001b[22m\n\u001b[2m    - waiting for\" https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingDetails.aspx&buildingid=20852&locationfixedid=24670&locationid=24670&buildingfixedid=20852&sid=A0788253285843788BB6E0B64EE1EB0E\" navigation to finish...\u001b[22m\n\u001b[2m    - navigated to \"https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingDetails.aspx&buildingid=20852&locationfixedid=24670&locationid=24670&buildingfixedid=20852&sid=A0788253285843788BB6E0B64EE1EB0E\"\u001b[22m\n\u001b[2m    - locator resolved to <input type=\"text\" data-isuitext=\"true\" id=\"txtBuildingDescription\" name=\"txtBuildingDescription\" class=\"form-control form-control-sm\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"modal-footer\">…</div> from <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-alert_1766367529185\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div class=\"modal-body\">…</div> from <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-alert_1766367529185\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 100ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-alert_1766367529185\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 100ms\u001b[22m\n\u001b[2m    25 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-alert_1766367529590\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div class=\"modal-footer\">…</div> from <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-alert_1766367529590\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div class=\"modal-body\">…</div> from <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-alert_1766367529590\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-alert_1766367529590\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
-        "duration": "141.54s"
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
       }
     ],
-    "timestamp": "2025-12-22T01:39:44.205Z",
-    "duration": "236.86",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:58.522Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "Package"
   }
 ]

@@ -1,56 +1,13 @@
 {
-  "state": "WI",
-  "stateName": "Wisconsin",
+  "state": "DE",
+  "stateName": "Delaware",
   "milestones": [
     {
-      "name": "Account Created",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T01:37:30.231Z",
-      "details": "",
-      "duration": "103.40s"
-    },
-    {
-      "name": "Commercial Property Package Completed",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T01:42:16.794Z",
-      "details": "Building, Business Income, Occupancy, Personal Property entered",
-      "duration": "286.56s"
-    },
-    {
-      "name": "General Liability Completed",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T01:43:38.453Z",
-      "details": "Coverage limits and deductibles entered",
-      "duration": "81.66s"
-    },
-    {
-      "name": "Inland Marine Completed",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T01:44:13.904Z",
-      "details": "Coverage limits and deductibles entered",
-      "duration": "35.45s"
-    },
-    {
-      "name": "Crime Completed",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T01:44:39.812Z",
-      "details": "Crime coverage details entered",
-      "duration": "22.85s"
-    },
-    {
-      "name": "Quote Rated Successfully",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T01:45:40.076Z",
-      "details": "Quote #: 3003179091",
-      "duration": "60.26s"
-    },
-    {
-      "name": "Submitting for Approval",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T01:45:40.082Z",
-      "details": "",
-      "duration": "0.00s"
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2025-12-22T01:53:58.569Z",
+      "details": "page.waitForTimeout: Target page, context or browser has been closed",
+      "duration": "37.47s"
     }
-  ],
-  "quoteNumber": "3003179091"
+  ]
 }

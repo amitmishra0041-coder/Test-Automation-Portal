@@ -8,16 +8,23 @@
     "policyNumber": "N/A",
     "milestones": [
       {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-22T01:51:57.723Z",
+        "details": "",
+        "duration": "84.79s"
+      },
+      {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-22T01:37:10.514Z",
-        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
-        "duration": "83.67s"
+        "timestamp": "2025-12-22T01:52:40.794Z",
+        "details": "locator.click: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('combobox', { name: 'Nothing selected' }).first()\u001b[22m\n",
+        "duration": "43.07s"
       }
     ],
-    "timestamp": "2025-12-22T01:37:11.606Z",
-    "duration": "83.67",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:52:42.707Z",
+    "duration": "127.86",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "BOP"
   },
   {
@@ -29,156 +36,128 @@
     "policyNumber": "N/A",
     "milestones": [
       {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-22T01:51:57.723Z",
+        "details": "",
+        "duration": "84.79s"
+      },
+      {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-22T01:37:10.514Z",
-        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
-        "duration": "83.67s"
+        "timestamp": "2025-12-22T01:52:40.794Z",
+        "details": "locator.click: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('combobox', { name: 'Nothing selected' }).first()\u001b[22m\n",
+        "duration": "43.07s"
       }
     ],
-    "timestamp": "2025-12-22T01:37:11.700Z",
-    "duration": "83.67",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:11.487Z",
+    "duration": "127.86",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "BOP"
   },
   {
     "iterationNumber": 3,
-    "status": "FAILED",
-    "state": "PA",
-    "stateName": "Pennsylvania",
+    "status": "INTERRUPTED",
+    "state": "DE",
+    "stateName": "Delaware",
     "quoteNumber": "N/A",
     "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:37:32.279Z",
-        "details": "",
-        "duration": "105.43s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:39:57.983Z",
-        "details": "",
-        "duration": "145.70s"
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
       }
     ],
-    "timestamp": "2025-12-22T01:40:01.029Z",
-    "duration": "251.13",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:57.471Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "BOP"
   },
   {
     "iterationNumber": 4,
-    "status": "PASSED",
-    "state": "MI",
-    "stateName": "Michigan",
-    "quoteNumber": "3003179089",
-    "policyNumber": "1003052683",
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:37:25.006Z",
-        "details": "",
-        "duration": "97.94s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:39:48.519Z",
-        "details": "",
-        "duration": "143.51s"
-      },
-      {
-        "name": "Quote Rated Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:40:08.996Z",
-        "details": "Quote #: 3003179089",
-        "duration": "20.48s"
-      },
-      {
-        "name": "Submitting for Approval",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:40:09.030Z",
-        "details": "",
-        "duration": "0.03s"
-      },
-      {
-        "name": "UW Issues Approved",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:43:47.433Z",
-        "details": "",
-        "duration": "218.40s"
-      },
-      {
-        "name": "Policy Issued Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:43:47.435Z",
-        "details": "Policy #: 1003052683",
-        "duration": "0.00s"
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
       }
     ],
-    "timestamp": "2025-12-22T01:43:47.623Z",
-    "duration": "480.36",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:57.769Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "BOP"
   },
   {
     "iterationNumber": 5,
-    "status": "PASSED",
-    "state": "PA",
-    "stateName": "Pennsylvania",
-    "quoteNumber": "3003179093",
-    "policyNumber": "1003052684",
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:37:32.279Z",
-        "details": "",
-        "duration": "105.43s"
-      },
-      {
-        "name": "Building and Classification Added",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:39:57.983Z",
-        "details": "",
-        "duration": "145.70s"
-      },
-      {
-        "name": "Quote Rated Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:40:20.347Z",
-        "details": "Quote #: 3003179093",
-        "duration": "22.36s"
-      },
-      {
-        "name": "Submitting for Approval",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:40:20.353Z",
-        "details": "",
-        "duration": "0.00s"
-      },
-      {
-        "name": "UW Issues Approved",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:44:06.135Z",
-        "details": "",
-        "duration": "225.78s"
-      },
-      {
-        "name": "Policy Issued Successfully",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:44:06.137Z",
-        "details": "Policy #: 1003052684",
-        "duration": "0.00s"
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
       }
     ],
-    "timestamp": "2025-12-22T01:44:06.890Z",
-    "duration": "499.27",
-    "runId": "2025-12-21T20:34:55.3060256-05:00",
+    "timestamp": "2025-12-22T01:53:58.162Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 6,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
+      }
+    ],
+    "timestamp": "2025-12-22T01:53:58.214Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 7,
+    "status": "INTERRUPTED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-22T01:53:55.826Z",
+        "details": "page.waitForTimeout: Target page, context or browser has been closed",
+        "duration": "36.63s"
+      }
+    ],
+    "timestamp": "2025-12-22T01:53:58.237Z",
+    "duration": "36.63",
+    "runId": "2025-12-21T20:50:25.0606095-05:00",
     "suite": "BOP"
   }
 ]
