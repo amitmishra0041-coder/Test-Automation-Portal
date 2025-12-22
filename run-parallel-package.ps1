@@ -76,7 +76,7 @@ foreach ($state in $states) {
         
         # Run the test and tee output to per-state log
         $logPath = Join-Path $projPath ("test-run-output-package-" + $s + ".txt")
-        & npx playwright test Create_Package.test.js --project=chromium 2>&1 | Tee-Object -FilePath $logPath
+        & npx playwright test Create_Package.test.js --project=chromium --headed 2>&1 | Tee-Object -FilePath $logPath
         
         return @{
             State = $s
