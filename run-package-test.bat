@@ -16,6 +16,11 @@ if errorlevel 1 (
 echo Current directory: %CD%
 echo.
 
+REM Clean up old batch markers to ensure emails can be sent
+if exist .batch-email-sent del .batch-email-sent
+if exist .batch-run-in-progress del .batch-run-in-progress
+echo ✓ Cleaned up old batch markers
+
 REM Create batch marker file to prevent individual test runs from sending emails
 echo {"inBatch": true} > .batch-run-in-progress
 echo ✓ Created batch marker - emails will be deferred until batch completion
@@ -65,8 +70,10 @@ echo Sending Combined Batch Email Report...
 echo ========================================
 node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport();"
 
-REM Clean up batch marker
+REM Clean up batch markers
 if exist .batch-run-in-progress del .batch-run-in-progress
+if exist .batch-email-sent del .batch-email-sent
+echo ✓ Batch markers cleaned up
 
 echo.
 endlocal

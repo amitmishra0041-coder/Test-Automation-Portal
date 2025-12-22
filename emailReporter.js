@@ -502,8 +502,22 @@ class EmailReporter {
         : ['iterations-data-bop.json', 'iterations-data-package.json'];
       let lockData = {};
       try {
-        const lockPaths = ['parallel-run-lock-bop.json', 'parallel-run-lock-package.json']
+        // If specific iteration files are provided, try to match the corresponding lock file
+        let lockPaths = ['parallel-run-lock-bop.json', 'parallel-run-lock-package.json']
           .map(f => path.join(projectPath, f));
+        
+        // If only specific iteration files requested, prioritize matching lock file
+        if (iterationFilesOverride && iterationFilesOverride.length > 0) {
+          const isBopOnly = iterationFilesOverride.some(f => f.includes('bop')) && !iterationFilesOverride.some(f => f.includes('package'));
+          const isPkgOnly = iterationFilesOverride.some(f => f.includes('package')) && !iterationFilesOverride.some(f => f.includes('bop'));
+          
+          if (isBopOnly) {
+            lockPaths = [path.join(projectPath, 'parallel-run-lock-bop.json')];
+          } else if (isPkgOnly) {
+            lockPaths = [path.join(projectPath, 'parallel-run-lock-package.json')];
+          }
+        }
+        
         const lockPath = lockPaths.find(f => fs.existsSync(f));
         if (lockPath) {
           lockData = JSON.parse(fs.readFileSync(lockPath, 'utf-8')) || {};
