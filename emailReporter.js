@@ -279,9 +279,10 @@ class EmailReporter {
             const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
             const statusIcon = it.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED';
             const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
+            const lobDisplay = `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`;
             return `
               <tr style="background:${bg};">
-                <td style="padding:12px;border:1px solid #ddd;">${it.suite || this.suiteLabel}</td>
+                <td style="padding:12px;border:1px solid #ddd;">${lobDisplay}</td>
                 <td style="padding:12px;border:1px solid #ddd;">${it.quoteNumber}</td>
                 <td style="padding:12px;border:1px solid #ddd;">${it.policyNumber}</td>
                 <td style="padding:12px;border:1px solid #ddd;text-align:center;color:${statusColor};font-weight:bold;">${statusIcon}</td>
@@ -422,12 +423,11 @@ class EmailReporter {
       // Create a summary sheet
       const summaryData = iterations.map((it, idx) => ({
         'Iteration #': it.iterationNumber,
-        'Line of Business': it.suite || this.suiteLabel,
+        'Line of Business': `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`,
         'Quote Number': it.quoteNumber,
         'Policy Number': it.policyNumber,
         'Overall Status': it.status,
-        'Duration (s)': it.duration,
-        'State': it.state
+        'Duration (s)': it.duration
       }));
 
       const summaryWs = XLSX.utils.json_to_sheet(summaryData);
