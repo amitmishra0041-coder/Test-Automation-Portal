@@ -1,0 +1,31 @@
+{
+  "files.exclude": {
+    "**/node_modules/**": true,
+    "**/test-results/**": true,
+    "**/playwright-report/**": true,
+    "**/trace-unzip/**": true,
+    "**/.git/**": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/test-results/**": true,
+    "**/playwright-report/**": true,
+    "**/trace-unzip/**": true,
+    "**/.git/**": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/test-results/**": true,
+    "**/playwright-report/**": true,
+    "**/trace-unzip/**": true,
+    "**/.git/**": true
+  },
+  "editor.minimap.enabled": false,
+  "editor.codeLens": false,
+  "breadcrumbs.enabled": false,
+  "explorer.autoReveal": false,
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "javascript.suggest.autoImports": false,
+  "git.autorefresh": false
+}
