@@ -324,6 +324,20 @@ test('Package Submission', async ({ page }) => {
     testFailed = true;
     console.error('❌ Test execution failed:', error.message);
     
+    // Try to extract dynamic submission number from page header if present
+    try {
+      const headerLabel = await page.locator('#contentHeader_lblPolicyDetails').textContent({ timeout: 3000 });
+      if (headerLabel) {
+        const match = headerLabel.match(/(\d{10})/);
+        if (match && match[1]) {
+          global.testData.quoteNumber = match[1];
+          console.log(`🔍 Extracted submission number from header: ${match[1]}`);
+        }
+      }
+    } catch (extractErr) {
+      console.log('⚠️ Could not extract submission number from header:', extractErr.message);
+    }
+    
     trackMilestone('Test Execution Failed', 'FAILED', error.message);
     
     // Write final test data with failure info
