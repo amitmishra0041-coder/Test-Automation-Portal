@@ -516,7 +516,12 @@ class EmailReporter {
         if (fs.existsSync(fp)) {
           const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8'));
           if (Array.isArray(allIterations)) {
-            const filtered = allIterations.filter(it => it.runId === activeRunId);
+            // If no lock file exists or runId is from current session, load all iterations
+            // This handles manual runs where lock file may be missing
+            const filtered = (lockData && lockData.runId) 
+              ? allIterations.filter(it => it.runId === activeRunId)
+              : allIterations; // Load all if no lock file
+            console.log(`   File ${file}: ${allIterations.length} total, ${filtered.length} matching runId ${activeRunId}`);
             iterations = iterations.concat(filtered);
           }
         }
