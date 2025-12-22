@@ -1,0 +1,13 @@
+{
+    "targetStates":  [
+                         "DE",
+                         "PA",
+                         "WI",
+                         "OH",
+                         "MI"
+                     ],
+    "completedStates":  [
+
+                        ],
+    "startTime":  "2025-12-22T09:27:31.1434089-05:00"
+}

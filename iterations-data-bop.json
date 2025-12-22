@@ -1,62 +1,6 @@
 [
   {
     "iterationNumber": 1,
-    "status": "FAILED",
-    "state": "WI",
-    "stateName": "Wisconsin",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
-    "milestones": [
-      {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:51:57.723Z",
-        "details": "",
-        "duration": "84.79s"
-      },
-      {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-22T01:52:40.794Z",
-        "details": "locator.click: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('combobox', { name: 'Nothing selected' }).first()\u001b[22m\n",
-        "duration": "43.07s"
-      }
-    ],
-    "timestamp": "2025-12-22T01:52:42.707Z",
-    "duration": "127.86",
-    "runId": "2025-12-21T20:50:25.0606095-05:00",
-    "suite": "BOP"
-  },
-  {
-    "iterationNumber": 2,
-    "status": "FAILED",
-    "state": "WI",
-    "stateName": "Wisconsin",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
-    "milestones": [
-      {
-        "name": "Account Created",
-        "status": "PASSED",
-        "timestamp": "2025-12-22T01:51:57.723Z",
-        "details": "",
-        "duration": "84.79s"
-      },
-      {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-22T01:52:40.794Z",
-        "details": "locator.click: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('combobox', { name: 'Nothing selected' }).first()\u001b[22m\n",
-        "duration": "43.07s"
-      }
-    ],
-    "timestamp": "2025-12-22T01:53:11.487Z",
-    "duration": "127.86",
-    "runId": "2025-12-21T20:50:25.0606095-05:00",
-    "suite": "BOP"
-  },
-  {
-    "iterationNumber": 3,
     "status": "INTERRUPTED",
     "state": "DE",
     "stateName": "Delaware",
@@ -64,100 +8,30 @@
     "policyNumber": "N/A",
     "milestones": [
       {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-22T01:53:55.826Z",
-        "details": "page.waitForTimeout: Target page, context or browser has been closed",
-        "duration": "36.63s"
-      }
-    ],
-    "timestamp": "2025-12-22T01:53:57.471Z",
-    "duration": "36.63",
-    "runId": "2025-12-21T20:50:25.0606095-05:00",
-    "suite": "BOP"
-  },
-  {
-    "iterationNumber": 4,
-    "status": "FAILED",
-    "state": "DE",
-    "stateName": "Delaware",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
-    "milestones": [
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-22T14:29:09.508Z",
+        "details": "",
+        "duration": "121.54s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-22T14:31:14.658Z",
+        "details": "",
+        "duration": "125.15s"
+      },
       {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-22T01:53:55.826Z",
-        "details": "page.waitForTimeout: Target page, context or browser has been closed",
-        "duration": "36.63s"
+        "timestamp": "2025-12-22T14:31:24.435Z",
+        "details": "page.waitForSelector: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('#lblQuoteNumValue') to be visible\u001b[22m\n",
+        "duration": "9.78s"
       }
     ],
-    "timestamp": "2025-12-22T01:53:57.769Z",
-    "duration": "36.63",
-    "runId": "2025-12-21T20:50:25.0606095-05:00",
-    "suite": "BOP"
-  },
-  {
-    "iterationNumber": 5,
-    "status": "FAILED",
-    "state": "DE",
-    "stateName": "Delaware",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
-    "milestones": [
-      {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-22T01:53:55.826Z",
-        "details": "page.waitForTimeout: Target page, context or browser has been closed",
-        "duration": "36.63s"
-      }
-    ],
-    "timestamp": "2025-12-22T01:53:58.162Z",
-    "duration": "36.63",
-    "runId": "2025-12-21T20:50:25.0606095-05:00",
-    "suite": "BOP"
-  },
-  {
-    "iterationNumber": 6,
-    "status": "FAILED",
-    "state": "DE",
-    "stateName": "Delaware",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
-    "milestones": [
-      {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-22T01:53:55.826Z",
-        "details": "page.waitForTimeout: Target page, context or browser has been closed",
-        "duration": "36.63s"
-      }
-    ],
-    "timestamp": "2025-12-22T01:53:58.214Z",
-    "duration": "36.63",
-    "runId": "2025-12-21T20:50:25.0606095-05:00",
-    "suite": "BOP"
-  },
-  {
-    "iterationNumber": 7,
-    "status": "INTERRUPTED",
-    "state": "DE",
-    "stateName": "Delaware",
-    "quoteNumber": "N/A",
-    "policyNumber": "N/A",
-    "milestones": [
-      {
-        "name": "Test Execution Failed",
-        "status": "FAILED",
-        "timestamp": "2025-12-22T01:53:55.826Z",
-        "details": "page.waitForTimeout: Target page, context or browser has been closed",
-        "duration": "36.63s"
-      }
-    ],
-    "timestamp": "2025-12-22T01:53:58.237Z",
-    "duration": "36.63",
-    "runId": "2025-12-21T20:50:25.0606095-05:00",
+    "timestamp": "2025-12-22T14:31:24.491Z",
+    "duration": "256.47",
+    "runId": "2025-12-22T14:27:04.913Z",
     "suite": "BOP"
   }
 ]

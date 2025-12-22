@@ -301,12 +301,11 @@ test('Package Submission', async ({ page }) => {
   
   // Now submit policy for approval in the same browser session
   console.log('Starting policy submission workflow...');
-  trackMilestone('Submitting for Approval');
 
-  const policyNumber = await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl });
+
+  const policyNumber = await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl, trackMilestone });
   
-  trackMilestone('UW Issues Approved');
-  trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${policyNumber}`);
+
   
   // Store policy number globally for email reporter
   global.testData.policyNumber = policyNumber;

@@ -1,6 +1,6 @@
 const { blinqClick } = require('../utils/blinqClick');
 
-async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl } = {}) {
+async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl, trackMilestone } = {}) {
   // Set 40 second timeout for this workflow
   page.setDefaultTimeout(40000);
 
@@ -33,16 +33,34 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     console.log('⚠️ Page reload failed, continuing without reload:', e.message);
   }
 
-  // Wait for submission row to be visible before clicking
-  const submissionRow = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
-  try {
-    await submissionRow.waitFor({ state: 'visible', timeout: 20000 });
-    console.log(`✅ Submission row ${submissionNumber} is visible`);
-  } catch (e) {
-    console.warn(`⚠️ Submission row not found with selector, attempting scroll...`);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(2000);
-    await submissionRow.waitFor({ state: 'visible', timeout: 10000 });
+  // Wait for submission row to be visible before clicking (refresh/retry loop)
+  const maxAttempts = 3;
+  let submissionVisible = false;
+  for (let attempt = 1; attempt <= maxAttempts && !submissionVisible; attempt++) {
+    const submissionRow = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
+    try {
+      await submissionRow.waitFor({ state: 'visible', timeout: 20000 });
+      console.log(`✅ Submission row ${submissionNumber} is visible (attempt ${attempt})`);
+      submissionVisible = true;
+    } catch (e) {
+      if (attempt === maxAttempts) {
+        break; // exit loop and throw below
+      }
+      console.warn(`⚠️ Submission row not found (attempt ${attempt}) - refreshing and retrying...`);
+      try {
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForLoadState('networkidle').catch(() => {});
+      } catch (reloadErr) {
+        console.warn(`⚠️ Reload failed on attempt ${attempt}: ${reloadErr.message}`);
+      }
+      await page.waitForTimeout(3000);
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
+      await page.waitForTimeout(1000);
+    }
+  }
+
+  if (!submissionVisible) {
+    throw new Error(`Submission row ${submissionNumber} not visible after retries`);
   }
 
   await submissionRow.click();
@@ -79,6 +97,9 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   await page.getByRole('button', { name: 'Ok' }).click();
 
   console.log('✅ WriteBiz submission completed');
+  if (trackMilestone) {
+    trackMilestone('Submitting for Approval', 'PASSED');
+  }
 
   // ===== PART 2: PolicyCenter approval (uses new tab 'page1') =====
   console.log('🔐 Step 2: Logging into PolicyCenter in new tab...');
@@ -93,7 +114,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   const pcUrl = policyCenterUrl || 'https://qa-policycenter.donegalgroup.com/pc/PolicyCenter.do';
   await page1.goto(pcUrl);
 
-  // Wait for login form to be visible
+  // Wait for login form to be visibleS
   await page1.getByRole('textbox', { name: 'Username' }).waitFor({ state: 'visible', timeout: 10000 });
   
   await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
@@ -270,7 +291,9 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
       // Page OK click failed
     }
   }
-
+  if (trackMilestone) {
+    trackMilestone('UW Issues Approved in PolicyCenter', 'PASSED');
+  }
   // ===== PART 3: Submit for issuance (back to WriteBiz tab 'page') =====
   console.log('⏳ Step 3: Submitting for issuance in WriteBiz...');
   // Release lock in PolicyCenter if present (do not fail if absent)
@@ -360,7 +383,9 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   await policyCell.waitFor({ state: 'visible' });
   const policyNumber = (await policyCell.innerText()).trim();
   console.log(`📄 Policy Number generated: ${policyNumber}`);
-
+  if (trackMilestone) {
+    trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${policyNumber}`);
+  }
   return policyNumber;
 }
 

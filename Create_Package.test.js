@@ -643,12 +643,11 @@ console.log('General Liability data entry started.');
 
   // Now submit policy for approval in the same browser session
   console.log('Starting policy submission workflow...');
-  trackMilestone('Submitting for Approval');
+  
 
-  const policyNumber = await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl });
+  const policyNumber = await submitPolicyForApproval(page, submissionNumber, { policyCenterUrl, trackMilestone });
 
-  trackMilestone('UW Issues Approved');
-  trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${policyNumber}`);
+  
 
   // Store quote and policy numbers globally for email reporter
   global.testData.policyNumber = policyNumber;
