@@ -94,8 +94,8 @@ test('Package Submission', async ({ page }) => {
     });
 
     // Wait for next page to fully load before interacting with package selection
-    await page.waitForTimeout(3000);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(5000);
   // Businessowners quote
   await page.getByText('Businessowners (v7)').click();
   await page.getByRole('button', { name: 'Next' }).click();

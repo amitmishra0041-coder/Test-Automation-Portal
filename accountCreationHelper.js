@@ -144,9 +144,21 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   const dialogPresent = await modalOverlay.isVisible().catch(() => false);
   if (dialogPresent) {
     console.log('⏳ Waiting for dialog overlay to disappear...');
-    await modalOverlay.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {
+    await modalOverlay.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {
       console.log('⚠️ Dialog overlay still present, attempting to continue');
     });
+    await page.waitForTimeout(1000); // Extra buffer after overlay clears
+  }
+  
+  // Also check for any open dialogs and try to close them
+  const openDialog = page.locator('.ui-dialog:visible');
+  if (await openDialog.isVisible().catch(() => false)) {
+    console.log('⚠️ Open dialog detected, attempting to close...');
+    const closeBtn = openDialog.locator('button.ui-dialog-titlebar-close').first();
+    if (await closeBtn.isVisible().catch(() => false)) {
+      await closeBtn.click().catch(() => {});
+      await page.waitForTimeout(1000);
+    }
   }
 
 

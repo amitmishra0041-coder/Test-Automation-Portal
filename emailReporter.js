@@ -182,6 +182,7 @@ class EmailReporter {
     
     if (isBatchRun) {
       console.log('⏸️  Batch run detected - Deferring email until batch completes.');
+      await this._maybeSendFinalBatchEmail({ batchMarkerFile, lockFileBop, lockFilePkg });
       return;
     }
 
@@ -374,6 +375,46 @@ class EmailReporter {
     }
   }
 
+  // Attempt to auto-send the combined batch email if both suites have completed
+  async _maybeSendFinalBatchEmail({ batchMarkerFile, lockFileBop, lockFilePkg }) {
+    try {
+      const batchSentMarker = path.join(__dirname, '.batch-email-sent');
+      const bopIterations = path.join(__dirname, 'iterations-data-bop.json');
+      const pkgIterations = path.join(__dirname, 'iterations-data-package.json');
+
+      const hasMarker = fs.existsSync(batchMarkerFile);
+      const hasBop = fs.existsSync(bopIterations);
+      const hasPkg = fs.existsSync(pkgIterations);
+      const alreadySent = fs.existsSync(batchSentMarker);
+
+      console.log(`🔍 Auto-batch check → marker:${hasMarker} bop:${hasBop} pkg:${hasPkg} sent:${alreadySent}`);
+
+      if (!hasMarker) {
+        return; // not a batch marker present, nothing to do
+      }
+      if (alreadySent) {
+        console.log('⏭️  Batch email already sent; skipping.');
+        return;
+      }
+      if (!hasBop || !hasPkg) {
+        console.log('⏳ Waiting for both suite iteration files before sending combined email...');
+        return;
+      }
+
+      console.log('📨 Attempting automatic combined batch email...');
+      await EmailReporter.sendBatchEmailReport();
+      fs.writeFileSync(batchSentMarker, new Date().toISOString(), 'utf8');
+
+      // Clean up batch markers/locks so subsequent runs don’t defer forever
+      [batchMarkerFile, lockFileBop, lockFilePkg].forEach(f => {
+        try { if (f && fs.existsSync(f)) fs.unlinkSync(f); } catch {}
+      });
+      console.log('✅ Combined batch email sent and batch markers cleaned up.');
+    } catch (err) {
+      console.log(`⚠️ Auto batch email attempt failed: ${err.message}`);
+    }
+  }
+
   async _createExcelReport(iterations) {
     try {
       const wb = XLSX.utils.book_new();
@@ -393,7 +434,7 @@ class EmailReporter {
       XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
       // Create detailed sheet for each iteration
-      iterations.forEach((it, idx) => {
+      iterations.forEach((it) => {
         const milestoneData = it.milestones.map(m => ({
           'Milestone': m.name,
           'Status': m.status || 'N/A',
@@ -402,7 +443,9 @@ class EmailReporter {
         }));
 
         const ws = XLSX.utils.json_to_sheet(milestoneData);
-        const sheetName = `Iteration_${it.iterationNumber}`;
+        const safeSuite = (it.suite || this.suiteLabel || 'Suite').replace(/[^A-Za-z0-9]/g, '_');
+        const baseName = `${safeSuite}_${it.iterationNumber}`;
+        const sheetName = baseName.substring(0, 31); // Excel sheet name limit
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
@@ -547,7 +590,9 @@ class EmailReporter {
         }));
 
         const ws = XLSX.utils.json_to_sheet(milestoneData);
-        const sheetName = `Iteration_${it.iterationNumber}`;
+        const safeSuite = (it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_');
+        const baseName = `${safeSuite}_${it.iterationNumber}`;
+        const sheetName = baseName.substring(0, 31); // Excel sheet name limit
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 

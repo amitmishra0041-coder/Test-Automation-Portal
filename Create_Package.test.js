@@ -113,7 +113,11 @@ test('Package Submission', async ({ page }) => {
   await page.waitForTimeout(2000);
   await page.waitForLoadState('networkidle');
 
-  await page.locator('#ddlPriorCarrier').selectOption('Allstate');
+  // Wait for prior-carrier dropdown to be ready with options
+  const priorCarrierSelect = page.locator('#ddlPriorCarrier');
+  await priorCarrierSelect.waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForTimeout(2000); // Allow options to populate
+  await priorCarrierSelect.selectOption('Allstate');
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.waitForLoadState('networkidle');
 
@@ -195,7 +199,17 @@ test('Package Submission', async ({ page }) => {
   await page.getByRole('button', { name: 'Next ' }).click();
   //State specific info, Blankets and Buildings
 
-  await page.getByRole('button', { name: 'Save Location ' }).click();
+  // Wait for Save Location button to be fully ready
+  const saveLocationBtn = page.getByRole('button', { name: 'Save Location ' });
+  await saveLocationBtn.waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForTimeout(2000); // Ensure form processing completes
+  // Check for any blocking overlays
+  const overlay = page.locator('.ui-widget-overlay');
+  if (await overlay.isVisible().catch(() => false)) {
+    console.log('⏳ Waiting for overlay to clear before clicking Save Location...');
+    await overlay.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+  }
+  await saveLocationBtn.click();
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.getByRole('button', { name: 'Next ' }).click();
   await page.locator('button').filter({ hasText: 'Add Building' }).click();

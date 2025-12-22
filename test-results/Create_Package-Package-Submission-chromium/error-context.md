@@ -1,0 +1,382 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003179088-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Prosacco - Bins
+            - generic [ref=e14]: 56459 FAHEY WALKS
+            - generic [ref=e15]: BEAR, DE 19804
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - list [ref=e22]:
+        - text:   
+        - listitem [ref=e23]:
+          - link " Commercial Property" [ref=e24] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179088_tabContent"
+            - generic [ref=e25]: 
+            - text: Commercial Property
+        - listitem [ref=e26]:
+          - link " Locations" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179088_tabContent"
+            - generic [ref=e28]: 
+            - text: Locations
+        - listitem [ref=e29]:
+          - link " State Specific Info" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179088_tabContent"
+            - generic [ref=e31]: 
+            - text: State Specific Info
+        - listitem [ref=e32]:
+          - link " Blankets" [ref=e33] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179088_tabContent"
+            - generic [ref=e34]: 
+            - text: Blankets
+        - listitem [ref=e35]:
+          - link "Buildings" [ref=e36] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179088_tabContent"
+        - listitem [ref=e37]:
+          - link "Special Classes" [ref=e38] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179088_tabContent"
+        - listitem [ref=e39]:
+          - link "Mortgagees" [ref=e40] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179088_tabContent"
+      - generic [ref=e41]:
+        - list [ref=e44]:
+          - listitem [ref=e45]:
+            - link "" [ref=e46] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e47]: 
+          - listitem [ref=e48]:
+            - link "" [ref=e49] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e50]: 
+          - listitem [ref=e51]:
+            - link "" [ref=e52] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e53]: 
+          - listitem [ref=e54]:
+            - link "" [ref=e55] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e56]: 
+        - generic [ref=e60]:
+          - list [ref=e62]:
+            - listitem [ref=e63]:
+              - link "Details" [ref=e64] [cursor=pointer]:
+                - /url: "#ajtc_CLPropertyBuildings_tabContent"
+            - listitem [ref=e65]:
+              - text: "|"
+              - link "Coverages" [ref=e66] [cursor=pointer]:
+                - /url: "#ajtc_CLPropertyBuildings_tabContent"
+            - listitem [ref=e67]:
+              - text: "|"
+              - link "Additional Coverages" [ref=e68] [cursor=pointer]:
+                - /url: "#ajtc_CLPropertyBuildings_tabContent"
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - generic [ref=e73]: "Selected Building:"
+              - generic [ref=e75]:
+                - textbox [ref=e76]: Building 1 -
+                - generic [ref=e79] [cursor=pointer]: 
+              - button "Return to Summary" [ref=e81] [cursor=pointer]
+            - generic [ref=e82]:
+              - generic [ref=e85]: Building Details
+              - generic [ref=e86]:
+                - generic [ref=e87]:
+                  - generic [ref=e88]:
+                    - generic [ref=e89]: Location
+                    - generic [ref=e91]:
+                      - generic [ref=e92]:
+                        - combobox [disabled] [ref=e93]:
+                          - option
+                          - 'option "Location 1: 56459 FAHEY WALK, BEAR, DE 19804" [selected]'
+                        - 'combobox "Location 1: 56459 FAHEY WALK, BEAR, DE 19804" [disabled] [ref=e94]':
+                          - generic [ref=e97]: "Location 1: 56459 FAHEY WALK, BEAR, DE 19804"
+                      - generic [ref=e98]: "*"
+                  - generic [ref=e99]:
+                    - generic [ref=e100]: Building Description
+                    - textbox [ref=e103]
+                  - generic [ref=e104]:
+                    - generic [ref=e107]: Basic Group I Rating Type
+                    - generic [ref=e109]:
+                      - generic [ref=e110]:
+                        - combobox [ref=e111]:
+                          - option
+                          - option "Class" [selected]
+                          - option "Specific"
+                          - option "Tentative"
+                        - combobox "Class" [ref=e112] [cursor=pointer]:
+                          - generic [ref=e115]: Class
+                      - generic [ref=e116]: "*"
+                  - generic [ref=e117]:
+                    - generic [ref=e118]: Basic Group II Rating Type
+                    - generic [ref=e120]:
+                      - generic [ref=e121]:
+                        - combobox [ref=e122]:
+                          - option
+                          - option "Class" [selected]
+                          - option "Specific"
+                        - combobox "Class" [ref=e123] [cursor=pointer]:
+                          - generic [ref=e126]: Class
+                      - generic [ref=e127]: "*"
+                  - generic [ref=e128]:
+                    - generic [ref=e129]: Class Description
+                    - generic [ref=e130]:
+                      - generic [ref=e131]:
+                        - textbox [ref=e132]
+                        - generic [ref=e135] [cursor=pointer]: 
+                      - text: "*"
+                  - generic [ref=e136]:
+                    - generic [ref=e137]: Class Code
+                    - generic [ref=e139]:
+                      - generic [ref=e140]:
+                        - combobox [ref=e141]:
+                          - option [selected]
+                          - option "0074"
+                          - option "0075"
+                          - option "0076"
+                          - option "0077"
+                          - option "0078"
+                          - option "0079"
+                          - option "0196"
+                          - option "0197"
+                          - option "0198"
+                          - option "0311"
+                          - option "0312"
+                          - option "0313"
+                          - option "0321"
+                          - option "0322"
+                          - option "0323"
+                          - option "0331"
+                          - option "0332"
+                          - option "0333"
+                          - option "0341"
+                          - option "0342"
+                          - option "0343"
+                          - option "0511"
+                          - option "0512"
+                          - option "0520"
+                          - option "0531"
+                          - option "0532"
+                          - option "0533"
+                          - option "0534"
+                          - option "0541"
+                          - option "0545"
+                          - option "0550"
+                          - option "0561"
+                          - option "0562"
+                          - option "0563"
+                          - option "0564"
+                          - option "0565"
+                          - option "0566"
+                          - option "0567"
+                          - option "0570"
+                          - option "0580"
+                          - option "0581"
+                          - option "0582"
+                          - option "0701"
+                          - option "0702"
+                          - option "0742"
+                          - option "0743"
+                          - option "0744"
+                          - option "0745"
+                          - option "0746"
+                          - option "0747"
+                          - option "0755"
+                          - option "0756"
+                          - option "0757"
+                          - option "0831"
+                          - option "0832"
+                          - option "0833"
+                          - option "0834"
+                          - option "0841"
+                          - option "0843"
+                          - option "0844"
+                          - option "0845"
+                          - option "0846"
+                          - option "0851"
+                          - option "0852"
+                          - option "0900"
+                          - option "0911"
+                          - option "0912"
+                          - option "0913"
+                          - option "0921"
+                          - option "0922"
+                          - option "0923"
+                          - option "0931"
+                          - option "0932"
+                          - option "0933"
+                          - option "0934"
+                          - option "0940"
+                          - option "0951"
+                          - option "0952"
+                          - option "1000"
+                          - option "1051"
+                          - option "1052"
+                          - option "1070"
+                          - option "1211"
+                          - option "1212"
+                          - option "1213"
+                          - option "1220"
+                          - option "1230"
+                          - option "1400"
+                          - option "1650"
+                          - option "1700"
+                          - option "1751"
+                          - option "1752"
+                          - option "2200"
+                          - option "2350"
+                          - option "2459"
+                          - option "2800"
+                          - option "3409"
+                          - option "4809"
+                        - combobox "Nothing selected" [ref=e142] [cursor=pointer]:
+                          - generic [ref=e145]: Nothing selected
+                      - generic [ref=e146]: "*"
+                  - generic [ref=e147]:
+                    - generic [ref=e148]: Is this a Rental Property?
+                    - generic [ref=e149]:
+                      - generic [ref=e151]:
+                        - checkbox "No" [ref=e152]
+                        - generic: "No"
+                      - generic [ref=e154]: "*"
+                  - generic [ref=e155]:
+                    - generic [ref=e156]: Vacant
+                    - generic [ref=e158]:
+                      - generic [ref=e159]:
+                        - combobox [ref=e160]:
+                          - option
+                          - option "No" [selected]
+                          - option "Yes"
+                        - combobox "No" [ref=e161] [cursor=pointer]:
+                          - generic [ref=e164]: "No"
+                      - generic [ref=e165]: "*"
+                  - generic [ref=e166]:
+                    - generic [ref=e167]: Construction Type To Use
+                    - generic [ref=e168]:
+                      - generic [ref=e169]:
+                        - generic [ref=e170]:
+                          - combobox [ref=e171]:
+                            - option [selected]
+                            - option "Frame"
+                            - option "Joisted Masonry"
+                            - option "Non-Combustible"
+                            - option "Masonry Non-Combustible"
+                            - option "Modified Fire Resistive"
+                            - option "Fire Resistive"
+                          - combobox "Nothing selected" [ref=e172] [cursor=pointer]:
+                            - generic [ref=e175]: Nothing selected
+                        - generic [ref=e176]: "*"
+                      - generic [ref=e178]: 
+                  - generic [ref=e179]:
+                    - generic [ref=e180]: Construction Code
+                    - generic [ref=e183]:
+                      - combobox [disabled] [ref=e184]:
+                        - option [selected]
+                      - combobox "Nothing selected" [disabled] [ref=e185]:
+                        - generic [ref=e188]: Nothing selected
+                - generic [ref=e189]:
+                  - generic [ref=e190]:
+                    - generic [ref=e191]: Number of Stories
+                    - generic [ref=e192]:
+                      - generic [ref=e193]:
+                        - textbox [ref=e194]
+                        - generic [ref=e195]: "*"
+                      - generic [ref=e197]: 
+                  - generic [ref=e198]:
+                    - generic [ref=e199]: Sprinkler System
+                    - generic [ref=e201]:
+                      - generic [ref=e202]:
+                        - combobox [ref=e203]:
+                          - option "None" [selected]
+                          - option "Sprinklered Building, but Not Rated as Sprinklered"
+                        - combobox "None" [ref=e204] [cursor=pointer]:
+                          - generic [ref=e207]: None
+                      - generic [ref=e208]: "*"
+                  - generic [ref=e209]:
+                    - generic [ref=e210]: Building Code Effectiveness Grade Class
+                    - generic [ref=e212]:
+                      - generic [ref=e213]:
+                        - combobox [ref=e214]:
+                          - option [selected]
+                          - option "Not Graded"
+                          - option "Building Individually Inspected and Certified as Best Grade 1"
+                          - option "Graded-Building Constructed Before Year of Community Grading"
+                          - option "Graded-Building Constructed During or After Year of Community Grading"
+                        - combobox "Nothing selected" [ref=e215] [cursor=pointer]:
+                          - generic [ref=e218]: Nothing selected
+                      - generic [ref=e219]: "*"
+                  - generic [ref=e220]:
+                    - generic [ref=e221]: Building Code Effectiveness Grade
+                    - textbox [disabled] [ref=e224]
+                  - generic [ref=e225]:
+                    - generic [ref=e226]: Coverage
+                    - generic [ref=e228]:
+                      - generic [ref=e229]:
+                        - combobox [ref=e230]:
+                          - option
+                          - option "No Coverage"
+                          - option "Building" [selected]
+                          - option "Condominium Association"
+                          - option "Improvements and Betterments"
+                          - option "Legal Liability"
+                        - combobox "Building" [ref=e231] [cursor=pointer]:
+                          - generic [ref=e234]: Building
+                      - generic [ref=e235]: "*"
+                  - generic [ref=e236]:
+                    - generic [ref=e237]: Basic Group I Specific/Tentative Loss Cost
+                    - spinbutton [disabled] [ref=e240]: "0.0"
+                  - generic [ref=e241]:
+                    - generic [ref=e242]: Year of Construction
+                    - generic [ref=e243]:
+                      - generic [ref=e244]:
+                        - spinbutton [ref=e245]
+                        - generic [ref=e246]: "*"
+                      - generic [ref=e248]: 
+                  - text: 
+                  - generic [ref=e249]:
+                    - generic [ref=e250]: Included in Blanket (Other thanEQ)
+                    - generic [ref=e253]:
+                      - combobox [disabled] [ref=e254]:
+                        - option
+                        - option "No" [selected]
+                      - combobox "No" [disabled] [ref=e255]:
+                        - generic [ref=e258]: "No"
+                  - generic [ref=e259]:
+                    - generic [ref=e260]: EQ Cause of Loss Coverage
+                    - generic [ref=e262]:
+                      - generic [ref=e263]:
+                        - combobox [ref=e264]:
+                          - option [selected]
+                        - combobox "Nothing selected" [ref=e265] [cursor=pointer]:
+                          - generic [ref=e268]: Nothing selected
+                      - generic [ref=e269]: "*"
+            - button "Next " [ref=e271] [cursor=pointer]:
+              - text: Next
+              - generic [ref=e272]: 
+    - generic [ref=e275]:
+      - paragraph [ref=e276]:
+        - link "Technical Support" [ref=e277] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e278]: © 2025 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e279]: Jira Service Management Widget
+  - log [ref=e280]
+  - log [ref=e281]
+  - log [ref=e282]
+  - log [ref=e283]
+  - dialog [ref=e285]:
+    - document:
+      - generic [ref=e286]:
+        - heading "Attention" [level=5] [ref=e288]
+        - generic [ref=e289]: There was an error while loading your screen. Please refresh your screen and contact Technical Support if the issue persists.
+        - button "Close" [ref=e291] [cursor=pointer]
+  - dialog [active] [ref=e293]:
+    - document:
+      - generic [ref=e294]:
+        - heading "Attention" [level=5] [ref=e296]
+        - generic [ref=e297]: There was an error while loading your screen. Please refresh your screen and contact Technical Support if the issue persists.
+        - button "Close" [ref=e299] [cursor=pointer]
+```
