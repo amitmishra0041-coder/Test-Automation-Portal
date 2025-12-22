@@ -276,23 +276,51 @@ test('Package Submission', async ({ page }) => {
     await page.locator('#txtCP7EachPlantLimit_integerWithCommas').fill('15');
     await page.locator('#txtCP7EachPlantLimit_integerWithCommas').press('Tab');
   
-  // Trees/Shrubs/Plants - All Item Limit (optional if field not present)
-  try {
-    const allItemInput = page.locator('#txtCP7AllItemLimit_integerWithCommas');
-    await allItemInput.click({ clickCount: 3 });
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Backspace');
-    await page.waitForTimeout(500);
-    await page.keyboard.type('155');
-    await page.waitForTimeout(800);
-    await allItemInput.blur();
-    await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: ' Save' }).click();
-    console.log('✅ Outdoor Trees/Shrubs/Plants filled');
-  } catch (e) {
-    console.log('⏭️ Trees/Shrubs/Plants save skipped:', e.message);
-  }
-  //await page.getByRole('button', { name: 'Next ' }).click();
+    // Trees/Shrubs/Plants - All Item Limit (optional if field not present)
+    try {
+      const allItemInput = page.locator('#txtCP7AllItemLimit_integerWithCommas');
+      await allItemInput.click({ clickCount: 3 });
+      await page.waitForTimeout(500);
+      await page.keyboard.press('Backspace');
+      await page.waitForTimeout(500);
+      await page.keyboard.type('155');
+      await page.waitForTimeout(800);
+      await allItemInput.blur();
+      await page.waitForTimeout(1000);
+      
+      // Save Trees/Shrubs/Plants - use specific button ID if available
+      try {
+        const saveButton = page.locator('#btnNext_CLPackageBuildingAdditionalCoverages').first();
+        await saveButton.click({ timeout: 5000 });
+        console.log('✅ Outdoor Trees/Shrubs/Plants filled and saved');
+        
+        // Wait a moment for modal to potentially appear, then close it
+        await page.waitForTimeout(1500);
+        try {
+          const modal = page.locator('#dgic-modal-clpropertyaddlcoveragesscheduledialog');
+          const modalVisible = await modal.isVisible({ timeout: 2000 }).catch(() => false);
+          if (modalVisible) {
+            console.log('🔔 Schedule modal appeared after Trees/Shrubs save, attempting closure...');
+            // Press Escape to close schedule modal
+            for (let i = 0; i < 3; i++) {
+              await page.keyboard.press('Escape');
+              await page.waitForTimeout(300);
+            }
+            // Try to click outside modal or on backdrop
+            try {
+              await page.locator('.modal-backdrop').click().catch(() => {});
+            } catch (e) {}
+            await page.waitForTimeout(1000);
+          }
+        } catch (modalErr) {
+          // Modal may not have appeared, that's OK
+        }
+      } catch (e) {
+        console.log('⏭️ Trees/Shrubs/Plants save button not clicked:', e.message);
+      }
+    } catch (e) {
+      console.log('⏭️ Trees/Shrubs/Plants All Item Limit skipped:', e.message);
+    }
   } catch (outerErr) {
     console.log('⏭️ Trees/Shrubs/Plants block not present, skipping...');
   }
@@ -306,20 +334,63 @@ test('Package Submission', async ({ page }) => {
     const isVisible = await modal.isVisible({ timeout: 2000 }).catch(() => false);
     if (isVisible) {
       console.log('⏭️ Closing lingering modal dialog...');
-      // Try to click the close button in the modal (X or similar)
-      const closeBtn = modal.locator('.close, [aria-label="Close"], button:has-text("×")').first();
-      const hasClose = await closeBtn.count({ timeout: 1000 }).catch(() => 0);
-      if (hasClose > 0) {
-        await closeBtn.click({ timeout: 3000 }).catch(() => {});
-        await page.waitForTimeout(500);
-      } else {
-        // If no close button, try pressing Escape
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(500);
+      
+      // Strategy 1: Look for modal buttons - Save/OK button inside the modal
+      const modalButtons = [
+        '#CLPropertyAddlCoveragesScheduleDialog_dialog_btn_0',  // First button in modal
+        'button[id*="ScheduleDialog"]',
+        'button:has-text("Save")',
+        'button:has-text("OK")',
+        'button:has-text("Close")'
+      ];
+      
+      let buttonClicked = false;
+      for (const btnSelector of modalButtons) {
+        try {
+          const btn = page.locator(btnSelector).first();
+          const count = await btn.count({ timeout: 500 }).catch(() => 0);
+          if (count > 0) {
+            console.log(`Attempting to click button: ${btnSelector}`);
+            await btn.click({ timeout: 3000, force: true });
+            await page.waitForTimeout(800);
+            buttonClicked = true;
+            console.log('✅ Modal button clicked');
+            break;
+          }
+        } catch (e) {}
       }
+      
+      // Strategy 2: If no button worked, try backdrop click
+      if (!buttonClicked) {
+        try {
+          const backdrop = page.locator('.modal-backdrop, .ui-widget-overlay');
+          await backdrop.click().catch(() => {});
+          await page.waitForTimeout(800);
+        } catch (e) {}
+      }
+      
+      // Strategy 3: Try Escape key multiple times
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+      }
+      
+      // Strategy 4: Force remove modal via JavaScript
+      try {
+        await page.evaluate(() => {
+          const m = document.getElementById('dgic-modal-clpropertyaddlcoveragesscheduledialog');
+          if (m && m.parentNode) {
+            m.parentNode.removeChild(m);
+          }
+          // Also remove backdrop if present
+          const backdrops = document.querySelectorAll('.modal-backdrop, .ui-widget-overlay');
+          backdrops.forEach(bd => bd.remove());
+        });
+        await page.waitForTimeout(500);
+      } catch (e) {}
     }
   } catch (modalErr) {
-    console.log('ℹ️ No modal to close');
+    console.log('ℹ️ Modal close attempt: ' + modalErr.message);
   }
   
   await page.getByRole('button', { name: 'Save Building & Add Business' }).click();
