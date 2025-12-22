@@ -1,7 +1,9 @@
 # PowerShell script to run BOP tests in parallel for all states
 param(
     [string]$TestEnv = "qa",
-    [string[]]$States
+    [string[]]$States,
+    [switch]$Headed,
+    [string]$Project = "chromium"
 )
 
 # Allow overriding states from parameter for quick testing
@@ -27,6 +29,7 @@ Write-Host "========================================`n" -ForegroundColor Cyan
 
 Write-Host "Environment: $TestEnv" -ForegroundColor Yellow
 Write-Host "States: $($states -join ', ')" -ForegroundColor Yellow
+Write-Host "Project: $Project | Headed: $Headed" -ForegroundColor Yellow
 Write-Host "Project Path: $projectPath`n" -ForegroundColor Yellow
 
 # Initialize lock and clean previous artifacts
@@ -53,25 +56,27 @@ foreach ($state in $states) {
     Write-Host "Starting test for state: $state" -ForegroundColor Green
     
     $jobs += Start-Job -Name "Test-$state" -ScriptBlock {
-        param($s, $e, $projPath)
+        param($s, $e, $projPath, $proj, $isHeaded)
         
         # Change to project directory in this job's context
         Set-Location $projPath
         
         $env:TEST_STATE = $s
         $env:TEST_ENV = $e
+        $env:TEST_TYPE = 'BOP'
         
         Write-Host "[$s] Running test from: $(Get-Location)" -ForegroundColor Cyan
         
         # Run the test and tee output to per-state log
         $logPath = Join-Path $projPath ("test-run-output-" + $s + ".txt")
-        & npx playwright test Create_BOP.test.js --project=chromium 2>&1 | Tee-Object -FilePath $logPath
+        $headedFlag = if ($isHeaded) { "--headed" } else { "" }
+        & npx playwright test Create_BOP.test.js --project=$proj $headedFlag 2>&1 | Tee-Object -FilePath $logPath
         
         return @{
             State = $s
             ExitCode = $LASTEXITCODE
         }
-    } -ArgumentList $state, $TestEnv, $projectPath
+    } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
 }
 
 Write-Host "`nAll $($states.Count) tests started in parallel. Showing real-time output below...`n" -ForegroundColor Cyan
@@ -175,7 +180,15 @@ try {
 
 # Exit with error code if any tests failed
 if ($failed -gt 0) {
+    try {
+        Write-Host "\nSending BOP email report..." -ForegroundColor Cyan
+        & node -e "const EmailReporter=require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report (Parallel)');"
+    } catch {}
     exit 1
 } else {
+    try {
+        Write-Host "\nSending BOP email report..." -ForegroundColor Cyan
+        & node -e "const EmailReporter=require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report (Parallel)');"
+    } catch {}
     exit 0
 }
