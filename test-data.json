@@ -5,23 +5,18 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-22T14:29:09.508Z",
+      "timestamp": "2025-12-22T14:55:58.528Z",
       "details": "",
-      "duration": "121.54s"
-    },
-    {
-      "name": "Building and Classification Added",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T14:31:14.658Z",
-      "details": "",
-      "duration": "125.15s"
+      "duration": "110.05s"
     },
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2025-12-22T14:31:24.435Z",
-      "details": "page.waitForSelector: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('#lblQuoteNumValue') to be visible\u001b[22m\n",
-      "duration": "9.78s"
+      "timestamp": "2025-12-22T14:56:51.151Z",
+      "details": "page.waitForLoadState: Test ended.",
+      "duration": "52.62s"
     }
-  ]
+  ],
+  "status": "FAILED",
+  "error": "page.waitForLoadState: Test ended."
 }

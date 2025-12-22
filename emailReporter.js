@@ -397,20 +397,46 @@ class EmailReporter {
         console.log('⏭️  Batch email already sent; skipping.');
         return;
       }
+
+      // If either suite file is missing, wait briefly for the other suite to finish.
       if (!hasBop || !hasPkg) {
-        console.log('⏳ Waiting for both suite iteration files before sending combined email...');
-        return;
+        const graceMs = Number(process.env.EMAIL_BATCH_GRACE_MS || 45000);
+        const start = Date.now();
+        console.log(`⏳ Waiting up to ${graceMs}ms for both suite files...`);
+
+        while (Date.now() - start < graceMs) {
+          await new Promise(r => setTimeout(r, 1000));
+          const nowHasBop = fs.existsSync(bopIterations);
+          const nowHasPkg = fs.existsSync(pkgIterations);
+          if (nowHasBop && nowHasPkg) {
+            console.log('✅ Both suite files present within grace period.');
+            break;
+          }
+        }
       }
 
-      console.log('📨 Attempting automatic combined batch email...');
-      await EmailReporter.sendBatchEmailReport();
-      fs.writeFileSync(batchSentMarker, new Date().toISOString(), 'utf8');
+      const finalHasBop = fs.existsSync(bopIterations);
+      const finalHasPkg = fs.existsSync(pkgIterations);
 
-      // Clean up batch markers/locks so subsequent runs don’t defer forever
-      [batchMarkerFile, lockFileBop, lockFilePkg].forEach(f => {
-        try { if (f && fs.existsSync(f)) fs.unlinkSync(f); } catch {}
-      });
-      console.log('✅ Combined batch email sent and batch markers cleaned up.');
+      if (finalHasBop && finalHasPkg) {
+        console.log('📨 Attempting automatic combined batch email...');
+        await EmailReporter.sendBatchEmailReport();
+        fs.writeFileSync(batchSentMarker, new Date().toISOString(), 'utf8');
+        [batchMarkerFile, lockFileBop, lockFilePkg].forEach(f => {
+          try { if (f && fs.existsSync(f)) fs.unlinkSync(f); } catch {}
+        });
+        console.log('✅ Combined batch email sent and batch markers cleaned up.');
+      } else if (finalHasBop || finalHasPkg) {
+        // Partial/incomplete batch: send whatever we have to avoid losing visibility
+        const filesToSend = [finalHasBop ? 'iterations-data-bop.json' : null, finalHasPkg ? 'iterations-data-package.json' : null]
+          .filter(Boolean);
+        console.log(`⚠️ Incomplete batch detected. Sending partial email for file(s): ${filesToSend.join(', ')}`);
+        await EmailReporter.sendBatchEmailReport(filesToSend, 'WB Partial Batch Report (Interrupted)');
+        fs.writeFileSync(batchSentMarker, new Date().toISOString(), 'utf8');
+        // Do not delete marker to allow subsequent full run, but prevent repeated sends
+      } else {
+        console.log('⚠️ No iterations found for batch; skipping email.');
+      }
     } catch (err) {
       console.log(`⚠️ Auto batch email attempt failed: ${err.message}`);
     }
@@ -461,7 +487,7 @@ class EmailReporter {
   }
 
   // Static method to send final combined email after batch run completes
-  static async sendBatchEmailReport() {
+  static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
     console.log('📨 Sending final combined batch email...');
     
     const projectPath = __dirname;
@@ -471,7 +497,9 @@ class EmailReporter {
     let activeRunId = null;
     
     try {
-      const iterationFiles = ['iterations-data-bop.json', 'iterations-data-package.json'];
+      const iterationFiles = iterationFilesOverride && iterationFilesOverride.length
+        ? iterationFilesOverride
+        : ['iterations-data-bop.json', 'iterations-data-package.json'];
       let lockData = {};
       try {
         const lockPaths = ['parallel-run-lock-bop.json', 'parallel-run-lock-package.json']
@@ -541,7 +569,7 @@ class EmailReporter {
 
     const html = `
       <div style="font-family: Arial, sans-serif;">
-        <h1 style="color:#1976d2;">🎭 WB Smoke Test Report (Batch Run)</h1>
+        <h1 style="color:#1976d2;">🎭 ${subjectPrefixOverride || 'WB Smoke Test Report (Batch Run)'} </h1>
         <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
           <h3 style="margin-top:0;">📊 Test Summary</h3>
           <p><b>Overall Status:</b> ${overallPassed ? '✅ PASSED' : '❌ FAILED'}</p>
@@ -609,7 +637,7 @@ class EmailReporter {
       });
 
       const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const subjectLine = `WB Smoke Testing Report: ${todayDate} - ${passedIterations} Passed, ${failedIterations} Failed`;
+      const subjectLine = `${subjectPrefixOverride || 'WB Smoke Testing Report'}: ${todayDate} - ${passedIterations} Passed, ${failedIterations} Failed`;
 
       if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
         console.log('⚠️ SMTP credentials not configured. Batch email not sent.');

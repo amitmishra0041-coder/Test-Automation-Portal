@@ -63,7 +63,9 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     throw new Error(`Submission row ${submissionNumber} not visible after retries`);
   }
 
-  await submissionRow.click();
+  // Re-locate before clicking to avoid stale/undefined references
+  const rowToClick = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
+  await rowToClick.click();
   await page.getByRole('button', { name: 'Submit For Approval' }).click();
 
   await page.waitForTimeout(3000);
