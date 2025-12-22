@@ -559,9 +559,10 @@ class EmailReporter {
             const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
             const statusIcon = it.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED';
             const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
+            const lobWithState = it.state ? `${it.suite || 'Package'} (${it.state})` : (it.suite || 'Package');
             return `
               <tr style="background:${bg};">
-                <td style="padding:12px;border:1px solid #ddd;">${it.suite || 'Package'}</td>
+                <td style="padding:12px;border:1px solid #ddd;">${lobWithState}</td>
                 <td style="padding:12px;border:1px solid #ddd;">${it.quoteNumber}</td>
                 <td style="padding:12px;border:1px solid #ddd;">${it.policyNumber}</td>
                 <td style="padding:12px;border:1px solid #ddd;text-align:center;color:${statusColor};font-weight:bold;">${statusIcon}</td>
@@ -603,7 +604,7 @@ class EmailReporter {
       const wb = XLSX.utils.book_new();
       const summaryData = iterations.map((it, idx) => ({
         'Iteration #': it.iterationNumber,
-        'Line of Business': it.suite || 'Package',
+        'Line of Business': it.state ? `${it.suite || 'Package'} (${it.state})` : (it.suite || 'Package'),
         'Quote Number': it.quoteNumber,
         'Policy Number': it.policyNumber,
         'Overall Status': it.status,
