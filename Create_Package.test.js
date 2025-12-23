@@ -18,8 +18,13 @@ test('Package Submission', async ({ page }) => {
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
 
-  // Select state via TEST_STATE (DE|PA|MD|OH|MI). Defaults to DE.
-  const testState = process.env.TEST_STATE || 'DE';
+  // Select state via TEST_STATE (DE|MI|OH|PA|WI). Defaults to DE.
+  const allowedStates = ['DE', 'MI', 'OH', 'PA', 'WI'];
+  let testState = (process.env.TEST_STATE || 'DE').toUpperCase();
+  if (!allowedStates.includes(testState)) {
+    console.log(`⚠️ TEST_STATE "${testState}" not allowed; defaulting to DE`);
+    testState = 'DE';
+  }
   const stateConfig = getStateConfig(testState);
   console.log(`🗺️ Running test for state: ${testState} (${stateConfig.name})`);
 

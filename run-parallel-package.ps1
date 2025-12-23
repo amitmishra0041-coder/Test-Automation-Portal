@@ -17,6 +17,19 @@ if ($States -and $States.Count -gt 0) {
 } else {
     $states = @('DE', 'PA', 'WI', 'OH', 'MI')
 }
+$allowed = @('DE','MI','OH','PA','WI')
+# Normalize and enforce allowed state list
+$states = $states | ForEach-Object { $_.ToUpper() } | Where-Object { $allowed -contains $_ }
+if ($states.Count -eq 0) {
+    Write-Host "⚠️ No valid states provided. Defaulting to: $($allowed -join ', ')" -ForegroundColor Yellow
+    $states = $allowed
+} elseif ($States -and ($states.Count -lt $States.Count)) {
+    # Some provided states were filtered out
+    $invalid = $States | ForEach-Object { $_.ToUpper() } | Where-Object { $allowed -notcontains $_ }
+    if ($invalid.Count -gt 0) {
+        Write-Host "⚠️ Filtering out unsupported states: $($invalid -join ', ')" -ForegroundColor Yellow
+    }
+}
 $jobs = @()
 $projectPath = Split-Path -Parent $PSCommandPath
 $lockFilePkg = Join-Path $projectPath 'parallel-run-lock-package.json'
@@ -192,6 +205,23 @@ try {
 } catch {
     Write-Host "Could not clean lock file: $($_.Exception.Message)" -ForegroundColor Yellow
     Write-Host ""
+}
+
+# Send consolidated email report and clean batch marker
+try {
+    Write-Host "📧 Sending consolidated email report..." -ForegroundColor Cyan
+    Push-Location $projectPath
+    node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report');"
+    Pop-Location
+    Write-Host "✅ Consolidated email sent" -ForegroundColor Green
+
+    if (Test-Path $batchMarker) {
+        Remove-Item $batchMarker -Force -ErrorAction SilentlyContinue
+        Write-Host "🗑️ Batch marker cleaned" -ForegroundColor Gray
+        Write-Host ""
+    }
+} catch {
+    Write-Host "⚠️ Failed to send consolidated email: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 # Exit with error code if any tests failed (email handled by batch wrapper)

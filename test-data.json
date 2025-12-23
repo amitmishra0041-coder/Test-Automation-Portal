@@ -1,15 +1,50 @@
 {
-  "state": "OH",
-  "stateName": "Ohio",
+  "state": "WI",
+  "stateName": "Wisconsin",
   "milestones": [
     {
-      "name": "Test Execution Failed",
-      "status": "FAILED",
-      "timestamp": "2025-12-23T15:12:50.490Z",
-      "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
-      "duration": "81.17s"
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2025-12-23T20:55:22.869Z",
+      "details": "",
+      "duration": "85.83s"
+    },
+    {
+      "name": "Building and Classification Added",
+      "status": "PASSED",
+      "timestamp": "2025-12-23T20:57:35.272Z",
+      "details": "",
+      "duration": "132.40s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-23T20:58:02.235Z",
+      "details": "Quote #: 3003179476",
+      "duration": "26.96s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2025-12-23T20:59:52.579Z",
+      "details": "",
+      "duration": "110.34s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2025-12-23T21:00:36.412Z",
+      "details": "",
+      "duration": "43.83s"
+    },
+    {
+      "name": "Policy Issued Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-23T21:03:08.773Z",
+      "details": "Policy #: 1003052754",
+      "duration": "152.36s"
     }
   ],
-  "status": "FAILED",
-  "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n"
+  "quoteNumber": "3003179476",
+  "policyNumber": "1003052754"
 }

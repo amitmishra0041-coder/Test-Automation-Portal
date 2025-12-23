@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
+const { getEnvUrls } = require('./helpers/envConfig');
 
 test('test', async ({ page }) => {
   test.setTimeout(1800000); // 30 minutes for clicking many hyperlinks
-  await page.goto('https://writebiztest.donegalgroup.com/agentlogin.aspx');
+  const env = process.env.TEST_ENV || 'qa';
+  const { writeBizUrl } = getEnvUrls(env);
+  await page.goto(writeBizUrl);
   await page.getByRole('textbox', { name: 'User ID:' }).click();
   await page.getByRole('textbox', { name: 'User ID:' }).fill('amitmish');
   await page.getByRole('textbox', { name: 'User ID:' }).press('Tab');

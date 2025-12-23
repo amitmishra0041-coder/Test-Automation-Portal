@@ -69,17 +69,9 @@ if /I "%HEADED_ARG%"=="headed" (
     powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "%STATES%" -Project chromium
 )
 
-REM After all tests complete, send the combined batch email
+REM Consolidated email now sent by parallel PS1 runner; skipping duplicate send here
 echo.
-echo ========================================
-echo Sending BOP Batch Email Report...
-echo ========================================
-node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report');"
-
-REM Clean up batch markers
-if exist .batch-run-in-progress del .batch-run-in-progress
-if exist .batch-email-sent del .batch-email-sent
-echo ✓ Batch markers cleaned up
+echo ✓ Email is handled by run-parallel-bop.ps1
 
 echo.
 endlocal

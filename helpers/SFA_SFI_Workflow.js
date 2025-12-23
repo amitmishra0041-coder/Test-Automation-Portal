@@ -37,6 +37,8 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   const maxAttempts = 3;
   let submissionVisible = false;
   for (let attempt = 1; attempt <= maxAttempts && !submissionVisible; attempt++) {
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForLoadState('networkidle').catch(() => { });
     const submissionRow = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
     try {
       await submissionRow.waitFor({ state: 'visible', timeout: 20000 });
@@ -49,12 +51,12 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
       console.warn(`⚠️ Submission row not found (attempt ${attempt}) - refreshing and retrying...`);
       try {
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForLoadState('networkidle').catch(() => {});
+        await page.waitForLoadState('networkidle').catch(() => { });
       } catch (reloadErr) {
         console.warn(`⚠️ Reload failed on attempt ${attempt}: ${reloadErr.message}`);
       }
       await page.waitForTimeout(3000);
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => { });
       await page.waitForTimeout(1000);
     }
   }
@@ -69,7 +71,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   await page.getByRole('button', { name: 'Submit For Approval' }).click();
 
   await page.waitForTimeout(3000);
-  
+
   // Fill Specify other entity Description field if present
   try {
     const businessDescInput = page.locator('#txtDescBusinessEnt');
@@ -87,11 +89,11 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   // Wait before clicking Next button
   await page.waitForTimeout(1000);
   await page.getByRole('button', { name: 'Next' }).click();
-  
+
   // Wait for page to load after Next click
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
-  
+
   // Now click the radio button
   await page.getByRole('radio').first().click();
   await page.getByRole('button', { name: 'Finish' }).click();
@@ -118,15 +120,15 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
   // Wait for login form to be visibleS
   await page1.getByRole('textbox', { name: 'Username' }).waitFor({ state: 'visible', timeout: 10000 });
-  
+
   await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
   await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
-  
+
   // Wait for login to complete
   await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
   await page1.waitForLoadState('networkidle');
   await page1.waitForTimeout(5000); // Give the application time to initialize
-  
+
   // Check if login was successful (look for any error messages)
   try {
     const errorText = await page1.locator('text=/user configuration|error occurred/i').first().textContent({ timeout: 5000 });
@@ -142,11 +144,11 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   console.log('📍 Opening Policy menu...');
   await page1.getByRole('menuitem', { name: 'Policy', exact: true }).click();
   await page1.waitForTimeout(2000);
-  
+
   console.log('📍 Expanding Policy Tab...');
   await page1.locator('#TabBar-PolicyTab > .gw-action--expand-button > .gw-icon').click();
   await page1.waitForTimeout(2000);
-  
+
   console.log(`📍 Searching for submission: ${submissionNumber}...`);
   await page1.locator('input[name="TabBar-PolicyTab-PolicyTab_SubmissionNumberSearchItem"]').fill(submissionNumber);
   await page1.getByLabel('Sub #').getByRole('button', { name: 'gw-search-icon' }).click();

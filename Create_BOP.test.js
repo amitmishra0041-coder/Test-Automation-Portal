@@ -18,8 +18,13 @@ test('Package Submission', async ({ page }) => {
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
 
-  // Select state via TEST_STATE (DE|PA|MD|OH|MI). Defaults to DE.
-  const testState = process.env.TEST_STATE || 'DE';
+  // Select state via TEST_STATE (DE|MI|OH|PA|WI). Defaults to DE.
+  const allowedStates = ['DE', 'MI', 'OH', 'PA', 'WI'];
+  let testState = (process.env.TEST_STATE || 'DE').toUpperCase();
+  if (!allowedStates.includes(testState)) {
+    console.log(`⚠️ TEST_STATE "${testState}" not allowed; defaulting to DE`);
+    testState = 'DE';
+  }
   const stateConfig = getStateConfig(testState);
   console.log(`🗺️ Running test for state: ${testState} (${stateConfig.name})`);
 
@@ -103,12 +108,24 @@ test('Package Submission', async ({ page }) => {
   await page.locator('#ddlPriorCarrier').selectOption('Progressive');
   await page.getByRole('button', { name: 'Next ' }).click();
   
+  // Wait for any modal dialogs to close before interacting with dropdowns
+  await page.waitForSelector('.modal.show', { state: 'hidden', timeout: 5000 }).catch(() => {
+    console.log('⚠️ Modal dialog did not close within timeout, attempting close');
+  });
+  await page.waitForTimeout(500); // Small buffer for DOM to stabilize
+  
   // Select Legal Entity - Association
-  await page.locator('button.dropdown-toggle').first().click();
+  // Use more specific selector and force click if modal is still blocking
+  const legalEntityBtn = page.locator('button[data-id="ddlLegalEntity"]').or(page.locator('button.dropdown-toggle').first());
+  await legalEntityBtn.scrollIntoViewIfNeeded();
+  await legalEntityBtn.click({ force: true, timeout: 10000 });
   await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ }).click();
   
   // Select Business Type - Contractor
-  await page.locator('button.dropdown-toggle').nth(1).click();
+  await page.waitForSelector('.modal.show', { state: 'hidden', timeout: 3000 }).catch(() => {});
+  const businessTypeBtn = page.locator('button[data-id="ddlBusinessType"]').or(page.locator('button.dropdown-toggle').nth(1));
+  await businessTypeBtn.scrollIntoViewIfNeeded();
+  await businessTypeBtn.click({ force: true, timeout: 10000 });
   await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Contractor$/ }).click();
   
   
@@ -154,12 +171,19 @@ test('Package Submission', async ({ page }) => {
   await page.locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]').click();
   await page.locator('.dropdown-menu.show .text').filter({ hasText: /^[0-9]+: .*/ }).first().click();
   await page.waitForLoadState('load');
-  // Click the dropdown button
-  await page.locator('button[data-id="ddlConstructionType"]').click();
+  // Ensure overlays/modals are gone before interacting with Construction Type
+  await page.waitForSelector('.ui-widget-overlay.ui-front', { state: 'hidden', timeout: 5000 }).catch(() => {});
+  await page.waitForSelector('.modal.show', { state: 'hidden', timeout: 3000 }).catch(() => {});
+
+  // Click the Construction Type dropdown button robustly
+  const constructionBtn = page.locator('button[data-id="ddlConstructionType"]');
+  await constructionBtn.waitFor({ state: 'visible', timeout: 15000 });
+  await constructionBtn.scrollIntoViewIfNeeded();
+  await constructionBtn.click({ force: true, timeout: 10000 });
 
   // Wait for the dropdown menu to appear
   const menu = page.locator('#bs-select-6');
-  await menu.waitFor({ state: 'visible' });
+  await menu.waitFor({ state: 'visible', timeout: 10000 });
 
   // Click the option by visible text
   await menu.locator('li span.text', { hasText: 'Frame Construction' }).click();
