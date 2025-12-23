@@ -209,19 +209,19 @@ try {
 
 # Send consolidated email report and clean batch marker
 try {
-    Write-Host "📧 Sending consolidated email report..." -ForegroundColor Cyan
+    Write-Host "Sending consolidated email report..." -ForegroundColor Cyan
     Push-Location $projectPath
-    node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report');"
+    & node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report');"
     Pop-Location
-    Write-Host "✅ Consolidated email sent" -ForegroundColor Green
+    Write-Host "Consolidated email sent" -ForegroundColor Green
 
     if (Test-Path $batchMarker) {
         Remove-Item $batchMarker -Force -ErrorAction SilentlyContinue
-        Write-Host "🗑️ Batch marker cleaned" -ForegroundColor Gray
+        Write-Host "Batch marker cleaned" -ForegroundColor Gray
         Write-Host ""
     }
 } catch {
-    Write-Host "⚠️ Failed to send consolidated email: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Failed to send consolidated email: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 # Exit with error code if any tests failed (email handled by batch wrapper)

@@ -1,0 +1,23 @@
+[
+  {
+    "iterationNumber": 1,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-23T21:28:16.288Z",
+        "details": "locator.waitFor: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
+        "duration": "81.29s"
+      }
+    ],
+    "timestamp": "2025-12-23T21:28:16.419Z",
+    "duration": "81.29",
+    "runId": "2025-12-23T16:26:47.4763472-05:00",
+    "suite": "BOP"
+  }
+]
