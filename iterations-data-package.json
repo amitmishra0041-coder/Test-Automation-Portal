@@ -1,0 +1,107 @@
+[
+  {
+    "iterationNumber": 1,
+    "status": "FAILED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-23T15:11:15.347Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
+        "duration": "73.20s"
+      }
+    ],
+    "timestamp": "2025-12-23T15:11:15.907Z",
+    "duration": "73.20",
+    "runId": "2025-12-23T10:09:51.5474406-05:00",
+    "suite": "Package"
+  },
+  {
+    "iterationNumber": 2,
+    "status": "FAILED",
+    "state": "WI",
+    "stateName": "Wisconsin",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-23T15:11:19.005Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
+        "duration": "72.96s"
+      }
+    ],
+    "timestamp": "2025-12-23T15:11:19.509Z",
+    "duration": "72.96",
+    "runId": "2025-12-23T10:09:51.5474406-05:00",
+    "suite": "Package"
+  },
+  {
+    "iterationNumber": 3,
+    "status": "FAILED",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-23T15:11:25.313Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
+        "duration": "82.39s"
+      }
+    ],
+    "timestamp": "2025-12-23T15:11:25.839Z",
+    "duration": "82.39",
+    "runId": "2025-12-23T10:09:51.5474406-05:00",
+    "suite": "Package"
+  },
+  {
+    "iterationNumber": 4,
+    "status": "FAILED",
+    "state": "MI",
+    "stateName": "Michigan",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-23T15:12:40.840Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
+        "duration": "70.81s"
+      }
+    ],
+    "timestamp": "2025-12-23T15:12:41.320Z",
+    "duration": "70.81",
+    "runId": "2025-12-23T10:09:51.5474406-05:00",
+    "suite": "Package"
+  },
+  {
+    "iterationNumber": 5,
+    "status": "FAILED",
+    "state": "OH",
+    "stateName": "Ohio",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-23T15:12:50.490Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
+        "duration": "81.17s"
+      }
+    ],
+    "timestamp": "2025-12-23T15:12:51.010Z",
+    "duration": "81.17",
+    "runId": "2025-12-23T10:09:51.5474406-05:00",
+    "suite": "Package"
+  }
+]

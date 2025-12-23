@@ -19,11 +19,11 @@ if ($States -and $States.Count -gt 0) {
 }
 $jobs = @()
 $projectPath = Split-Path -Parent $PSCommandPath
-$lockFileBop = Join-Path $projectPath 'parallel-run-lock-bop.json'
 $lockFilePkg = Join-Path $projectPath 'parallel-run-lock-package.json'
 $iterationsBop = Join-Path $projectPath 'iterations-data-bop.json'
 $iterationsPkg = Join-Path $projectPath 'iterations-data-package.json'
 $testDataFile = Join-Path $projectPath 'test-data.json'
+$batchMarker = Join-Path $projectPath '.batch-run-in-progress'
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "Package Test Runner - Parallel Execution" -ForegroundColor Cyan
@@ -36,10 +36,8 @@ Write-Host "Project Path: $projectPath`n" -ForegroundColor Yellow
 
 # Initialize lock and clean previous artifacts
 try {
-    # Clean old lock files
-    if (Test-Path $lockFileBop) { Remove-Item $lockFileBop -Force -ErrorAction SilentlyContinue }
+    # Clean own artifacts only; do not delete BOP files to avoid cross-suite interference
     if (Test-Path $lockFilePkg) { Remove-Item $lockFilePkg -Force -ErrorAction SilentlyContinue }
-    if (Test-Path $iterationsBop) { Remove-Item $iterationsBop -Force -ErrorAction SilentlyContinue }
     if (Test-Path $iterationsPkg) { Remove-Item $iterationsPkg -Force -ErrorAction SilentlyContinue }
     if (Test-Path $testDataFile) { Remove-Item $testDataFile -Force -ErrorAction SilentlyContinue }
 
@@ -58,6 +56,11 @@ try {
     Write-Host "Initialized parallel run lock (Package suite) with runId: $runId" -ForegroundColor Green
     Write-Host "Target states: $($states -join ', ')" -ForegroundColor Green
     Write-Host ""
+
+    if (-not (Test-Path $batchMarker)) {
+        '{"inBatch": true}' | Out-File -FilePath $batchMarker -Encoding ASCII -Force
+        Write-Host "Batch marker created to defer per-iteration emails" -ForegroundColor Gray
+    }
 } catch {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
 }
@@ -191,17 +194,9 @@ try {
     Write-Host ""
 }
 
-# Exit with error code if any tests failed
+# Exit with error code if any tests failed (email handled by batch wrapper)
 if ($failed -gt 0) {
-    try {
-        Write-Host "\nSending Package email report..." -ForegroundColor Cyan
-        & node -e "const EmailReporter=require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report (Parallel)');"
-    } catch {}
     exit 1
 } else {
-    try {
-        Write-Host "\nSending Package email report..." -ForegroundColor Cyan
-        & node -e "const EmailReporter=require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report (Parallel)');"
-    } catch {}
     exit 0
 }

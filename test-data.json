@@ -1,22 +1,15 @@
 {
-  "state": "DE",
-  "stateName": "Delaware",
+  "state": "OH",
+  "stateName": "Ohio",
   "milestones": [
-    {
-      "name": "Account Created",
-      "status": "PASSED",
-      "timestamp": "2025-12-22T14:55:58.528Z",
-      "details": "",
-      "duration": "110.05s"
-    },
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2025-12-22T14:56:51.151Z",
-      "details": "page.waitForLoadState: Test ended.",
-      "duration": "52.62s"
+      "timestamp": "2025-12-23T15:12:50.490Z",
+      "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
+      "duration": "81.17s"
     }
   ],
   "status": "FAILED",
-  "error": "page.waitForLoadState: Test ended."
+  "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n"
 }

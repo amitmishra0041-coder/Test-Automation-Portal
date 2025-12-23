@@ -19,9 +19,10 @@ if ($States -and $States.Count -gt 0) {
 }
 $jobs = @()
 $projectPath = Split-Path -Parent $PSCommandPath
-$lockFile = Join-Path $projectPath 'parallel-run-lock.json'
-$iterationsFile = Join-Path $projectPath 'iterations-data.json'
+$lockFile = Join-Path $projectPath 'parallel-run-lock-bop.json'
+$iterationsFile = Join-Path $projectPath 'iterations-data-bop.json'
 $testDataFile = Join-Path $projectPath 'test-data.json'
+$batchMarker = Join-Path $projectPath '.batch-run-in-progress'
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "BOP Test Runner - Parallel Execution" -ForegroundColor Cyan
@@ -32,21 +33,29 @@ Write-Host "States: $($states -join ', ')" -ForegroundColor Yellow
 Write-Host "Project: $Project | Headed: $Headed" -ForegroundColor Yellow
 Write-Host "Project Path: $projectPath`n" -ForegroundColor Yellow
 
-# Initialize lock and clean previous artifacts
+# Initialize lock and clean previous artifacts; also create batch marker so reporter defers per-iteration emails
 try {
     if (Test-Path $lockFile) { Remove-Item $lockFile -Force -ErrorAction SilentlyContinue }
     if (Test-Path $iterationsFile) { Remove-Item $iterationsFile -Force -ErrorAction SilentlyContinue }
     if (Test-Path $testDataFile) { Remove-Item $testDataFile -Force -ErrorAction SilentlyContinue }
 
+    $runId = [DateTime]::Now.ToString('o')
     $lockData = [ordered]@{
+        runId = $runId
         targetStates = $states
         completedStates = @()
-        startTime = [DateTime]::Now.ToString('o')
+        startTime = $runId
     }
-    $lockJson = $lockData | ConvertTo-Json -Depth 3
+    $lockJson = $lockData | ConvertTo-Json -Depth 3 -Compress
     # Use UTF8 without BOM to prevent JSON parsing issues in Node.js
     [System.IO.File]::WriteAllText($lockFile, $lockJson, [System.Text.UTF8Encoding]$false)
-    Write-Host "Initialized parallel run lock with targetStates: $($states -join ', ')" -ForegroundColor Green
+    Write-Host "Initialized parallel run lock (BOP suite) with runId: $runId" -ForegroundColor Green
+    Write-Host "Target states: $($states -join ', ')" -ForegroundColor Green
+
+    if (-not (Test-Path $batchMarker)) {
+        '{"inBatch": true}' | Out-File -FilePath $batchMarker -Encoding ASCII -Force
+        Write-Host "Batch marker created to defer per-iteration emails" -ForegroundColor Gray
+    }
 } catch {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
 }
@@ -178,17 +187,9 @@ try {
     Write-Host "⚠️ Could not clean lock file: $($_.Exception.Message)`n" -ForegroundColor Yellow
 }
 
-# Exit with error code if any tests failed
+# Exit with error code if any tests failed (email handled by batch wrapper)
 if ($failed -gt 0) {
-    try {
-        Write-Host "\nSending BOP email report..." -ForegroundColor Cyan
-        & node -e "const EmailReporter=require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report (Parallel)');"
-    } catch {}
     exit 1
 } else {
-    try {
-        Write-Host "\nSending BOP email report..." -ForegroundColor Cyan
-        & node -e "const EmailReporter=require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report (Parallel)');"
-    } catch {}
     exit 0
 }

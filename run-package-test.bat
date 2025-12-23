@@ -16,10 +16,11 @@ if errorlevel 1 (
 echo Current directory: %CD%
 echo.
 
-REM Clean up old batch markers to ensure emails can be sent
+REM Clean up old batch markers and other suite's iteration file to ensure clean run
 if exist .batch-email-sent del .batch-email-sent
 if exist .batch-run-in-progress del .batch-run-in-progress
-echo ✓ Cleaned up old batch markers
+if exist iterations-data-bop.json del iterations-data-bop.json
+echo ✓ Cleaned up old batch markers and BOP iterations
 
 REM Create batch marker file to prevent individual test runs from sending emails
 echo {"inBatch": true} > .batch-run-in-progress
@@ -61,14 +62,20 @@ echo Running Package Test in Chromium (headless mode) for STATES: %STATES% in PA
 echo.
 
 REM Call PowerShell script to run tests in parallel within same terminal
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-package.ps1" -TestEnv %ENV% -States "%STATES%"
+set "HEADED_ARG=%2"
+if /I "%HEADED_ARG%"=="headed" (
+    echo Running in HEADed mode
+    powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-package.ps1" -TestEnv %ENV% -States "%STATES%" -Headed -Project chromium
+) else (
+    powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-package.ps1" -TestEnv %ENV% -States "%STATES%" -Project chromium
+)
 
 REM After all tests complete, send the combined batch email
 echo.
 echo ========================================
-echo Sending Combined Batch Email Report...
+echo Sending Package Batch Email Report...
 echo ========================================
-node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport();"
+node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report');"
 
 REM Clean up batch markers
 if exist .batch-run-in-progress del .batch-run-in-progress

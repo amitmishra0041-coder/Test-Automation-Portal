@@ -9,15 +9,21 @@ class EmailReporter {
     this.options = options || {};
     this.results = [];
     this.startTime = new Date();
-    // DON'T detect suite here - process.env.TEST_TYPE isn't set yet
-    // Will be detected on-demand in onBegin/onTestEnd
     this.suiteLabel = null;
     this.iterationsFile = null;
     this.lockFile = null;
     this.runId = null;
   }
 
-  // Lazy-load suite detection when actually needed
+  // ----- Suite detection helpers -----
+  _detectSuite() {
+    const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
+    if (suiteEnv === 'BOP') return 'BOP';
+    if (suiteEnv === 'PACKAGE') return 'Package';
+    if (this.options?.suiteName && /BOP/i.test(this.options.suiteName)) return 'BOP';
+    return 'Package';
+  }
+
   _getSuiteLabel() {
     if (!this.suiteLabel) {
       this.suiteLabel = this._detectSuite();
@@ -27,22 +33,10 @@ class EmailReporter {
     return this.suiteLabel;
   }
 
-  _detectSuite() {
-    const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
-    let detected = 'Package';
-    if (suiteEnv === 'BOP') detected = 'BOP';
-    else if (suiteEnv === 'PACKAGE') detected = 'Package';
-    else if (this.options?.suiteName && /BOP/i.test(this.options.suiteName)) detected = 'BOP';
-    console.log(`[Suite-Detect] TEST_TYPE='${suiteEnv}' => Suite='${detected}'`);
-    return detected;
-  }
-
-  // Derive suite from the current test file/title; falls back to env.
   _suiteFromTest(test) {
     const file = test?.location?.file || '';
     const fileBase = path.basename(file).toUpperCase();
     const title = (test?.title || '').toUpperCase();
-    // Only inspect base filename and title to avoid folder-name collisions like "WB BOP Standard workflow"
     if (fileBase.includes('BOP') || title.includes('BOP')) return 'BOP';
     if (fileBase.includes('PACKAGE') || title.includes('PACKAGE')) return 'Package';
     const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
@@ -51,219 +45,119 @@ class EmailReporter {
     return this.suiteLabel || 'Package';
   }
 
+  // ----- Playwright lifecycle -----
   onBegin() {
     try {
-      // Get suite label (lazy-loaded on first call)
       const suiteLabel = this._getSuiteLabel();
-      
       const batchMarkerFile = path.join(__dirname, '.batch-run-in-progress');
       const isBatchRun = fs.existsSync(batchMarkerFile);
-      
       const lockFiles = [
         path.join(__dirname, 'parallel-run-lock-bop.json'),
         path.join(__dirname, 'parallel-run-lock-package.json'),
       ];
-
       const anyLock = lockFiles.some(f => fs.existsSync(f));
-      
-      // If NOT in batch mode and NO lock files exist, this is a fresh independent run
+
       if (!isBatchRun && !anyLock) {
+        // Fresh independent run: clear prior data
         ['iterations-data-bop.json', 'iterations-data-package.json'].forEach(file => {
           const fp = path.join(__dirname, file);
-          if (fs.existsSync(fp)) {
-            fs.unlinkSync(fp);
-            console.log(`🗑️ Cleared previous iterations data (${file})`);
-          }
+          if (fs.existsSync(fp)) fs.unlinkSync(fp);
         });
         const testDataFile = path.join(__dirname, 'test-data.json');
-        if (fs.existsSync(testDataFile)) {
-          fs.unlinkSync(testDataFile);
-          console.log('🗑️ Cleared previous test-data.json (independent run)');
-        }
+        if (fs.existsSync(testDataFile)) fs.unlinkSync(testDataFile);
         this.runId = new Date().toISOString();
-        console.log(`🆔 Starting independent run with new runId: ${this.runId}`);
-      } else if (isBatchRun || anyLock) {
-        console.log('🔒 Batch mode or lock file present; skipping cleanup (batch/parallel run)');
-        try {
-          let lockData = {};
-          const lockPath = lockFiles.find(f => fs.existsSync(f));
-          if (lockPath) {
-            let content = fs.readFileSync(lockPath, 'utf-8');
-            // Strip BOM if present
-            if (content.charCodeAt(0) === 0xFEFF) {
-              content = content.slice(1);
-            }
-            lockData = JSON.parse(content) || {};
-          }
-          if (!lockData.runId) {
-            lockData.runId = new Date().toISOString();
-            fs.writeFileSync(lockPath, JSON.stringify(lockData, null, 2), 'utf8');
-            console.log(`🆔 Created runId in lock file: ${lockData.runId}`);
-          }
-          this.runId = lockData.runId;
-        } catch (e) {
-          console.log('⚠️ Failed to set runId in lock file:', e.message);
-          this.runId = new Date().toISOString();
+      } else {
+        // Batch/parallel: ensure a runId exists in the suite lock file
+        let lockData = {};
+        const lockPath = lockFiles.find(f => fs.existsSync(f));
+        if (lockPath) {
+          lockData = JSON.parse(fs.readFileSync(lockPath, 'utf-8') || '{}');
         }
+        if (!lockData.runId) lockData.runId = new Date().toISOString();
+        const suiteLock = path.join(__dirname, `parallel-run-lock-${suiteLabel.toLowerCase()}.json`);
+        fs.writeFileSync(suiteLock, JSON.stringify(lockData, null, 2), 'utf8');
+        this.runId = lockData.runId;
       }
     } catch (e) {
-      console.log('⚠️ Could not clear data files:', e.message);
+      console.log('⚠️ onBegin error:', e.message);
     }
   }
 
   onTestEnd(test, result) {
     const timestamp = new Date();
-    this.results.push({
-      name: test.title,
-      status: result.status.toUpperCase(),
-      error: result.error?.message || '',
-      timestamp,
-    });
-
-    // After each test, append its data to iterations file
     try {
       const testDataFile = path.join(__dirname, 'test-data.json');
-      if (fs.existsSync(testDataFile)) {
-        const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
-        const suite = this._suiteFromTest(test);
-        const iterationsFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
-        
-        // Load existing iterations
-        let iterations = [];
-        if (fs.existsSync(iterationsFile)) {
-          iterations = JSON.parse(fs.readFileSync(iterationsFile, 'utf-8'));
-        }
-        
-        // Add this iteration's data
-        iterations.push({
-          iterationNumber: iterations.length + 1,
-          status: result.status.toUpperCase(),
-          state: testData.state || 'N/A',
-          stateName: testData.stateName || 'N/A',
-          quoteNumber: testData.quoteNumber || 'N/A',
-          policyNumber: testData.policyNumber || 'N/A',
-          milestones: testData.milestones || [],
-          timestamp: timestamp.toISOString(),
-          duration: testData.milestones?.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2) || '0',
-          runId: this.runId,
-          suite
-        });
-        
-        // Save updated iterations
-        fs.writeFileSync(iterationsFile, JSON.stringify(iterations, null, 2), 'utf8');
-        console.log(`💾 Iteration ${iterations.length} data saved for suite=${suite}`);
+      if (!fs.existsSync(testDataFile)) return;
+      const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
+      const suite = this._suiteFromTest(test);
+      const iterationsFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
+
+      let iterations = [];
+      if (fs.existsSync(iterationsFile)) {
+        iterations = JSON.parse(fs.readFileSync(iterationsFile, 'utf-8')) || [];
       }
+
+      iterations.push({
+        iterationNumber: iterations.length + 1,
+        status: result.status.toUpperCase(),
+        state: testData.state || 'N/A',
+        stateName: testData.stateName || 'N/A',
+        quoteNumber: testData.quoteNumber || 'N/A',
+        policyNumber: testData.policyNumber || 'N/A',
+        milestones: testData.milestones || [],
+        timestamp: timestamp.toISOString(),
+        duration: Array.isArray(testData.milestones)
+          ? testData.milestones.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2)
+          : '0',
+        runId: this.runId,
+        suite,
+      });
+
+      fs.writeFileSync(iterationsFile, JSON.stringify(iterations, null, 2), 'utf8');
+      console.log(`💾 Iteration ${iterations.length} data saved for suite=${suite}`);
     } catch (e) {
-      console.log('⚠️ Could not save iteration data:', e.message);
+      console.log('⚠️ onTestEnd error:', e.message);
     }
   }
 
   async onEnd() {
-    // Get suite label (lazy-loaded on first call)
-    const suiteLabel = this._getSuiteLabel();
-    
-    console.log('🎬 EmailReporter.onEnd() called');
-    console.log('📊 Suite:', suiteLabel);
-    console.log('🆔 RunId:', this.runId);
-
-    // Check for batch marker file OR lock files; if present, skip email (batch will send combined email at end)
+    // If batch marker or lock exists, wrapper will send final email
     const batchMarkerFile = path.join(__dirname, '.batch-run-in-progress');
-    const lockFileBop = path.join(__dirname, 'parallel-run-lock-bop.json');
-    const lockFilePkg = path.join(__dirname, 'parallel-run-lock-package.json');
-    
-    console.log(`🔍 Checking for batch marker at: ${batchMarkerFile}`);
     const hasBatchMarker = fs.existsSync(batchMarkerFile);
-    const hasLockFile = fs.existsSync(lockFileBop) || fs.existsSync(lockFilePkg);
-    const isBatchRun = hasBatchMarker || hasLockFile;
-    
-    console.log(`📍 Batch marker exists: ${hasBatchMarker}`);
-    console.log(`📍 Lock file exists: ${hasLockFile}`);
-    console.log(`📍 Is batch run: ${isBatchRun}`);
-    
-    if (isBatchRun) {
-      console.log('⏸️  Batch run detected - Deferring email until batch completes.');
-      await this._maybeSendFinalBatchEmail({ batchMarkerFile, lockFileBop, lockFilePkg });
+    const hasLock = fs.existsSync(path.join(__dirname, 'parallel-run-lock-bop.json'))
+      || fs.existsSync(path.join(__dirname, 'parallel-run-lock-package.json'));
+    if (hasBatchMarker || hasLock) {
+      console.log('⏸️ Batch/parallel detected; skipping per-iteration email. Wrapper will send.');
       return;
     }
 
-    const endTime = new Date();
-    const totalDuration = ((endTime - this.startTime) / 1000).toFixed(2);
-
-    // Load iterations for current run
-    // In batch mode: load BOTH suites (BOP + Package) for combined email
-    // In independent mode: load ONLY the current suite for standalone email
+    const suiteLabel = this._getSuiteLabel();
     let iterations = [];
     try {
-      const iterationFiles = isBatchRun 
-        ? ['iterations-data-bop.json', 'iterations-data-package.json']  // Batch: load both suites
-        : [`iterations-data-${this.suiteLabel.toLowerCase()}.json`];   // Independent: load only current suite
-      
-      let lockData = {};
-      try {
-        const lockPaths = ['parallel-run-lock-bop.json', 'parallel-run-lock-package.json']
-          .map(f => path.join(__dirname, f));
-        const lockPath = lockPaths.find(f => fs.existsSync(f));
-        if (lockPath) {
-          lockData = JSON.parse(fs.readFileSync(lockPath, 'utf-8')) || {};
-        }
-      } catch {}
-      const activeRunId = lockData.runId || this.runId;
-
-      iterationFiles.forEach(file => {
-        const fp = path.join(__dirname, file);
-        if (fs.existsSync(fp)) {
-          const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8'));
-          if (Array.isArray(allIterations)) {
-            const filtered = allIterations.filter(it => it.runId === activeRunId);
-            iterations = iterations.concat(filtered);
-          }
-        }
-      });
-      console.log(`📂 Loaded ${iterations.length} iteration(s) for runId=${activeRunId}${isBatchRun ? ' (batch mode - both suites)' : ` (suite=${suiteLabel})`}`);
-    } catch (e) {
-      console.log('⚠️ Failed to read iterations file:', e.message);
-    }
-
-    // Fallback: if no iterations recorded, attempt to read current test-data.json
-    if (iterations.length === 0) {
-      try {
-        const testDataFile = path.join(__dirname, 'test-data.json');
-        if (fs.existsSync(testDataFile)) {
-          const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
-          const totalDuration = Array.isArray(testData.milestones)
-            ? testData.milestones.reduce((sum, m) => sum + parseFloat((m.duration || '0').toString()), 0).toFixed(2)
-            : '0';
-          iterations = [{
-            iterationNumber: 1,
-            status: (testData.status || 'UNKNOWN').toUpperCase(),
-            state: testData.state || 'N/A',
-            stateName: testData.stateName || 'N/A',
-            quoteNumber: testData.quoteNumber || 'N/A',
-            policyNumber: testData.policyNumber || 'N/A',
-            milestones: testData.milestones || [],
-            timestamp: new Date().toISOString(),
-            duration: totalDuration,
-            suite: suiteLabel  // CRITICAL: tag with current suite
-          }];
-          console.log(`🧭 Using fallback test-data.json for suite=${suiteLabel}`);
-        }
-      } catch (e) {
-        console.log('⚠️ Fallback read of test-data.json failed:', e.message);
+      const fp = path.join(__dirname, `iterations-data-${suiteLabel.toLowerCase()}.json`);
+      if (fs.existsSync(fp)) {
+        const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];
+        iterations = this.runId ? allIterations.filter(it => it.runId === this.runId) : allIterations;
       }
+    } catch (e) {
+      console.log('⚠️ Failed to load iterations:', e.message);
     }
 
-    if (iterations.length === 0) {
-      console.log('⚠️ No iterations data found. Skipping email report.');
+    if (!iterations.length) {
+      console.log('⚠️ No iterations to email.');
       return;
     }
 
-    // Calculate stats
+    await this._sendEmail(iterations, `WB Smoke Testing Report`);
+  }
+
+  // ----- Internal helpers -----
+  async _sendEmail(iterations, subjectPrefix) {
     const totalIterations = iterations.length;
     const passedIterations = iterations.filter(it => it.status === 'PASSED').length;
     const failedIterations = totalIterations - passedIterations;
     const overallPassed = failedIterations === 0;
 
-    // Build summary table HTML
     const summaryTableHtml = `
       <table style="width:100%;border-collapse:collapse;margin:20px 0;">
         <thead>
@@ -293,10 +187,11 @@ class EmailReporter {
       </table>
     `;
 
-    // Build email HTML
+    const totalDuration = iterations.reduce((sum, it) => sum + parseFloat(it.duration || 0), 0).toFixed(2);
+
     const html = `
       <div style="font-family: Arial, sans-serif;">
-        <h1 style="color:#1976d2;">🎭 WB Smoke Test Report</h1>
+        <h1 style="color:#1976d2;">🎭 ${subjectPrefix}</h1>
         <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
           <h3 style="margin-top:0;">📊 Test Summary</h3>
           <p><b>Overall Status:</b> ${overallPassed ? '✅ PASSED' : '❌ FAILED'}</p>
@@ -307,24 +202,18 @@ class EmailReporter {
 
         <h2 style="color:#333;margin-top:20px;">Test Execution Details</h2>
         ${summaryTableHtml}
-
-        <div style="margin-top:30px;padding:15px;background:#e8f5e9;border-radius:5px;border-left:4px solid #4CAF50;">
-          <p style="font-size:0.9em;color:#666;">
-            <b>Note:</b> Detailed milestone breakdown for each iteration has been attached in the Excel file (WB_Test_Report_${new Date().toISOString().split('T')[0]}.xlsx)
-          </p>
-        </div>
-
-        <div style="margin-top:20px;padding:10px;background:#f5f5f5;border-radius:5px;text-align:center;color:#666;">
-          <p style="margin:5px 0;font-size:0.9em;">Generated by Playwright Test Automation Framework</p>
-          <p style="margin:5px 0;font-size:0.9em;">Report Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
-        </div>
       </div>
     `;
 
-    // Create Excel workbook with milestone details
     const excelFile = await this._createExcelReport(iterations);
 
-    // Prepare email
+    // SMTP check
+    if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
+      console.log('⚠️ SMTP not configured; email skipped.');
+      if (excelFile) console.log('ℹ️ Excel generated at:', excelFile);
+      return;
+    }
+
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
@@ -333,152 +222,49 @@ class EmailReporter {
     });
 
     const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    const subjectLine = `WB Smoke Testing Report: ${todayDate} - ${passedIterations} Passed, ${failedIterations} Failed`;
+    const subjectLine = `${subjectPrefix}: ${todayDate} - ${passedIterations} Passed, ${failedIterations} Failed`;
 
-    console.log('📧 SMTP Config:', { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL });
-    console.log(`📨 Subject: ${subjectLine}`);
-    console.log('📊 Final Test Summary:');
-    console.log(`   Overall: ${overallPassed ? '✅ PASSED' : '❌ FAILED'}`);
-    console.log(`   Iterations: ${totalIterations}`);
-    console.log(`   Passed: ${passedIterations} | Failed: ${failedIterations}`);
-
-    // Check if SMTP credentials are available
-    if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
-      console.log('⚠️ SMTP credentials not configured. Email report will not be sent.');
-      console.log('ℹ️  To enable email reports, set SMTP_HOST, SMTP_PORT, FROM_EMAIL, and TO_EMAIL in .env file');
-      console.log('ℹ️  Test data has been saved to:', path.join(__dirname, 'test-data.json'));
-      if (iterations.length > 0) {
-        console.log('ℹ️  Iterations data saved to:', this.iterationsFile);
-      }
-      if (excelFile) {
-        console.log('ℹ️  Excel report generated at:', excelFile);
-      }
-      return;
-    }
-
-    try {
-      const mailOptions = {
-        from: process.env.FROM_EMAIL,
-        to: process.env.TO_EMAIL,
-        subject: subjectLine,
-        html,
-        attachments: excelFile ? [{
-          filename: path.basename(excelFile),
-          path: excelFile
-        }] : []
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log('✔ Email report sent successfully with Excel attachment.');
-    } catch (e) {
-      console.error('❌ Failed to send email:', e.message);
-      console.error('Stack:', e.stack);
-    }
-  }
-
-  // Attempt to auto-send the combined batch email if both suites have completed
-  async _maybeSendFinalBatchEmail({ batchMarkerFile, lockFileBop, lockFilePkg }) {
-    try {
-      const batchSentMarker = path.join(__dirname, '.batch-email-sent');
-      const bopIterations = path.join(__dirname, 'iterations-data-bop.json');
-      const pkgIterations = path.join(__dirname, 'iterations-data-package.json');
-
-      const hasMarker = fs.existsSync(batchMarkerFile);
-      const hasBop = fs.existsSync(bopIterations);
-      const hasPkg = fs.existsSync(pkgIterations);
-      const alreadySent = fs.existsSync(batchSentMarker);
-
-      console.log(`🔍 Auto-batch check → marker:${hasMarker} bop:${hasBop} pkg:${hasPkg} sent:${alreadySent}`);
-
-      if (!hasMarker) {
-        return; // not a batch marker present, nothing to do
-      }
-      if (alreadySent) {
-        console.log('⏭️  Batch email already sent; skipping.');
-        return;
-      }
-
-      // If either suite file is missing, wait briefly for the other suite to finish.
-      if (!hasBop || !hasPkg) {
-        const graceMs = Number(process.env.EMAIL_BATCH_GRACE_MS || 45000);
-        const start = Date.now();
-        console.log(`⏳ Waiting up to ${graceMs}ms for both suite files...`);
-
-        while (Date.now() - start < graceMs) {
-          await new Promise(r => setTimeout(r, 1000));
-          const nowHasBop = fs.existsSync(bopIterations);
-          const nowHasPkg = fs.existsSync(pkgIterations);
-          if (nowHasBop && nowHasPkg) {
-            console.log('✅ Both suite files present within grace period.');
-            break;
-          }
-        }
-      }
-
-      const finalHasBop = fs.existsSync(bopIterations);
-      const finalHasPkg = fs.existsSync(pkgIterations);
-
-      if (finalHasBop && finalHasPkg) {
-        console.log('📨 Attempting automatic combined batch email...');
-        await EmailReporter.sendBatchEmailReport();
-        fs.writeFileSync(batchSentMarker, new Date().toISOString(), 'utf8');
-        [batchMarkerFile, lockFileBop, lockFilePkg].forEach(f => {
-          try { if (f && fs.existsSync(f)) fs.unlinkSync(f); } catch {}
-        });
-        console.log('✅ Combined batch email sent and batch markers cleaned up.');
-      } else if (finalHasBop || finalHasPkg) {
-        // Partial/incomplete batch: send whatever we have to avoid losing visibility
-        const filesToSend = [finalHasBop ? 'iterations-data-bop.json' : null, finalHasPkg ? 'iterations-data-package.json' : null]
-          .filter(Boolean);
-        console.log(`⚠️ Incomplete batch detected. Sending partial email for file(s): ${filesToSend.join(', ')}`);
-        await EmailReporter.sendBatchEmailReport(filesToSend, 'WB Partial Batch Report (Interrupted)');
-        fs.writeFileSync(batchSentMarker, new Date().toISOString(), 'utf8');
-        // Do not delete marker to allow subsequent full run, but prevent repeated sends
-      } else {
-        console.log('⚠️ No iterations found for batch; skipping email.');
-      }
-    } catch (err) {
-      console.log(`⚠️ Auto batch email attempt failed: ${err.message}`);
-    }
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL,
+      to: process.env.TO_EMAIL,
+      subject: subjectLine,
+      html,
+      attachments: excelFile ? [{ filename: path.basename(excelFile), path: excelFile }] : []
+    });
+    console.log('✔ Email report sent successfully.');
   }
 
   async _createExcelReport(iterations) {
     try {
       const wb = XLSX.utils.book_new();
-
-      // Create a summary sheet
       const summaryData = iterations.map((it, idx) => ({
         'Iteration #': it.iterationNumber,
         'Line of Business': `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`,
         'Quote Number': it.quoteNumber,
         'Policy Number': it.policyNumber,
         'Overall Status': it.status,
-        'Duration (s)': it.duration
+        'Duration (s)': it.duration,
+        'State': it.state
       }));
-
       const summaryWs = XLSX.utils.json_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
-      // Create detailed sheet for each iteration
       iterations.forEach((it) => {
-        const milestoneData = it.milestones.map(m => ({
+        const milestoneData = (it.milestones || []).map(m => ({
           'Milestone': m.name,
           'Status': m.status || 'N/A',
           'Duration (s)': m.duration || '-',
           'Timestamp': m.timestamp || '-'
         }));
-
         const ws = XLSX.utils.json_to_sheet(milestoneData);
-        const safeSuite = (it.suite || this.suiteLabel || 'Suite').replace(/[^A-Za-z0-9]/g, '_');
+        const safeSuite = (it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_');
         const baseName = `${safeSuite}_${it.iterationNumber}`;
-        const sheetName = baseName.substring(0, 31); // Excel sheet name limit
+        const sheetName = baseName.substring(0, 31);
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
-      // Save Excel file
       const excelPath = path.join(__dirname, `WB_Test_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
       XLSX.writeFile(wb, excelPath);
-      console.log(`📊 Excel report generated: ${excelPath}`);
       return excelPath;
     } catch (e) {
       console.error('⚠️ Failed to create Excel report:', e.message);
@@ -486,200 +272,39 @@ class EmailReporter {
     }
   }
 
-  // Static method to send final combined email after batch run completes
+  async _maybeSendFinalBatchEmail() {
+    console.log('ℹ️ _maybeSendFinalBatchEmail skipped (wrapper-managed).');
+  }
+
+  // ----- Static batch sender (called by wrappers) -----
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
     console.log('📨 Sending final combined batch email...');
-    
     const projectPath = __dirname;
-    
-    // Load iterations for all suites from current runId
     let iterations = [];
-    let activeRunId = null;
-    
-    try {
-      const iterationFiles = iterationFilesOverride && iterationFilesOverride.length
-        ? iterationFilesOverride
-        : ['iterations-data-bop.json', 'iterations-data-package.json'];
-      let lockData = {};
-      try {
-        // If specific iteration files are provided, try to match the corresponding lock file
-        let lockPaths = ['parallel-run-lock-bop.json', 'parallel-run-lock-package.json']
-          .map(f => path.join(projectPath, f));
-        
-        // If only specific iteration files requested, prioritize matching lock file
-        if (iterationFilesOverride && iterationFilesOverride.length > 0) {
-          const isBopOnly = iterationFilesOverride.some(f => f.includes('bop')) && !iterationFilesOverride.some(f => f.includes('package'));
-          const isPkgOnly = iterationFilesOverride.some(f => f.includes('package')) && !iterationFilesOverride.some(f => f.includes('bop'));
-          
-          if (isBopOnly) {
-            lockPaths = [path.join(projectPath, 'parallel-run-lock-bop.json')];
-          } else if (isPkgOnly) {
-            lockPaths = [path.join(projectPath, 'parallel-run-lock-package.json')];
-          }
-        }
-        
-        const lockPath = lockPaths.find(f => fs.existsSync(f));
-        if (lockPath) {
-          lockData = JSON.parse(fs.readFileSync(lockPath, 'utf-8')) || {};
-        }
-      } catch {}
-      activeRunId = lockData.runId || new Date().toISOString();
 
-      iterationFiles.forEach(file => {
-        const fp = path.join(projectPath, file);
-        if (fs.existsSync(fp)) {
-          const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8'));
-          if (Array.isArray(allIterations)) {
-            // If no lock file exists or runId is from current session, load all iterations
-            // This handles manual runs where lock file may be missing
-            const filtered = (lockData && lockData.runId) 
-              ? allIterations.filter(it => it.runId === activeRunId)
-              : allIterations; // Load all if no lock file
-            console.log(`   File ${file}: ${allIterations.length} total, ${filtered.length} matching runId ${activeRunId}`);
-            iterations = iterations.concat(filtered);
-          }
-        }
-      });
-      console.log(`📂 Loaded ${iterations.length} iteration(s) for final batch email`);
-    } catch (e) {
-      console.error('⚠️ Failed to load iterations for batch email:', e.message);
-      return;
+    const iterationFiles = iterationFilesOverride && iterationFilesOverride.length
+      ? iterationFilesOverride
+      : ['iterations-data-bop.json', 'iterations-data-package.json'];
+
+    for (const file of iterationFiles) {
+      const fp = path.join(projectPath, file);
+      if (!fs.existsSync(fp)) continue;
+      const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];
+      if (!Array.isArray(allIterations) || !allIterations.length) continue;
+      const runIds = allIterations.map(it => it.runId).filter(Boolean);
+      const latestRunId = runIds.length ? runIds.sort().slice(-1)[0] : null;
+      const filtered = latestRunId ? allIterations.filter(it => it.runId === latestRunId) : allIterations;
+      console.log(`   File ${file}: ${allIterations.length} total, using ${filtered.length} from latest runId ${latestRunId || 'N/A'}`);
+      iterations = iterations.concat(filtered);
     }
 
-    if (iterations.length === 0) {
+    if (!iterations.length) {
       console.log('⚠️ No iterations data found. Skipping batch email.');
       return;
     }
 
-    // Calculate stats
-    const totalIterations = iterations.length;
-    const passedIterations = iterations.filter(it => it.status === 'PASSED').length;
-    const failedIterations = totalIterations - passedIterations;
-    const overallPassed = failedIterations === 0;
-
-    // Build summary table HTML
-    const summaryTableHtml = `
-      <table style="width:100%;border-collapse:collapse;margin:20px 0;">
-        <thead>
-          <tr style="background:#2196F3;color:white;">
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;">Line of Business</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;">Quote Number</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;">Policy Number</th>
-            <th style="padding:12px;text-align:center;border:1px solid #ddd;">Overall Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${iterations.map((it, idx) => {
-            const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
-            const statusIcon = it.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED';
-            const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-            const lobWithState = it.state ? `${it.suite || 'Package'} (${it.state})` : (it.suite || 'Package');
-            return `
-              <tr style="background:${bg};">
-                <td style="padding:12px;border:1px solid #ddd;">${lobWithState}</td>
-                <td style="padding:12px;border:1px solid #ddd;">${it.quoteNumber}</td>
-                <td style="padding:12px;border:1px solid #ddd;">${it.policyNumber}</td>
-                <td style="padding:12px;border:1px solid #ddd;text-align:center;color:${statusColor};font-weight:bold;">${statusIcon}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    `;
-
-    const html = `
-      <div style="font-family: Arial, sans-serif;">
-        <h1 style="color:#1976d2;">🎭 ${subjectPrefixOverride || 'WB Smoke Test Report (Batch Run)'} </h1>
-        <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
-          <h3 style="margin-top:0;">📊 Test Summary</h3>
-          <p><b>Overall Status:</b> ${overallPassed ? '✅ PASSED' : '❌ FAILED'}</p>
-          <p><b>Total Iterations:</b> ${totalIterations}</p>
-          <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passedIterations}</span> &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failedIterations}</span></p>
-        </div>
-
-        <h2 style="color:#333;margin-top:20px;">Test Execution Details</h2>
-        ${summaryTableHtml}
-
-        <div style="margin-top:30px;padding:15px;background:#e8f5e9;border-radius:5px;border-left:4px solid #4CAF50;">
-          <p style="font-size:0.9em;color:#666;">
-            <b>Note:</b> Detailed milestone breakdown for each iteration has been attached in the Excel file (WB_Test_Report_${new Date().toISOString().split('T')[0]}.xlsx)
-          </p>
-        </div>
-
-        <div style="margin-top:20px;padding:10px;background:#f5f5f5;border-radius:5px;text-align:center;color:#666;">
-          <p style="margin:5px 0;font-size:0.9em;">Generated by Playwright Test Automation Framework</p>
-          <p style="margin:5px 0;font-size:0.9em;">Report Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
-        </div>
-      </div>
-    `;
-
-    // Create Excel workbook
-    try {
-      const wb = XLSX.utils.book_new();
-      const summaryData = iterations.map((it, idx) => ({
-        'Iteration #': it.iterationNumber,
-        'Line of Business': it.state ? `${it.suite || 'Package'} (${it.state})` : (it.suite || 'Package'),
-        'Quote Number': it.quoteNumber,
-        'Policy Number': it.policyNumber,
-        'Overall Status': it.status,
-        'Duration (s)': it.duration,
-        'State': it.state
-      }));
-
-      const summaryWs = XLSX.utils.json_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
-
-      iterations.forEach((it) => {
-        const milestoneData = it.milestones.map(m => ({
-          'Milestone': m.name,
-          'Status': m.status || 'N/A',
-          'Duration (s)': m.duration || '-',
-          'Timestamp': m.timestamp || '-'
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(milestoneData);
-        const safeSuite = (it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_');
-        const baseName = `${safeSuite}_${it.iterationNumber}`;
-        const sheetName = baseName.substring(0, 31); // Excel sheet name limit
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      });
-
-      const excelPath = path.join(projectPath, `WB_Test_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-      XLSX.writeFile(wb, excelPath);
-      console.log(`📊 Excel report generated: ${excelPath}`);
-
-      // Send email with Excel
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        secure: false,
-        tls: { rejectUnauthorized: false }
-      });
-
-      const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const subjectLine = `${subjectPrefixOverride || 'WB Smoke Testing Report'}: ${todayDate} - ${passedIterations} Passed, ${failedIterations} Failed`;
-
-      if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
-        console.log('⚠️ SMTP credentials not configured. Batch email not sent.');
-        return;
-      }
-
-      const mailOptions = {
-        from: process.env.FROM_EMAIL,
-        to: process.env.TO_EMAIL,
-        subject: subjectLine,
-        html,
-        attachments: [{
-          filename: path.basename(excelPath),
-          path: excelPath
-        }]
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log('✔ Batch email report sent successfully with Excel attachment.');
-    } catch (e) {
-      console.error('❌ Failed to send batch email:', e.message);
-    }
+    const reporter = new EmailReporter();
+    await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report (Batch Run)');
   }
 }
 

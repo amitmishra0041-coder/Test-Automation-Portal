@@ -16,10 +16,11 @@ if errorlevel 1 (
 echo Current directory: %CD%
 echo.
 
-REM Clean up old batch markers to ensure emails can be sent
+REM Clean up old batch markers and other suite's iteration file to ensure clean run
 if exist .batch-email-sent del .batch-email-sent
 if exist .batch-run-in-progress del .batch-run-in-progress
-echo ✓ Cleaned up old batch markers
+if exist iterations-data-package.json del iterations-data-package.json
+echo ✓ Cleaned up old batch markers and Package iterations
 
 REM Create batch marker file to prevent individual test runs from sending emails
 echo {^"inBatch^": true} > .batch-run-in-progress
@@ -60,14 +61,20 @@ if "%STATES%"=="" set STATES=DE,PA,WI,OH,MI
 echo Running BOP Test in Chromium (headless mode) for STATES: %STATES% in PARALLEL...
 echo.
 REM Call PowerShell script to run tests in parallel within same terminal
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "%STATES%"
+set "HEADED_ARG=%2"
+if /I "%HEADED_ARG%"=="headed" (
+    echo Running in HEADed mode
+    powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "%STATES%" -Headed -Project chromium
+) else (
+    powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "%STATES%" -Project chromium
+)
 
 REM After all tests complete, send the combined batch email
 echo.
 echo ========================================
-echo Sending Combined Batch Email Report...
+echo Sending BOP Batch Email Report...
 echo ========================================
-node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport();"
+node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report');"
 
 REM Clean up batch markers
 if exist .batch-run-in-progress del .batch-run-in-progress

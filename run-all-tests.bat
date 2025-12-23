@@ -6,22 +6,11 @@ REM Usage: run-all-tests.bat [qa|test]
 set ENV=%1
 if "%ENV%"=="" set ENV=qa
 
-REM States configured: DE PA WI OH MI
-for %%S in (DE PA WI OH MI) do (
-	set "TEST_STATE=%%S"
-	set "TEST_ENV=%ENV%"
-	echo ===== Running all tests for state !TEST_STATE! (ENV=!TEST_ENV!) =====
-	npx playwright test --project=chromium || goto :error
-)
+REM Run both suites in parallel across all states using PowerShell runners
+echo ==== Starting BOP (parallel) ====
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "DE,PA,WI,OH,MI" -Project chromium -Headed
+echo ==== Starting Package (parallel) ====
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-package.ps1" -TestEnv %ENV% -States "DE,PA,WI,OH,MI" -Project chromium -Headed
 
-echo All states completed.
+echo All parallel runs triggered. Monitor the terminal for progress.
 goto :eof
-
-:error
-echo Test run failed for state %TEST_STATE% (ENV=%ENV%).
-exit /b 1
-echo All tests completed!
-pause
-echo.
-echo All tests completed!
-pause
