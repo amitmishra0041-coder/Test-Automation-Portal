@@ -1,0 +1,55 @@
+
+[2025-12-09T17:54:37.849Z] Step: Login Page Load
+Navigation Timing: {"connectStart":1765302876812,"secureConnectionStart":0,"unloadEventEnd":1765302877802,"domainLookupStart":1765302876812,"domainLookupEnd":1765302876812,"responseStart":1765302877798,"connectEnd":1765302876812,"responseEnd":1765302877798,"requestStart":1765302876813,"domLoading":1765302877805,"redirectStart":1765302876278,"loadEventEnd":0,"domComplete":0,"navigationStart":1765302876274,"loadEventStart":0,"domContentLoadedEventEnd":0,"unloadEventStart":1765302877802,"redirectEnd":1765302876812,"domInteractive":0,"fetchStart":1765302876812,"domContentLoadedEventStart":0}
+Paint Metrics: []
+------------------------------------------
+
+[2025-12-09T17:54:41.022Z] Step: Client Selection
+Navigation Timing: {"connectStart":1765302876812,"secureConnectionStart":0,"unloadEventEnd":1765302877802,"domainLookupStart":1765302876812,"domainLookupEnd":1765302876812,"responseStart":1765302877798,"connectEnd":1765302876812,"responseEnd":1765302877798,"requestStart":1765302876813,"domLoading":1765302877805,"redirectStart":1765302876278,"loadEventEnd":1765302878201,"domComplete":1765302878200,"navigationStart":1765302876274,"loadEventStart":1765302878201,"domContentLoadedEventEnd":1765302878178,"unloadEventStart":1765302877802,"redirectEnd":1765302876812,"domInteractive":1765302878032,"fetchStart":1765302876812,"domContentLoadedEventStart":1765302878032}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1760,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1760,"duration":0}]
+------------------------------------------
+
+[2025-12-09T17:54:41.626Z] Step: Client Info Filled
+Navigation Timing: {"connectStart":1765302876812,"secureConnectionStart":0,"unloadEventEnd":1765302877802,"domainLookupStart":1765302876812,"domainLookupEnd":1765302876812,"responseStart":1765302877798,"connectEnd":1765302876812,"responseEnd":1765302877798,"requestStart":1765302876813,"domLoading":1765302877805,"redirectStart":1765302876278,"loadEventEnd":1765302878201,"domComplete":1765302878200,"navigationStart":1765302876274,"loadEventStart":1765302878201,"domContentLoadedEventEnd":1765302878178,"unloadEventStart":1765302877802,"redirectEnd":1765302876812,"domInteractive":1765302878032,"fetchStart":1765302876812,"domContentLoadedEventStart":1765302878032}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1760,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1760,"duration":0}]
+------------------------------------------
+
+[2025-12-09T17:56:53.518Z] Step: Login Page Load
+Navigation Timing: {"connectStart":1765303012618,"secureConnectionStart":0,"unloadEventEnd":1765303013476,"domainLookupStart":1765303012618,"domainLookupEnd":1765303012618,"responseStart":1765303013471,"connectEnd":1765303012618,"responseEnd":1765303013472,"requestStart":1765303012619,"domLoading":1765303013480,"redirectStart":1765303012352,"loadEventEnd":0,"domComplete":0,"navigationStart":1765303012348,"loadEventStart":0,"domContentLoadedEventEnd":0,"unloadEventStart":1765303013476,"redirectEnd":1765303012618,"domInteractive":0,"fetchStart":1765303012618,"domContentLoadedEventStart":0}
+Paint Metrics: []
+------------------------------------------
+
+[2025-12-09T17:56:55.782Z] Step: Client Selection
+Navigation Timing: {"connectStart":1765303012618,"secureConnectionStart":0,"unloadEventEnd":1765303013476,"domainLookupStart":1765303012618,"domainLookupEnd":1765303012618,"responseStart":1765303013471,"connectEnd":1765303012618,"responseEnd":1765303013472,"requestStart":1765303012619,"domLoading":1765303013480,"redirectStart":1765303012352,"loadEventEnd":1765303013922,"domComplete":1765303013922,"navigationStart":1765303012348,"loadEventStart":1765303013922,"domContentLoadedEventEnd":1765303013905,"unloadEventStart":1765303013476,"redirectEnd":1765303012618,"domInteractive":1765303013743,"fetchStart":1765303012618,"domContentLoadedEventStart":1765303013743}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1400,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1400,"duration":0}]
+------------------------------------------
+
+[2025-12-09T17:56:56.286Z] Step: Client Info Filled
+Navigation Timing: {"connectStart":1765303012618,"secureConnectionStart":0,"unloadEventEnd":1765303013476,"domainLookupStart":1765303012618,"domainLookupEnd":1765303012618,"responseStart":1765303013471,"connectEnd":1765303012618,"responseEnd":1765303013472,"requestStart":1765303012619,"domLoading":1765303013480,"redirectStart":1765303012352,"loadEventEnd":1765303013922,"domComplete":1765303013922,"navigationStart":1765303012348,"loadEventStart":1765303013922,"domContentLoadedEventEnd":1765303013905,"unloadEventStart":1765303013476,"redirectEnd":1765303012618,"domInteractive":1765303013743,"fetchStart":1765303012618,"domContentLoadedEventStart":1765303013743}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1400,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1400,"duration":0}]
+------------------------------------------
+
+[2025-12-09T17:56:59.368Z] Step: Defaults Accepted
+Navigation Timing: {"connectStart":1765303012618,"secureConnectionStart":0,"unloadEventEnd":1765303013476,"domainLookupStart":1765303012618,"domainLookupEnd":1765303012618,"responseStart":1765303013471,"connectEnd":1765303012618,"responseEnd":1765303013472,"requestStart":1765303012619,"domLoading":1765303013480,"redirectStart":1765303012352,"loadEventEnd":1765303013922,"domComplete":1765303013922,"navigationStart":1765303012348,"loadEventStart":1765303013922,"domContentLoadedEventEnd":1765303013905,"unloadEventStart":1765303013476,"redirectEnd":1765303012618,"domInteractive":1765303013743,"fetchStart":1765303012618,"domContentLoadedEventStart":1765303013743}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1400,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1400,"duration":0}]
+------------------------------------------
+
+[2025-12-09T17:57:24.463Z] Step: Account Creation Completed
+Navigation Timing: {"connectStart":1765303012618,"secureConnectionStart":0,"unloadEventEnd":1765303013476,"domainLookupStart":1765303012618,"domainLookupEnd":1765303012618,"responseStart":1765303013471,"connectEnd":1765303012618,"responseEnd":1765303013472,"requestStart":1765303012619,"domLoading":1765303013480,"redirectStart":1765303012352,"loadEventEnd":1765303013922,"domComplete":1765303013922,"navigationStart":1765303012348,"loadEventStart":1765303013922,"domContentLoadedEventEnd":1765303013905,"unloadEventStart":1765303013476,"redirectEnd":1765303012618,"domInteractive":1765303013743,"fetchStart":1765303012618,"domContentLoadedEventStart":1765303013743}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1400,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1400,"duration":0}]
+------------------------------------------
+
+[2025-12-09T18:00:52.013Z] Step: Login Page Load
+Navigation Timing: {"connectStart":1765303251018,"secureConnectionStart":0,"unloadEventEnd":1765303251677,"domainLookupStart":1765303251018,"domainLookupEnd":1765303251018,"responseStart":1765303251672,"connectEnd":1765303251018,"responseEnd":1765303251673,"requestStart":1765303251019,"domLoading":1765303251681,"redirectStart":1765303250752,"loadEventEnd":0,"domComplete":0,"navigationStart":1765303250749,"loadEventStart":0,"domContentLoadedEventEnd":0,"unloadEventStart":1765303251677,"redirectEnd":1765303251018,"domInteractive":0,"fetchStart":1765303251018,"domContentLoadedEventStart":0}
+Paint Metrics: []
+------------------------------------------
+
+[2025-12-09T18:00:53.633Z] Step: Client Selection
+Navigation Timing: {"connectStart":1765303251018,"secureConnectionStart":0,"unloadEventEnd":1765303251677,"domainLookupStart":1765303251018,"domainLookupEnd":1765303251018,"responseStart":1765303251672,"connectEnd":1765303251018,"responseEnd":1765303251673,"requestStart":1765303251019,"domLoading":1765303251681,"redirectStart":1765303250752,"loadEventEnd":1765303252029,"domComplete":1765303252029,"navigationStart":1765303250749,"loadEventStart":1765303252029,"domContentLoadedEventEnd":1765303252014,"unloadEventStart":1765303251677,"redirectEnd":1765303251018,"domInteractive":1765303251895,"fetchStart":1765303251018,"domContentLoadedEventStart":1765303251895}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1160,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1160,"duration":0}]
+------------------------------------------
+
+[2025-12-09T18:00:54.072Z] Step: Client Info Filled
+Navigation Timing: {"connectStart":1765303251018,"secureConnectionStart":0,"unloadEventEnd":1765303251677,"domainLookupStart":1765303251018,"domainLookupEnd":1765303251018,"responseStart":1765303251672,"connectEnd":1765303251018,"responseEnd":1765303251673,"requestStart":1765303251019,"domLoading":1765303251681,"redirectStart":1765303250752,"loadEventEnd":1765303252029,"domComplete":1765303252029,"navigationStart":1765303250749,"loadEventStart":1765303252029,"domContentLoadedEventEnd":1765303252014,"unloadEventStart":1765303251677,"redirectEnd":1765303251018,"domInteractive":1765303251895,"fetchStart":1765303251018,"domContentLoadedEventStart":1765303251895}
+Paint Metrics: [{"name":"first-paint","entryType":"paint","startTime":1160,"duration":0},{"name":"first-contentful-paint","entryType":"paint","startTime":1160,"duration":0}]
+------------------------------------------

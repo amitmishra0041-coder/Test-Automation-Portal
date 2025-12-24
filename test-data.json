@@ -3,11 +3,48 @@
   "stateName": "Delaware",
   "milestones": [
     {
-      "name": "Test Execution Failed",
-      "status": "FAILED",
-      "timestamp": "2025-12-23T21:28:16.288Z",
-      "details": "locator.waitFor: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
-      "duration": "81.29s"
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2025-12-24T18:10:13.569Z",
+      "details": "",
+      "duration": "70.25s"
+    },
+    {
+      "name": "Building and Classification Added",
+      "status": "PASSED",
+      "timestamp": "2025-12-24T18:12:31.654Z",
+      "details": "",
+      "duration": "138.08s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-24T18:12:59.182Z",
+      "details": "Quote #: 3002611347",
+      "duration": "27.53s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2025-12-24T18:14:10.732Z",
+      "details": "",
+      "duration": "71.55s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2025-12-24T18:15:01.051Z",
+      "details": "",
+      "duration": "50.32s"
+    },
+    {
+      "name": "Policy Issued Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-24T18:17:27.247Z",
+      "details": "Policy #: 1002229285",
+      "duration": "146.19s"
     }
-  ]
+  ],
+  "quoteNumber": "3002611347",
+  "policyNumber": "1002229285"
 }

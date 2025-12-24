@@ -2,7 +2,7 @@
 process.env.TEST_TYPE = 'BOP';
 
 import { test, expect } from '@playwright/test';
-const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
+const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./helpers/randomData');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
@@ -114,22 +114,44 @@ test('Package Submission', async ({ page }) => {
   });
   await page.waitForTimeout(500); // Small buffer for DOM to stabilize
   
-  // Select Legal Entity - Association
-  // Use more specific selector and force click if modal is still blocking
+  
+  // Select Legal Entity - Association (only if not already set to "Other")
   const legalEntityBtn = page.locator('button[data-id="ddlLegalEntity"]').or(page.locator('button.dropdown-toggle').first());
   await legalEntityBtn.scrollIntoViewIfNeeded();
-  await legalEntityBtn.click({ force: true, timeout: 10000 });
-  await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ }).click();
+  
+  // Check current value
+  const currentValue = await legalEntityBtn.textContent();
+  const isOther = currentValue && currentValue.trim().toLowerCase().includes('other');
+  
+  if (!isOther) {
+    await legalEntityBtn.click({ force: true, timeout: 10000 });
+    await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ }).click();
+    console.log('✓ Legal Entity set to Association');
+  } else {
+    console.log('✓ Legal Entity already set to "Other", skipping');
+  }
   
   // Select Business Type - Contractor
-  await page.waitForSelector('.modal.show', { state: 'hidden', timeout: 3000 }).catch(() => {});
+  await page.waitForSelector('.modal.show', { state: 'hidden', timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  
   const businessTypeBtn = page.locator('button[data-id="ddlBusinessType"]').or(page.locator('button.dropdown-toggle').nth(1));
+  await businessTypeBtn.waitFor({ state: 'visible', timeout: 10000 });
   await businessTypeBtn.scrollIntoViewIfNeeded();
-  await businessTypeBtn.click({ force: true, timeout: 10000 });
+  await page.waitForTimeout(300);
+  
+  // Retry click if dropdown doesn't open
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await businessTypeBtn.click({ force: true, timeout: 10000 });
+    const dropdownVisible = await page.locator('.dropdown-menu.show').isVisible().catch(() => false);
+    if (dropdownVisible) break;
+    await page.waitForTimeout(500);
+  }
+  
   await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Contractor$/ }).click();
+  await page.waitForTimeout(300);
   
-  
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: 'Next ' }).click();
   //Contractors' Tools And Equip
   await page.getByTitle('Edit Coverage').nth(3).click();
   await page.locator('#xrgn_CoverageDetails').getByRole('combobox', { name: '500' }).click();

@@ -1,0 +1,20 @@
+{
+  "state": "MI",
+  "stateName": "Michigan",
+  "milestones": [
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2025-12-24T15:49:59.906Z",
+      "details": "",
+      "duration": "71.37s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2025-12-24T15:52:04.397Z",
+      "details": "locator.click: Target crashed \nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
+      "duration": "124.49s"
+    }
+  ]
+}

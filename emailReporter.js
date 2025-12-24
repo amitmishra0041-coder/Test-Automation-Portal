@@ -207,6 +207,57 @@ class EmailReporter {
 
     const excelFile = await this._createExcelReport(iterations);
 
+    // Build attachments: Excel + per-state error logs for failed iterations
+    const attachments = [];
+    if (excelFile) {
+      attachments.push({ filename: path.basename(excelFile), path: excelFile });
+    }
+
+    // Attach per-iteration error logs (state-named) when failures occur
+    try {
+      for (const it of iterations) {
+        if (String(it.status).toUpperCase() !== 'PASSED') {
+          const state = (it.state || 'N_A').toUpperCase();
+          const suite = (it.suite || this.suiteLabel || 'Package').toUpperCase();
+          const expectedLogName = suite === 'BOP'
+            ? `test-run-output-${state}.txt`
+            : `test-run-output-package-${state}.txt`;
+          const expectedLogPath = path.join(__dirname, expectedLogName);
+
+          if (fs.existsSync(expectedLogPath)) {
+            // Use a friendly filename while keeping original path
+            attachments.push({ filename: `Error-${state}.txt`, path: expectedLogPath });
+          } else {
+            // Fallback: synthesize a small error file with milestone details
+            const failedMilestone = Array.isArray(it.milestones)
+              ? it.milestones.slice().reverse().find(m => (m.status || '').toUpperCase() === 'FAILED' || /failed/i.test(m.name || ''))
+              : null;
+            const lines = [];
+            lines.push(`Suite: ${suite}`);
+            lines.push(`State: ${state}`);
+            lines.push(`Status: ${it.status}`);
+            lines.push(`Quote Number: ${it.quoteNumber || 'N/A'}`);
+            lines.push(`Policy Number: ${it.policyNumber || 'N/A'}`);
+            if (failedMilestone) {
+              lines.push('');
+              lines.push(`Failed Milestone: ${failedMilestone.name || 'N/A'}`);
+              if (failedMilestone.details) lines.push(`Details: ${failedMilestone.details}`);
+              if (failedMilestone.timestamp) lines.push(`Timestamp: ${failedMilestone.timestamp}`);
+            }
+            const fallbackPath = path.join(__dirname, `Error-${state}.txt`);
+            try {
+              fs.writeFileSync(fallbackPath, lines.join('\n'), 'utf8');
+              attachments.push({ filename: `Error-${state}.txt`, path: fallbackPath });
+            } catch (e) {
+              console.log(`⚠️ Could not create fallback error file for ${state}:`, e.message);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.log('⚠️ Failed to build error attachments:', e.message);
+    }
+
     // SMTP check
     if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
       console.log('⚠️ SMTP not configured; email skipped.');
@@ -214,24 +265,36 @@ class EmailReporter {
       return;
     }
 
-    const transporter = nodemailer.createTransport({
+    const transporterOptions = {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
       secure: false,
       tls: { rejectUnauthorized: false }
-    });
+    };
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      transporterOptions.auth = {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      };
+    }
+    const transporter = nodemailer.createTransport(transporterOptions);
 
     const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
     const subjectLine = `${subjectPrefix}: ${todayDate} - ${passedIterations} Passed, ${failedIterations} Failed`;
 
-    await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
-      to: process.env.TO_EMAIL,
-      subject: subjectLine,
-      html,
-      attachments: excelFile ? [{ filename: path.basename(excelFile), path: excelFile }] : []
-    });
-    console.log('✔ Email report sent successfully.');
+    try {
+      await transporter.sendMail({
+        from: process.env.FROM_EMAIL,
+        to: process.env.TO_EMAIL,
+        subject: subjectLine,
+        html,
+        attachments
+      });
+      console.log('✔ Email report sent successfully.');
+    } catch (err) {
+      console.error('❌ Email send failed:', err && err.message ? err.message : err);
+      throw err;
+    }
   }
 
   async _createExcelReport(iterations) {

@@ -1,4 +1,4 @@
-const { randEmail, randCompany, randAddress, randSSN } = require('./tests/helpers');
+const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/randomData');
 const { randCityForState, randZipForState } = require('./stateConfig');
 
 // Create account and reach the package selection stage, reusing the same page/tab.
@@ -16,7 +16,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.getByRole('button', { name: 'Log In' }).click();
   console.log('WB Login successful');
 
-  
+  // Create new client
     await page.getByRole('button', { name: 'Create a New Client' }).click();
     await page.getByText('Enter Search Text here or').click();
     await page.locator('#txtAgency_input').fill('0000988');
@@ -130,9 +130,9 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
 
   // Click optional buttons - they may or may not appear depending on the flow
-  await clickIfExists('Accept As-Is');
-  await clickIfExists('Use Suggested');
-  await clickIfExists('Accept As-Is');
+  //await clickIfExists('Accept As-Is');
+  //await clickIfExists('Use Suggested');
+  //await clickIfExists('Accept As-Is');
   await clickIfExists('Client not listed');
   await clickIfExists('Continue');
   // CRITICAL: Wait for any address validation dialogs to fully close before proceeding

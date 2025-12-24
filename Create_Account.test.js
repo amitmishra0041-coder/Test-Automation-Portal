@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
+const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./helpers/randomData');
 const StepLogger = require("./stepLogger");
 const stepLogger = new StepLogger();
 

@@ -2,22 +2,260 @@
   {
     "iterationNumber": 1,
     "status": "FAILED",
-    "state": "DE",
-    "stateName": "Delaware",
+    "state": "OH",
+    "stateName": "Ohio",
     "quoteNumber": "N/A",
     "policyNumber": "N/A",
     "milestones": [
       {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:02:33.333Z",
+        "details": "",
+        "duration": "70.59s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:04:49.760Z",
+        "details": "",
+        "duration": "136.43s"
+      },
+      {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-23T21:28:16.288Z",
-        "details": "locator.waitFor: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible\u001b[22m\n",
-        "duration": "81.29s"
+        "timestamp": "2025-12-24T18:05:55.633Z",
+        "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
+        "duration": "65.87s"
       }
     ],
-    "timestamp": "2025-12-23T21:28:16.419Z",
-    "duration": "81.29",
-    "runId": "2025-12-23T16:26:47.4763472-05:00",
+    "timestamp": "2025-12-24T18:06:00.288Z",
+    "duration": "272.89",
+    "runId": "2025-12-24T13:01:11.1129784-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 2,
+    "status": "PASSED",
+    "state": "WI",
+    "stateName": "Wisconsin",
+    "quoteNumber": "3002611343",
+    "policyNumber": "1002229282",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:02:33.726Z",
+        "details": "",
+        "duration": "71.53s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:04:46.285Z",
+        "details": "",
+        "duration": "132.56s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:05:06.711Z",
+        "details": "Quote #: 3002611343",
+        "duration": "20.42s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:05:39.258Z",
+        "details": "",
+        "duration": "32.54s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:06:19.526Z",
+        "details": "",
+        "duration": "40.27s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:08:45.566Z",
+        "details": "Policy #: 1002229282",
+        "duration": "146.04s"
+      }
+    ],
+    "timestamp": "2025-12-24T18:08:45.832Z",
+    "duration": "443.36",
+    "runId": "2025-12-24T13:01:11.1129784-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 3,
+    "status": "PASSED",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "3002611344",
+    "policyNumber": "1002229283",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:02:38.852Z",
+        "details": "",
+        "duration": "70.72s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:04:49.882Z",
+        "details": "",
+        "duration": "131.03s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:05:21.391Z",
+        "details": "Quote #: 3002611344",
+        "duration": "31.51s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:05:52.364Z",
+        "details": "",
+        "duration": "30.97s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:06:33.125Z",
+        "details": "",
+        "duration": "40.76s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:08:57.881Z",
+        "details": "Policy #: 1002229283",
+        "duration": "144.75s"
+      }
+    ],
+    "timestamp": "2025-12-24T18:08:58.180Z",
+    "duration": "449.74",
+    "runId": "2025-12-24T13:01:11.1129784-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 4,
+    "status": "PASSED",
+    "state": "MI",
+    "stateName": "Michigan",
+    "quoteNumber": "3002611348",
+    "policyNumber": "1002229284",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:10:13.319Z",
+        "details": "",
+        "duration": "69.85s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:12:30.380Z",
+        "details": "",
+        "duration": "137.06s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:12:56.962Z",
+        "details": "Quote #: 3002611348",
+        "duration": "26.58s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:13:46.385Z",
+        "details": "",
+        "duration": "49.42s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:14:32.516Z",
+        "details": "",
+        "duration": "46.13s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:16:58.079Z",
+        "details": "Policy #: 1002229284",
+        "duration": "145.56s"
+      }
+    ],
+    "timestamp": "2025-12-24T18:16:58.363Z",
+    "duration": "474.60",
+    "runId": "2025-12-24T13:01:11.1129784-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 5,
+    "status": "PASSED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3002611347",
+    "policyNumber": "1002229285",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:10:13.569Z",
+        "details": "",
+        "duration": "70.25s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:12:31.654Z",
+        "details": "",
+        "duration": "138.08s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:12:59.182Z",
+        "details": "Quote #: 3002611347",
+        "duration": "27.53s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:14:10.732Z",
+        "details": "",
+        "duration": "71.55s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:15:01.051Z",
+        "details": "",
+        "duration": "50.32s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T18:17:27.247Z",
+        "details": "Policy #: 1002229285",
+        "duration": "146.19s"
+      }
+    ],
+    "timestamp": "2025-12-24T18:17:27.596Z",
+    "duration": "503.92",
+    "runId": "2025-12-24T13:01:11.1129784-05:00",
     "suite": "BOP"
   }
 ]

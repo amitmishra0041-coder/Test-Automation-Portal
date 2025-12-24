@@ -52,6 +52,20 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
       try {
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
         await page.waitForLoadState('networkidle').catch(() => { });
+        // Click "Client Summary" accordion header
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1000);
+        await page.locator('h3#GeneralInfo.xaccordion-sectionheader').click();
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1500);
+
+        // Click "Contact Underwriter" accordion header
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1000);
+        await page.locator('h3#UnderwriterComm.xaccordion-sectionheader').click();
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1500);
+
       } catch (reloadErr) {
         console.warn(`⚠️ Reload failed on attempt ${attempt}: ${reloadErr.message}`);
       }

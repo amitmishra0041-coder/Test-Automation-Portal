@@ -2,7 +2,7 @@
 process.env.TEST_TYPE = 'PACKAGE';
 
 import { test, expect } from '@playwright/test';
-const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./tests/helpers');
+const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./helpers/randomData');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
@@ -76,6 +76,39 @@ test('Package Submission', async ({ page }) => {
   // Start timing from first milestone
   currentStepStartTime = new Date();
 
+  // Universal helper to wait for modals/overlays to disappear before interacting
+  async function waitForModalsToClose(timeout = 5000) {
+    try {
+      // Wait for common modal/overlay elements to become hidden
+      const modalSelectors = [
+        '.modal.show',
+        '#dgic-status-message',
+        '.ui-widget-overlay',
+        '#gw-click-overlay.gw-disable-click',
+        '.gw-click-overlay',
+        '#dgic-modal-clpropertyaddlcoveragesscheduledialog'
+      ];
+      
+      for (const selector of modalSelectors) {
+        const modal = page.locator(selector).first();
+        if (await modal.count() > 0) {
+          await modal.waitFor({ state: 'hidden', timeout }).catch(() => {});
+        }
+      }
+      // Small buffer to ensure modal animations complete
+      await page.waitForTimeout(300);
+    } catch (e) {
+      // Silently continue if no modals found or timeout
+    }
+  }
+
+  // Enhanced click function with modal/overlay wait
+  async function safeClick(locator, options = {}) {
+    await waitForModalsToClose();
+    await locator.scrollIntoViewIfNeeded();
+    await locator.click(options);
+  }
+
   try {
     // Main test flow wrapped in try-catch
 
@@ -104,11 +137,11 @@ test('Package Submission', async ({ page }) => {
 
     // Select Commercial Package by clicking its visible UI checkbox icon
     const commercialPackageIcon = page.locator('#chk_CommercialPackage + .ui-checkbox-icon');
-    await commercialPackageIcon.scrollIntoViewIfNeeded();
-    await commercialPackageIcon.waitFor({ state: 'visible', timeout: 15000 });
-    await commercialPackageIcon.click();
+  await commercialPackageIcon.scrollIntoViewIfNeeded();
+  await commercialPackageIcon.waitFor({ state: 'visible', timeout: 15000 });
+  await commercialPackageIcon.click();
 
-    await page.getByRole('button', { name: 'Next' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next' }));
     // Wait for any overlay to disappear
     await page.waitForSelector('.ui-widget-overlay.ui-front', { state: 'hidden' }).catch(() => { });
     // Click button with force to bypass pointer interception
@@ -134,7 +167,7 @@ test('Package Submission', async ({ page }) => {
   await priorCarrierSelect.selectOption(firstCarrierValue);
   console.log(`✅ Selected prior carrier: ${firstCarrierValue}`);
   
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForLoadState('networkidle');
 
   // Toggle Inland Marine and Crime to "Yes" if not already selected (slider style controls)
@@ -165,7 +198,7 @@ test('Package Submission', async ({ page }) => {
   await page.waitForTimeout(1500);
   console.log('✅ Confirm Selections clicked');
 
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForLoadState('networkidle');
   await page.waitForLoadState('domcontentloaded');
   console.log('Commercial Package data entry started.');
@@ -176,11 +209,11 @@ test('Package Submission', async ({ page }) => {
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: ' Cancel' }).click();
   await page.waitForTimeout(1500);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(1500);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(1500);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(2000);
   await page.getByTitle('Add the Coverage').click();
   await page.getByRole('button', { name: ' Add Scheduled Item' }).click();
@@ -209,10 +242,10 @@ test('Package Submission', async ({ page }) => {
   await page.locator('#CLPropertyAddlCoveragesScheduleItemDialog_dialog_btn_0').click();
   // Click Save on the parent schedule dialog (avoid strict-mode ambiguity)
   await page.locator('#CLPropertyAddlCoveragesScheduleDialog_dialog_btn_0').click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   //Commercial property locations
   await page.getByTitle('Edit Location').click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   //State specific info, Blankets and Buildings
 
   // Wait for Save Location button to be fully ready
@@ -226,8 +259,8 @@ test('Package Submission', async ({ page }) => {
     await overlay.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
   await saveLocationBtn.click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.locator('button').filter({ hasText: 'Add Building' }).click();
   await page.locator('#bs-select-1-0').click();
   await page.locator('#txtBuildingDescription').click();
@@ -247,7 +280,7 @@ test('Package Submission', async ({ page }) => {
   await page.locator('#txtYearOfConstruction').click();
   await page.locator('#txtYearOfConstruction').fill('2015');
   await page.waitForTimeout(1500);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
 
@@ -263,9 +296,9 @@ test('Package Submission', async ({ page }) => {
   await page.getByRole('button', { name: 'Calculate Now' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
   await page.getByRole('button', { name: 'Import Data' }).click();
-  await page.getByRole('button', { name: ' Save' }).click();
+  await page.getByRole('button', { name: ' Save' }).click();
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(2000);
   
   // Trees/Shrubs/Plants block - optional (may not be present for all states/properties)
@@ -413,7 +446,7 @@ test('Package Submission', async ({ page }) => {
   await page.waitForTimeout(1200);
   await page.locator('#bs-select-6-0').click();
   await page.waitForTimeout(1500);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
 
@@ -439,12 +472,12 @@ test('Package Submission', async ({ page }) => {
   await page.locator('#xrgn_CoverageDetails').getByRole('combobox', { name: 'Nothing selected' }).click();
   await page.locator('#bs-select-7-2').click();
   await page.locator('#dgic-modal-clpropertybuildingbusinessincomecoveragesdialog').click();
-  await page.getByRole('button', { name: ' Save' }).click();
+  await page.getByRole('button', { name: ' Save' }).click();
   await page.locator('#xacc_CP7BusinessIncomeCvrg').getByTitle('Edit Coverage').click();
   await page.locator('#xrgn_CoverageDetails').getByRole('combobox', { name: 'Nothing selected' }).click();
   await page.locator('#bs-select-11-2').click();
-  await page.getByRole('button', { name: ' Save' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await page.getByRole('button', { name: ' Save' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.getByRole('button', { name: 'Save Building Business Income' }).click();
   // add occupancy and personal property
   await page.getByTitle('Add Occupancy Building').click();
@@ -457,14 +490,14 @@ test('Package Submission', async ({ page }) => {
   await page.locator('#bs-select-4-1').click();
   await page.getByRole('combobox', { name: 'Nothing selected' }).click();
   await page.locator('#bs-select-5-2').click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.getByRole('button', { name: 'Save Occupancy ' }).click();
   await page.getByTitle('Add Personal Property').click();
   await page.locator('#txtPersonalPropertyDescription').click();
   await page.locator('#txtPersonalPropertyDescription').fill('test personal property desc');
   await page.locator('#txtPersonalPropertyDescription').press('Home');
   await page.locator('#txtPersonalPropertyDescription').fill(' personal property desc');
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.locator('#xacc_CP7PersonalPropertyPrsnlProp').getByTitle('Edit Coverage').click();
   const limit54Input = page.locator('#txtCP7Limit54_integerWithCommas');
   await limit54Input.waitFor({ state: 'visible', timeout: 10000 });
@@ -483,9 +516,9 @@ test('Package Submission', async ({ page }) => {
   await limit54Input.blur();
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: ' Save' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.getByRole('button', { name: 'Save Building Personal' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   //Error handeling for buildings tab 
   // Check if Attention dialog is visible
   const attentionHeading = page.getByRole('heading', { name: 'Attention' });
@@ -506,13 +539,13 @@ test('Package Submission', async ({ page }) => {
     await page.waitForTimeout(2000);
 
     //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingCoverages.aspx&sid=8FF799FC9CCA4036945F7A17BAD76A22');
-    await page.getByRole('button', { name: 'Next ' }).click();
+    await safeClick(page.getByRole('button', { name: 'Next ' }));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000)
     //await page.getByRole('button', { name: 'Save Building ' }).click();
     await page.locator('#btnNext_CLPackageBuildingAdditionalCoverages').click();
     await page.waitForTimeout(2000);
-    await page.getByRole('button', { name: 'Next ' }).click();
+    await safeClick(page.getByRole('button', { name: 'Next ' }));
   } catch (error) {
     console.log('⏭️  Attention dialog not found, skipping block');
   }
@@ -556,8 +589,8 @@ test('Package Submission', async ({ page }) => {
   trackMilestone('Commercial Property Package Completed', 'PASSED', 'Building, Business Income, Occupancy, Personal Property entered');
 
 console.log('General Liability data entry started.');
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLCoverages.aspx&sid=DB02C8659EC1486FA06AF850885BB1FE');
   await page.locator('#xacc_z84icg3rbgvk328k3ahq8cqedu8 > .fa.fa-edit').click();
   await page.locator('input[name="txtz9bj8va1kj4g50uehc6ubms4q19"]').click();
@@ -583,13 +616,13 @@ console.log('General Liability data entry started.');
   //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLAdditionalCoverages.aspx&sid=C44457B5B33B46888B07158DDD5B9F24');
   await page.locator('#GL7AddlInsdChurchMbrOffcrVolunWrkr').getByTitle('Add the Coverage').click();
   await page.getByRole('button', { name: 'Finish' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.getByRole('button', { name: 'Finish' }).click();
   await page.getByRole('combobox', { name: new RegExp(`: .* ${testState}$`) }).click();
   await page.locator('ul.dropdown-menu.inner.show').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('ul.dropdown-menu.inner.show li').filter({ hasText: /^1:/ }).first().click();
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.getByRole('button', { name: 'Add Exposure ' }).click();
   await page.getByRole('combobox', { name: 'Select Location' }).click();
   await page.locator('#bs-select-1-1').click();
@@ -600,9 +633,9 @@ console.log('General Liability data entry started.');
   await page.locator('#txtExposure_Prem').click();
   await page.locator('#txtExposure_Prem').click();
   await page.locator('#txtExposure_Prem').fill('15566');
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLExposuresCoverages.aspx&sid=B7D53EFD48D34942B45549FB2627936C');
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.getByRole('button', { name: 'Save Exposure ' }).click();
   
   // Wait for any navigation to complete and optional modal to close
@@ -639,7 +672,7 @@ console.log('General Liability data entry started.');
   await page.getByRole('combobox', { name: 'None' }).click();
   await page.locator('#bs-select-2-1').click();
   await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(2000);
   await page.getByTitle('Edit Coverage').click();
 
@@ -669,13 +702,13 @@ console.log('General Liability data entry started.');
   await page.locator('#bs-select-8-1').click();
   await page.getByRole('button', { name: 'Save' }).click();
   await page.waitForTimeout(3000);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(3000);
   await page.getByRole('button', { name: 'Save Form' }).click();
   await page.waitForTimeout(3000);
-  await page.getByRole('button', { name: 'Next ' }).click();
+  await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(3000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
+  await page.getByRole('button', { name: 'Continue ' }).click();
   await page.waitForTimeout(3000);
 
   console.log('Inland Marine data entered successfully.');
