@@ -101,11 +101,10 @@ class EmailReporter {
       let actualStatus = result.status.toUpperCase();
       const hasFailedMilestones = Array.isArray(testData.milestones) && 
         testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED' || /failed/i.test(m.name || ''));
-      const hasSuccessMetrics = (testData.quoteNumber && testData.quoteNumber !== 'N/A') || 
-        (testData.policyNumber && testData.policyNumber !== 'N/A');
+      const hasPolicyNumber = testData.policyNumber && testData.policyNumber !== 'N/A';
       
-      // If no failed milestones and test produced quote/policy, mark as PASSED even if browser crashed
-      if (!hasFailedMilestones && hasSuccessMetrics) {
+      // If no failed milestones and test produced a policy number, mark as PASSED even if browser crashed
+      if (!hasFailedMilestones && hasPolicyNumber) {
         actualStatus = 'PASSED';
       }
 

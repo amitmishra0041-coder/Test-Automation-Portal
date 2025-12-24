@@ -19,5 +19,33 @@
     "duration": "87.69",
     "runId": "2025-12-24T14:13:06.6579408-05:00",
     "suite": "Package"
+  },
+  {
+    "iterationNumber": 2,
+    "status": "FAILED",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-24T19:14:19.483Z",
+        "details": "",
+        "duration": "61.14s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-24T19:16:25.353Z",
+        "details": "locator.scrollIntoViewIfNeeded: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
+        "duration": "125.87s"
+      }
+    ],
+    "timestamp": "2025-12-24T19:16:30.741Z",
+    "duration": "187.01",
+    "runId": "2025-12-24T14:13:06.6579408-05:00",
+    "suite": "Package"
   }
 ]
