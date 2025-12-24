@@ -1,0 +1,1051 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: "Logged in as: Mishra, Amit"
+        - button "Log Off" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Log Off
+      - generic [ref=e16]:
+        - generic:
+          - list:
+            - listitem [ref=e17]:
+              - link "Clients" [ref=e18] [cursor=pointer]:
+                - /url: uc/#
+            - listitem [ref=e19]:
+              - link "Renewal Requests" [ref=e20] [cursor=pointer]:
+                - /url: uc/#
+            - listitem [ref=e21]:
+              - link "Company Utils" [ref=e22] [cursor=pointer]:
+                - /url: uc/#
+            - listitem
+            - listitem [ref=e23]:
+              - link "Appetite Guide" [ref=e24] [cursor=pointer]:
+                - /url: uc/#
+            - listitem [ref=e25]:
+              - link "Help" [ref=e26] [cursor=pointer]:
+                - /url: "#"
+    - generic [ref=e33]:
+      - generic [ref=e38]:
+        - paragraph [ref=e39]:
+          - text: 1 - Robel Group’s – Commercial Umbrella Submission
+          - link "3003179443" [ref=e40] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e41]:
+          - text: 2 - Ruecker - Rowe’s – Commercial Umbrella Submission
+          - link "3003179441" [ref=e42] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e43]:
+          - text: 3 - Kunze, Stracke and Ratke’s – Commercial Umbrella Submission
+          - link "3003179442" [ref=e44] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e45]:
+          - text: 4 - Ratke - Gerlach’s – Commercial Umbrella Submission
+          - link "3003179455" [ref=e46] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e47]:
+          - text: 5 - Hintz, Dickinson and Rippin’s – Commercial Umbrella Submission
+          - link "3003179456" [ref=e48] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e49]:
+          - text: 6 - Schimmel Inc’s – Commercial Umbrella Submission
+          - link "3003179457" [ref=e50] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e51]:
+          - text: 7 - Feeney, Langosh and Langworth’s – Commercial Umbrella Submission
+          - link "3003179460" [ref=e52] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e53]:
+          - text: 8 - Parker Inc’s – Commercial Umbrella Submission
+          - link "3003179461" [ref=e54] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e55]:
+          - text: 9 - Walsh - Altenwerth’s – Commercial Umbrella Submission
+          - link "3003179469" [ref=e56] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e57]:
+          - text: 10 - Koss and Sons’s – Commercial Umbrella Submission
+          - link "3003179470" [ref=e58] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e59]:
+          - text: 11 - Collins - Gleason’s – Commercial Umbrella Submission
+          - link "3003179471" [ref=e60] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e61]:
+          - text: 12 - Moen - Hoeger’s – Commercial Umbrella Submission
+          - link "3003179475" [ref=e62] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e63]:
+          - text: 13 - Walsh - Windler’s – Commercial Umbrella Submission
+          - link "3003179477" [ref=e64] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e65]:
+          - text: 14 - Schneider - Bahringer’s – Commercial Umbrella Submission
+          - link "3003179480" [ref=e66] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e67]:
+          - text: 15 - Jaskolski - McCullough’s – Commercial Umbrella Submission
+          - link "3003179485" [ref=e68] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e69]:
+          - text: 16 - Sipes and Sons’s – Commercial Umbrella Submission
+          - link "3003179487" [ref=e70] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e71]:
+          - text: 17 - Haley - Cummings’s – Commercial Umbrella Submission
+          - link "3003179490" [ref=e72] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e73]:
+          - text: 18 - MacGyver, Greenfelder and Armstrong’s – Commercial Umbrella Submission
+          - link "3003179550" [ref=e74] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e75]:
+          - text: 19 - Green - Waelchi’s – Commercial Umbrella Submission
+          - link "3003179551" [ref=e76] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e77]:
+          - text: 20 - Treutel Group’s – Commercial Umbrella Submission
+          - link "3003179558" [ref=e78] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e79]:
+          - text: 21 - Waelchi, O'Kon and Nicolas’s – Commercial Umbrella Submission
+          - link "3003179559" [ref=e80] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e81]:
+          - text: 22 - Test addcoverage’s – Commercial Umbrella Submission
+          - link "3003179561" [ref=e82] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e83]:
+          - text: 23 - Wehner - Robel’s – Commercial Umbrella Submission
+          - link "3003179569" [ref=e84] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e85]:
+          - text: 24 - Casper Inc’s – Commercial Umbrella Submission
+          - link "3003179574" [ref=e86] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e87]:
+          - text: 25 - Jacobi, Shields and Stanton’s – Commercial Umbrella Submission
+          - link "3003179587" [ref=e88] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e89]:
+          - text: 26 - Carter LLC’s – Commercial Umbrella Submission
+          - link "3003179616" [ref=e90] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e91]:
+          - text: 27 - Pfeffer, Halvorson and Baumbach’s – Commercial Umbrella Submission
+          - link "3003179621" [ref=e92] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e93]:
+          - text: 28 - Sipes LLC’s – Commercial Umbrella Submission
+          - link "3003179625" [ref=e94] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e95]:
+          - text: 29 - Cruickshank LLC’s – Commercial Umbrella Submission
+          - link "3003179626" [ref=e96] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+        - paragraph [ref=e97]:
+          - text: 30 - Schuster - Volkman’s – Commercial Umbrella Submission
+          - link "3003179629" [ref=e98] [cursor=pointer]:
+            - /url: "#"
+          - text: is available for your review.
+      - generic [ref=e101]:
+        - generic:
+          - generic [ref=e105]:
+            - generic [ref=e106]: "Client Name:"
+            - textbox [ref=e109]
+          - generic [ref=e113]:
+            - generic [ref=e114]: "Client/Account Number:"
+            - generic [ref=e116]:
+              - spinbutton [ref=e117]
+              - button "▲" [ref=e118]:
+                - generic [ref=e120]: ▲
+              - button "▼" [ref=e121]:
+                - generic [ref=e123]: ▼
+          - generic [ref=e127]:
+            - generic [ref=e128]: "Quote/Policy Number:"
+            - textbox [ref=e131]
+          - generic [ref=e135]:
+            - button "Search" [ref=e137] [cursor=pointer]:
+              - generic [ref=e139]: Search
+            - strong [ref=e145]: Or
+            - button "Create a New Client" [ref=e147] [cursor=pointer]:
+              - generic [ref=e149]: Create a New Client
+        - generic [ref=e153]:
+          - generic [ref=e158]:
+            - link "Additional Search Options" [ref=e159] [cursor=pointer]:
+              - /url: "#"
+            - text: (Agency Id, Line of Business, Effective Date, State)
+          - link "Reset Search" [ref=e164] [cursor=pointer]:
+            - /url: "#"
+      - generic [ref=e171]:
+        - grid [ref=e172]:
+          - generic [ref=e174]: Clients
+          - table [ref=e177]:
+            - row "Client Name Address Last Activity BOP Trades. Package Auto Garage WC Umbr. Actions" [ref=e178]:
+              - columnheader "Client Name" [ref=e179]:
+                - generic [ref=e181] [cursor=pointer]: Client Name
+              - columnheader "Address" [ref=e182]:
+                - generic [ref=e184] [cursor=pointer]: Address
+              - columnheader "Last Activity" [ref=e185]:
+                - generic [ref=e187] [cursor=pointer]: Last Activity
+              - columnheader "BOP" [ref=e188]:
+                - generic [ref=e190] [cursor=pointer]: BOP
+              - columnheader "Trades." [ref=e191]:
+                - generic [ref=e193] [cursor=pointer]: Trades.
+              - columnheader "Package" [ref=e194]:
+                - generic [ref=e196] [cursor=pointer]: Package
+              - columnheader "Auto" [ref=e197]:
+                - generic [ref=e199] [cursor=pointer]: Auto
+              - columnheader "Garage" [ref=e200]:
+                - generic [ref=e202] [cursor=pointer]: Garage
+              - columnheader "WC" [ref=e203]:
+                - generic [ref=e205] [cursor=pointer]: WC
+              - columnheader "Umbr." [ref=e206]:
+                - generic [ref=e208] [cursor=pointer]: Umbr.
+              - columnheader "Actions" [ref=e209]:
+                - generic [ref=e211] [cursor=pointer]: Actions
+          - table [ref=e214]:
+            - rowgroup [ref=e215]:
+              - row [ref=e216]:
+                - gridcell [ref=e217]
+                - gridcell [ref=e218]
+                - gridcell [ref=e219]
+                - gridcell [ref=e220]
+                - gridcell [ref=e221]
+                - gridcell [ref=e222]
+                - gridcell [ref=e223]
+                - gridcell [ref=e224]
+                - gridcell [ref=e225]
+                - gridcell [ref=e226]
+                - gridcell [ref=e227]
+              - row "Reichel - Adams 939 RICHMOND ROAD, LANCASTER, PA 17104 12/24/2025 Add Quote" [ref=e228]:
+                - gridcell "Reichel - Adams" [ref=e229]
+                - gridcell "939 RICHMOND ROAD, LANCASTER, PA 17104" [ref=e230]
+                - gridcell "12/24/2025" [ref=e231]
+                - gridcell [ref=e232]:
+                  - img [ref=e234] [cursor=pointer]
+                - gridcell [ref=e235]:
+                  - img [ref=e237] [cursor=pointer]
+                - gridcell [ref=e238]:
+                  - img [ref=e240] [cursor=pointer]
+                - gridcell [ref=e241]:
+                  - img [ref=e243] [cursor=pointer]
+                - gridcell [ref=e244]:
+                  - img [ref=e246] [cursor=pointer]
+                - gridcell [ref=e247]:
+                  - img [ref=e249] [cursor=pointer]
+                - gridcell [ref=e250]:
+                  - img [ref=e252] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e253]:
+                  - button "Add Quote" [ref=e254] [cursor=pointer]:
+                    - generic [ref=e256]: Add Quote
+              - row "Ruecker Group 1334 ELVIS MOUNTAINS, BEAR, DE 19901 12/24/2025 Add Quote" [ref=e257]:
+                - gridcell "Ruecker Group" [ref=e258]
+                - gridcell "1334 ELVIS MOUNTAINS, BEAR, DE 19901" [ref=e259]
+                - gridcell "12/24/2025" [ref=e260]
+                - gridcell [ref=e261]:
+                  - img [ref=e263] [cursor=pointer]
+                - gridcell [ref=e264]:
+                  - img [ref=e266] [cursor=pointer]
+                - gridcell [ref=e267]:
+                  - img [ref=e269] [cursor=pointer]
+                - gridcell [ref=e270]:
+                  - img [ref=e272] [cursor=pointer]
+                - gridcell [ref=e273]:
+                  - img [ref=e275] [cursor=pointer]
+                - gridcell [ref=e276]:
+                  - img [ref=e278] [cursor=pointer]
+                - gridcell [ref=e279]:
+                  - img [ref=e281] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e282]:
+                  - button "Add Quote" [ref=e283] [cursor=pointer]:
+                    - generic [ref=e285]: Add Quote
+              - row "O'Keefe Inc 50162 CHAMPLIN VALLEY, DOVER, DE 19804 12/24/2025 Add Quote" [ref=e286]:
+                - gridcell "O'Keefe Inc" [ref=e287]
+                - gridcell "50162 CHAMPLIN VALLEY, DOVER, DE 19804" [ref=e288]
+                - gridcell "12/24/2025" [ref=e289]
+                - gridcell [ref=e290]:
+                  - img [ref=e292] [cursor=pointer]
+                - gridcell [ref=e293]:
+                  - img [ref=e295] [cursor=pointer]
+                - gridcell [ref=e296]:
+                  - img [ref=e298] [cursor=pointer]
+                - gridcell [ref=e299]:
+                  - img [ref=e301] [cursor=pointer]
+                - gridcell [ref=e302]:
+                  - img [ref=e304] [cursor=pointer]
+                - gridcell [ref=e305]:
+                  - img [ref=e307] [cursor=pointer]
+                - gridcell [ref=e308]:
+                  - img [ref=e310] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e311]:
+                  - button "Add Quote" [ref=e312] [cursor=pointer]:
+                    - generic [ref=e314]: Add Quote
+              - row "Mann Group 7731 SCHOOL ROAD, KALAMAZOO, MI 48823 12/24/2025 Add Quote" [ref=e315]:
+                - gridcell "Mann Group" [ref=e316]
+                - gridcell "7731 SCHOOL ROAD, KALAMAZOO, MI 48823" [ref=e317]
+                - gridcell "12/24/2025" [ref=e318]
+                - gridcell [ref=e319]:
+                  - img [ref=e321] [cursor=pointer]
+                - gridcell [ref=e322]:
+                  - img [ref=e324] [cursor=pointer]
+                - gridcell [ref=e325]:
+                  - img [ref=e327] [cursor=pointer]
+                - gridcell [ref=e328]:
+                  - img [ref=e330] [cursor=pointer]
+                - gridcell [ref=e331]:
+                  - img [ref=e333] [cursor=pointer]
+                - gridcell [ref=e334]:
+                  - img [ref=e336] [cursor=pointer]
+                - gridcell [ref=e337]:
+                  - img [ref=e339] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e340]:
+                  - button "Add Quote" [ref=e341] [cursor=pointer]:
+                    - generic [ref=e343]: Add Quote
+              - row "Herman - Stark 42402 ELMIRA FALLS, NEWARK, DE 19804 12/24/2025 Add Quote" [ref=e344]:
+                - gridcell "Herman - Stark" [ref=e345]
+                - gridcell "42402 ELMIRA FALLS, NEWARK, DE 19804" [ref=e346]
+                - gridcell "12/24/2025" [ref=e347]
+                - gridcell [ref=e348]:
+                  - img [ref=e350] [cursor=pointer]
+                - gridcell [ref=e351]:
+                  - img [ref=e353] [cursor=pointer]
+                - gridcell [ref=e354]:
+                  - img [ref=e356] [cursor=pointer]
+                - gridcell [ref=e357]:
+                  - img [ref=e359] [cursor=pointer]
+                - gridcell [ref=e360]:
+                  - img [ref=e362] [cursor=pointer]
+                - gridcell [ref=e363]:
+                  - img [ref=e365] [cursor=pointer]
+                - gridcell [ref=e366]:
+                  - img [ref=e368] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e369]:
+                  - button "Add Quote" [ref=e370] [cursor=pointer]:
+                    - generic [ref=e372]: Add Quote
+              - row "Osinski - Mueller 441 FUNK HILL, ALLENTOWN, PA 18015 12/24/2025 Add Quote" [ref=e373]:
+                - gridcell "Osinski - Mueller" [ref=e374]
+                - gridcell "441 FUNK HILL, ALLENTOWN, PA 18015" [ref=e375]
+                - gridcell "12/24/2025" [ref=e376]
+                - gridcell [ref=e377]:
+                  - img [ref=e379] [cursor=pointer]
+                - gridcell [ref=e380]:
+                  - img [ref=e382] [cursor=pointer]
+                - gridcell [ref=e383]:
+                  - img [ref=e385] [cursor=pointer]
+                - gridcell [ref=e386]:
+                  - img [ref=e388] [cursor=pointer]
+                - gridcell [ref=e389]:
+                  - img [ref=e391] [cursor=pointer]
+                - gridcell [ref=e392]:
+                  - img [ref=e394] [cursor=pointer]
+                - gridcell [ref=e395]:
+                  - img [ref=e397] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e398]:
+                  - button "Add Quote" [ref=e399] [cursor=pointer]:
+                    - generic [ref=e401]: Add Quote
+              - row "PANE RD TRAINING SERVICES 1115 W 8TH ST, WILMINGTON, DE 19806 12/24/2025 Add Quote" [ref=e402]:
+                - gridcell "PANE RD TRAINING SERVICES" [ref=e403]
+                - gridcell "1115 W 8TH ST, WILMINGTON, DE 19806" [ref=e404]
+                - gridcell "12/24/2025" [ref=e405]
+                - gridcell [ref=e406]:
+                  - img [ref=e408] [cursor=pointer]
+                - gridcell [ref=e409]:
+                  - img [ref=e411] [cursor=pointer]
+                - gridcell [ref=e412]:
+                  - img [ref=e414] [cursor=pointer]
+                - gridcell [ref=e415]:
+                  - img [ref=e417] [cursor=pointer]
+                - gridcell [ref=e418]:
+                  - img [ref=e420] [cursor=pointer]
+                - gridcell [ref=e421]:
+                  - img [ref=e423] [cursor=pointer]
+                - gridcell [ref=e424]:
+                  - img [ref=e426] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e427]:
+                  - button "Add Quote" [ref=e428] [cursor=pointer]:
+                    - generic [ref=e430]: Add Quote
+              - row "Goldner - Langosh 421 ALBANY ROAD, PHILADELPHIA, PA 17602 12/23/2025 Add Quote" [ref=e431]:
+                - gridcell "Goldner - Langosh" [ref=e432]
+                - gridcell "421 ALBANY ROAD, PHILADELPHIA, PA 17602" [ref=e433]
+                - gridcell "12/23/2025" [ref=e434]
+                - gridcell [ref=e435]:
+                  - img [ref=e437] [cursor=pointer]
+                - gridcell [ref=e438]:
+                  - img [ref=e440] [cursor=pointer]
+                - gridcell [ref=e441]:
+                  - img [ref=e443] [cursor=pointer]
+                - gridcell [ref=e444]:
+                  - img [ref=e446] [cursor=pointer]
+                - gridcell [ref=e447]:
+                  - img [ref=e449] [cursor=pointer]
+                - gridcell [ref=e450]:
+                  - img [ref=e452] [cursor=pointer]
+                - gridcell [ref=e453]:
+                  - img [ref=e455] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e456]:
+                  - button "Add Quote" [ref=e457] [cursor=pointer]:
+                    - generic [ref=e459]: Add Quote
+              - row "Strosin, Orn and Shanahan 492 ARMANI GREENS, RACINE, WI 53188 12/23/2025 Add Quote" [ref=e460]:
+                - gridcell "Strosin, Orn and Shanahan" [ref=e461]
+                - gridcell "492 ARMANI GREENS, RACINE, WI 53188" [ref=e462]
+                - gridcell "12/23/2025" [ref=e463]
+                - gridcell [ref=e464]:
+                  - img [ref=e466] [cursor=pointer]
+                - gridcell [ref=e467]:
+                  - img [ref=e469] [cursor=pointer]
+                - gridcell [ref=e470]:
+                  - img [ref=e472] [cursor=pointer]
+                - gridcell [ref=e473]:
+                  - img [ref=e475] [cursor=pointer]
+                - gridcell [ref=e476]:
+                  - img [ref=e478] [cursor=pointer]
+                - gridcell [ref=e479]:
+                  - img [ref=e481] [cursor=pointer]
+                - gridcell [ref=e482]:
+                  - img [ref=e484] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e485]:
+                  - button "Add Quote" [ref=e486] [cursor=pointer]:
+                    - generic [ref=e488]: Add Quote
+              - row "Schimmel Inc 5622 FRANKLIN ROAD, TOLEDO, OH 43215 12/23/2025 Add Quote" [ref=e489]:
+                - gridcell "Schimmel Inc" [ref=e490]
+                - gridcell "5622 FRANKLIN ROAD, TOLEDO, OH 43215" [ref=e491]
+                - gridcell "12/23/2025" [ref=e492]
+                - gridcell [ref=e493]:
+                  - img [ref=e495] [cursor=pointer]
+                - gridcell [ref=e496]:
+                  - img [ref=e498] [cursor=pointer]
+                - gridcell [ref=e499]:
+                  - img [ref=e501] [cursor=pointer]
+                - gridcell [ref=e502]:
+                  - img [ref=e504] [cursor=pointer]
+                - gridcell [ref=e505]:
+                  - img [ref=e507] [cursor=pointer]
+                - gridcell [ref=e508]:
+                  - img [ref=e510] [cursor=pointer]
+                - gridcell [ref=e511]:
+                  - img [ref=e513] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e514]:
+                  - button "Add Quote" [ref=e515] [cursor=pointer]:
+                    - generic [ref=e517]: Add Quote
+              - row "Koss - Simonis 82423 COLUMBIA AVENUE, KENOSHA, WI 53703 12/23/2025 Add Quote" [ref=e518]:
+                - gridcell "Koss - Simonis" [ref=e519]
+                - gridcell "82423 COLUMBIA AVENUE, KENOSHA, WI 53703" [ref=e520]
+                - gridcell "12/23/2025" [ref=e521]
+                - gridcell [ref=e522]:
+                  - img [ref=e524] [cursor=pointer]
+                - gridcell [ref=e525]:
+                  - img [ref=e527] [cursor=pointer]
+                - gridcell [ref=e528]:
+                  - img [ref=e530] [cursor=pointer]
+                - gridcell [ref=e531]:
+                  - img [ref=e533] [cursor=pointer]
+                - gridcell [ref=e534]:
+                  - img [ref=e536] [cursor=pointer]
+                - gridcell [ref=e537]:
+                  - img [ref=e539] [cursor=pointer]
+                - gridcell [ref=e540]:
+                  - img [ref=e542] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e543]:
+                  - button "Add Quote" [ref=e544] [cursor=pointer]:
+                    - generic [ref=e546]: Add Quote
+              - row "Hauck LLC 962 SOUTH STREET, BEAR, DE 19701 12/23/2025 Add Quote" [ref=e547]:
+                - gridcell "Hauck LLC" [ref=e548]
+                - gridcell "962 SOUTH STREET, BEAR, DE 19701" [ref=e549]
+                - gridcell "12/23/2025" [ref=e550]
+                - gridcell [ref=e551]:
+                  - img [ref=e553] [cursor=pointer]
+                - gridcell [ref=e554]:
+                  - img [ref=e556] [cursor=pointer]
+                - gridcell [ref=e557]:
+                  - img [ref=e559] [cursor=pointer]
+                - gridcell [ref=e560]:
+                  - img [ref=e562] [cursor=pointer]
+                - gridcell [ref=e563]:
+                  - img [ref=e565] [cursor=pointer]
+                - gridcell [ref=e566]:
+                  - img [ref=e568] [cursor=pointer]
+                - gridcell [ref=e569]:
+                  - img [ref=e571] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e572]:
+                  - button "Add Quote" [ref=e573] [cursor=pointer]:
+                    - generic [ref=e575]: Add Quote
+              - row "Mertz LLC 303 THE GROVE, LANSING, MI 48201 12/23/2025 Add Quote" [ref=e576]:
+                - gridcell "Mertz LLC" [ref=e577]
+                - gridcell "303 THE GROVE, LANSING, MI 48201" [ref=e578]
+                - gridcell "12/23/2025" [ref=e579]
+                - gridcell [ref=e580]:
+                  - img [ref=e582] [cursor=pointer]
+                - gridcell [ref=e583]:
+                  - img [ref=e585] [cursor=pointer]
+                - gridcell [ref=e586]:
+                  - img [ref=e588] [cursor=pointer]
+                - gridcell [ref=e589]:
+                  - img [ref=e591] [cursor=pointer]
+                - gridcell [ref=e592]:
+                  - img [ref=e594] [cursor=pointer]
+                - gridcell [ref=e595]:
+                  - img [ref=e597] [cursor=pointer]
+                - gridcell [ref=e598]:
+                  - img [ref=e600] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e601]:
+                  - button "Add Quote" [ref=e602] [cursor=pointer]:
+                    - generic [ref=e604]: Add Quote
+              - row "Beatty LLC 89158 WISOKY WALKS, BEAR, DE 19702 12/23/2025 Add Quote" [ref=e605]:
+                - gridcell "Beatty LLC" [ref=e606]
+                - gridcell "89158 WISOKY WALKS, BEAR, DE 19702" [ref=e607]
+                - gridcell "12/23/2025" [ref=e608]
+                - gridcell [ref=e609]:
+                  - img [ref=e611] [cursor=pointer]
+                - gridcell [ref=e612]:
+                  - img [ref=e614] [cursor=pointer]
+                - gridcell [ref=e615]:
+                  - img [ref=e617] [cursor=pointer]
+                - gridcell [ref=e618]:
+                  - img [ref=e620] [cursor=pointer]
+                - gridcell [ref=e621]:
+                  - img [ref=e623] [cursor=pointer]
+                - gridcell [ref=e624]:
+                  - img [ref=e626] [cursor=pointer]
+                - gridcell [ref=e627]:
+                  - img [ref=e629] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e630]:
+                  - button "Add Quote" [ref=e631] [cursor=pointer]:
+                    - generic [ref=e633]: Add Quote
+              - row "Gutmann Inc 48215 GRADY PORT, EAST RUSSEL, DE 19709 12/23/2025 Add Quote" [ref=e634]:
+                - gridcell "Gutmann Inc" [ref=e635]
+                - gridcell "48215 GRADY PORT, EAST RUSSEL, DE 19709" [ref=e636]
+                - gridcell "12/23/2025" [ref=e637]
+                - gridcell [ref=e638]:
+                  - img [ref=e640] [cursor=pointer]
+                - gridcell [ref=e641]:
+                  - img [ref=e643] [cursor=pointer]
+                - gridcell [ref=e644]:
+                  - img [ref=e646] [cursor=pointer]
+                - gridcell [ref=e647]:
+                  - img [ref=e649] [cursor=pointer]
+                - gridcell [ref=e650]:
+                  - img [ref=e652] [cursor=pointer]
+                - gridcell [ref=e653]:
+                  - img [ref=e655] [cursor=pointer]
+                - gridcell [ref=e656]:
+                  - img [ref=e658] [cursor=pointer]
+                - gridcell "Add Quote" [ref=e659]:
+                  - button "Add Quote" [ref=e660] [cursor=pointer]:
+                    - generic [ref=e662]: Add Quote
+        - group [ref=e664]:
+          - table [ref=e665]:
+            - rowgroup [ref=e666]:
+              - row "Page 1 of 1 10 View 1 - 15 of 15" [ref=e667]:
+                - cell [ref=e668]
+                - cell "Page 1 of 1 10" [ref=e669]:
+                  - table [ref=e670]:
+                    - rowgroup [ref=e671]:
+                      - row "Page 1 of 1 10" [ref=e672]:
+                        - cell "First Page" [ref=e673]
+                        - cell "Previous Page" [ref=e675]
+                        - cell [ref=e677]
+                        - cell "Page 1 of 1" [ref=e679]:
+                          - text: Page
+                          - textbox [ref=e680]: "1"
+                          - text: of 1
+                        - cell [ref=e681]
+                        - cell "Next Page" [ref=e683]
+                        - cell "Last Page" [ref=e685]
+                        - cell "10" [ref=e687]:
+                          - listbox "Records per Page" [ref=e688]:
+                            - option "10" [selected]
+                            - option "20"
+                            - option "30"
+                - cell "View 1 - 15 of 15" [ref=e689]:
+                  - generic [ref=e690]: View 1 - 15 of 15
+    - generic [ref=e693]:
+      - paragraph [ref=e694]:
+        - link "Technical Support" [ref=e695] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e696]: © 2025 Donegal Insurance Group, All Rights Reserved.
+  - log [ref=e697]
+  - log [ref=e698]
+  - log [ref=e699]
+  - log [ref=e700]
+  - log [ref=e701]
+  - log [ref=e702]
+  - log [ref=e703]
+  - log [ref=e704]
+  - log [ref=e705]
+  - log [ref=e706]
+  - log [ref=e707]
+  - log [ref=e708]
+  - log [ref=e709]
+  - log [ref=e710]
+  - log [ref=e711]
+  - log [ref=e712]
+  - log [ref=e713]
+  - log [ref=e714]
+  - log [ref=e715]
+  - log [ref=e716]
+  - log [ref=e717]
+  - log [ref=e718]
+  - log [ref=e719]
+  - log [ref=e720]
+  - log [ref=e721]
+  - log [ref=e722]
+  - log [ref=e723]
+  - log [ref=e724]
+  - log [ref=e725]
+  - log [ref=e726]
+  - log [ref=e727]
+  - log [ref=e728]
+  - log [ref=e729]
+  - log [ref=e730]
+  - log [ref=e731]
+  - log [ref=e732]
+  - log [ref=e733]
+  - log [ref=e734]
+  - log [ref=e735]
+  - log [ref=e736]
+  - log [ref=e737]
+  - log [ref=e738]
+  - log [ref=e739]
+  - log [ref=e740]
+  - log [ref=e741]
+  - log [ref=e742]
+  - log [ref=e743]
+  - log [ref=e744]
+  - log [ref=e745]
+  - log [ref=e746]
+  - log [ref=e747]
+  - log [ref=e748]
+  - log [ref=e749]
+  - log [ref=e750]
+  - log [ref=e751]
+  - log [ref=e752]
+  - log [ref=e753]
+  - log [ref=e754]
+  - log [ref=e755]
+  - log [ref=e756]
+  - log [ref=e757]
+  - log [ref=e758]
+  - log [ref=e759]
+  - log [ref=e760]
+  - log [ref=e761]
+  - log [ref=e762]
+  - log [ref=e763]
+  - log [ref=e764]
+  - log [ref=e765]
+  - log [ref=e766]
+  - log [ref=e767]
+  - log [ref=e768]
+  - log [ref=e769]
+  - log [ref=e770]
+  - log [ref=e771]
+  - log [ref=e772]
+  - log [ref=e773]
+  - log [ref=e774]
+  - log [ref=e775]
+  - log [ref=e776]
+  - log [ref=e777]
+  - log [ref=e778]
+  - log [ref=e779]
+  - log [ref=e780]
+  - log [ref=e781]
+  - log [ref=e782]
+  - log [ref=e783]
+  - log [ref=e784]
+  - log [ref=e785]
+  - log [ref=e786]
+  - log [ref=e787]
+  - log [ref=e788]
+  - log [ref=e789]
+  - log [ref=e790]
+  - log [ref=e791]
+  - log [ref=e792]
+  - log [ref=e793]
+  - log [ref=e794]
+  - log [ref=e795]
+  - log [ref=e796]
+  - log [ref=e797]
+  - log [ref=e798]
+  - log [ref=e799]
+  - log [ref=e800]
+  - log [ref=e801]
+  - log [ref=e802]
+  - log [ref=e803]
+  - log [ref=e804]
+  - log [ref=e805]
+  - log [ref=e806]
+  - log [ref=e807]
+  - log [ref=e808]
+  - log [ref=e809]
+  - log [ref=e810]
+  - log [ref=e811]
+  - log [ref=e812]
+  - log [ref=e813]
+  - log [ref=e814]
+  - log [ref=e815]
+  - log [ref=e816]
+  - log [ref=e817]
+  - log [ref=e818]
+  - log [ref=e819]
+  - log [ref=e820]
+  - log [ref=e821]
+  - log [ref=e822]
+  - log [ref=e823]
+  - log [ref=e824]
+  - log [ref=e825]
+  - log [ref=e826]
+  - log [ref=e827]
+  - log [ref=e828]
+  - log [ref=e829]
+  - log [ref=e830]
+  - log [ref=e831]
+  - log [ref=e832]
+  - log [ref=e833]
+  - log [ref=e834]
+  - log [ref=e835]
+  - log [ref=e836]
+  - log [ref=e837]
+  - log [ref=e838]
+  - log [ref=e839]
+  - log [ref=e840]
+  - log [ref=e841]
+  - log [ref=e842]
+  - log [ref=e843]
+  - log [ref=e844]
+  - log [ref=e845]
+  - log [ref=e846]
+  - log [ref=e847]
+  - log [ref=e848]
+  - log [ref=e849]
+  - log [ref=e850]
+  - log [ref=e851]
+  - log [ref=e852]
+  - log [ref=e853]
+  - log [ref=e854]
+  - log [ref=e855]
+  - log [ref=e856]
+  - log [ref=e857]
+  - log [ref=e858]
+  - log [ref=e859]
+  - log [ref=e860]
+  - log [ref=e861]
+  - log [ref=e862]
+  - log [ref=e863]
+  - log [ref=e864]
+  - log [ref=e865]
+  - log [ref=e866]
+  - log [ref=e867]
+  - log [ref=e868]
+  - log [ref=e869]
+  - log [ref=e870]
+  - log [ref=e871]
+  - log [ref=e872]
+  - log [ref=e873]
+  - log [ref=e874]
+  - log [ref=e875]
+  - log [ref=e876]
+  - log [ref=e877]
+  - log [ref=e878]
+  - log [ref=e879]
+  - log [ref=e880]
+  - log [ref=e881]
+  - log [ref=e882]
+  - log [ref=e883]
+  - log [ref=e884]
+  - log [ref=e885]
+  - log [ref=e886]
+  - log [ref=e887]
+  - log [ref=e888]
+  - log [ref=e889]
+  - log [ref=e890]
+  - log [ref=e891]
+  - log [ref=e892]
+  - log [ref=e893]
+  - log [ref=e894]
+  - log [ref=e895]
+  - log [ref=e896]
+  - log [ref=e897]
+  - log [ref=e898]
+  - log [ref=e899]
+  - log [ref=e900]
+  - log [ref=e901]
+  - log [ref=e902]
+  - log [ref=e903]
+  - log [ref=e904]
+  - log [ref=e905]
+  - log [ref=e906]
+  - log [ref=e907]
+  - log [ref=e908]
+  - log [ref=e909]
+  - log [ref=e910]
+  - log [ref=e911]
+  - log [ref=e912]
+  - log [ref=e913]
+  - log [ref=e914]
+  - log [ref=e915]
+  - log [ref=e916]
+  - log [ref=e917]
+  - log [ref=e918]
+  - log [ref=e919]
+  - log [ref=e920]
+  - log [ref=e921]
+  - log [ref=e922]
+  - log [ref=e923]
+  - log [ref=e924]
+  - log [ref=e925]
+  - log [ref=e926]
+  - log [ref=e927]
+  - log [ref=e928]
+  - log [ref=e929]
+  - log [ref=e930]
+  - log [ref=e931]
+  - log [ref=e932]
+  - log [ref=e933]
+  - log [ref=e934]
+  - log [ref=e935]
+  - log [ref=e936]
+  - log [ref=e937]
+  - log [ref=e938]
+  - log [ref=e939]
+  - log [ref=e940]
+  - log [ref=e941]
+  - log [ref=e942]
+  - log [ref=e943]
+  - log [ref=e944]
+  - log [ref=e945]
+  - log [ref=e946]
+  - log [ref=e947]
+  - log [ref=e948]
+  - log [ref=e949]
+  - log [ref=e950]
+  - log [ref=e951]
+  - log [ref=e952]
+  - log [ref=e953]
+  - log [ref=e954]
+  - log [ref=e955]
+  - log [ref=e956]
+  - log [ref=e957]
+  - log [ref=e958]
+  - log [ref=e959]
+  - log [ref=e960]
+  - log [ref=e961]
+  - log [ref=e962]
+  - log [ref=e963]
+  - log [ref=e964]
+  - log [ref=e965]
+  - log [ref=e966]
+  - log [ref=e967]
+  - log [ref=e968]
+  - log [ref=e969]
+  - log [ref=e970]
+  - log [ref=e971]
+  - log [ref=e972]
+  - log [ref=e973]
+  - log [ref=e974]
+  - log [ref=e975]
+  - log [ref=e976]
+  - log [ref=e977]
+  - log [ref=e978]
+  - log [ref=e979]
+  - log [ref=e980]
+  - log [ref=e981]
+  - log [ref=e982]
+  - log [ref=e983]
+  - log [ref=e984]
+  - status [ref=e985]
+  - status [ref=e986]
+  - status [ref=e987]
+  - generic [ref=e988]: Jira Service Management Widget
+  - status [ref=e989]
+  - dialog "New Client/New Quote Wizard" [ref=e990]:
+    - generic [ref=e992]: New Client/New Quote Wizard
+    - generic [ref=e997]:
+      - generic [ref=e1000]:
+        - list [ref=e1005]:
+          - listitem [ref=e1006]:
+            - link "1 Agency Information" [ref=e1007] [cursor=pointer]:
+              - /url: "#wizClient_stepContent"
+              - generic [ref=e1008]: "1"
+              - text: Agency Information
+          - listitem [ref=e1009]:
+            - link "2 Client Information" [ref=e1010] [cursor=pointer]:
+              - /url: "#wizClient_stepContent"
+              - generic [ref=e1011]: "2"
+              - text: Client Information
+          - listitem [ref=e1012]:
+            - link "3 Account Qualification" [ref=e1013] [cursor=pointer]:
+              - /url: "#wizClient_stepContent"
+              - generic [ref=e1014]: "3"
+              - text: Account Qualification
+          - listitem [ref=e1015]:
+            - link "4 Product Lines" [ref=e1016] [cursor=pointer]:
+              - /url: "#wizClient_stepContent"
+              - generic [ref=e1017]: "4"
+              - text: Product Lines
+          - listitem [ref=e1018]:
+            - link "5 Product Eligibility" [ref=e1019] [cursor=pointer]:
+              - /url: "#wizClient_stepContent"
+              - generic [ref=e1020]: "5"
+              - text: Product Eligibility
+        - generic [ref=e1021]: Client Details
+      - generic [ref=e1024]:
+        - generic:
+          - generic [ref=e1026]:
+            - generic:
+              - generic:
+                - generic [ref=e1027]: Business Description
+                - textbox "Business Description" [ref=e1032]: test desc
+          - generic [ref=e1034]:
+            - generic:
+              - generic:
+                - generic [ref=e1037]: Business Entity
+                - generic [ref=e1041]:
+                  - textbox "Association" [ref=e1042]
+                  - button [ref=e1043] [cursor=pointer]
+        - generic:
+          - generic [ref=e1046]:
+            - generic:
+              - generic:
+                - generic [ref=e1047]: Year Business Started
+                - generic [ref=e1050]:
+                  - generic [ref=e1051]:
+                    - spinbutton [ref=e1052]: "2014"
+                    - button "▲" [ref=e1053]:
+                      - generic [ref=e1055]: ▲
+                    - button "▼" [ref=e1056]:
+                      - generic [ref=e1058]: ▼
+                  - text: "*"
+          - generic [ref=e1060]:
+            - generic:
+              - generic:
+                - generic [ref=e1061]: Federal ID Number
+                - textbox "Federal ID Number" [ref=e1066]: "518054256"
+        - generic [ref=e1068]:
+          - generic:
+            - generic:
+              - generic [ref=e1069]: NAICS Code
+              - generic "Please choose carefully as this selection will impact eligibility" [ref=e1073]:
+                - strong
+              - generic [ref=e1077]:
+                - generic [ref=e1078]:
+                  - textbox [ref=e1079]: 812210 - Director services, funeral
+                  - checkbox [ref=e1080]
+                - text: "*"
+        - generic:
+          - generic [ref=e1082]:
+            - generic:
+              - generic:
+                - generic [ref=e1083]: Website
+                - textbox "Website" [ref=e1088]
+          - generic [ref=e1090]:
+            - generic:
+              - generic:
+                - generic [ref=e1093]: Email
+                - textbox [ref=e1098]: Alexys.Trantow@yahoo.com
+      - generic [ref=e1100]:
+        - generic:
+          - generic:
+            - generic [ref=e1104]: Inspection Contact Information
+            - generic [ref=e1106]:
+              - generic:
+                - generic:
+                  - generic [ref=e1107]:
+                    - generic:
+                      - generic:
+                        - radio [checked] [ref=e1109]
+                        - generic [ref=e1110]: Add New
+                  - generic [ref=e1111]:
+                    - generic:
+                      - generic:
+                        - radio "Add Later" [ref=e1113]
+                        - generic [ref=e1114]: Add Later
+      - generic [ref=e1117]:
+        - generic:
+          - generic [ref=e1119]:
+            - generic:
+              - generic:
+                - generic [ref=e1120]: Contact First Name
+                - generic [ref=e1123]:
+                  - textbox "Contact First Name" [ref=e1125]: test
+                  - text: "*"
+          - generic [ref=e1127]:
+            - generic:
+              - generic:
+                - generic [ref=e1128]: Contact Last Name
+                - generic [ref=e1131]:
+                  - textbox "Contact Last Name" [ref=e1133]: desc
+                  - text: "*"
+        - generic:
+          - generic [ref=e1135]:
+            - generic:
+              - generic:
+                - generic [ref=e1136]: Contact Phone
+                - generic [ref=e1139]:
+                  - textbox "Contact Phone" [ref=e1141]: 717-555-1212
+                  - text: "*"
+          - generic [ref=e1143]:
+            - generic:
+              - generic:
+                - generic [ref=e1144]: Contact Email
+                - generic [ref=e1147]:
+                  - textbox "Contact Email" [ref=e1149]: Conner_Schulist0@yahoo.com
+                  - text: "*"
+        - generic:
+          - generic [ref=e1153]: Mobile Phone
+          - generic [ref=e1155]:
+            - generic:
+              - generic:
+                - checkbox [ref=e1160]
+                - generic [ref=e1162]: Same as Contact Phone
+        - generic [ref=e1164]:
+          - generic:
+            - generic:
+              - checkbox [ref=e1169]
+              - generic [ref=e1171]: Claims Contact is the same as the Inspection Contact
+      - link "Appetite Guide" [ref=e1178] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e1180]:
+      - button "Close" [ref=e1181] [cursor=pointer]:
+        - generic [ref=e1183]: Close
+      - button "Next" [ref=e1184] [cursor=pointer]:
+        - generic [ref=e1185]: Next
+  - status [ref=e1188]:
+    - generic [ref=e1189]: Association
+  - status [ref=e1190]
+  - log [ref=e1191]
+  - dialog [ref=e1192]:
+    - generic [ref=e1195]: An Account for this insured already exists with Donegal Insurance Group. Please contact your underwriter for assistance.
+    - button "Ok" [active] [ref=e1198] [cursor=pointer]:
+      - generic [ref=e1199]: Ok
+```

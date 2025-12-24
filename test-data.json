@@ -1,50 +1,15 @@
 {
-  "state": "OH",
-  "stateName": "Ohio",
+  "state": "WI",
+  "stateName": "Wisconsin",
   "milestones": [
     {
-      "name": "Account Created",
-      "status": "PASSED",
-      "timestamp": "2025-12-24T19:01:24.529Z",
-      "details": "",
-      "duration": "69.80s"
-    },
-    {
-      "name": "Building and Classification Added",
-      "status": "PASSED",
-      "timestamp": "2025-12-24T19:03:37.820Z",
-      "details": "",
-      "duration": "133.29s"
-    },
-    {
-      "name": "Quote Rated Successfully",
-      "status": "PASSED",
-      "timestamp": "2025-12-24T19:04:04.998Z",
-      "details": "Quote #: 3003179627",
-      "duration": "27.18s"
-    },
-    {
-      "name": "Submitting for Approval",
-      "status": "PASSED",
-      "timestamp": "2025-12-24T19:04:40.689Z",
-      "details": "",
-      "duration": "35.69s"
-    },
-    {
-      "name": "UW Issues Approved in PolicyCenter",
-      "status": "PASSED",
-      "timestamp": "2025-12-24T19:05:21.762Z",
-      "details": "",
-      "duration": "41.07s"
-    },
-    {
-      "name": "Policy Issued Successfully",
-      "status": "PASSED",
-      "timestamp": "2025-12-24T19:07:50.402Z",
-      "details": "Policy #: 1003052775",
-      "duration": "148.64s"
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2025-12-24T19:14:48.842Z",
+      "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
+      "duration": "87.69s"
     }
   ],
-  "quoteNumber": "3003179627",
-  "policyNumber": "1003052775"
+  "status": "FAILED",
+  "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n"
 }

@@ -1,0 +1,23 @@
+[
+  {
+    "iterationNumber": 1,
+    "status": "FAILED",
+    "state": "WI",
+    "stateName": "Wisconsin",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-24T19:14:48.842Z",
+        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
+        "duration": "87.69s"
+      }
+    ],
+    "timestamp": "2025-12-24T19:14:52.272Z",
+    "duration": "87.69",
+    "runId": "2025-12-24T14:13:06.6579408-05:00",
+    "suite": "Package"
+  }
+]
