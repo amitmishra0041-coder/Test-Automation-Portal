@@ -1,50 +1,50 @@
 {
-  "state": "DE",
-  "stateName": "Delaware",
+  "state": "OH",
+  "stateName": "Ohio",
   "milestones": [
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-24T18:10:13.569Z",
+      "timestamp": "2025-12-24T19:01:24.529Z",
       "details": "",
-      "duration": "70.25s"
+      "duration": "69.80s"
     },
     {
       "name": "Building and Classification Added",
       "status": "PASSED",
-      "timestamp": "2025-12-24T18:12:31.654Z",
+      "timestamp": "2025-12-24T19:03:37.820Z",
       "details": "",
-      "duration": "138.08s"
+      "duration": "133.29s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-24T18:12:59.182Z",
-      "details": "Quote #: 3002611347",
-      "duration": "27.53s"
+      "timestamp": "2025-12-24T19:04:04.998Z",
+      "details": "Quote #: 3003179627",
+      "duration": "27.18s"
     },
     {
       "name": "Submitting for Approval",
       "status": "PASSED",
-      "timestamp": "2025-12-24T18:14:10.732Z",
+      "timestamp": "2025-12-24T19:04:40.689Z",
       "details": "",
-      "duration": "71.55s"
+      "duration": "35.69s"
     },
     {
       "name": "UW Issues Approved in PolicyCenter",
       "status": "PASSED",
-      "timestamp": "2025-12-24T18:15:01.051Z",
+      "timestamp": "2025-12-24T19:05:21.762Z",
       "details": "",
-      "duration": "50.32s"
+      "duration": "41.07s"
     },
     {
       "name": "Policy Issued Successfully",
       "status": "PASSED",
-      "timestamp": "2025-12-24T18:17:27.247Z",
-      "details": "Policy #: 1002229285",
-      "duration": "146.19s"
+      "timestamp": "2025-12-24T19:07:50.402Z",
+      "details": "Policy #: 1003052775",
+      "duration": "148.64s"
     }
   ],
-  "quoteNumber": "3002611347",
-  "policyNumber": "1002229285"
+  "quoteNumber": "3003179627",
+  "policyNumber": "1003052775"
 }

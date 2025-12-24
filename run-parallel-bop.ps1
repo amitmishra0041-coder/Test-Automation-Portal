@@ -89,6 +89,9 @@ try {
         '{"inBatch": true}' | Out-File -FilePath $batchMarker -Encoding ASCII -Force
         Write-Host "Batch marker created to defer per-iteration emails" -ForegroundColor Gray
     }
+    
+    # Small delay to ensure batch marker is fully written before jobs start
+    Start-Sleep -Milliseconds 500
 } catch {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
 }
