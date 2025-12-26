@@ -108,13 +108,19 @@ $results = @()
 $startTime = [DateTime]::Now
 $maxParallel = 2
 $pendingStates = $states.Clone()
+
+# Always initialize as array
 $activeJobs = @()
 
 while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
     # Start jobs if we have capacity
     while ($activeJobs.Count -lt $maxParallel -and $pendingStates.Count -gt 0) {
         $state = $pendingStates[0]
-        $pendingStates = $pendingStates[1..($pendingStates.Count-1)]
+        if ($pendingStates.Count -eq 1) {
+            $pendingStates = @()
+        } else {
+            $pendingStates = $pendingStates[1..($pendingStates.Count-1)]
+        }
         Write-Host "Starting Package test for state: $state" -ForegroundColor Green
         $job = Start-Job -Name "Package-Test-$state" -ScriptBlock {
             param($s, $e, $projPath, $proj, $isHeaded)
@@ -128,7 +134,7 @@ while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
             & npx playwright test Create_Package.test.js --project=$proj $headedFlag 2>&1 | Tee-Object -FilePath $logPath
             return @{ State = $s; ExitCode = $LASTEXITCODE }
         } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
-        $activeJobs += $job
+        $activeJobs = @($activeJobs + $job)
     }
     # Wait for any job to finish
     if ($activeJobs.Count -gt 0) {
@@ -145,7 +151,7 @@ while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
             }
         }
         # Remove finished jobs from activeJobs
-        $activeJobs = $activeJobs | Where-Object { $_.State -eq 'Running' }
+        $activeJobs = @($activeJobs | Where-Object { $_.State -eq 'Running' })
     }
     Start-Sleep -Seconds 1
 }
