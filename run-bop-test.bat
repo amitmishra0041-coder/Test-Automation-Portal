@@ -1,18 +1,34 @@
 @echo off
 REM BOP Test Runner - wrapper that calls PowerShell
-REM Usage: run-bop-test.bat [qa|test] [state1 state2 ...] [headed]
+REM Usage: run-bop-test.bat [qa|test|prod] [state1 state2 ...] [headed]
 
 setlocal EnableExtensions EnableDelayedExpansion
 
-set "ENV=%1"
+set "ENV="
 set "STATES="
 set "HEADED_FLAG="
 set "_first=1"
 
+REM Detect environment from first argument only if it matches known envs
+set "_envCandidate=%~1"
+if /I "%_envCandidate%"=="qa" (
+    set "ENV=qa"
+ ) else if /I "%_envCandidate%"=="test" (
+    set "ENV=test"
+ ) else if /I "%_envCandidate%"=="prod" (
+    set "ENV=prod"
+)
+
 for %%A in (%*) do (
     if !_first! EQU 1 (
-        REM skip first arg (env)
         set "_first=0"
+        if defined ENV (
+            REM first token was env; skip adding as state
+        ) else if /I "%%A"=="headed" (
+            set "HEADED_FLAG=headed"
+        ) else (
+            set "STATES=%%A"
+        )
     ) else if /I "%%A"=="headed" (
         set "HEADED_FLAG=headed"
     ) else (
@@ -24,7 +40,7 @@ for %%A in (%*) do (
     )
 )
 
-if "%ENV%"=="" set ENV=qa
+if not defined ENV set "ENV=qa"
 if not defined STATES set "STATES=DE,PA,WI,OH,MI"
 
 if /I "%HEADED_FLAG%"=="headed" (

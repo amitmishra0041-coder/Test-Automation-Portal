@@ -39,18 +39,38 @@ echo Node.js found:
 node --version
 echo.
 
-REM Usage: run-package-test.bat [qa|test] [states] [headed]
-set ENV=%1
-if "%ENV%"=="" set ENV=qa
+REM Usage: run-package-test.bat [qa|test|prod] [states] [headed]
+REM Detect env from first arg only if it matches known envs; else default qa
+set "ENV=qa"
+set "_envCandidate=%~1"
+set "_skipFirst=0"
+if /I "%_envCandidate%"=="qa" (
+    set "ENV=qa"
+    set "_skipFirst=1"
+) else if /I "%_envCandidate%"=="test" (
+    set "ENV=test"
+    set "_skipFirst=1"
+) else if /I "%_envCandidate%"=="prod" (
+    set "ENV=prod"
+    set "_skipFirst=1"
+)
 
 REM Check all args for 'headed' flag and build states list
 set "HAS_HEADED=0"
 set "STATES_RAW="
+set "_first=1"
 for %%A in (%*) do (
-    if /I "%%A"=="headed" (
+    if !_first! EQU 1 (
+        set "_first=0"
+        if !_skipFirst! EQU 1 (
+            REM first token was env; skip adding as state
+        ) else if /I "%%A"=="headed" (
+            set "HAS_HEADED=1"
+        ) else (
+            set "STATES_RAW=%%A"
+        )
+    ) else if /I "%%A"=="headed" (
         set "HAS_HEADED=1"
-    ) else if /I "%%A"=="%ENV%" (
-        REM Skip the first arg (ENV)
     ) else (
         if defined STATES_RAW (
             set "STATES_RAW=!STATES_RAW!,%%A"

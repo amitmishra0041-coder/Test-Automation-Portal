@@ -2,50 +2,57 @@
   {
     "iterationNumber": 1,
     "status": "FAILED",
-    "state": "WI",
-    "stateName": "Wisconsin",
-    "quoteNumber": "N/A",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "3003179726",
     "policyNumber": "N/A",
     "milestones": [
       {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-26T13:15:24.746Z",
+        "details": "",
+        "duration": "71.38s"
+      },
+      {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-24T19:14:48.842Z",
-        "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
-        "duration": "87.69s"
+        "timestamp": "2025-12-26T13:16:43.558Z",
+        "details": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Location ' }) to be visible\u001b[22m\n",
+        "duration": "78.81s"
       }
     ],
-    "timestamp": "2025-12-24T19:14:52.272Z",
-    "duration": "87.69",
-    "runId": "2025-12-24T14:13:06.6579408-05:00",
+    "timestamp": "2025-12-26T13:16:45.438Z",
+    "duration": "150.19",
+    "runId": "2025-12-26T08:14:03.0359484-05:00",
     "suite": "Package"
   },
   {
     "iterationNumber": 2,
     "status": "FAILED",
-    "state": "PA",
-    "stateName": "Pennsylvania",
+    "state": "MI",
+    "stateName": "Michigan",
     "quoteNumber": "N/A",
     "policyNumber": "N/A",
     "milestones": [
       {
         "name": "Account Created",
         "status": "PASSED",
-        "timestamp": "2025-12-24T19:14:19.483Z",
+        "timestamp": "2025-12-26T13:15:25.927Z",
         "details": "",
-        "duration": "61.14s"
+        "duration": "71.21s"
       },
       {
         "name": "Test Execution Failed",
         "status": "FAILED",
-        "timestamp": "2025-12-24T19:16:25.353Z",
-        "details": "locator.scrollIntoViewIfNeeded: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
-        "duration": "125.87s"
+        "timestamp": "2025-12-26T13:17:45.165Z",
+        "details": "locator.click: Target crashed \nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Building & Add Business' })\u001b[22m\n",
+        "duration": "139.24s"
       }
     ],
-    "timestamp": "2025-12-24T19:16:30.741Z",
-    "duration": "187.01",
-    "runId": "2025-12-24T14:13:06.6579408-05:00",
+    "timestamp": "2025-12-26T13:17:45.972Z",
+    "duration": "210.45",
+    "runId": "2025-12-26T08:14:03.0359484-05:00",
     "suite": "Package"
   }
 ]

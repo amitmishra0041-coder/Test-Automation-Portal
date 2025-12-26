@@ -1,20 +1,283 @@
 # Page snapshot
 
 ```yaml
-- generic [active] [ref=e1]:
+- generic [ref=e1]:
   - generic [ref=e3]:
-    - generic [ref=e10]:
-      - generic [ref=e11]: An error has occurred while attemping your last request.
-      - generic [ref=e12]:
-        - paragraph [ref=e13]: "Any additional details about the error that occurred may be listed below:"
-        - text: The user configuration information was not found.
-        - button " Return to login" [ref=e15] [cursor=pointer]:
-          - generic [ref=e16]: 
-          - text: Return to login
-    - generic [ref=e19]:
-      - paragraph [ref=e20]:
-        - link "Technical Support" [ref=e21] [cursor=pointer]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003179726-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Larkin, Lakin and Williamson
+            - generic [ref=e14]: 8551 ELM CLOSE
+            - generic [ref=e15]: ALLENTOWN, PA 19380
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - alert [ref=e20]:
+        - text: Geographic Wind Hazard Level Territory is required
+        - button "Close" [ref=e21] [cursor=pointer]: ×
+      - list [ref=e25]:
+        - text:   
+        - listitem [ref=e26]:
+          - link " Commercial Property" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179726_tabContent"
+            - generic [ref=e28]: 
+            - text: Commercial Property
+        - listitem [ref=e29]:
+          - link "Locations" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179726_tabContent"
+        - listitem [ref=e31]:
+          - link "State Specific Info" [ref=e32] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179726_tabContent"
+        - listitem [ref=e33]:
+          - link "Blankets" [ref=e34] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179726_tabContent"
+        - listitem [ref=e35]:
+          - link "Buildings" [ref=e36] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179726_tabContent"
+        - listitem [ref=e37]:
+          - link "Special Classes" [ref=e38] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179726_tabContent"
+        - listitem [ref=e39]:
+          - link "Mortgagees" [ref=e40] [cursor=pointer]:
+            - /url: "#XNav_POL_3003179726_tabContent"
+      - generic [ref=e41]:
+        - list [ref=e44]:
+          - listitem [ref=e45]:
+            - link "" [ref=e46] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e47]: 
+          - listitem [ref=e48]:
+            - link "" [ref=e49] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e50]: 
+          - listitem [ref=e51]:
+            - link "" [ref=e52] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e53]: 
+          - listitem [ref=e54]:
+            - link "" [ref=e55] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e56]: 
+        - generic [ref=e60]:
+          - list [ref=e62]:
+            - listitem [ref=e63]:
+              - link "Details" [ref=e64] [cursor=pointer]:
+                - /url: "#ajtc_PropertyLocations_tabContent"
+            - listitem [ref=e65]:
+              - text: "|"
+              - link "Coverages" [ref=e66] [cursor=pointer]:
+                - /url: "#ajtc_PropertyLocations_tabContent"
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - generic [ref=e71]: "Selected Location:"
+              - generic [ref=e73]:
+                - textbox [ref=e74]: 8551 ELM CLOSE ALLENTOWN PA 19380
+                - generic [ref=e77] [cursor=pointer]: 
+              - button "Return to Summary" [ref=e79] [cursor=pointer]
+            - generic [ref=e80]:
+              - generic [ref=e81]: Physical Location Address
+              - generic [ref=e82]:
+                - generic [ref=e83]:
+                  - generic [ref=e84]:
+                    - generic [ref=e85]: Street Line 1
+                    - generic [ref=e87]:
+                      - textbox [ref=e88]: 8551 ELM CLOSE
+                      - generic [ref=e89]: "*"
+                  - generic [ref=e90]:
+                    - generic [ref=e91]: Street Line 2
+                    - textbox [ref=e94]
+                  - generic [ref=e95]:
+                    - generic [ref=e96]: City
+                    - generic [ref=e97]:
+                      - generic [ref=e98]:
+                        - textbox [disabled] [ref=e99]: ALLENTOWN
+                        - generic [ref=e100]: "*"
+                      - generic [ref=e102]: 
+                  - generic [ref=e103]:
+                    - generic [ref=e104]: State
+                    - generic [ref=e105]:
+                      - generic [ref=e106]:
+                        - generic [ref=e107]:
+                          - combobox [disabled] [ref=e108]:
+                            - option
+                            - option "AL"
+                            - option "CO"
+                            - option "DE"
+                            - option "GA"
+                            - option "IA"
+                            - option "IL"
+                            - option "IN"
+                            - option "MI"
+                            - option "NC"
+                            - option "NE"
+                            - option "OH"
+                            - option "PA" [selected]
+                            - option "SC"
+                            - option "TN"
+                            - option "TX"
+                            - option "VA"
+                            - option "WI"
+                          - combobox "PA" [disabled] [ref=e109]:
+                            - generic [ref=e112]: PA
+                        - generic [ref=e113]: "*"
+                      - generic [ref=e115]: 
+                  - generic [ref=e116]:
+                    - generic [ref=e117]: Zip Code
+                    - generic [ref=e118]:
+                      - generic [ref=e119]:
+                        - textbox [disabled] [ref=e120]: "19380"
+                        - generic [ref=e121]: "*"
+                      - generic [ref=e123]: 
+                  - button "Verify Address" [disabled] [ref=e125]
+                  - generic [ref=e126]:
+                    - generic [ref=e127]: Property Territory Code
+                    - generic [ref=e129]:
+                      - generic [ref=e130]:
+                        - combobox [ref=e131]:
+                          - option "Zone 1" [selected]
+                          - option "Allegheny Cty(Excl. Pitt)"
+                          - option "Zone 3"
+                          - option "Zone 2"
+                          - option "Philadelphia"
+                        - combobox "Zone 1" [ref=e132] [cursor=pointer]:
+                          - generic [ref=e135]: Zone 1
+                      - generic [ref=e136]: "*"
+                  - generic [ref=e137]:
+                    - generic [ref=e138]: Group II Territory Code
+                    - generic [ref=e140]:
+                      - generic [ref=e141]:
+                        - combobox [disabled] [ref=e142]:
+                          - option "Entire State" [selected]
+                        - combobox "Entire State" [disabled] [ref=e143]:
+                          - generic [ref=e146]: Entire State
+                      - generic [ref=e147]: "*"
+                  - generic [ref=e148]:
+                    - generic [ref=e149]: EarthQuake Territory Code
+                    - generic [ref=e151]:
+                      - generic [ref=e152]:
+                        - combobox [disabled] [ref=e153]:
+                          - option "21" [selected]
+                        - combobox "21" [disabled] [ref=e154]:
+                          - generic [ref=e157]: "21"
+                      - generic [ref=e158]: "*"
+                  - generic [ref=e159]:
+                    - generic [ref=e160]: Protection Class
+                    - generic [ref=e162]:
+                      - generic [ref=e163]:
+                        - combobox [ref=e164]:
+                          - option
+                          - option "1"
+                          - option "2"
+                          - option "3" [selected]
+                          - option "4"
+                          - option "5"
+                          - option "6"
+                          - option "7"
+                          - option "8"
+                          - option "8B"
+                          - option "9"
+                          - option "10"
+                          - option "1X"
+                          - option "2X"
+                          - option "3X"
+                          - option "4X"
+                          - option "5X"
+                          - option "6X"
+                          - option "7X"
+                          - option "8X"
+                          - option "1Y"
+                          - option "2Y"
+                          - option "3Y"
+                          - option "4Y"
+                          - option "5Y"
+                          - option "6Y"
+                          - option "7Y"
+                          - option "8Y"
+                          - option "10W"
+                        - combobox "3" [ref=e165] [cursor=pointer]:
+                          - generic [ref=e168]: "3"
+                      - generic [ref=e169]: "*"
+                  - generic [ref=e170]:
+                    - generic [ref=e171]: Special Cause of Loss
+                    - generic [ref=e173]:
+                      - generic [ref=e174]:
+                        - combobox [ref=e175]:
+                          - option "Remainder of State" [selected]
+                          - option "Allegheny"
+                          - option "Bucks"
+                          - option "Chester"
+                          - option "Delaware"
+                          - option "Montgomery"
+                          - option "Philadelphia"
+                        - combobox "Remainder of State" [ref=e176] [cursor=pointer]:
+                          - generic [ref=e179]: Remainder of State
+                      - generic [ref=e180]: "*"
+                  - generic [ref=e181]:
+                    - generic [ref=e182]: Terrorism Territory
+                    - generic [ref=e184]:
+                      - generic [ref=e185]:
+                        - combobox [ref=e186]:
+                          - option "Remainder of State" [selected]
+                          - option "Allegheny, Delaware & Westmoreland Counties"
+                          - option "Philadelphia County"
+                        - combobox "Remainder of State" [ref=e187] [cursor=pointer]:
+                          - generic [ref=e190]: Remainder of State
+                      - generic [ref=e191]: "*"
+                  - generic [ref=e192]:
+                    - generic [ref=e193]: Geographic Wind Hazard Level Territory
+                    - generic [ref=e195]:
+                      - generic [ref=e196]:
+                        - combobox [ref=e197]
+                        - combobox "Nothing selected" [ref=e198] [cursor=pointer]:
+                          - generic [ref=e201]: Nothing selected
+                      - generic [ref=e202]: "*"
+                  - generic [ref=e203]:
+                    - generic [ref=e204]: Earthquake Cause of Loss Form
+                    - generic [ref=e206]:
+                      - generic [ref=e207]:
+                        - combobox [ref=e208]:
+                          - option
+                          - option "Not Applicable" [selected]
+                          - option "Earthquake Form (CP 10 40)"
+                        - combobox "Not Applicable" [ref=e209] [cursor=pointer]:
+                          - generic [ref=e212]: Not Applicable
+                      - generic [ref=e213]: "*"
+                - generic [ref=e215]:
+                  - generic [ref=e216]:
+                    - generic [ref=e219]: Verified Address
+                    - generic "Address is verified" [ref=e224]:
+                      - generic [ref=e225]: 
+                  - generic [ref=e226]:
+                    - generic [ref=e229]: Verified Non-Coastal Risk
+                    - generic "Verified no geographic risk on zip code." [ref=e234]:
+                      - generic [ref=e235]: 
+                  - generic [ref=e236]:
+                    - generic [ref=e239]: Verified Non-Earthquake Risk
+                    - generic "Address could not be properly verified for geographic risk." [ref=e244]:
+                      - generic [ref=e245]: 
+                  - generic [ref=e246]:
+                    - generic [ref=e249]: Verified Non-Flood Risk
+                    - generic "Address is pending verification." [ref=e254]:
+                      - generic [ref=e255]: 
+            - generic [ref=e256]:
+              - button "Next " [active] [ref=e257] [cursor=pointer]:
+                - text: Next
+                - generic [ref=e258]: 
+              - button " Previous" [ref=e259] [cursor=pointer]:
+                - generic [ref=e260]: 
+                - text: Previous
+    - generic [ref=e263]:
+      - paragraph [ref=e264]:
+        - link "Technical Support" [ref=e265] [cursor=pointer]:
           - /url: "#/"
-      - paragraph [ref=e22]: © 2025 Donegal Insurance Group, All Rights Reserved.
-  - generic [ref=e23]: Jira Service Management Widget
+      - paragraph [ref=e266]: © 2025 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e267]: Jira Service Management Widget
+  - log [ref=e268]
+  - log [ref=e269]
+  - log [ref=e270]
+  - log [ref=e271]
+  - log [ref=e272]
+  - log [ref=e273]
+  - log [ref=e274]
 ```

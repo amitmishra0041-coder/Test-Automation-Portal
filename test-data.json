@@ -1,22 +1,22 @@
 {
-  "state": "PA",
-  "stateName": "Pennsylvania",
+  "state": "MI",
+  "stateName": "Michigan",
   "milestones": [
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-24T19:14:19.483Z",
+      "timestamp": "2025-12-26T13:15:25.927Z",
       "details": "",
-      "duration": "61.14s"
+      "duration": "71.21s"
     },
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2025-12-24T19:16:25.353Z",
-      "details": "locator.scrollIntoViewIfNeeded: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
-      "duration": "125.87s"
+      "timestamp": "2025-12-26T13:17:45.165Z",
+      "details": "locator.click: Target crashed \nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Building & Add Business' })\u001b[22m\n",
+      "duration": "139.24s"
     }
   ],
   "status": "FAILED",
-  "error": "locator.scrollIntoViewIfNeeded: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n"
+  "error": "locator.click: Target crashed \nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Building & Add Business' })\u001b[22m\n"
 }
