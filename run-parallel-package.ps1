@@ -101,94 +101,33 @@ try {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
-# Start a job for each state
+
+# Run each state sequentially (no background jobs)
+$results = @()
+$startTime = [DateTime]::Now
 foreach ($state in $states) {
     Write-Host "Starting Package test for state: $state" -ForegroundColor Green
-    
-    $jobs += Start-Job -Name "Package-Test-$state" -ScriptBlock {
-        param($s, $e, $projPath, $proj, $isHeaded)
-        
-        # Change to project directory in this job's context
-        Set-Location $projPath
-        
-        $env:TEST_STATE = $s
-        $env:TEST_ENV = $e
-        $env:TEST_TYPE = 'PACKAGE'
-        
-        Write-Host "[$s] Running Package test from: $(Get-Location)" -ForegroundColor Cyan
-        
-        # Run the test and tee output to per-state log
-        $logPath = Join-Path $projPath ("test-run-output-package-" + $s + ".txt")
-        $headedFlag = if ($isHeaded) { "--headed" } else { "" }
-        & npx playwright test Create_Package.test.js --project=$proj $headedFlag 2>&1 | Tee-Object -FilePath $logPath
-        
-        return @{
-            State = $s
-            ExitCode = $LASTEXITCODE
-        }
-    } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
-}
-
-Write-Host "`nAll $($states.Count) Package tests started in parallel. Showing real-time output below...`n" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Yellow
-Write-Host "Progress Monitor:" -ForegroundColor Cyan
-Write-Host "   - Tests will run in background PowerShell jobs" -ForegroundColor Gray
-Write-Host "   - Completion status will update every 30 seconds" -ForegroundColor Gray
-Write-Host "   - Each test takes ~12-15 minutes" -ForegroundColor Gray
-Write-Host "   - Total expected time: 12-15 minutes (running in parallel)" -ForegroundColor Gray
-Write-Host "============================================================`n" -ForegroundColor Yellow
-
-# Stream output from all jobs as they complete
-$completedJobs = @()
-$allComplete = $false
-$startTime = [DateTime]::Now
-$checkCount = 0
-$results = @()
-
-while (-not $allComplete) {
-    $checkCount++
-    $now = [DateTime]::Now
-    $elapsedSeconds = ($now - $startTime).TotalSeconds
-    
-    # Show progress every 30 seconds
-    if ($checkCount % 15 -eq 0) {
-        $activeJobs = $jobs | Where-Object { $_.State -eq 'Running' }
-        $minutes = [int][Math]::Floor($elapsedSeconds / 60)
-        $secs = [int][Math]::Floor($elapsedSeconds % 60)
-        $secondsFormatted = $secs.ToString("00")
-        Write-Host "Still running... Elapsed: ${minutes}:${secondsFormatted}s | Active jobs: $($activeJobs.Count)" -ForegroundColor Yellow
-    }
-    
-    foreach ($job in $jobs) {
-        if ($job -notin $completedJobs) {
-            if ($job.State -eq 'Completed' -or $job.State -eq 'Failed') {
-                $now = [DateTime]::Now
-                $elapsedForJob = ($now - $startTime).TotalSeconds
-                Write-Host "`nJob [$($job.Name)] finished with state: $($job.State) (after $([Math]::Round($elapsedForJob))s)" -ForegroundColor Yellow
-                
-                $jobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-                
-                # Extract only the hashtable result (State and ExitCode), ignore verbose output
-                $result = $jobOutput | Where-Object { $_ -is [hashtable] -and $_.State -and $null -ne $_.ExitCode } | Select-Object -First 1
-                
-                if ($result) {
-                    Write-Host "    [$($result.State)] Package test completed" -ForegroundColor Cyan
-                    $results += $result
-                }
-                
-                $completedJobs += $job
-            }
-        }
-    }
-    
-    if ($completedJobs.Count -eq $jobs.Count) {
-        $allComplete = $true
+    Set-Location $projectPath
+    $env:TEST_STATE = $state
+    $env:TEST_ENV = $TestEnv
+    $env:TEST_TYPE = 'PACKAGE'
+    Write-Host "[$state] Running Package test from: $(Get-Location)" -ForegroundColor Cyan
+    $logPath = Join-Path $projectPath ("test-run-output-package-" + $state + ".txt")
+    $headedFlag = if ($Headed.IsPresent) { "--headed" } else { "" }
+    & npx playwright test Create_Package.test.js --project=$Project $headedFlag 2>&1 | Tee-Object -FilePath $logPath
+    $exitCode = $LASTEXITCODE
+    $results += @{ State = $state; ExitCode = $exitCode }
+    if ($exitCode -eq 0) {
+        Write-Host "    [$state] Package test PASSED" -ForegroundColor Green
     } else {
-        Start-Sleep -Seconds 2
+        Write-Host "    [$state] Package test FAILED" -ForegroundColor Red
     }
 }
-
-$jobs | Remove-Job
+$now = [DateTime]::Now
+$totalTime = ($now - $startTime).TotalSeconds
+$totalMinutes = [int][Math]::Floor($totalTime / 60)
+$totalSecs = [int][Math]::Floor($totalTime % 60)
+$totalSecondsFormatted = $totalSecs.ToString("00")
 
 # Display results
 $now = [DateTime]::Now

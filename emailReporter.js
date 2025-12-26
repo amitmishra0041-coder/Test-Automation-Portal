@@ -184,7 +184,13 @@ class EmailReporter {
             const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
             const statusIcon = it.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED';
             const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-            const lobDisplay = `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`;
+            
+            // Show submission number in LOB column for failed tests
+            let lobDisplay = `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`;
+            if (it.status !== 'PASSED' && it.quoteNumber && it.quoteNumber !== 'N/A') {
+              lobDisplay += `<br/><small style="color:#666;">Submission: ${it.quoteNumber}</small>`;
+            }
+            
             return `
               <tr style="background:${bg};">
                 <td style="padding:12px;border:1px solid #ddd;">${lobDisplay}</td>

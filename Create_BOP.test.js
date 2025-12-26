@@ -332,14 +332,6 @@ test('Package Submission', async ({ page }) => {
   const fs = require('fs');
   const path = require('path');
 
-  // Append to file
-  const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] Quote Number: ${submissionNumber}\n`;
-
-  const filePath = path.join(__dirname, 'quoteNumbers.txt');
-  fs.appendFileSync(filePath, line, 'utf8');
-
-  console.log(`Quote Number appended to ${filePath}`);
 
   // Store submission number globally for email reporter
   global.testData.quoteNumber = submissionNumber;
@@ -369,28 +361,32 @@ test('Package Submission', async ({ page }) => {
     // Test failed - mark the failure as a milestone
     testFailed = true;
     console.error('❌ Test execution failed:', error.message);
-    
-    // Try to extract dynamic submission number from page header if present
+
+    // Only Strategy 4: Try any visible 10-digit number on the page
     try {
-      const headerLabel = await page.locator('#contentHeader_lblPolicyDetails').textContent({ timeout: 3000 });
-      if (headerLabel) {
-        const match = headerLabel.match(/(\d{10})/);
-        if (match && match[1]) {
-          global.testData.quoteNumber = match[1];
-          console.log(`🔍 Extracted submission number from header: ${match[1]}`);
+      let extractedNumber = null;
+      try {
+        const pageText = await page.locator('body').textContent({ timeout: 2000 });
+        const textMatch = pageText.match(/\b(\d{10})\b/);
+        if (textMatch && textMatch[1]) {
+          extractedNumber = textMatch[1];
+          console.log(`🔍 Extracted number from page text: ${extractedNumber}`);
         }
+      } catch (e) {}
+      if (extractedNumber) {
+        global.testData.quoteNumber = extractedNumber;
       }
     } catch (extractErr) {
-      console.log('⚠️ Could not extract submission number from header:', extractErr.message);
+      console.log('⚠️ Could not extract submission number:', extractErr.message);
     }
-    
+
     trackMilestone('Test Execution Failed', 'FAILED', error.message);
-    
+
     // Write final test data with failure info
     const testDataFile = path.join(__dirname, 'test-data.json');
     fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
     console.log('💾 Test data written to test-data.json with failure info');
-    
+
     // Re-throw to mark test as failed in Playwright
     throw error;
   }

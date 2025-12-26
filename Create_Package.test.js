@@ -37,13 +37,13 @@ test('Package Submission', async ({ page }) => {
   let currentStepStartTime = null;
   let testFailed = false;
 
-  // Helper to persist test data to JSON file
+  // Helper to persist test data to per-state JSON file
   function saveTestData() {
     try {
-      const testDataFile = path.join(__dirname, 'test-data.json');
+      const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
       fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
     } catch (e) {
-      console.log('⚠️ Could not save test-data.json:', e.message);
+      console.log(`⚠️ Could not save test-data-${testState}.json:`, e.message);
     }
   }
 
@@ -784,14 +784,6 @@ console.log('General Liability data entry started.');
   const fs = require('fs');
   const path = require('path');
 
-  // Append to file
-  const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] Quote Number: ${submissionNumber}\n`;
-
-  const filePath = path.join(__dirname, 'quoteNumbers.txt');
-  fs.appendFileSync(filePath, line, 'utf8');
-
-  console.log(`Quote Number appended to ${filePath}`);
 
   // Store submission number globally for email reporter
   global.testData.quoteNumber = submissionNumber;
@@ -812,10 +804,10 @@ console.log('General Liability data entry started.');
   saveTestData();
   console.log('📋 Test Data:', global.testData);
 
-  // Write test data to JSON file so reporter can read it
-  const testDataFile = path.join(__dirname, 'test-data.json');
+  // Write test data to per-state JSON file so reporter can read it
+  const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
-  console.log('💾 Test data written to test-data.json');
+  console.log(`💾 Test data written to test-data-${testState}.json`);
 
   console.log('✅ Test completed successfully');
 
@@ -825,18 +817,22 @@ console.log('General Liability data entry started.');
     console.error('❌ Test execution failed:', error.message);
     console.error('📍 Stack:', error.stack);
 
-    // Try to extract dynamic submission number from page header if present
+    // Only Strategy 4: Try any visible 10-digit number on the page
     try {
-      const headerLabel = await page.locator('#contentHeader_lblPolicyDetails').textContent({ timeout: 3000 });
-      if (headerLabel) {
-        const match = headerLabel.match(/(\d{10})/);
-        if (match && match[1]) {
-          global.testData.quoteNumber = match[1];
-          console.log(`🔍 Extracted submission number from header: ${match[1]}`);
+      let extractedNumber = null;
+      try {
+        const pageText = await page.locator('body').textContent({ timeout: 2000 });
+        const textMatch = pageText.match(/\b(\d{10})\b/);
+        if (textMatch && textMatch[1]) {
+          extractedNumber = textMatch[1];
+          console.log(`🔍 Extracted number from page text: ${extractedNumber}`);
         }
+      } catch (e) {}
+      if (extractedNumber) {
+        global.testData.quoteNumber = extractedNumber;
       }
     } catch (extractErr) {
-      console.log('⚠️ Could not extract submission number from header:', extractErr.message);
+      console.log('⚠️ Could not extract submission number:', extractErr.message);
     }
 
     trackMilestone('Test Execution Failed', 'FAILED', `${error.message}`);
@@ -845,10 +841,10 @@ console.log('General Liability data entry started.');
     global.testData.status = 'FAILED';
     global.testData.error = error.message;
 
-    // Write final test data with failure info
-    const testDataFile = path.join(__dirname, 'test-data.json');
+    // Write final test data with failure info to per-state file
+    const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
     fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
-    console.log('💾 Test data written to test-data.json with failure info');
+    console.log(`💾 Test data written to test-data-${testState}.json with failure info`);
 
     // Re-throw to mark test as failed in Playwright
     throw error;

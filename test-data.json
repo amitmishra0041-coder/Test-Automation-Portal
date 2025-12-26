@@ -5,18 +5,19 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-26T13:15:25.927Z",
+      "timestamp": "2025-12-26T15:26:15.278Z",
       "details": "",
-      "duration": "71.21s"
+      "duration": "71.17s"
     },
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2025-12-26T13:17:45.165Z",
-      "details": "locator.click: Target crashed \nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Building & Add Business' })\u001b[22m\n",
-      "duration": "139.24s"
+      "timestamp": "2025-12-26T15:30:29.491Z",
+      "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Occupancy ' })\u001b[22m\n\u001b[2m    - waiting for\" https://nautilustest.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingOccupancyCoverages.aspx&sid=C9BBD87175614EFEBF3BB0C904A1A6DA\" navigation to finish...\u001b[22m\n\u001b[2m    - navigated to \"https://nautilustest.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingOccupancyCoverages.aspx&sid=C9BBD87175614EFEBF3BB0C904A1A6DA\"\u001b[22m\n",
+      "duration": "254.21s"
     }
   ],
+  "quoteNumber": "3002611474",
   "status": "FAILED",
-  "error": "locator.click: Target crashed \nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Building & Add Business' })\u001b[22m\n"
+  "error": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Save Occupancy ' })\u001b[22m\n\u001b[2m    - waiting for\" https://nautilustest.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingOccupancyCoverages.aspx&sid=C9BBD87175614EFEBF3BB0C904A1A6DA\" navigation to finish...\u001b[22m\n\u001b[2m    - navigated to \"https://nautilustest.donegalgroup.com/crystal.aspx?p=CLPropertyBuildingOccupancyCoverages.aspx&sid=C9BBD87175614EFEBF3BB0C904A1A6DA\"\u001b[22m\n"
 }
