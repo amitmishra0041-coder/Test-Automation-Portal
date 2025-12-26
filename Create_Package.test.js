@@ -37,13 +37,13 @@ test('Package Submission', async ({ page }) => {
   let currentStepStartTime = null;
   let testFailed = false;
 
-  // Helper to persist test data to per-state JSON file
+  // Helper to persist test data to shared JSON file
   function saveTestData() {
     try {
-      const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
+      const testDataFile = path.join(__dirname, 'test-data.json');
       fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
     } catch (e) {
-      console.log(`⚠️ Could not save test-data-${testState}.json:`, e.message);
+      console.log('⚠️ Could not save test-data.json:', e.message);
     }
   }
 
@@ -804,10 +804,10 @@ console.log('General Liability data entry started.');
   saveTestData();
   console.log('📋 Test Data:', global.testData);
 
-  // Write test data to per-state JSON file so reporter can read it
-  const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
+  // Write test data to shared JSON file so reporter can read it
+  const testDataFile = path.join(__dirname, 'test-data.json');
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
-  console.log(`💾 Test data written to test-data-${testState}.json`);
+  console.log('💾 Test data written to test-data.json');
 
   console.log('✅ Test completed successfully');
 
@@ -841,10 +841,10 @@ console.log('General Liability data entry started.');
     global.testData.status = 'FAILED';
     global.testData.error = error.message;
 
-    // Write final test data with failure info to per-state file
-    const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
+    // Write final test data with failure info to shared file
+    const testDataFile = path.join(__dirname, 'test-data.json');
     fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
-    console.log(`💾 Test data written to test-data-${testState}.json with failure info`);
+    console.log('💾 Test data written to test-data.json with failure info');
 
     // Re-throw to mark test as failed in Playwright
     throw error;

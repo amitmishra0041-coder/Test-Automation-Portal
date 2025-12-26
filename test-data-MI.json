@@ -1,0 +1,23 @@
+{
+  "state": "MI",
+  "stateName": "Michigan",
+  "milestones": [
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:13:01.521Z",
+      "details": "",
+      "duration": "69.73s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2025-12-26T16:14:04.561Z",
+      "details": "page.waitForLoadState: Timeout 60000ms exceeded.",
+      "duration": "63.04s"
+    }
+  ],
+  "quoteNumber": "3003179443",
+  "status": "FAILED",
+  "error": "page.waitForLoadState: Timeout 60000ms exceeded."
+}

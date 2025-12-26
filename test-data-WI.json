@@ -1,0 +1,72 @@
+{
+  "state": "WI",
+  "stateName": "Wisconsin",
+  "milestones": [
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:56:55.234Z",
+      "details": "",
+      "duration": "70.60s"
+    },
+    {
+      "name": "Commercial Property Package Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:01:36.986Z",
+      "details": "Building, Business Income, Occupancy, Personal Property entered",
+      "duration": "281.75s"
+    },
+    {
+      "name": "General Liability Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:02:56.337Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "79.35s"
+    },
+    {
+      "name": "Inland Marine Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:03:33.185Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "36.85s"
+    },
+    {
+      "name": "Crime Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:03:54.746Z",
+      "details": "Crime coverage details entered",
+      "duration": "21.56s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:04:54.953Z",
+      "details": "Quote #: 3003179769",
+      "duration": "60.20s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:05:29.210Z",
+      "details": "",
+      "duration": "34.26s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:06:19.630Z",
+      "details": "",
+      "duration": "50.42s"
+    },
+    {
+      "name": "Policy Issued Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T16:08:53.940Z",
+      "details": "Policy #: 1003052800",
+      "duration": "154.31s"
+    }
+  ],
+  "quoteNumber": "3003179769",
+  "policyNumber": "1003052800",
+  "status": "PASSED"
+}

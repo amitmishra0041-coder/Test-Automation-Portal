@@ -102,26 +102,52 @@ try {
 }
 
 
-# Run each state sequentially (no background jobs)
+
+# Run up to 2 jobs in parallel (2 workers)
 $results = @()
 $startTime = [DateTime]::Now
-foreach ($state in $states) {
-    Write-Host "Starting Package test for state: $state" -ForegroundColor Green
-    Set-Location $projectPath
-    $env:TEST_STATE = $state
-    $env:TEST_ENV = $TestEnv
-    $env:TEST_TYPE = 'PACKAGE'
-    Write-Host "[$state] Running Package test from: $(Get-Location)" -ForegroundColor Cyan
-    $logPath = Join-Path $projectPath ("test-run-output-package-" + $state + ".txt")
-    $headedFlag = if ($Headed.IsPresent) { "--headed" } else { "" }
-    & npx playwright test Create_Package.test.js --project=$Project $headedFlag 2>&1 | Tee-Object -FilePath $logPath
-    $exitCode = $LASTEXITCODE
-    $results += @{ State = $state; ExitCode = $exitCode }
-    if ($exitCode -eq 0) {
-        Write-Host "    [$state] Package test PASSED" -ForegroundColor Green
-    } else {
-        Write-Host "    [$state] Package test FAILED" -ForegroundColor Red
+$maxParallel = 2
+$pendingStates = $states.Clone()
+$activeJobs = @()
+
+while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
+    # Start jobs if we have capacity
+    while ($activeJobs.Count -lt $maxParallel -and $pendingStates.Count -gt 0) {
+        $state = $pendingStates[0]
+        $pendingStates = $pendingStates[1..($pendingStates.Count-1)]
+        Write-Host "Starting Package test for state: $state" -ForegroundColor Green
+        $job = Start-Job -Name "Package-Test-$state" -ScriptBlock {
+            param($s, $e, $projPath, $proj, $isHeaded)
+            Set-Location $projPath
+            $env:TEST_STATE = $s
+            $env:TEST_ENV = $e
+            $env:TEST_TYPE = 'PACKAGE'
+            Write-Host "[$s] Running Package test from: $(Get-Location)" -ForegroundColor Cyan
+            $logPath = Join-Path $projPath ("test-run-output-package-" + $s + ".txt")
+            $headedFlag = if ($isHeaded) { "--headed" } else { "" }
+            & npx playwright test Create_Package.test.js --project=$proj $headedFlag 2>&1 | Tee-Object -FilePath $logPath
+            return @{ State = $s; ExitCode = $LASTEXITCODE }
+        } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
+        $activeJobs += $job
     }
+    # Wait for any job to finish
+    if ($activeJobs.Count -gt 0) {
+        $finished = Wait-Job -Job $activeJobs -Any | Where-Object { $_ -ne $null }
+        foreach ($job in $activeJobs) {
+            if ($job.State -eq 'Completed' -or $job.State -eq 'Failed') {
+                $jobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+                $result = $jobOutput | Where-Object { $_ -is [hashtable] -and $_.State -and $null -ne $_.ExitCode } | Select-Object -First 1
+                if ($result) {
+                    Write-Host "    [$($result.State)] Package test completed (ExitCode: $($result.ExitCode))" -ForegroundColor Cyan
+                    $results += $result
+                }
+                Remove-Job -Job $job -Force
+            }
+        }
+        # Remove finished jobs from activeJobs
+        $activeJobs = $activeJobs | Where-Object { $_.State -eq 'Running' }
+    }
+    Start-Sleep -Seconds 1
 }
 $now = [DateTime]::Now
 $totalTime = ($now - $startTime).TotalSeconds

@@ -5,18 +5,68 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-26T15:31:52.838Z",
+      "timestamp": "2025-12-26T15:37:45.059Z",
       "details": "",
-      "duration": "71.83s"
+      "duration": "72.38s"
     },
     {
-      "name": "Test Execution Failed",
-      "status": "FAILED",
-      "timestamp": "2025-12-26T15:35:10.839Z",
-      "details": "locator.fill: Target page, context or browser has been closed",
-      "duration": "198.00s"
+      "name": "Commercial Property Package Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:42:32.643Z",
+      "details": "Building, Business Income, Occupancy, Personal Property entered",
+      "duration": "287.58s"
+    },
+    {
+      "name": "General Liability Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:43:55.785Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "83.14s"
+    },
+    {
+      "name": "Inland Marine Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:44:32.417Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "36.63s"
+    },
+    {
+      "name": "Crime Completed",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:44:54.520Z",
+      "details": "Crime coverage details entered",
+      "duration": "22.10s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:45:54.713Z",
+      "details": "Quote #: 3003179766",
+      "duration": "60.19s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:46:30.510Z",
+      "details": "",
+      "duration": "35.80s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:47:29.443Z",
+      "details": "",
+      "duration": "58.93s"
+    },
+    {
+      "name": "Policy Issued Successfully",
+      "status": "PASSED",
+      "timestamp": "2025-12-26T15:50:00.375Z",
+      "details": "Policy #: 1003052798",
+      "duration": "150.93s"
     }
   ],
-  "status": "FAILED",
-  "error": "locator.fill: Target page, context or browser has been closed"
+  "quoteNumber": "3003179766",
+  "policyNumber": "1003052798",
+  "status": "PASSED"
 }
