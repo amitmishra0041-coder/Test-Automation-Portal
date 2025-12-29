@@ -1,20 +1,13 @@
 {
-  "state": "MI",
-  "stateName": "Michigan",
+  "state": "DE",
+  "stateName": "Delaware",
   "milestones": [
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2025-12-29T14:48:30.353Z",
+      "timestamp": "2025-12-29T14:51:42.387Z",
       "details": "",
-      "duration": "69.44s"
-    },
-    {
-      "name": "Test Execution Failed",
-      "status": "FAILED",
-      "timestamp": "2025-12-29T14:49:10.361Z",
-      "details": "locator.click: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('button').filter({ hasText: /^$/ }).nth(1)\u001b[22m\n\u001b[2m    - locator resolved to <button title=\"\" tabindex=\"-1\" type=\"button\" role=\"button\" class=\"ui-button ui-widget ui-state-default ui-button-icon-only ui-corner-right ui-button-icon ui-combobox-button ui-combobox-button-default\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m  - element was detached from the DOM, retrying\u001b[22m\n",
-      "duration": "40.01s"
+      "duration": "70.67s"
     }
   ]
 }

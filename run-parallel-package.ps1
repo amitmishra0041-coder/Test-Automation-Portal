@@ -112,12 +112,10 @@ $pendingStates = $states.Clone()
 # Always initialize as array
 $activeJobs = @()
 
-    # Track the last job start time
-    if (-not $lastJobStartTime) {
-        $lastJobStartTime = $null
-    }
+### Main parallel job loop (fix block structure)
+$lastJobStartTime = $null
+while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
     while ($activeJobs.Count -lt $maxParallel -and $pendingStates.Count -gt 0) {
-        # Enforce 30 seconds between job starts
         if ($lastJobStartTime) {
             $elapsed = [int]([DateTime]::Now - $lastJobStartTime).TotalSeconds
             if ($elapsed -lt 30) {
