@@ -96,32 +96,59 @@ try {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
-# Start a job for each state
-foreach ($state in $states) {
-    Write-Host "Starting test for state: $state" -ForegroundColor Green
-    
-    $jobs += Start-Job -Name "Test-$state" -ScriptBlock {
-        param($s, $e, $projPath, $proj, $isHeaded)
-        
-        # Change to project directory in this job's context
-        Set-Location $projPath
-        
-        $env:TEST_STATE = $s
-        $env:TEST_ENV = $e
-        $env:TEST_TYPE = 'BOP'
-        
-        Write-Host "[$s] Running test from: $(Get-Location)" -ForegroundColor Cyan
-        
-        # Run the test and tee output to per-state log
-        $logPath = Join-Path $projPath ("test-run-output-" + $s + ".txt")
-        $headedFlag = if ($isHeaded) { "--headed" } else { "" }
-        & npx playwright test Create_BOP.test.js --project=$proj $headedFlag 2>&1 | Tee-Object -FilePath $logPath
-        
-        return @{
-            State = $s
-            ExitCode = $LASTEXITCODE
+### Allow up to 3 jobs in parallel, and ensure 30s between job starts
+$maxParallel = 3
+$pendingStates = $states.Clone()
+$activeJobs = @()
+$lastJobStartTime = $null
+while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
+    while ($activeJobs.Count -lt $maxParallel -and $pendingStates.Count -gt 0) {
+        if ($lastJobStartTime) {
+            $elapsed = [int]([DateTime]::Now - $lastJobStartTime).TotalSeconds
+            if ($elapsed -lt 30) {
+                $waitTime = 30 - $elapsed
+                Write-Host "Waiting $waitTime seconds before starting next iteration..." -ForegroundColor Yellow
+                Start-Sleep -Seconds $waitTime
+            }
         }
-    } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
+        $state = $pendingStates[0]
+        if ($pendingStates.Count -eq 1) {
+            $pendingStates = @()
+        } else {
+            $pendingStates = $pendingStates[1..($pendingStates.Count-1)]
+        }
+        Write-Host "Starting test for state: $state" -ForegroundColor Green
+        $job = Start-Job -Name "Test-$state" -ScriptBlock {
+            param($s, $e, $projPath, $proj, $isHeaded)
+            Set-Location $projPath
+            $env:TEST_STATE = $s
+            $env:TEST_ENV = $e
+            $env:TEST_TYPE = 'BOP'
+            Write-Host "[$s] Running test from: $(Get-Location)" -ForegroundColor Cyan
+            $logPath = Join-Path $projPath ("test-run-output-" + $s + ".txt")
+            $headedFlag = if ($isHeaded) { "--headed" } else { "" }
+            & npx playwright test Create_BOP.test.js --project=$proj $headedFlag 2>&1 | Tee-Object -FilePath $logPath
+            return @{ State = $s; ExitCode = $LASTEXITCODE }
+        } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
+        $activeJobs = @($activeJobs + $job)
+        $lastJobStartTime = [DateTime]::Now
+    }
+    # Wait for any job to finish
+    if ($activeJobs.Count -gt 0) {
+        $finished = Wait-Job -Job $activeJobs -Any | Where-Object { $_ -ne $null }
+        foreach ($job in $activeJobs) {
+            if ($job.State -eq 'Completed' -or $job.State -eq 'Failed') {
+                $jobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+                $result = $jobOutput | Where-Object { $_ -is [hashtable] -and $_.State -and $null -ne $_.ExitCode } | Select-Object -First 1
+                if ($result) {
+                    Write-Host "    [$($result.State)] Test completed (ExitCode: $($result.ExitCode))" -ForegroundColor Cyan
+                }
+                Remove-Job -Job $job -Force
+            }
+        }
+        $activeJobs = @($activeJobs | Where-Object { $_.State -eq 'Running' })
+    }
+    Start-Sleep -Seconds 1
 }
 
 Write-Host "`nAll $($states.Count) tests started in parallel. Showing real-time output below...`n" -ForegroundColor Cyan

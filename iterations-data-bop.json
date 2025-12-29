@@ -1,0 +1,254 @@
+[
+  {
+    "iterationNumber": 1,
+    "status": "PASSED",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "3003179917",
+    "policyNumber": "1003052825",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:24:24.051Z",
+        "details": "",
+        "duration": "74.22s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:26:44.424Z",
+        "details": "",
+        "duration": "140.37s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:27:05.406Z",
+        "details": "Quote #: 3003179917",
+        "duration": "20.98s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:27:41.479Z",
+        "details": "",
+        "duration": "36.07s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:28:24.268Z",
+        "details": "",
+        "duration": "42.79s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:30:54.662Z",
+        "details": "Policy #: 1003052825",
+        "duration": "150.39s"
+      }
+    ],
+    "timestamp": "2025-12-29T14:30:54.921Z",
+    "duration": "464.82",
+    "runId": "2025-12-29T09:23:00.9891751-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 2,
+    "status": "PASSED",
+    "state": "DE",
+    "stateName": "Delaware",
+    "quoteNumber": "3003179919",
+    "policyNumber": "1003052826",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:32:10.805Z",
+        "details": "",
+        "duration": "70.43s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:34:33.677Z",
+        "details": "",
+        "duration": "142.87s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:34:56.650Z",
+        "details": "Quote #: 3003179919",
+        "duration": "22.97s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:35:32.961Z",
+        "details": "",
+        "duration": "36.31s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:36:22.386Z",
+        "details": "",
+        "duration": "49.42s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:38:52.318Z",
+        "details": "Policy #: 1003052826",
+        "duration": "149.93s"
+      }
+    ],
+    "timestamp": "2025-12-29T14:38:52.570Z",
+    "duration": "471.93",
+    "runId": "2025-12-29T09:23:00.9891751-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 3,
+    "status": "PASSED",
+    "state": "OH",
+    "stateName": "Ohio",
+    "quoteNumber": "3003179920",
+    "policyNumber": "1003052827",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:32:11.482Z",
+        "details": "",
+        "duration": "71.75s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:34:37.319Z",
+        "details": "",
+        "duration": "145.84s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:35:00.024Z",
+        "details": "Quote #: 3003179920",
+        "duration": "22.70s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:36:22.558Z",
+        "details": "",
+        "duration": "82.53s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:37:09.595Z",
+        "details": "",
+        "duration": "47.03s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:39:43.938Z",
+        "details": "Policy #: 1003052827",
+        "duration": "154.34s"
+      }
+    ],
+    "timestamp": "2025-12-29T14:39:45.017Z",
+    "duration": "524.19",
+    "runId": "2025-12-29T09:23:00.9891751-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 4,
+    "status": "PASSED",
+    "state": "WI",
+    "stateName": "Wisconsin",
+    "quoteNumber": "3003179923",
+    "policyNumber": "1003052828",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:41:01.314Z",
+        "details": "",
+        "duration": "71.10s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:43:10.351Z",
+        "details": "",
+        "duration": "129.03s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:43:34.323Z",
+        "details": "Quote #: 3003179923",
+        "duration": "23.97s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:44:07.431Z",
+        "details": "",
+        "duration": "33.11s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:44:48.233Z",
+        "details": "",
+        "duration": "40.80s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:47:15.996Z",
+        "details": "Policy #: 1003052828",
+        "duration": "147.76s"
+      }
+    ],
+    "timestamp": "2025-12-29T14:47:16.286Z",
+    "duration": "445.77",
+    "runId": "2025-12-29T09:23:00.9891751-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 5,
+    "status": "FAILED",
+    "state": "MI",
+    "stateName": "Michigan",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-29T14:48:30.353Z",
+        "details": "",
+        "duration": "69.44s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-29T14:49:10.361Z",
+        "details": "locator.click: Page crashed\nCall log:\n\u001b[2m  - waiting for getByRole('button').filter({ hasText: /^$/ }).nth(1)\u001b[22m\n\u001b[2m    - locator resolved to <button title=\"\" tabindex=\"-1\" type=\"button\" role=\"button\" class=\"ui-button ui-widget ui-state-default ui-button-icon-only ui-corner-right ui-button-icon ui-combobox-button ui-combobox-button-default\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"ui-widget-overlay ui-front\"></div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m  - element was detached from the DOM, retrying\u001b[22m\n",
+        "duration": "40.01s"
+      }
+    ],
+    "timestamp": "2025-12-29T14:49:10.556Z",
+    "duration": "109.45",
+    "runId": "2025-12-29T09:23:00.9891751-05:00",
+    "suite": "BOP"
+  }
+]

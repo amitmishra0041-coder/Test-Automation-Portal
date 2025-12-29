@@ -106,15 +106,26 @@ try {
 # Run up to 2 jobs in parallel (2 workers)
 $results = @()
 $startTime = [DateTime]::Now
-$maxParallel = 2
+$maxParallel = 3
 $pendingStates = $states.Clone()
 
 # Always initialize as array
 $activeJobs = @()
 
-while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
-    # Start jobs if we have capacity
+    # Track the last job start time
+    if (-not $lastJobStartTime) {
+        $lastJobStartTime = $null
+    }
     while ($activeJobs.Count -lt $maxParallel -and $pendingStates.Count -gt 0) {
+        # Enforce 30 seconds between job starts
+        if ($lastJobStartTime) {
+            $elapsed = [int]([DateTime]::Now - $lastJobStartTime).TotalSeconds
+            if ($elapsed -lt 30) {
+                $waitTime = 30 - $elapsed
+                Write-Host "Waiting $waitTime seconds before starting next iteration..." -ForegroundColor Yellow
+                Start-Sleep -Seconds $waitTime
+            }
+        }
         $state = $pendingStates[0]
         if ($pendingStates.Count -eq 1) {
             $pendingStates = @()
@@ -135,6 +146,7 @@ while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
             return @{ State = $s; ExitCode = $LASTEXITCODE }
         } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
         $activeJobs = @($activeJobs + $job)
+        $lastJobStartTime = [DateTime]::Now
     }
     # Wait for any job to finish
     if ($activeJobs.Count -gt 0) {
