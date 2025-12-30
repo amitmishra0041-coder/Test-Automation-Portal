@@ -96,57 +96,82 @@ try {
     Write-Host "⚠️ Failed to initialize lock or clean artifacts: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
-### Allow up to 3 jobs in parallel, and ensure 30s between job starts
+
+# Match package runner: true parallelism, resource logging, per-iteration timing
+$results = @()
+$startTime = [DateTime]::Now
 $maxParallel = 3
 $pendingStates = $states.Clone()
-$activeJobs = @()
-$lastJobStartTime = $null
-while ($pendingStates.Count -gt 0 -or $activeJobs.Count -gt 0) {
-    while ($activeJobs.Count -lt $maxParallel -and $pendingStates.Count -gt 0) {
-        if ($lastJobStartTime) {
-            $elapsed = [int]([DateTime]::Now - $lastJobStartTime).TotalSeconds
-            if ($elapsed -lt 30) {
-                $waitTime = 30 - $elapsed
-                Write-Host "Waiting $waitTime seconds before starting next iteration..." -ForegroundColor Yellow
-                Start-Sleep -Seconds $waitTime
+$activeProcs = @()
+$lastStartTime = $null
+
+# Buffer to store per-state logs until completion
+$stateLogs = @{}
+
+while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
+    # Remove finished processes
+    $stillRunning = @()
+    foreach ($procInfo in $activeProcs) {
+        if (!$procInfo.proc.HasExited) {
+            $stillRunning += $procInfo
+        } else {
+            $endTime = Get-Date
+            $exitCode = $procInfo.proc.ExitCode
+            $duration = $null
+            if ($procInfo.startTime) {
+                $duration = ($endTime - $procInfo.startTime).TotalSeconds
             }
+            # Log resource usage at end
+            $procStats = $null
+            try {
+                $procStats = Get-Process -Id $procInfo.proc.Id -ErrorAction SilentlyContinue
+            } catch {}
+            $cpu = $procStats.CPU
+            $mem = $procStats.WorkingSet64
+
+            # Compose all logs for this state
+            $state = $procInfo.state
+            $logBuffer = $stateLogs[$state]
+            if (-not $logBuffer) { $logBuffer = @() }
+            $logBuffer += "    [$state] BOP test completed (ExitCode: $exitCode, Duration: $duration s, CPU: $cpu, RAM: $mem)"
+            # Print all logs for this state together
+            Write-Host "" -NoNewline
+            foreach ($line in $logBuffer) { Write-Host $line }
+            $stateLogs.Remove($state)
+
+            $results += @{ State = $state; ExitCode = $exitCode; Duration = $duration; CPU = $cpu; RAM = $mem; ParallelAtStart = $procInfo.parallelAtStart }
         }
+    }
+    $activeProcs = $stillRunning
+
+    $canStart = $activeProcs.Count -lt $maxParallel -and $pendingStates.Count -gt 0
+    $enoughTimeElapsed = $true
+    if ($lastStartTime) {
+        $elapsed = [int]([DateTime]::Now - $lastStartTime).TotalSeconds
+        if ($elapsed -lt 30) { $enoughTimeElapsed = $false }
+    }
+    if ($canStart -and $enoughTimeElapsed) {
         $state = $pendingStates[0]
         if ($pendingStates.Count -eq 1) {
             $pendingStates = @()
         } else {
             $pendingStates = $pendingStates[1..($pendingStates.Count-1)]
         }
-        Write-Host "Starting test for state: $state" -ForegroundColor Green
-        $job = Start-Job -Name "Test-$state" -ScriptBlock {
-            param($s, $e, $projPath, $proj, $isHeaded)
-            Set-Location $projPath
-            $env:TEST_STATE = $s
-            $env:TEST_ENV = $e
-            $env:TEST_TYPE = 'BOP'
-            Write-Host "[$s] Running test from: $(Get-Location)" -ForegroundColor Cyan
-            $logPath = Join-Path $projPath ("test-run-output-" + $s + ".txt")
-            $headedFlag = if ($isHeaded) { "--headed" } else { "" }
-            & npx playwright test Create_BOP.test.js --project=$proj $headedFlag 2>&1 | Tee-Object -FilePath $logPath
-            return @{ State = $s; ExitCode = $LASTEXITCODE }
-        } -ArgumentList $state, $TestEnv, $projectPath, $Project, $Headed.IsPresent
-        $activeJobs = @($activeJobs + $job)
-        $lastJobStartTime = [DateTime]::Now
-    }
-    # Wait for any job to finish
-    if ($activeJobs.Count -gt 0) {
-        $finished = Wait-Job -Job $activeJobs -Any | Where-Object { $_ -ne $null }
-        foreach ($job in $activeJobs) {
-            if ($job.State -eq 'Completed' -or $job.State -eq 'Failed') {
-                $jobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-                $result = $jobOutput | Where-Object { $_ -is [hashtable] -and $_.State -and $null -ne $_.ExitCode } | Select-Object -First 1
-                if ($result) {
-                    Write-Host "    [$($result.State)] Test completed (ExitCode: $($result.ExitCode))" -ForegroundColor Cyan
-                }
-                Remove-Job -Job $job -Force
-            }
-        }
-        $activeJobs = @($activeJobs | Where-Object { $_.State -eq 'Running' })
+        $iterationStart = Get-Date
+        $parallelAtStart = $activeProcs.Count + 1
+        # Buffer logs for this state
+        $logBuffer = @()
+        $logBuffer += ("Starting BOP test for state: $state at $iterationStart (Parallel jobs: $parallelAtStart)")
+        $cpuStart = (Get-Process -Id $PID).CPU
+        $memStart = (Get-Process -Id $PID).WorkingSet64
+        $logBuffer += ("    [Resource at start] CPU: $cpuStart, RAM: $memStart")
+        $stateLogs[$state] = $logBuffer
+        $logPath = Join-Path $projectPath ("test-run-output-" + $state + ".txt")
+        $headedFlag = if ($Headed.IsPresent) { "--headed" } else { "" }
+        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=BOP" && npx playwright test Create_BOP.test.js --project=' + $Project + ' ' + $headedFlag + ' > "' + $logPath + '" 2>&1'
+        $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @('/c', $envCmd) -WorkingDirectory $projectPath -WindowStyle Hidden -PassThru
+        $activeProcs += @{ proc = $proc; state = $state; log = $logPath; startTime = $iterationStart; parallelAtStart = $parallelAtStart; cpuStart = $cpuStart; memStart = $memStart }
+        $lastStartTime = $iterationStart
     }
     Start-Sleep -Seconds 1
 }

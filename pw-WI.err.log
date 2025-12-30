@@ -1,0 +1,13 @@
+❌ Test execution failed: page.waitForLoadState: Timeout 60000ms exceeded.
+=========================== logs ===========================
+  "commit" event fired
+  "domcontentloaded" event fired
+  "load" event fired
+============================================================
+📍 Stack: page.waitForLoadState: Timeout 60000ms exceeded.
+=========================== logs ===========================
+  "commit" event fired
+  "domcontentloaded" event fired
+  "load" event fired
+============================================================
+    at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:248:14

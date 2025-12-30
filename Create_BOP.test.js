@@ -10,7 +10,7 @@ const { createAccountAndQualify } = require('./accountCreationHelper');
 const fs = require('fs');
 const path = require('path');
 
-test('Package Submission', async ({ page }) => {
+test('Package Submission', async ({ page }, testInfo) => {
   test.setTimeout(1200000); // 20 minutes total test timeout
   page.setDefaultTimeout(60000); // 60 seconds default timeout for all actions
 
@@ -32,8 +32,39 @@ test('Package Submission', async ({ page }) => {
   global.testData = {
     state: testState,
     stateName: stateConfig.name,
-    milestones: []
+    milestones: [],
+    httpTimings: [],
+    networkErrors: [],
+    retryCount: testInfo.retry || 0
   };
+    // Track HTTP response times and errors
+    page.on('response', async (response) => {
+      try {
+        const url = response.url();
+        const status = response.status();
+        const timing = response.timing();
+        const startTime = timing && timing.startTime ? timing.startTime : null;
+        const endTime = timing && timing.responseEnd ? timing.responseEnd : null;
+        let duration = null;
+        if (startTime && endTime) duration = (endTime - startTime) / 1000;
+        else if (response.request().timing()) {
+          const reqTiming = response.request().timing();
+          if (reqTiming.startTime && reqTiming.responseEnd)
+            duration = (reqTiming.responseEnd - reqTiming.startTime) / 1000;
+        }
+        // Only log for XHR/fetch or important URLs
+        if (response.request().resourceType() === 'xhr' || response.request().resourceType() === 'fetch' || /api|service|rest|json/i.test(url)) {
+          global.testData.httpTimings.push({ url, status, duration, timestamp: new Date().toISOString() });
+        }
+        if (status >= 400) {
+          global.testData.networkErrors.push({ url, status, timestamp: new Date().toISOString() });
+        }
+      } catch (e) {}
+    });
+
+    page.on('requestfailed', request => {
+      global.testData.networkErrors.push({ url: request.url(), error: request.failure(), timestamp: new Date().toISOString() });
+    });
   let currentStepStartTime = null;
   let testFailed = false;
 
@@ -72,6 +103,9 @@ test('Package Submission', async ({ page }) => {
     // Reset timer for next step
     currentStepStartTime = new Date();
   }
+
+  // Ensure retry count is always up to date
+  global.testData.retryCount = testInfo.retry || 0;
 
   // Start timing from first milestone
   currentStepStartTime = new Date();

@@ -10,7 +10,7 @@ const { createAccountAndQualify } = require('./accountCreationHelper');
 const fs = require('fs');
 const path = require('path');
 
-test('Package Submission', async ({ page }) => {
+test('Package Submission', async ({ page }, testInfo) => {
   test.setTimeout(1200000); // 20 minutes total test timeout
   page.setDefaultTimeout(60000); // 60 seconds default timeout for all actions
 
@@ -32,8 +32,39 @@ test('Package Submission', async ({ page }) => {
   global.testData = {
     state: testState,
     stateName: stateConfig.name,
-    milestones: []
+    milestones: [],
+    httpTimings: [],
+    networkErrors: [],
+    retryCount: testInfo.retry || 0
   };
+    // Track HTTP response times and errors
+    page.on('response', async (response) => {
+      try {
+        const url = response.url();
+        const status = response.status();
+        const timing = response.timing();
+        const startTime = timing && timing.startTime ? timing.startTime : null;
+        const endTime = timing && timing.responseEnd ? timing.responseEnd : null;
+        let duration = null;
+        if (startTime && endTime) duration = (endTime - startTime) / 1000;
+        else if (response.request().timing()) {
+          const reqTiming = response.request().timing();
+          if (reqTiming.startTime && reqTiming.responseEnd)
+            duration = (reqTiming.responseEnd - reqTiming.startTime) / 1000;
+        }
+        // Only log for XHR/fetch or important URLs
+        if (response.request().resourceType() === 'xhr' || response.request().resourceType() === 'fetch' || /api|service|rest|json/i.test(url)) {
+          global.testData.httpTimings.push({ url, status, duration, timestamp: new Date().toISOString() });
+        }
+        if (status >= 400) {
+          global.testData.networkErrors.push({ url, status, timestamp: new Date().toISOString() });
+        }
+      } catch (e) {}
+    });
+
+    page.on('requestfailed', request => {
+      global.testData.networkErrors.push({ url: request.url(), error: request.failure(), timestamp: new Date().toISOString() });
+    });
   let currentStepStartTime = null;
   let testFailed = false;
 
@@ -73,6 +104,9 @@ test('Package Submission', async ({ page }) => {
     currentStepStartTime = new Date();
   }
 
+  // Ensure retry count is always up to date
+  global.testData.retryCount = testInfo.retry || 0;
+
   // Start timing from first milestone
   currentStepStartTime = new Date();
 
@@ -110,6 +144,8 @@ test('Package Submission', async ({ page }) => {
   }
 
   try {
+    // Track start milestone
+    trackMilestone('Test Started', 'STARTED');
     // Main test flow wrapped in try-catch
 
     // Helper function to click optional buttons
@@ -130,10 +166,12 @@ test('Package Submission', async ({ page }) => {
       clickIfExists,
       trackMilestone
     });
+    trackMilestone('Account Created & Qualified');
 
     // Wait for next page to fully load before interacting with package selection
     await page.waitForTimeout(3000);
     await page.waitForLoadState('networkidle');
+    trackMilestone('Loaded Package Selection Page');
 
     // Select Commercial Package by clicking its visible UI checkbox icon
     const commercialPackageIcon = page.locator('#chk_CommercialPackage + .ui-checkbox-icon');
@@ -142,6 +180,7 @@ test('Package Submission', async ({ page }) => {
   await commercialPackageIcon.click();
 
   await safeClick(page.getByRole('button', { name: 'Next' }));
+  trackMilestone('Clicked Next after Package Selection');
     // Wait for any overlay to disappear
     await page.waitForSelector('.ui-widget-overlay.ui-front', { state: 'hidden' }).catch(() => { });
     // Click button with force to bypass pointer interception
@@ -165,20 +204,25 @@ test('Package Submission', async ({ page }) => {
     throw new Error('No prior carrier options available');
   }
   await priorCarrierSelect.selectOption(firstCarrierValue);
+  trackMilestone('Selected Prior Carrier');
   console.log(`✅ Selected prior carrier: ${firstCarrierValue}`);
   
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Prior Carrier');
   await page.waitForLoadState('networkidle');
+  trackMilestone('Loaded Coverage Selection Page');
 
   // Toggle Inland Marine and Crime to "Yes" if not already selected (slider style controls)
   // Scroll into view and use JavaScript to click the actual checkbox element
   await page.waitForTimeout(1000); // Wait for slider rendering
+  trackMilestone('Coverage Sliders Ready');
 
   // Toggle Inland Marine - scroll and click via JavaScript
   await page.locator('#cbInlandMarine').scrollIntoViewIfNeeded();
   const inlandChecked = await page.locator('#cbInlandMarine').isChecked();
   if (!inlandChecked) {
     await page.locator('#cbInlandMarine').evaluate(el => el.click());
+    trackMilestone('Toggled Inland Marine');
     await page.waitForTimeout(500);
     console.log('✅ Inland Marine toggled to Yes');
   }
@@ -188,6 +232,7 @@ test('Package Submission', async ({ page }) => {
   const crimeChecked = await page.locator('#cbCrime').isChecked();
   if (!crimeChecked) {
     await page.locator('#cbCrime').evaluate(el => el.click());
+    trackMilestone('Toggled Crime');
     await page.waitForTimeout(500);
     console.log('✅ Crime toggled to Yes');
   }
@@ -196,29 +241,40 @@ test('Package Submission', async ({ page }) => {
   await page.waitForTimeout(1000);
   await page.locator('#btnConfirmSelections').click();
   await page.waitForTimeout(1500);
-  console.log('✅ Confirm Selections clicked');
+  trackMilestone('Confirmed Selections');
 
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Confirm Selections');
   await page.waitForLoadState('networkidle');
   await page.waitForLoadState('domcontentloaded');
-  console.log('Commercial Package data entry started.');
+  trackMilestone('Commercial Package Data Entry Started');
   await page.waitForTimeout(2500);
   await page.getByTitle('Edit Location').click();
+  trackMilestone('Edit Location Clicked');
   await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Yes' }).click();
+  trackMilestone('Confirmed Edit Location');
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: ' Cancel' }).click();
+  trackMilestone('Cancelled Edit Location');
   await page.waitForTimeout(1500);
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Edit Location');
   await page.waitForTimeout(1500);
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Edit Location 2');
   await page.waitForTimeout(1500);
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Edit Location 3');
   await page.waitForTimeout(2000);
   await page.getByTitle('Add the Coverage').click();
+  trackMilestone('Add the Coverage Clicked');
   await page.getByRole('button', { name: ' Add Scheduled Item' }).click();
+  trackMilestone('Add Scheduled Item Clicked');
   await page.getByRole('combobox', { name: 'Nothing selected' }).click();
+  trackMilestone('ComboBox Clicked');
   await page.getByRole('button', { name: 'Add New' }).click();
+  trackMilestone('Add New Clicked');
 
   // Select first available account location option (avoids brittle hardcoded JSON value)
   const accountSelect = page.locator('#ddlAccountLocations');
@@ -231,21 +287,34 @@ test('Package Submission', async ({ page }) => {
     throw new Error('No account location options available');
   }
   await accountSelect.selectOption(firstLocationValue);
+  trackMilestone('Account Location Selected');
 
   await page.locator('#xrgn_CLANIAddressTypeValue').getByRole('combobox', { name: 'Nothing selected' }).click();
+  trackMilestone('Address Type ComboBox Clicked');
   await page.locator('#bs-select-3-1').click();
+  trackMilestone('Address Type Selected');
   await page.getByRole('textbox', { name: 'Name' }).click();
+  trackMilestone('Name Textbox Clicked');
   await page.getByRole('textbox', { name: 'Name' }).fill('gfdgdf');
+  trackMilestone('Name Filled');
   await page.locator('#ThirdPartyContactsDialog_dialog_btn_0').click();
+  trackMilestone('Third Party Contact Dialog Saved');
   await page.locator('#txtNoticeDaysID').click();
+  trackMilestone('Notice Days Clicked');
   await page.locator('#txtNoticeDaysID').fill('15');
+  trackMilestone('Notice Days Filled');
   await page.locator('#CLPropertyAddlCoveragesScheduleItemDialog_dialog_btn_0').click();
+  trackMilestone('Schedule Item Dialog Saved');
   // Click Save on the parent schedule dialog (avoid strict-mode ambiguity)
   await page.locator('#CLPropertyAddlCoveragesScheduleDialog_dialog_btn_0').click();
+  trackMilestone('Schedule Dialog Saved');
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Schedule Dialog');
   //Commercial property locations
   await page.getByTitle('Edit Location').click();
+  trackMilestone('Edit Location Clicked 2');
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Edit Location 4');
   //State specific info, Blankets and Buildings
 
   // Wait for Save Location button to be fully ready
@@ -259,44 +328,75 @@ test('Package Submission', async ({ page }) => {
     await overlay.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
   await saveLocationBtn.click();
+  trackMilestone('Save Location Clicked');
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Save Location');
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Save Location 2');
   await page.locator('button').filter({ hasText: 'Add Building' }).click();
+  trackMilestone('Add Building Clicked');
   await page.locator('#bs-select-1-0').click();
+  trackMilestone('Building Option Selected');
   await page.locator('#txtBuildingDescription').click();
+  trackMilestone('Building Description Clicked');
   await page.locator('#txtBuildingDescription').fill('test desc');
+  trackMilestone('Building Description Filled');
   await page.locator('#txtClassDescription_displayAll > .input-group-text > .fas').click();
+  trackMilestone('Class Description Clicked');
   await page.getByRole('gridcell', { name: 'Airports - Hangars with repairing or servicing' }).click();
+  trackMilestone('Class Description Selected');
   await page.locator('#xrgn_CLPropertyBuildingDetails_ConstructionTypeToUseValue').getByRole('combobox', { name: 'Nothing selected' }).click();
+  trackMilestone('Construction Type ComboBox Clicked');
   await page.locator('#bs-select-6-0').click();
+  trackMilestone('Construction Type Selected');
   await page.waitForTimeout(1000);
   await page.locator('#txtNumberOfStories').click();
+  trackMilestone('Number Of Stories Clicked');
   await page.locator('#txtNumberOfStories').fill('15');
+  trackMilestone('Number Of Stories Filled');
   await page.waitForTimeout(1000);
   await page.getByRole('combobox', { name: 'Nothing selected' }).click();
+  trackMilestone('ComboBox Clicked 2');
   await page.waitForTimeout(1200);
   await page.locator('#bs-select-19-0').click();
+  trackMilestone('ComboBox Option Selected');
   await page.waitForTimeout(1000);
   await page.locator('#txtYearOfConstruction').click();
+  trackMilestone('Year Of Construction Clicked');
   await page.locator('#txtYearOfConstruction').fill('2015');
+  trackMilestone('Year Of Construction Filled');
   await page.waitForTimeout(1500);
   await safeClick(page.getByRole('button', { name: 'Next ' }));
+  trackMilestone('Clicked Next after Year Of Construction');
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
+  trackMilestone('Loaded After Year Of Construction');
 
   await page.locator('#xacc_CP7StructureBldg').getByTitle('Edit Coverage').click();
+  trackMilestone('Edit Coverage Clicked');
   await page.getByRole('link', { name: 'Create Estimator' }).click();
+  trackMilestone('Create Estimator Clicked');
   await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').click();
+  trackMilestone('Commercial Sq Ft Clicked');
   await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').fill('3256');
+  trackMilestone('Commercial Sq Ft Filled');
   await page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL').press('Tab');
+  trackMilestone('Commercial Sq Ft Tabbed');
   await page.waitForTimeout(500);
   await page.locator('#PRI-XT_TEMPLATE_ID_PRIMARY-VAL').click();
+  trackMilestone('Template ID Primary Clicked');
   await page.getByText('Apartment / Condominium').click();
+  trackMilestone('Apartment/Condo Selected');
   await page.getByRole('button', { name: 'Continue' }).click();
+  trackMilestone('Continue Clicked');
   await page.getByRole('button', { name: 'Calculate Now' }).click();
+  trackMilestone('Calculate Now Clicked');
   await page.getByRole('button', { name: 'Finish' }).click();
+  trackMilestone('Finish Clicked');
   await page.getByRole('button', { name: 'Import Data' }).click();
+  trackMilestone('Import Data Clicked');
   await page.getByRole('button', { name: ' Save' }).click();
+  trackMilestone('Save Clicked');
   await page.waitForTimeout(500);
   await safeClick(page.getByRole('button', { name: 'Next ' }));
   await page.waitForTimeout(2000);

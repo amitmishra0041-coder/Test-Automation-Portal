@@ -1,0 +1,3 @@
+❌ Test execution failed: page.waitForLoadState: Timeout 60000ms exceeded.
+📍 Stack: page.waitForLoadState: Timeout 60000ms exceeded.
+    at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:173:16

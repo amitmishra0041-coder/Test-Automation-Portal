@@ -184,13 +184,7 @@ class EmailReporter {
             const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
             const statusIcon = it.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED';
             const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-            
-            // Show submission number in LOB column for failed tests
-            let lobDisplay = `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`;
-            if (it.status !== 'PASSED' && it.quoteNumber && it.quoteNumber !== 'N/A') {
-              lobDisplay += `<br/><small style="color:#666;">Submission: ${it.quoteNumber}</small>`;
-            }
-            
+            const lobDisplay = `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`;
             return `
               <tr style="background:${bg};">
                 <td style="padding:12px;border:1px solid #ddd;">${lobDisplay}</td>
@@ -334,8 +328,29 @@ class EmailReporter {
           'Milestone': m.name,
           'Status': m.status || 'N/A',
           'Duration (s)': m.duration || '-',
-          'Timestamp': m.timestamp || '-'
+          'Timestamp': m.timestamp || '-',
         }));
+        // Always show quote number in the summary and iteration tab, even on failure
+        if (!it.quoteNumber && it.milestones) {
+          const failedMilestone = it.milestones.slice().reverse().find(m => (m.status || '').toUpperCase() === 'FAILED' && m.details && /\d{10}/.test(m.details));
+          if (failedMilestone) {
+            milestoneData.unshift({ 'Quote Number (from failure)': failedMilestone.details.match(/\d{10}/)[0] });
+          }
+        }
+        // Add new columns to the iteration tab after timestamp
+        if (milestoneData.length > 0) {
+          const perfCols = {
+            'Parallel Jobs at Start': it.ParallelAtStart || it.parallelAtStart || '',
+            'CPU at Start': it.cpuStart || '',
+            'RAM at Start': it.memStart || '',
+            'CPU at End': it.CPU || '',
+            'RAM at End': it.RAM || '',
+            'Retry Count': it.retryCount || (it.milestones && it.milestones.retryCount) || '',
+            'HTTP Timings': (it.httpTimings && it.httpTimings.length) ? it.httpTimings.map(h => `${h.status} ${h.duration ? h.duration + 's' : ''} ${h.url}`).join('\n') : '',
+            'Network Errors': (it.networkErrors && it.networkErrors.length) ? it.networkErrors.map(e => `${e.status || ''} ${e.url || ''} ${e.error || ''}`).join('\n') : ''
+          };
+          Object.assign(milestoneData[0], perfCols);
+        }
         const ws = XLSX.utils.json_to_sheet(milestoneData);
         const safeSuite = (it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_');
         const baseName = `${safeSuite}_${it.iterationNumber}`;

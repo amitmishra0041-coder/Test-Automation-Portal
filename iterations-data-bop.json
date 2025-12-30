@@ -1,0 +1,58 @@
+[
+  {
+    "iterationNumber": 1,
+    "status": "PASSED",
+    "state": "PA",
+    "stateName": "Pennsylvania",
+    "quoteNumber": "3003180046",
+    "policyNumber": "1003052851",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-30T14:04:49.458Z",
+        "details": "",
+        "duration": "70.67s"
+      },
+      {
+        "name": "Building and Classification Added",
+        "status": "PASSED",
+        "timestamp": "2025-12-30T14:07:13.388Z",
+        "details": "",
+        "duration": "143.92s"
+      },
+      {
+        "name": "Quote Rated Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-30T14:07:53.752Z",
+        "details": "Quote #: 3003180046",
+        "duration": "40.36s"
+      },
+      {
+        "name": "Submitting for Approval",
+        "status": "PASSED",
+        "timestamp": "2025-12-30T14:08:32.083Z",
+        "details": "",
+        "duration": "38.33s"
+      },
+      {
+        "name": "UW Issues Approved in PolicyCenter",
+        "status": "PASSED",
+        "timestamp": "2025-12-30T14:09:18.275Z",
+        "details": "",
+        "duration": "46.19s"
+      },
+      {
+        "name": "Policy Issued Successfully",
+        "status": "PASSED",
+        "timestamp": "2025-12-30T14:11:50.524Z",
+        "details": "Policy #: 1003052851",
+        "duration": "152.25s"
+      }
+    ],
+    "timestamp": "2025-12-30T14:11:50.842Z",
+    "duration": "491.72",
+    "runId": "2025-12-30T09:03:30.3576989-05:00",
+    "suite": "BOP"
+  }
+]
