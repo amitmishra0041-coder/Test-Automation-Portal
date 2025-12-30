@@ -1,57 +1,85 @@
 [
   {
     "iterationNumber": 1,
-    "status": "PASSED",
-    "state": "PA",
-    "stateName": "Pennsylvania",
-    "quoteNumber": "3003180046",
-    "policyNumber": "1003052851",
+    "status": "FAILED",
+    "state": "MI",
+    "stateName": "Michigan",
+    "quoteNumber": "N/A",
+    "policyNumber": "N/A",
     "milestones": [
       {
         "name": "Account Created",
         "status": "PASSED",
-        "timestamp": "2025-12-30T14:04:49.458Z",
+        "timestamp": "2025-12-30T14:13:09.778Z",
         "details": "",
-        "duration": "70.67s"
+        "duration": "72.90s"
+      },
+      {
+        "name": "Test Execution Failed",
+        "status": "FAILED",
+        "timestamp": "2025-12-30T14:14:52.042Z",
+        "details": "locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n",
+        "duration": "102.26s"
+      }
+    ],
+    "timestamp": "2025-12-30T14:14:53.811Z",
+    "duration": "175.16",
+    "runId": "2025-12-30T09:03:30.3576989-05:00",
+    "suite": "BOP"
+  },
+  {
+    "iterationNumber": 2,
+    "status": "PASSED",
+    "state": "OH",
+    "stateName": "Ohio",
+    "quoteNumber": "3003180050",
+    "policyNumber": "1003052852",
+    "milestones": [
+      {
+        "name": "Account Created",
+        "status": "PASSED",
+        "timestamp": "2025-12-30T14:13:08.918Z",
+        "details": "",
+        "duration": "73.97s"
       },
       {
         "name": "Building and Classification Added",
         "status": "PASSED",
-        "timestamp": "2025-12-30T14:07:13.388Z",
+        "timestamp": "2025-12-30T14:15:33.172Z",
         "details": "",
-        "duration": "143.92s"
+        "duration": "144.25s"
       },
       {
         "name": "Quote Rated Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-30T14:07:53.752Z",
-        "details": "Quote #: 3003180046",
-        "duration": "40.36s"
+        "timestamp": "2025-12-30T14:16:35.820Z",
+        "details": "Quote #: 3003180050",
+        "duration": "62.65s"
       },
       {
         "name": "Submitting for Approval",
         "status": "PASSED",
-        "timestamp": "2025-12-30T14:08:32.083Z",
+        "timestamp": "2025-12-30T14:17:12.940Z",
         "details": "",
-        "duration": "38.33s"
+        "duration": "37.12s"
       },
       {
         "name": "UW Issues Approved in PolicyCenter",
         "status": "PASSED",
-        "timestamp": "2025-12-30T14:09:18.275Z",
+        "timestamp": "2025-12-30T14:17:55.786Z",
         "details": "",
-        "duration": "46.19s"
+        "duration": "42.84s"
       },
       {
         "name": "Policy Issued Successfully",
         "status": "PASSED",
-        "timestamp": "2025-12-30T14:11:50.524Z",
-        "details": "Policy #: 1003052851",
-        "duration": "152.25s"
+        "timestamp": "2025-12-30T14:20:26.979Z",
+        "details": "Policy #: 1003052852",
+        "duration": "151.19s"
       }
     ],
-    "timestamp": "2025-12-30T14:11:50.842Z",
-    "duration": "491.72",
+    "timestamp": "2025-12-30T14:20:27.359Z",
+    "duration": "512.02",
     "runId": "2025-12-30T09:03:30.3576989-05:00",
     "suite": "BOP"
   }

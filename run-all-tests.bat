@@ -8,9 +8,9 @@ if "%ENV%"=="" set ENV=qa
 
 REM Run both suites in parallel across all states using PowerShell runners
 echo ==== Starting BOP (parallel) ====
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "DE,PA,WI,OH,MI" -Project chromium -Headed
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-bop.ps1" -TestEnv %ENV% -States "DE,PA,WI,OH,MI" -Project chromium --headed
 echo ==== Starting Package (parallel) ====
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-package.ps1" -TestEnv %ENV% -States "DE,PA,WI,OH,MI" -Project chromium -Headed
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-parallel-package.ps1" -TestEnv %ENV% -States "DE,PA,WI,OH,MI" -Project chromium --headed
 
 echo All parallel runs triggered. Monitor the terminal for progress.
 goto :eof
