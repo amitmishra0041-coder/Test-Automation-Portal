@@ -12,6 +12,10 @@ const ENV_URLS = {
     writeBizUrl: 'https://writebiztest.donegalgroup.com/agentlogin.aspx',
     policyCenterUrl: 'https://test-policycenter.donegalgroup.com/pc/PolicyCenter.do',
   },
+  perf: {
+    writeBizUrl: 'http://writebizperf.donegalgroup.com/agentlogin.aspx',
+    policyCenterUrl: 'http://perf-policycenter.donegalgroup.com/pc/PolicyCenter.do',
+  },
 };
 
 function getEnvUrls(envName = 'qa') {

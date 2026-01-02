@@ -4,6 +4,7 @@ REM Usage: run-package-test.bat [qa|test|prod] [state1 state2 ...] [headed]
 
 setlocal EnableExtensions EnableDelayedExpansion
 
+
 set "ENV="
 set "STATES="
 set "HEADED_FLAG="
@@ -13,10 +14,12 @@ REM Detect environment from first argument only if it matches known envs
 set "_envCandidate=%~1"
 if /I "%_envCandidate%"=="qa" (
     set "ENV=qa"
- ) else if /I "%_envCandidate%"=="test" (
+) else if /I "%_envCandidate%"=="test" (
     set "ENV=test"
- ) else if /I "%_envCandidate%"=="prod" (
+) else if /I "%_envCandidate%"=="prod" (
     set "ENV=prod"
+) else if /I "%_envCandidate%"=="perf" (
+    set "ENV=perf"
 )
 
 for %%A in (%*) do (

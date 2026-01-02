@@ -29,7 +29,8 @@ module.exports = defineConfig({
         }
       } 
     },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    // Temporarily disabled for focused debugging
+    //{ name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    //{ name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
 });

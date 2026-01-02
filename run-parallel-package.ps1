@@ -35,7 +35,7 @@ $pendingStates = [System.Collections.Generic.Queue[string]]::new()
 $states | ForEach-Object { $pendingStates.Enqueue($_) }
 
 $activeRuns = @()
-$lastStartTime = $null
+$lastStartTime = (Get-Date).AddSeconds(-$startDelaySeconds)
 $results = @()
 $startTime = Get-Date
 
@@ -151,7 +151,7 @@ while ($pendingStates.Count -gt 0 -or $activeRuns.Count -gt 0) {
 # -------------------------------
 $passed = ($results | Where-Object ExitCode -eq 0).Count
 $failed = ($results | Where-Object ExitCode -ne 0).Count
-$totalTime = (Get-Date - $startTime)
+$totalTime = (Get-Date) - $startTime
 
 Write-Host "`n===============================" -ForegroundColor Yellow
 Write-Host "PACKAGE TEST SUMMARY" -ForegroundColor Yellow
@@ -159,6 +159,12 @@ Write-Host "===============================" -ForegroundColor Yellow
 Write-Host "Total Time : $([int]$totalTime.TotalMinutes)m $([int]$totalTime.Seconds)s"
 Write-Host "Passed     : $passed"
 Write-Host "Failed     : $failed`n"
+
+# Cleanup: Remove lock files
+Write-Host "🧹 Cleaning up lock files..." -ForegroundColor Gray
+Remove-Item -Force "$PSScriptRoot\parallel-run-lock-*.json" -ErrorAction SilentlyContinue
+Remove-Item -Force "$PSScriptRoot\.batch-run-in-progress" -ErrorAction SilentlyContinue
+Write-Host "✅ Cleanup complete`n" -ForegroundColor Gray
 
 if ($failed -gt 0) {
     exit 1

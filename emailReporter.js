@@ -57,17 +57,20 @@ class EmailReporter {
       ];
       const anyLock = lockFiles.some(f => fs.existsSync(f));
 
-      if (!isBatchRun && !anyLock) {
-        // Fresh independent run: clear prior data
-        ['iterations-data-bop.json', 'iterations-data-package.json'].forEach(file => {
-          const fp = path.join(__dirname, file);
-          if (fs.existsSync(fp)) fs.unlinkSync(fp);
-        });
+      // Always clear old iterations-data for fresh single runs (unless batch marker exists)
+      if (!isBatchRun) {
+        // Fresh independent run: clear prior data from this suite
+        const suiteFile = path.join(__dirname, `iterations-data-${suiteLabel.toLowerCase()}.json`);
+        if (fs.existsSync(suiteFile)) {
+          fs.unlinkSync(suiteFile);
+          console.log(`🗑️  Cleared old iterations data: ${path.basename(suiteFile)}`);
+        }
         const testDataFile = path.join(__dirname, 'test-data.json');
         if (fs.existsSync(testDataFile)) fs.unlinkSync(testDataFile);
         this.runId = new Date().toISOString();
-      } else {
-        // Batch/parallel: ensure a runId exists in the suite lock file
+      }
+      // For batch runs, ensure a runId exists in the suite lock file
+      if (isBatchRun || anyLock) {
         let lockData = {};
         const lockPath = lockFiles.find(f => fs.existsSync(f));
         if (lockPath) {
