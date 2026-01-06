@@ -1069,29 +1069,8 @@ test('Package Submission', async ({ page }, testInfo) => {
   }
 });
 
-// Auto-send batch email after all tests complete
-test.afterAll(async () => {
-  // Only send on first worker to avoid duplicate emails
-  if (process.env.PLAYWRIGHT_WORKER_INDEX === '0' || !process.env.PLAYWRIGHT_WORKER_INDEX) {
-    try {
-      const suiteType = process.env.TEST_TYPE || 'PACKAGE';
-      const iterationFile = suiteType.toUpperCase() === 'BOP'
-        ? 'iterations-data-bop.json'
-        : 'iterations-data-package.json';
-      const reportTitle = suiteType.toUpperCase() === 'BOP'
-        ? 'WB BOP Test Report'
-        : 'WB Package Test Report';
-
-      // Wait a moment for all test data to be written
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      console.log('\n📧 Sending final batch email report...');
-      await require('./emailReporter.js').sendBatchEmailReport([iterationFile], reportTitle);
-    } catch (e) {
-      console.log('⚠️ Email sending skipped or failed:', e.message);
-    }
-  }
-});
+// Note: Consolidated batch email is sent by the parallel runner script.
+// Removed test-level afterAll email to avoid duplicate emails.
 
 
 

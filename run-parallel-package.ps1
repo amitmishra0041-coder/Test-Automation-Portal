@@ -165,24 +165,31 @@ Write-Host "Cleaning up lock files..." -ForegroundColor Gray
 Remove-Item -Force "$PSScriptRoot\parallel-run-lock-*.json" -ErrorAction SilentlyContinue
 Write-Host "Lock files cleanup complete`n" -ForegroundColor Gray
 
-# Send consolidated email report
+# Send consolidated email report (guarded to avoid duplicates)
 try {
-    Write-Host "Sending consolidated email report..." -ForegroundColor Cyan
-    $projectPath = $PSScriptRoot
-    Push-Location $projectPath
-    $nodeCmd = @"
+    $batchEmailSent = Join-Path $PSScriptRoot '.batch-email-sent'
+    if (Test-Path $batchEmailSent) {
+        Write-Host "Batch email already sent; skipping" -ForegroundColor Gray
+    } else {
+        Write-Host "Sending consolidated email report..." -ForegroundColor Cyan
+        Push-Location $PSScriptRoot
+        $nodeCmd = @"
 const EmailReporter = require('./emailReporter.js');
 EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report');
 "@
-    & node -e $nodeCmd
-    Pop-Location
-    Write-Host "Consolidated email sent successfully`n" -ForegroundColor Green
+        & node -e $nodeCmd
+        Pop-Location
+        # Mark as sent
+        'sent' | Out-File -FilePath $batchEmailSent -Force -Encoding ASCII
+        Write-Host "Consolidated email sent successfully`n" -ForegroundColor Green
+    }
 } catch {
     Write-Host "Failed to send consolidated email: $($_.Exception.Message)`n" -ForegroundColor Yellow
 }
 
 # Clean up batch marker AFTER sending email
 Remove-Item -Force "$PSScriptRoot\.batch-run-in-progress" -ErrorAction SilentlyContinue
+Remove-Item -Force "$PSScriptRoot\.batch-email-sent" -ErrorAction SilentlyContinue
 Write-Host "Batch run complete`n" -ForegroundColor Gray
 
 if ($failed -gt 0) {
