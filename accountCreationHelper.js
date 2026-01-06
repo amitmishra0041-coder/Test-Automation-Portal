@@ -41,9 +41,9 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   
   const searchTextField = page.getByText('Enter Search Text here or');
   await searchTextField.click();
-  await page.locator('#txtAgency_input').fill('0008707');
-  await page.getByRole('gridcell', { name: '0008707' }).click();
-  await page.locator('#ui-id-9').getByText('BRENT W. PARENTEAU').click();
+  await page.locator('#txtAgency_input').fill('0000988');
+  await page.getByRole('gridcell', { name: '0000988' }).click();
+  await page.locator('#ui-id-9').getByText('CHRISTINA M. BOWER').click();
   await page.getByRole('button', { name: 'Next' }).click();
 
   // Create new client - retry until "Accept As-Is" is presented (not "Use Suggested")
