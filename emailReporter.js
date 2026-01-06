@@ -7,192 +7,136 @@ const XLSX = require('xlsx');
 class EmailReporter {
   constructor(options) {
     this.options = options || {};
-    this.results = [];
-    this.startTime = new Date();
     this.suiteLabel = null;
-    this.iterationsFile = null;
-    this.lockFile = null;
     this.runId = null;
   }
 
-  // ----- Suite detection helpers -----
+  // Detect suite type from environment or test file
   _detectSuite() {
     const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
     if (suiteEnv === 'BOP') return 'BOP';
     if (suiteEnv === 'PACKAGE') return 'Package';
-    if (this.options?.suiteName && /BOP/i.test(this.options.suiteName)) return 'BOP';
     return 'Package';
   }
 
   _getSuiteLabel() {
     if (!this.suiteLabel) {
       this.suiteLabel = this._detectSuite();
-      this.iterationsFile = path.join(__dirname, `iterations-data-${this.suiteLabel.toLowerCase()}.json`);
-      this.lockFile = path.join(__dirname, `parallel-run-lock-${this.suiteLabel.toLowerCase()}.json`);
     }
     return this.suiteLabel;
   }
 
-  _suiteFromTest(test) {
-    const file = test?.location?.file || '';
-    const fileBase = path.basename(file).toUpperCase();
-    const title = (test?.title || '').toUpperCase();
-    if (fileBase.includes('BOP') || title.includes('BOP')) return 'BOP';
-    if (fileBase.includes('PACKAGE') || title.includes('PACKAGE')) return 'Package';
-    const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
-    if (suiteEnv === 'BOP') return 'BOP';
-    if (suiteEnv === 'PACKAGE') return 'Package';
-    return this.suiteLabel || 'Package';
-  }
-
-  // ----- Playwright lifecycle -----
+  // Playwright lifecycle hooks
   onBegin() {
-    try {
-      const suiteLabel = this._getSuiteLabel();
-      const batchMarkerFile = path.join(__dirname, '.batch-run-in-progress');
-      const isBatchRun = fs.existsSync(batchMarkerFile);
-      const lockFiles = [
-        path.join(__dirname, 'parallel-run-lock-bop.json'),
-        path.join(__dirname, 'parallel-run-lock-package.json'),
-      ];
-      const anyLock = lockFiles.some(f => fs.existsSync(f));
+    const suiteLabel = this._getSuiteLabel();
+    const batchMarker = path.join(__dirname, '.batch-run-in-progress');
+    const isBatchRun = fs.existsSync(batchMarker);
+    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLabel.toLowerCase()}.json`);
 
-      // Always clear old iterations-data for fresh single runs (unless batch marker exists)
-      if (!isBatchRun) {
-        // Fresh independent run: clear prior data from this suite
-        const suiteFile = path.join(__dirname, `iterations-data-${suiteLabel.toLowerCase()}.json`);
-        if (fs.existsSync(suiteFile)) {
-          fs.unlinkSync(suiteFile);
-          console.log(`🗑️  Cleared old iterations data: ${path.basename(suiteFile)}`);
-        }
-        const testDataFile = path.join(__dirname, 'test-data.json');
-        if (fs.existsSync(testDataFile)) fs.unlinkSync(testDataFile);
-        this.runId = new Date().toISOString();
+    if (!isBatchRun) {
+      // Single run: clear old data
+      const iterFile = path.join(__dirname, `iterations-data-${suiteLabel.toLowerCase()}.json`);
+      if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
+      this.runId = new Date().toISOString();
+    } else {
+      // Batch run: get or create shared runId
+      let lockData = {};
+      if (fs.existsSync(lockFile)) {
+        lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
       }
-      // For batch runs, ensure a runId exists in the suite lock file
-      if (isBatchRun || anyLock) {
-        let lockData = {};
-        const lockPath = lockFiles.find(f => fs.existsSync(f));
-        if (lockPath) {
-          lockData = JSON.parse(fs.readFileSync(lockPath, 'utf-8') || '{}');
-        }
-        if (!lockData.runId) lockData.runId = new Date().toISOString();
-        const suiteLock = path.join(__dirname, `parallel-run-lock-${suiteLabel.toLowerCase()}.json`);
-        fs.writeFileSync(suiteLock, JSON.stringify(lockData, null, 2), 'utf8');
-        this.runId = lockData.runId;
-      }
-    } catch (e) {
-      console.log('⚠️ onBegin error:', e.message);
+      if (!lockData.runId) lockData.runId = new Date().toISOString();
+      fs.writeFileSync(lockFile, JSON.stringify(lockData, null, 2));
+      this.runId = lockData.runId;
     }
   }
 
   onTestEnd(test, result) {
-    const timestamp = new Date();
     try {
-      // Try to find state-specific test data file first (for parallel runs)
-      // State is passed via TEST_STATE environment variable
+      const suite = this._getSuiteLabel();
       const testState = (process.env.TEST_STATE || '').toUpperCase();
-      let testDataFile = path.join(__dirname, 'test-data.json');
       
-      if (testState && testState !== 'N/A') {
-        const stateSpecificFile = path.join(__dirname, `test-data-${testState}.json`);
-        if (fs.existsSync(stateSpecificFile)) {
-          testDataFile = stateSpecificFile;
-        }
-      }
+      // Read state-specific test data file
+      const testDataFile = testState 
+        ? path.join(__dirname, `test-data-${testState}.json`)
+        : path.join(__dirname, 'test-data.json');
       
       if (!fs.existsSync(testDataFile)) return;
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
-      const suite = this._suiteFromTest(test);
-      const iterationsFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
-
-      let iterations = [];
-      if (fs.existsSync(iterationsFile)) {
-        iterations = JSON.parse(fs.readFileSync(iterationsFile, 'utf-8')) || [];
-      }
-
-      // Determine actual test status based on milestones, not just Playwright result
-      let actualStatus = result.status.toUpperCase();
-      const hasFailedMilestones = Array.isArray(testData.milestones) && 
-        testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED' || /failed/i.test(m.name || ''));
-      const hasPolicyNumber = testData.policyNumber && testData.policyNumber !== 'N/A';
       
-      // If no failed milestones and test produced a policy number, mark as PASSED even if browser crashed
-      if (!hasFailedMilestones && hasPolicyNumber) {
-        actualStatus = 'PASSED';
+      const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
+      let iterations = fs.existsSync(iterFile) ? JSON.parse(fs.readFileSync(iterFile, 'utf-8')) : [];
+
+      // Check for duplicate (same state+runId)
+      const isDuplicate = iterations.some(it => it.state === testData.state && it.runId === this.runId);
+      if (isDuplicate) {
+        console.log(`⚠️ Duplicate skipped: state=${testData.state}, runId=${this.runId}`);
+        return;
       }
 
-      // Check if an entry for this state+runId already exists to prevent duplicates
-      const isDuplicate = iterations.some(it => 
-        it.state === (testData.state || 'N/A') && 
-        it.runId === this.runId
-      );
+      // Determine status: override if has policy but no failed milestones
+      let status = result.status.toUpperCase();
+      const hasFailedMilestones = Array.isArray(testData.milestones) && 
+        testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED');
+      const hasPolicyNumber = testData.policyNumber && testData.policyNumber !== 'N/A';
+      if (!hasFailedMilestones && hasPolicyNumber) status = 'PASSED';
 
-      if (!isDuplicate) {
-        iterations.push({
-          iterationNumber: iterations.length + 1,
-          status: actualStatus,
-          state: testData.state || 'N/A',
-          stateName: testData.stateName || 'N/A',
-          quoteNumber: testData.quoteNumber || 'N/A',
-          policyNumber: testData.policyNumber || 'N/A',
-          milestones: testData.milestones || [],
-          timestamp: timestamp.toISOString(),
-          duration: Array.isArray(testData.milestones)
-            ? testData.milestones.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2)
-            : '0',
-          runId: this.runId,
-          suite,
-        });
+      iterations.push({
+        iterationNumber: iterations.length + 1,
+        status,
+        state: testData.state || 'N/A',
+        stateName: testData.stateName || 'N/A',
+        quoteNumber: testData.quoteNumber || 'N/A',
+        policyNumber: testData.policyNumber || 'N/A',
+        milestones: testData.milestones || [],
+        timestamp: new Date().toISOString(),
+        duration: Array.isArray(testData.milestones)
+          ? testData.milestones.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2)
+          : '0',
+        runId: this.runId,
+        suite,
+      });
 
-        fs.writeFileSync(iterationsFile, JSON.stringify(iterations, null, 2), 'utf8');
-        console.log(`💾 Iteration ${iterations.length} data saved for suite=${suite}, state=${testData.state}`);
-      } else {
-        console.log(`⚠️ Duplicate detected for state=${testData.state}, runId=${this.runId}; skipping.`);
-      }
+      fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2));
+      console.log(`💾 Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}`);
     } catch (e) {
       console.log('⚠️ onTestEnd error:', e.message);
     }
   }
 
   async onEnd() {
-    // If batch marker or lock exists, wrapper will send final email
-    const batchMarkerFile = path.join(__dirname, '.batch-run-in-progress');
-    const hasBatchMarker = fs.existsSync(batchMarkerFile);
-    const hasLock = fs.existsSync(path.join(__dirname, 'parallel-run-lock-bop.json'))
-      || fs.existsSync(path.join(__dirname, 'parallel-run-lock-package.json'));
-    if (hasBatchMarker || hasLock) {
-      console.log('⏸️ Batch/parallel detected; skipping per-iteration email. Wrapper will send.');
+    // Skip if batch run (wrapper will send consolidated email)
+    const batchMarker = path.join(__dirname, '.batch-run-in-progress');
+    if (fs.existsSync(batchMarker)) {
+      console.log('⏸️ Batch run detected; skipping individual email');
       return;
     }
 
-    const suiteLabel = this._getSuiteLabel();
-    let iterations = [];
-    try {
-      const fp = path.join(__dirname, `iterations-data-${suiteLabel.toLowerCase()}.json`);
-      if (fs.existsSync(fp)) {
-        const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];
-        iterations = this.runId ? allIterations.filter(it => it.runId === this.runId) : allIterations;
-      }
-    } catch (e) {
-      console.log('⚠️ Failed to load iterations:', e.message);
+    const suite = this._getSuiteLabel();
+    const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
+    
+    if (!fs.existsSync(iterFile)) {
+      console.log('⚠️ No iterations to email');
+      return;
     }
+
+    const allIterations = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
+    const iterations = this.runId ? allIterations.filter(it => it.runId === this.runId) : allIterations;
 
     if (!iterations.length) {
-      console.log('⚠️ No iterations to email.');
+      console.log('⚠️ No iterations for this runId');
       return;
     }
 
-    await this._sendEmail(iterations, `WB Smoke Testing Report`);
+    await this._sendEmail(iterations, 'WB Smoke Testing Report');
   }
 
-  // ----- Internal helpers -----
+  // Send email with iterations data
   async _sendEmail(iterations, subjectPrefix) {
-    const totalIterations = iterations.length;
-    const passedIterations = iterations.filter(it => it.status === 'PASSED').length;
-    const failedIterations = totalIterations - passedIterations;
-    const overallPassed = failedIterations === 0;
+    const passed = iterations.filter(it => it.status === 'PASSED').length;
+    const failed = iterations.length - passed;
+    const overallPassed = failed === 0;
 
+    // Build HTML table
     const summaryTableHtml = `
       <table style="width:100%;border-collapse:collapse;margin:20px 0;">
         <thead>
@@ -200,7 +144,7 @@ class EmailReporter {
             <th style="padding:12px;text-align:left;border:1px solid #ddd;">Line of Business</th>
             <th style="padding:12px;text-align:left;border:1px solid #ddd;">Quote Number</th>
             <th style="padding:12px;text-align:left;border:1px solid #ddd;">Policy Number</th>
-            <th style="padding:12px;text-align:center;border:1px solid #ddd;">Overall Status</th>
+            <th style="padding:12px;text-align:center;border:1px solid #ddd;">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -208,7 +152,7 @@ class EmailReporter {
             const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
             const statusIcon = it.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED';
             const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-            const lobDisplay = `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`;
+            const lobDisplay = `${it.suite || 'Package'} (${it.state || 'N/A'})`;
             return `
               <tr style="background:${bg};">
                 <td style="padding:12px;border:1px solid #ddd;">${lobDisplay}</td>
@@ -230,92 +174,39 @@ class EmailReporter {
         <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
           <h3 style="margin-top:0;">📊 Test Summary</h3>
           <p><b>Overall Status:</b> ${overallPassed ? '✅ PASSED' : '❌ FAILED'}</p>
-          <p><b>Total Iterations:</b> ${totalIterations}</p>
-          <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passedIterations}</span> &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failedIterations}</span></p>
+          <p><b>Total Iterations:</b> ${iterations.length}</p>
+          <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span> &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
           <p><b>Test Duration:</b> ${totalDuration}s</p>
         </div>
-
         <h2 style="color:#333;margin-top:20px;">Test Execution Details</h2>
         ${summaryTableHtml}
       </div>
     `;
 
     const excelFile = await this._createExcelReport(iterations);
+    const attachments = excelFile ? [{ filename: path.basename(excelFile), path: excelFile }] : [];
 
-    // Build attachments: Excel + per-state error logs for failed iterations
-    const attachments = [];
-    if (excelFile) {
-      attachments.push({ filename: path.basename(excelFile), path: excelFile });
-    }
-
-    // Attach per-iteration error logs (state-named) when failures occur
-    try {
-      for (const it of iterations) {
-        if (String(it.status).toUpperCase() !== 'PASSED') {
-          const state = (it.state || 'N_A').toUpperCase();
-          const suite = (it.suite || this.suiteLabel || 'Package').toUpperCase();
-          const expectedLogName = suite === 'BOP'
-            ? `test-run-output-${state}.txt`
-            : `test-run-output-package-${state}.txt`;
-          const expectedLogPath = path.join(__dirname, expectedLogName);
-
-          if (fs.existsSync(expectedLogPath)) {
-            // Use a friendly filename while keeping original path
-            attachments.push({ filename: `Error-${state}.txt`, path: expectedLogPath });
-          } else {
-            // Fallback: synthesize a small error file with milestone details
-            const failedMilestone = Array.isArray(it.milestones)
-              ? it.milestones.slice().reverse().find(m => (m.status || '').toUpperCase() === 'FAILED' || /failed/i.test(m.name || ''))
-              : null;
-            const lines = [];
-            lines.push(`Suite: ${suite}`);
-            lines.push(`State: ${state}`);
-            lines.push(`Status: ${it.status}`);
-            lines.push(`Quote Number: ${it.quoteNumber || 'N/A'}`);
-            lines.push(`Policy Number: ${it.policyNumber || 'N/A'}`);
-            if (failedMilestone) {
-              lines.push('');
-              lines.push(`Failed Milestone: ${failedMilestone.name || 'N/A'}`);
-              if (failedMilestone.details) lines.push(`Details: ${failedMilestone.details}`);
-              if (failedMilestone.timestamp) lines.push(`Timestamp: ${failedMilestone.timestamp}`);
-            }
-            const fallbackPath = path.join(__dirname, `Error-${state}.txt`);
-            try {
-              fs.writeFileSync(fallbackPath, lines.join('\n'), 'utf8');
-              attachments.push({ filename: `Error-${state}.txt`, path: fallbackPath });
-            } catch (e) {
-              console.log(`⚠️ Could not create fallback error file for ${state}:`, e.message);
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.log('⚠️ Failed to build error attachments:', e.message);
-    }
-
-    // SMTP check
+    // Check SMTP config
     if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
-      console.log('⚠️ SMTP not configured; email skipped.');
+      console.log('⚠️ SMTP not configured; email skipped');
       if (excelFile) console.log('ℹ️ Excel generated at:', excelFile);
       return;
     }
 
-    const transporterOptions = {
+    // Send email
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
+      port: Number(process.env.SMTP_PORT) || 25,
       secure: false,
-      tls: { rejectUnauthorized: false }
-    };
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      transporterOptions.auth = {
+      tls: { rejectUnauthorized: false },
+      auth: process.env.SMTP_USER && process.env.SMTP_PASS ? {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
-      };
-    }
-    const transporter = nodemailer.createTransport(transporterOptions);
+      } : undefined
+    });
 
     const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    const subjectLine = `${subjectPrefix}: ${todayDate} - ${passedIterations} Passed, ${failedIterations} Failed`;
+    const subjectLine = `${subjectPrefix}: ${todayDate} - ${passed} Passed, ${failed} Failed`;
 
     try {
       await transporter.sendMail({
@@ -325,60 +216,40 @@ class EmailReporter {
         html,
         attachments
       });
-      console.log('✔ Email report sent successfully.');
+      console.log('✔ Email sent successfully');
     } catch (err) {
-      console.error('❌ Email send failed:', err && err.message ? err.message : err);
+      console.error('❌ Email send failed:', err.message);
       throw err;
     }
   }
 
+  // Create Excel report
   async _createExcelReport(iterations) {
     try {
       const wb = XLSX.utils.book_new();
-      const summaryData = iterations.map((it, idx) => ({
+      
+      // Summary sheet
+      const summaryData = iterations.map(it => ({
         'Iteration #': it.iterationNumber,
-        'Line of Business': `${it.suite || this.suiteLabel} (${it.state || 'N/A'})`,
+        'Line of Business': `${it.suite || 'Package'} (${it.state || 'N/A'})`,
         'Quote Number': it.quoteNumber,
         'Policy Number': it.policyNumber,
-        'Overall Status': it.status,
+        'Status': it.status,
         'Duration (s)': it.duration,
         'State': it.state
       }));
-      const summaryWs = XLSX.utils.json_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Summary');
 
-      iterations.forEach((it) => {
+      // Individual iteration sheets
+      iterations.forEach(it => {
         const milestoneData = (it.milestones || []).map(m => ({
           'Milestone': m.name,
           'Status': m.status || 'N/A',
           'Duration (s)': m.duration || '-',
           'Timestamp': m.timestamp || '-',
         }));
-        // Always show quote number in the summary and iteration tab, even on failure
-        if (!it.quoteNumber && it.milestones) {
-          const failedMilestone = it.milestones.slice().reverse().find(m => (m.status || '').toUpperCase() === 'FAILED' && m.details && /\d{10}/.test(m.details));
-          if (failedMilestone) {
-            milestoneData.unshift({ 'Quote Number (from failure)': failedMilestone.details.match(/\d{10}/)[0] });
-          }
-        }
-        // Add new columns to the iteration tab after timestamp
-        if (milestoneData.length > 0) {
-          const perfCols = {
-            'Parallel Jobs at Start': it.ParallelAtStart || it.parallelAtStart || '',
-            'CPU at Start': it.cpuStart || '',
-            'RAM at Start': it.memStart || '',
-            'CPU at End': it.CPU || '',
-            'RAM at End': it.RAM || '',
-            'Retry Count': it.retryCount || (it.milestones && it.milestones.retryCount) || '',
-            'HTTP Timings': (it.httpTimings && it.httpTimings.length) ? it.httpTimings.map(h => `${h.status} ${h.duration ? h.duration + 's' : ''} ${h.url}`).join('\n') : '',
-            'Network Errors': (it.networkErrors && it.networkErrors.length) ? it.networkErrors.map(e => `${e.status || ''} ${e.url || ''} ${e.error || ''}`).join('\n') : ''
-          };
-          Object.assign(milestoneData[0], perfCols);
-        }
         const ws = XLSX.utils.json_to_sheet(milestoneData);
-        const safeSuite = (it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_');
-        const baseName = `${safeSuite}_${it.iterationNumber}`;
-        const sheetName = baseName.substring(0, 31);
+        const sheetName = `${it.suite || 'Suite'}_${it.iterationNumber}`.substring(0, 31).replace(/[^A-Za-z0-9_]/g, '_');
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
@@ -386,44 +257,41 @@ class EmailReporter {
       XLSX.writeFile(wb, excelPath);
       return excelPath;
     } catch (e) {
-      console.error('⚠️ Failed to create Excel report:', e.message);
+      console.error('⚠️ Failed to create Excel:', e.message);
       return null;
     }
   }
 
-  async _maybeSendFinalBatchEmail() {
-    console.log('ℹ️ _maybeSendFinalBatchEmail skipped (wrapper-managed).');
-  }
-
-  // ----- Static batch sender (called by wrappers) -----
+  // Static method for batch email (called by wrapper scripts)
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
-    console.log('📨 Sending final combined batch email...');
-    const projectPath = __dirname;
+    console.log('📨 Sending consolidated batch email...');
     let iterations = [];
 
-    const iterationFiles = iterationFilesOverride && iterationFilesOverride.length
-      ? iterationFilesOverride
-      : ['iterations-data-bop.json', 'iterations-data-package.json'];
+    const iterationFiles = iterationFilesOverride || ['iterations-data-bop.json', 'iterations-data-package.json'];
 
     for (const file of iterationFiles) {
-      const fp = path.join(projectPath, file);
+      const fp = path.join(__dirname, file);
       if (!fs.existsSync(fp)) continue;
+      
       const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];
-      if (!Array.isArray(allIterations) || !allIterations.length) continue;
+      if (!allIterations.length) continue;
+      
+      // Get latest runId and filter
       const runIds = allIterations.map(it => it.runId).filter(Boolean);
       const latestRunId = runIds.length ? runIds.sort().slice(-1)[0] : null;
       const filtered = latestRunId ? allIterations.filter(it => it.runId === latestRunId) : allIterations;
-      console.log(`   File ${file}: ${allIterations.length} total, using ${filtered.length} from latest runId ${latestRunId || 'N/A'}`);
+      
+      console.log(`   ${file}: ${allIterations.length} total, using ${filtered.length} from runId ${latestRunId || 'N/A'}`);
       iterations = iterations.concat(filtered);
     }
 
     if (!iterations.length) {
-      console.log('⚠️ No iterations data found. Skipping batch email.');
+      console.log('⚠️ No iterations found');
       return;
     }
 
     const reporter = new EmailReporter();
-    await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report (Batch Run)');
+    await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report (Batch)');
   }
 }
 
