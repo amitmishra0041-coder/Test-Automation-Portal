@@ -1,0 +1,552 @@
+{
+  "state": "DE",
+  "stateName": "Delaware",
+  "milestones": [
+    {
+      "name": "Test Started",
+      "status": "STARTED",
+      "timestamp": "2026-01-06T17:50:54.609Z",
+      "details": "",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:52:44.938Z",
+      "details": "",
+      "duration": "110.33s"
+    },
+    {
+      "name": "Account Created & Qualified",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:52:44.940Z",
+      "details": "",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Loaded Package Selection Page",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:52:47.962Z",
+      "details": "",
+      "duration": "3.02s"
+    },
+    {
+      "name": "Clicked Next after Package Selection",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:52:49.301Z",
+      "details": "",
+      "duration": "1.34s"
+    },
+    {
+      "name": "Selected Prior Carrier",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:03.518Z",
+      "details": "",
+      "duration": "14.21s"
+    },
+    {
+      "name": "Clicked Next after Prior Carrier",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:04.151Z",
+      "details": "",
+      "duration": "0.63s"
+    },
+    {
+      "name": "Loaded Coverage Selection Page",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:04.154Z",
+      "details": "",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Coverage Sliders Ready",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:05.164Z",
+      "details": "",
+      "duration": "1.01s"
+    },
+    {
+      "name": "Toggled Inland Marine",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:05.907Z",
+      "details": "",
+      "duration": "0.74s"
+    },
+    {
+      "name": "Toggled Crime",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:06.590Z",
+      "details": "",
+      "duration": "0.68s"
+    },
+    {
+      "name": "Confirmed Selections",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:09.771Z",
+      "details": "",
+      "duration": "3.18s"
+    },
+    {
+      "name": "Clicked Next after Confirm Selections",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:13.036Z",
+      "details": "",
+      "duration": "3.26s"
+    },
+    {
+      "name": "Commercial Package Data Entry Started",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:13.042Z",
+      "details": "",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Edit Location Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:15.716Z",
+      "details": "",
+      "duration": "2.67s"
+    },
+    {
+      "name": "Confirmed Edit Location",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:17.896Z",
+      "details": "",
+      "duration": "2.18s"
+    },
+    {
+      "name": "Cancelled Edit Location",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:19.558Z",
+      "details": "",
+      "duration": "1.66s"
+    },
+    {
+      "name": "Clicked Next after Edit Location",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:21.708Z",
+      "details": "",
+      "duration": "2.14s"
+    },
+    {
+      "name": "Clicked Next after Edit Location 2",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:23.835Z",
+      "details": "",
+      "duration": "2.12s"
+    },
+    {
+      "name": "Clicked Next after Edit Location 3",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:26.013Z",
+      "details": "",
+      "duration": "2.17s"
+    },
+    {
+      "name": "Add the Coverage Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:28.187Z",
+      "details": "",
+      "duration": "2.17s"
+    },
+    {
+      "name": "Add Scheduled Item Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:28.688Z",
+      "details": "",
+      "duration": "0.50s"
+    },
+    {
+      "name": "ComboBox Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:28.825Z",
+      "details": "",
+      "duration": "0.13s"
+    },
+    {
+      "name": "Add New Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:29.003Z",
+      "details": "",
+      "duration": "0.18s"
+    },
+    {
+      "name": "Account Location Selected",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:29.203Z",
+      "details": "",
+      "duration": "0.20s"
+    },
+    {
+      "name": "Address Type ComboBox Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:29.378Z",
+      "details": "",
+      "duration": "0.17s"
+    },
+    {
+      "name": "Address Type Selected",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:29.536Z",
+      "details": "",
+      "duration": "0.16s"
+    },
+    {
+      "name": "Name Textbox Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:29.691Z",
+      "details": "",
+      "duration": "0.15s"
+    },
+    {
+      "name": "Name Filled",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:29.822Z",
+      "details": "",
+      "duration": "0.13s"
+    },
+    {
+      "name": "Third Party Contact Dialog Saved",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:29.964Z",
+      "details": "",
+      "duration": "0.14s"
+    },
+    {
+      "name": "Notice Days Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:30.986Z",
+      "details": "",
+      "duration": "1.02s"
+    },
+    {
+      "name": "Notice Days Filled",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:31.105Z",
+      "details": "",
+      "duration": "0.12s"
+    },
+    {
+      "name": "Schedule Item Dialog Saved",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:31.243Z",
+      "details": "",
+      "duration": "0.14s"
+    },
+    {
+      "name": "Schedule Dialog Saved",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:31.758Z",
+      "details": "",
+      "duration": "0.51s"
+    },
+    {
+      "name": "Clicked Next after Schedule Dialog",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:32.852Z",
+      "details": "",
+      "duration": "1.09s"
+    },
+    {
+      "name": "Edit Location Clicked 2",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:38.587Z",
+      "details": "",
+      "duration": "5.73s"
+    },
+    {
+      "name": "Clicked Next after Edit Location 4",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:39.333Z",
+      "details": "",
+      "duration": "0.74s"
+    },
+    {
+      "name": "Save Location Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:42.472Z",
+      "details": "",
+      "duration": "3.14s"
+    },
+    {
+      "name": "Clicked Next after Save Location",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:43.791Z",
+      "details": "",
+      "duration": "1.32s"
+    },
+    {
+      "name": "Clicked Next after Save Location 2",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:45.425Z",
+      "details": "",
+      "duration": "1.63s"
+    },
+    {
+      "name": "Add Building Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:46.120Z",
+      "details": "",
+      "duration": "0.69s"
+    },
+    {
+      "name": "Building Option Selected",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:46.293Z",
+      "details": "",
+      "duration": "0.17s"
+    },
+    {
+      "name": "Building Description Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:53.262Z",
+      "details": "",
+      "duration": "6.97s"
+    },
+    {
+      "name": "Building Description Filled",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:53.385Z",
+      "details": "",
+      "duration": "0.12s"
+    },
+    {
+      "name": "Class Description Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:53.519Z",
+      "details": "",
+      "duration": "0.13s"
+    },
+    {
+      "name": "Class Description Selected",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:54.516Z",
+      "details": "",
+      "duration": "0.99s"
+    },
+    {
+      "name": "Construction Type ComboBox Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:55.925Z",
+      "details": "",
+      "duration": "1.41s"
+    },
+    {
+      "name": "Construction Type Selected",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:56.537Z",
+      "details": "",
+      "duration": "0.61s"
+    },
+    {
+      "name": "Number Of Stories Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:57.705Z",
+      "details": "",
+      "duration": "1.17s"
+    },
+    {
+      "name": "Number Of Stories Filled",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:57.838Z",
+      "details": "",
+      "duration": "0.13s"
+    },
+    {
+      "name": "ComboBox Clicked 2",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:53:58.991Z",
+      "details": "",
+      "duration": "1.15s"
+    },
+    {
+      "name": "ComboBox Option Selected",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:00.339Z",
+      "details": "",
+      "duration": "1.35s"
+    },
+    {
+      "name": "Year Of Construction Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:01.468Z",
+      "details": "",
+      "duration": "1.13s"
+    },
+    {
+      "name": "Year Of Construction Filled",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:01.598Z",
+      "details": "",
+      "duration": "0.13s"
+    },
+    {
+      "name": "Clicked Next after Year Of Construction",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:03.751Z",
+      "details": "",
+      "duration": "2.15s"
+    },
+    {
+      "name": "Loaded After Year Of Construction",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:05.770Z",
+      "details": "",
+      "duration": "2.02s"
+    },
+    {
+      "name": "Edit Coverage Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:14.376Z",
+      "details": "",
+      "duration": "8.60s"
+    },
+    {
+      "name": "Create Estimator Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:16.407Z",
+      "details": "",
+      "duration": "2.03s"
+    },
+    {
+      "name": "Commercial Sq Ft Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:21.567Z",
+      "details": "",
+      "duration": "5.16s"
+    },
+    {
+      "name": "Commercial Sq Ft Filled",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:21.688Z",
+      "details": "",
+      "duration": "0.12s"
+    },
+    {
+      "name": "Commercial Sq Ft Tabbed",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:21.819Z",
+      "details": "",
+      "duration": "0.13s"
+    },
+    {
+      "name": "Template ID Primary Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:22.508Z",
+      "details": "",
+      "duration": "0.69s"
+    },
+    {
+      "name": "Apartment/Condo Selected",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:22.705Z",
+      "details": "",
+      "duration": "0.19s"
+    },
+    {
+      "name": "Continue Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:22.976Z",
+      "details": "",
+      "duration": "0.27s"
+    },
+    {
+      "name": "Calculate Now Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:23.478Z",
+      "details": "",
+      "duration": "0.50s"
+    },
+    {
+      "name": "Finish Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:24.748Z",
+      "details": "",
+      "duration": "1.27s"
+    },
+    {
+      "name": "Import Data Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:24.918Z",
+      "details": "",
+      "duration": "0.17s"
+    },
+    {
+      "name": "Save Clicked",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:54:34.183Z",
+      "details": "",
+      "duration": "9.26s"
+    },
+    {
+      "name": "Commercial Property Package Completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:58:12.582Z",
+      "details": "Building, Business Income, Occupancy, Personal Property entered",
+      "duration": "218.40s"
+    },
+    {
+      "name": "General Liability Completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T17:59:36.551Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "83.97s"
+    },
+    {
+      "name": "Inland Marine Completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T18:00:12.636Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "36.08s"
+    },
+    {
+      "name": "Crime Completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T18:00:34.724Z",
+      "details": "Crime coverage details entered",
+      "duration": "22.09s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T18:01:39.899Z",
+      "details": "Quote #: 3003180428",
+      "duration": "65.17s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T18:02:15.577Z",
+      "details": "",
+      "duration": "35.67s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T18:03:14.739Z",
+      "details": "",
+      "duration": "59.16s"
+    },
+    {
+      "name": "Policy Issued Successfully",
+      "status": "PASSED",
+      "timestamp": "2026-01-06T18:05:50.178Z",
+      "details": "Policy #: 1003052923",
+      "duration": "155.44s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [
+    {
+      "url": "https://as.atlassian.com/api/v1/batch",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-06T17:59:08.932Z"
+    }
+  ],
+  "retryCount": 0,
+  "quoteNumber": "3003180428",
+  "policyNumber": "1003052923",
+  "status": "PASSED"
+}

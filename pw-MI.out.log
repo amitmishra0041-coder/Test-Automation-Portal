@@ -1,149 +1,86 @@
-[dotenv@17.2.3] injecting env (4) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  enable debug logging with { debug: true }
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: MI (Michigan)
 ⏫ Test Started (0.00s)
 WB Login successful
-✅ Phone number filled successfully: 717-330-5508
-✅ "Accept As-Is" detected - proceeding
+✅ Phone number filled successfully: 717-629-2274
+✅ "Accept As-Is" clicked successfully
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
 ⚠️ Open dialog detected, attempting to close...
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (70.07s)
+✅ Account Created (71.47s)
 Account qualification completed
 ✅ Account Created & Qualified (0.00s)
-✅ Loaded Package Selection Page (3.00s)
-✅ Clicked Next after Package Selection (1.04s)
-✅ Selected Prior Carrier (15.70s)
+✅ Loaded Package Selection Page (3.02s)
+✅ Commercial Package selected
+✅ Clicked Next after Package Selection (1.28s)
+✅ Selected Prior Carrier (14.93s)
 ✅ Selected prior carrier: Acuity
-✅ Clicked Next after Prior Carrier (0.67s)
+✅ Clicked Next after Prior Carrier (0.63s)
 ✅ Loaded Coverage Selection Page (0.00s)
 ✅ Coverage Sliders Ready (1.00s)
-✅ Toggled Inland Marine (1.14s)
+✅ Toggled Inland Marine (1.03s)
 ✅ Inland Marine toggled to Yes
-✅ Toggled Crime (0.69s)
+✅ Toggled Crime (0.66s)
 ✅ Crime toggled to Yes
-✅ Confirmed Selections (3.17s)
-✅ Clicked Next after Confirm Selections (4.07s)
-✅ Commercial Package Data Entry Started (1.87s)
-✅ Edit Location Clicked (2.69s)
+✅ Confirmed Selections (3.19s)
+✅ Clicked Next after Confirm Selections (1.71s)
+✅ Commercial Package Data Entry Started (0.98s)
+✅ Edit Location Clicked (2.67s)
 ✅ Confirmed Edit Location (2.15s)
-✅ Cancelled Edit Location (1.65s)
-✅ Clicked Next after Edit Location (2.18s)
-✅ Clicked Next after Edit Location 2 (2.14s)
-✅ Clicked Next after Edit Location 3 (2.12s)
+✅ Cancelled Edit Location (1.68s)
+✅ Clicked Next after Edit Location (2.13s)
+✅ Clicked Next after Edit Location 2 (2.15s)
+✅ Clicked Next after Edit Location 3 (2.15s)
 ✅ Add the Coverage Clicked (2.18s)
-✅ Add Scheduled Item Clicked (0.52s)
-✅ ComboBox Clicked (0.21s)
-✅ Add New Clicked (0.16s)
+✅ Add Scheduled Item Clicked (0.47s)
+✅ ComboBox Clicked (0.15s)
+✅ Add New Clicked (0.18s)
 ✅ Account Location Selected (0.24s)
-✅ Address Type ComboBox Clicked (0.16s)
-✅ Address Type Selected (0.20s)
-✅ Name Textbox Clicked (0.23s)
+✅ Address Type ComboBox Clicked (0.17s)
+✅ Address Type Selected (0.16s)
+✅ Name Textbox Clicked (0.16s)
 ✅ Name Filled (0.12s)
 ✅ Third Party Contact Dialog Saved (0.14s)
-✅ Notice Days Clicked (0.64s)
-✅ Notice Days Filled (0.12s)
+✅ Notice Days Clicked (0.53s)
+✅ Notice Days Filled (0.13s)
 ✅ Schedule Item Dialog Saved (0.14s)
-✅ Schedule Dialog Saved (0.60s)
-✅ Clicked Next after Schedule Dialog (1.54s)
-✅ Edit Location Clicked 2 (1.57s)
-✅ Clicked Next after Edit Location 4 (0.78s)
-✅ Save Location Clicked (3.55s)
-✅ Clicked Next after Save Location (1.44s)
-✅ Clicked Next after Save Location 2 (2.16s)
-✅ Add Building Clicked (0.78s)
-✅ Building Option Selected (0.19s)
-✅ Building Description Clicked (6.73s)
-✅ Building Description Filled (0.12s)
-✅ Class Description Clicked (0.16s)
-✅ Class Description Selected (0.63s)
-✅ Construction Type ComboBox Clicked (1.61s)
-✅ Construction Type Selected (0.62s)
-✅ Number Of Stories Clicked (1.19s)
-✅ Number Of Stories Filled (0.12s)
-✅ ComboBox Clicked 2 (1.26s)
-✅ ComboBox Option Selected (1.40s)
-✅ Year Of Construction Clicked (1.18s)
-✅ Year Of Construction Filled (0.13s)
-✅ Clicked Next after Year Of Construction (2.19s)
-✅ Loaded After Year Of Construction (2.01s)
-✅ Edit Coverage Clicked (9.62s)
-✅ Create Estimator Clicked (2.57s)
-✅ Commercial Sq Ft Clicked (3.30s)
-✅ Commercial Sq Ft Filled (0.12s)
-✅ Commercial Sq Ft Tabbed (0.13s)
-✅ Template ID Primary Clicked (0.80s)
-✅ Apartment/Condo Selected (0.20s)
-✅ Continue Clicked (0.21s)
-✅ Calculate Now Clicked (0.34s)
-✅ Finish Clicked (0.96s)
-✅ Import Data Clicked (0.19s)
-✅ Save Clicked (10.42s)
-⏭️ Trees/Shrubs/Plants save button not clicked: locator.click: Timeout 5000ms exceeded.
-Call log:
-[2m  - waiting for locator('#btnNext_CLPackageBuildingAdditionalCoverages').first()[22m
-[2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLPackageBuildingAdditionalCoverages" class="ui-xcontrols ui-xcontrols-xbutton btn btn-success ml-2" onclick="$Page.setPageValue('ValidateStep', 'false'); return $Kraken.HandleTabClick({parentAjaxPanelID: "ajp_CLPropertyBuildingAdditionalCoverages", value: "Static|CLPropertyBuildings.aspx"});">…</button>[22m
-[2m  - attempting click action[22m
-[2m    2 × waiting for element to be visible, enabled and stable[22m
-[2m      - element is visible, enabled and stable[22m
-[2m      - scrolling into view if needed[22m
-[2m      - done scrolling[22m
-[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-clpropertyaddlcoveragesscheduledialog">…</div> intercepts pointer events[22m
-[2m    - retrying click action[22m
-[2m    - waiting 20ms[22m
-[2m    2 × waiting for element to be visible, enabled and stable[22m
-[2m      - element is visible, enabled and stable[22m
-[2m      - scrolling into view if needed[22m
-[2m      - done scrolling[22m
-[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-clpropertyaddlcoveragesscheduledialog">…</div> intercepts pointer events[22m
-[2m    - retrying click action[22m
-[2m      - waiting 100ms[22m
-[2m    9 × waiting for element to be visible, enabled and stable[22m
-[2m      - element is visible, enabled and stable[22m
-[2m      - scrolling into view if needed[22m
-[2m      - done scrolling[22m
-[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-clpropertyaddlcoveragesscheduledialog">…</div> intercepts pointer events[22m
-[2m    - retrying click action[22m
-[2m      - waiting 500ms[22m
+✅ Schedule Dialog Saved (0.51s)
+✅ Clicked Next after Schedule Dialog (1.15s)
+✅ Edit Location Clicked 2 (5.79s)
+✅ Clicked Next after Edit Location 4 (0.76s)
+🔍 Extracted number from page text: 3003180433
+❌ Test Execution Failed (15.02s)
+💾 Test data written to test-data-MI.json with failure info
 
-⏭️ Closing lingering modal dialog...
-Attempting to click button: #CLPropertyAddlCoveragesScheduleDialog_dialog_btn_0
-✅ Modal button clicked
-⏭️  Attention dialog found
-Commercial property package data entered  successfully.
-✅ Commercial Property Package Completed (188.06s)
-General Liability data entry started.
-General Liability data entered successfully.
-✅ General Liability Completed (89.00s)
-Inland Marine data entry started.
-Inland Marine data entered successfully.
-✅ Inland Marine Completed (38.12s)
-Crime data entry started.
-Crime data entered successfully.
-✅ Crime Completed (23.40s)
-🔍 Extracted number from page text: 3003180038
-❌ Test Execution Failed (60.19s)
-💾 Test data written to test-data.json with failure info
-  ✘  1 [chromium] › Create_Package.test.js:13:5 › Package Submission (9.7m)
-💾 Iteration 10 data saved for suite=Package
+📧 Sending final batch email report...
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+📨 Sending consolidated batch email...
+   iterations-data-package.json: 3 total, using 3 from runId 2026-01-06T17:50:51.576Z
+✔ Email sent successfully
+  x  1 [chromium] › Create_Package.test.js:13:5 › Package Submission (2.4m)
+💾 Saved iteration 5: suite=Package, state=MI
 
 
   1) [chromium] › Create_Package.test.js:13:5 › Package Submission ─────────────────────────────────
 
-    TimeoutError: page.waitForLoadState: Timeout 60000ms exceeded.
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Save Location ' }) to be visible[22m
 
-      863 |   await page.getByRole('button', { name: 'Continue ' }).click();
-      864 |
-    > 865 |   await page.waitForLoadState('networkidle');
-          |              ^
-      866 |   await page.waitForTimeout(60000);
-      867 |
-      868 |   //console.log('Finalizing policy and navigating to LOB Review page.');
-        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:865:14
+
+      350 |     // Wait for Save Location button to be fully ready
+      351 |     const saveLocationBtn = page.getByRole('button', { name: 'Save Location ' });
+    > 352 |     await saveLocationBtn.waitFor({ state: 'visible', timeout: 15000 });
+          |                           ^
+      353 |     await page.waitForTimeout(2000); // Ensure form processing completes
+      354 |     // Check for any blocking overlays
+      355 |     const overlay = page.locator('.ui-widget-overlay');
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:352:27
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results\Create_Package-Package-Submission-chromium\test-failed-1.png
@@ -155,8 +92,6 @@ Crime data entered successfully.
 
     Error Context: test-results\Create_Package-Package-Submission-chromium\error-context.md
 
-  Slow test file: [chromium] › Create_Package.test.js (9.7m)
-  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
   1 failed
     [chromium] › Create_Package.test.js:13:5 › Package Submission ──────────────────────────────────
-⏸️ Batch/parallel detected; skipping per-iteration email. Wrapper will send.
+⏸️ Batch run detected; skipping individual email

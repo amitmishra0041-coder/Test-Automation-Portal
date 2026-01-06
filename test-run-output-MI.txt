@@ -1,45 +1,84 @@
-[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  override existing env vars with { override: true }
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: MI (Michigan)
 WB Login successful
-✅ Phone number filled successfully: 717-969-4568
-✅ "Accept As-Is" detected - proceeding
+✅ Phone number filled successfully: 717-906-7380
+✅ "Accept As-Is" clicked successfully
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
 ⚠️ Open dialog detected, attempting to close...
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (72.90s)
+✅ Account Created (70.61s)
 Account qualification completed
-✓ Legal Entity already set to "Other", skipping
-❌ Test execution failed: locator.click: Target page, context or browser has been closed
+⚠️ Modal dialog did not close within timeout, attempting close
+❌ Test execution failed: locator.click: Timeout 60000ms exceeded.
 Call log:
-[2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+[2m  - waiting for locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ })[22m
+[2m    - locator resolved to <a tabindex="0" role="option" id="bs-select-1-1" class="dropdown-item">…</a>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is not visible[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is not visible[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    112 × waiting for element to be visible, enabled and stable[22m
+[2m        - element is not visible[22m
+[2m      - retrying click action[22m
+[2m        - waiting 500ms[22m
 
-❌ Test Execution Failed (102.26s)
-💾 Test data written to test-data.json with failure info
-  ✘  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (3.0m)
-💾 Iteration 1 data saved for suite=BOP
+🔍 Extracted number from page text: 3003180419
+❌ Test Execution Failed (82.92s)
+💾 Test data written to test-data-MI.json with failure info
+  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (2.6m)
+💾 Saved iteration 4: suite=BOP, state=MI
 
 
   1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
 
-    Error: locator.click: Target page, context or browser has been closed
+    TimeoutError: locator.click: Timeout 60000ms exceeded.
     Call log:
-    [2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+    [2m  - waiting for locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ })[22m
+    [2m    - locator resolved to <a tabindex="0" role="option" id="bs-select-1-1" class="dropdown-item">…</a>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not visible[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not visible[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    112 × waiting for element to be visible, enabled and stable[22m
+    [2m        - element is not visible[22m
+    [2m      - retrying click action[22m
+    [2m        - waiting 500ms[22m
 
 
-      220 |   await page.waitForLoadState('domcontentloaded');
-      221 |   await page.waitForTimeout(1500);
-    > 222 |   await page.getByRole('button', { name: 'Next ' }).click();
-          |                                                     ^
-      223 |   await page.waitForLoadState('domcontentloaded');
-      224 |   await page.waitForTimeout(2000);
-      225 |   console.log('BOP quote - preliminary info completed');
-        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:222:53
+      160 |   if (!isOther) {
+      161 |     await legalEntityBtn.click({ force: true, timeout: 10000 });
+    > 162 |     await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ }).click();
+          |                                                                                                   ^
+      163 |     console.log('✓ Legal Entity set to Association');
+      164 |   } else {
+      165 |     console.log('✓ Legal Entity already set to "Other", skipping');
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:162:99
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\Create_BOP-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\Create_BOP-Package-Submission-chromium\error-context.md
 
   1 failed
     [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
-⏸️ Batch/parallel detected; skipping per-iteration email. Wrapper will send.
+⏸️ Batch run detected; skipping individual email

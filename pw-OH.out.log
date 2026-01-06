@@ -1,62 +1,69 @@
-[dotenv@17.2.3] injecting env (4) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[dotenv@17.2.3] injecting env (4) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: OH (Ohio)
 ⏫ Test Started (0.00s)
 WB Login successful
-✅ Phone number filled successfully: 717-471-5438
-✅ "Accept As-Is" detected - proceeding
+✅ Phone number filled successfully: 717-935-5084
+✅ "Accept As-Is" clicked successfully
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
 ⚠️ Open dialog detected, attempting to close...
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (70.52s)
+✅ Account Created (75.27s)
 Account qualification completed
 ✅ Account Created & Qualified (0.00s)
-✅ Loaded Package Selection Page (3.02s)
-✅ Clicked Next after Package Selection (0.99s)
-✅ Selected Prior Carrier (19.57s)
+✅ Loaded Package Selection Page (3.00s)
+✅ Commercial Package selected
+✅ Clicked Next after Package Selection (1.31s)
+✅ Selected Prior Carrier (15.94s)
 ✅ Selected prior carrier: Acuity
-✅ Clicked Next after Prior Carrier (0.66s)
+✅ Clicked Next after Prior Carrier (0.64s)
 ✅ Loaded Coverage Selection Page (0.00s)
-✅ Coverage Sliders Ready (1.01s)
-✅ Toggled Inland Marine (0.92s)
+✅ Coverage Sliders Ready (1.00s)
+✅ Toggled Inland Marine (0.95s)
 ✅ Inland Marine toggled to Yes
-✅ Toggled Crime (0.65s)
+✅ Toggled Crime (0.67s)
 ✅ Crime toggled to Yes
-✅ Confirmed Selections (3.20s)
-✅ Clicked Next after Confirm Selections (2.16s)
-✅ Commercial Package Data Entry Started (1.40s)
-✅ Edit Location Clicked (2.73s)
-✅ Confirmed Edit Location (2.17s)
-✅ Cancelled Edit Location (1.68s)
-✅ Clicked Next after Edit Location (2.25s)
+✅ Confirmed Selections (3.18s)
+✅ Clicked Next after Confirm Selections (1.79s)
+✅ Commercial Package Data Entry Started (0.99s)
+✅ Edit Location Clicked (2.68s)
+✅ Confirmed Edit Location (2.16s)
+✅ Cancelled Edit Location (1.64s)
+✅ Clicked Next after Edit Location (2.26s)
 ✅ Clicked Next after Edit Location 2 (2.14s)
-✅ Clicked Next after Edit Location 3 (2.16s)
-✅ Add the Coverage Clicked (2.22s)
-✅ Add Scheduled Item Clicked (0.56s)
-✅ ComboBox Clicked (0.18s)
-✅ Add New Clicked (0.20s)
-✅ Account Location Selected (0.26s)
-✅ Address Type ComboBox Clicked (0.32s)
-✅ Address Type Selected (0.20s)
-✅ Name Textbox Clicked (0.19s)
-✅ Name Filled (0.20s)
-✅ Third Party Contact Dialog Saved (0.18s)
-✅ Notice Days Clicked (0.65s)
-✅ Notice Days Filled (0.15s)
-✅ Schedule Item Dialog Saved (0.19s)
-✅ Schedule Dialog Saved (0.53s)
-✅ Clicked Next after Schedule Dialog (1.21s)
-✅ Edit Location Clicked 2 (1.68s)
-✅ Clicked Next after Edit Location 4 (1.78s)
-🔍 Extracted number from page text: 3003180039
-❌ Test Execution Failed (15.04s)
-💾 Test data written to test-data.json with failure info
-  ✘  1 [chromium] › Create_Package.test.js:13:5 › Package Submission (2.4m)
-💾 Iteration 9 data saved for suite=Package
+✅ Clicked Next after Edit Location 3 (2.19s)
+✅ Add the Coverage Clicked (2.18s)
+✅ Add Scheduled Item Clicked (0.48s)
+✅ ComboBox Clicked (0.14s)
+✅ Add New Clicked (0.16s)
+✅ Account Location Selected (0.22s)
+✅ Address Type ComboBox Clicked (0.15s)
+✅ Address Type Selected (0.18s)
+✅ Name Textbox Clicked (0.14s)
+✅ Name Filled (0.11s)
+✅ Third Party Contact Dialog Saved (0.14s)
+✅ Notice Days Clicked (0.50s)
+✅ Notice Days Filled (0.12s)
+✅ Schedule Item Dialog Saved (0.15s)
+✅ Schedule Dialog Saved (0.40s)
+✅ Clicked Next after Schedule Dialog (1.03s)
+✅ Edit Location Clicked 2 (5.66s)
+✅ Clicked Next after Edit Location 4 (0.72s)
+🔍 Extracted number from page text: 3003180432
+❌ Test Execution Failed (15.01s)
+💾 Test data written to test-data-OH.json with failure info
+
+📧 Sending final batch email report...
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+📨 Sending consolidated batch email...
+   iterations-data-package.json: 3 total, using 3 from runId 2026-01-06T17:50:51.576Z
+✔ Email sent successfully
+  x  1 [chromium] › Create_Package.test.js:13:5 › Package Submission (2.4m)
+💾 Saved iteration 4: suite=Package, state=OH
 
 
   1) [chromium] › Create_Package.test.js:13:5 › Package Submission ─────────────────────────────────
@@ -66,25 +73,21 @@ Account qualification completed
     [2m  - waiting for getByRole('button', { name: 'Save Location ' }) to be visible[22m
 
 
-      320 |   // Wait for Save Location button to be fully ready
-      321 |   const saveLocationBtn = page.getByRole('button', { name: 'Save Location ' });
-    > 322 |   await saveLocationBtn.waitFor({ state: 'visible', timeout: 15000 });
-          |                         ^
-      323 |   await page.waitForTimeout(2000); // Ensure form processing completes
-      324 |   // Check for any blocking overlays
-      325 |   const overlay = page.locator('.ui-widget-overlay');
-        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:322:25
+      350 |     // Wait for Save Location button to be fully ready
+      351 |     const saveLocationBtn = page.getByRole('button', { name: 'Save Location ' });
+    > 352 |     await saveLocationBtn.waitFor({ state: 'visible', timeout: 15000 });
+          |                           ^
+      353 |     await page.waitForTimeout(2000); // Ensure form processing completes
+      354 |     // Check for any blocking overlays
+      355 |     const overlay = page.locator('.ui-widget-overlay');
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:352:27
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results\Create_Package-Package-Submission-chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results\Create_Package-Package-Submission-chromium\video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Error Context: test-results\Create_Package-Package-Submission-chromium\error-context.md
 
   1 failed
     [chromium] › Create_Package.test.js:13:5 › Package Submission ──────────────────────────────────
-⏸️ Batch/parallel detected; skipping per-iteration email. Wrapper will send.
+⏸️ Batch run detected; skipping individual email

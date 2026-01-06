@@ -1,49 +1,78 @@
-[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: OH (Ohio)
 WB Login successful
-✅ Phone number filled successfully: 717-275-9637
-✅ "Accept As-Is" detected - proceeding
+✅ Phone number filled successfully: 717-294-4134
+✅ "Accept As-Is" clicked successfully
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
 ⚠️ Open dialog detected, attempting to close...
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (73.97s)
+✅ Account Created (81.66s)
 Account qualification completed
 ✓ Legal Entity already set to "Other", skipping
 BOP quote - preliminary info completed
 Building details filled
-✅ Building and Classification Added (144.25s)
+✅ Building and Classification Added (134.54s)
 Building and classification added
-Quote Number: 3003180050
-✅ Quote Rated Successfully (62.65s)
+Quote Number: 3003180420
+✅ Quote Rated Successfully (50.15s)
 Starting policy submission workflow...
 📋 Step 1: Submitting policy in WriteBiz...
 🔘 Clicking Submit For Approval button...
 ✅ Submit For Approval button clicked
-✅ Submission row 3003180050 is visible (attempt 1)
+⚠️ Submission row not found (attempt 1) - refreshing and retrying...
+⚠️ Reload failed on attempt 1: locator.click: Timeout 40000ms exceeded.
+Call log:
+[2m  - waiting for locator('h3#UnderwriterComm.xaccordion-sectionheader')[22m
+[2m    - locator resolved to <h3 oce="" role="tab" tabindex="-1" prenavigate="" id="UnderwriterComm" aria-selected="false" aria-expanded="false" aria-controls="UnderwriterComm_content" destination="crystal.aspx?a=init&p=UnderwriterComm.aspx" class="xaccordion-sectionheader single-menu-item ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons">…</h3>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div class="ui-widget-overlay ui-front"></div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div class="ui-widget-overlay ui-front"></div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    75 × waiting for element to be visible, enabled and stable[22m
+[2m       - element is visible, enabled and stable[22m
+[2m       - scrolling into view if needed[22m
+[2m       - done scrolling[22m
+[2m       - <div class="ui-widget-overlay ui-front"></div> intercepts pointer events[22m
+[2m     - retrying click action[22m
+[2m       - waiting 500ms[22m
+
+⚠️ Submission row not found (attempt 2) - refreshing and retrying...
+✅ Submission row 3003180420 is visible (attempt 3)
 ✅ Business Entity Description field found, filling with "Test"...
 ✅ Business Entity Description filled
 ✅ WriteBiz submission completed
-✅ Submitting for Approval (37.12s)
+✅ Submitting for Approval (178.23s)
 🔐 Step 2: Logging into PolicyCenter in new tab...
-🔎 Submitting number to PolicyCenter: 3003180050
+🔎 Submitting number to PolicyCenter: 3003180420
 📍 Opening Policy menu...
 📍 Expanding Policy Tab...
-📍 Searching for submission: 3003180050...
+📍 Searching for submission: 3003180420...
 ✅ Submission search completed
 ✅ Found 1 nodes for locator: text=/Risk Analysis/i
 ➡️ Clicked node #0 for locator: text=/Risk Analysis/i
-✅ UW Issues Approved in PolicyCenter (42.84s)
+✅ UW Issues Approved in PolicyCenter (41.05s)
 ⏳ Step 3: Submitting for issuance in WriteBiz...
 ⏳ Waiting for radio button to be available...
 🔘 Clicking Bill Insured By Mail radio button...
 ✅ Bill Insured By Mail radio button clicked
-📄 Policy Number generated: 1003052852
-✅ Policy Issued Successfully (151.19s)
+📄 Policy Number generated: 1003052918
+✅ Policy Issued Successfully (151.27s)
 📋 Test Data: {
   state: [32m'OH'[39m,
   stateName: [32m'Ohio'[39m,
@@ -51,58 +80,58 @@ Starting policy submission workflow...
     {
       name: [32m'Account Created'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2025-12-30T14:13:08.918Z[39m,
+      timestamp: [35m2026-01-06T16:58:19.248Z[39m,
       details: [32m''[39m,
-      duration: [32m'73.97s'[39m
+      duration: [32m'81.66s'[39m
     },
     {
       name: [32m'Building and Classification Added'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2025-12-30T14:15:33.172Z[39m,
+      timestamp: [35m2026-01-06T17:00:33.794Z[39m,
       details: [32m''[39m,
-      duration: [32m'144.25s'[39m
+      duration: [32m'134.54s'[39m
     },
     {
       name: [32m'Quote Rated Successfully'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2025-12-30T14:16:35.820Z[39m,
-      details: [32m'Quote #: 3003180050'[39m,
-      duration: [32m'62.65s'[39m
+      timestamp: [35m2026-01-06T17:01:23.946Z[39m,
+      details: [32m'Quote #: 3003180420'[39m,
+      duration: [32m'50.15s'[39m
     },
     {
       name: [32m'Submitting for Approval'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2025-12-30T14:17:12.940Z[39m,
+      timestamp: [35m2026-01-06T17:04:22.176Z[39m,
       details: [32m''[39m,
-      duration: [32m'37.12s'[39m
+      duration: [32m'178.23s'[39m
     },
     {
       name: [32m'UW Issues Approved in PolicyCenter'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2025-12-30T14:17:55.786Z[39m,
+      timestamp: [35m2026-01-06T17:05:03.223Z[39m,
       details: [32m''[39m,
-      duration: [32m'42.84s'[39m
+      duration: [32m'41.05s'[39m
     },
     {
       name: [32m'Policy Issued Successfully'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2025-12-30T14:20:26.979Z[39m,
-      details: [32m'Policy #: 1003052852'[39m,
-      duration: [32m'151.19s'[39m
+      timestamp: [35m2026-01-06T17:07:34.496Z[39m,
+      details: [32m'Policy #: 1003052918'[39m,
+      duration: [32m'151.27s'[39m
     }
   ],
   httpTimings: [],
   networkErrors: [],
   retryCount: [33m0[39m,
-  quoteNumber: [32m'3003180050'[39m,
-  policyNumber: [32m'1003052852'[39m
+  quoteNumber: [32m'3003180420'[39m,
+  policyNumber: [32m'1003052918'[39m
 }
-💾 Test data written to test-data.json
+💾 Test data written to test-data-OH.json
 Test completed successfully
-  ✓  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (8.5m)
-💾 Iteration 2 data saved for suite=BOP
+  ok 1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (10.6m)
+💾 Saved iteration 5: suite=BOP, state=OH
 
-  Slow test file: [chromium] › Create_BOP.test.js (8.5m)
+  Slow test file: [chromium] › Create_BOP.test.js (10.6m)
   Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
-  1 passed (15.9m)
-⏸️ Batch/parallel detected; skipping per-iteration email. Wrapper will send.
+  1 passed (24.2m)
+⏸️ Batch run detected; skipping individual email

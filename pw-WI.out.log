@@ -1,0 +1,703 @@
+[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+Running 1 test using 1 worker
+
+🗺️ Running test for state: WI (Wisconsin)
+⏫ Test Started (0.00s)
+WB Login successful
+✅ Phone number filled successfully: 717-302-7446
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+⚠️ Open dialog detected, attempting to close...
+✅ Contact phone number filled successfully: 717-555-1212
+Account creation completed
+✅ Account Created (72.16s)
+Account qualification completed
+✅ Account Created & Qualified (0.00s)
+✅ Loaded Package Selection Page (3.01s)
+✅ Commercial Package selected
+✅ Clicked Next after Package Selection (1.23s)
+✅ Selected Prior Carrier (18.25s)
+✅ Selected prior carrier: Accelerant US Holdings Group
+✅ Clicked Next after Prior Carrier (0.61s)
+✅ Loaded Coverage Selection Page (0.00s)
+✅ Coverage Sliders Ready (1.00s)
+✅ Toggled Inland Marine (1.29s)
+✅ Inland Marine toggled to Yes
+✅ Toggled Crime (0.65s)
+✅ Crime toggled to Yes
+✅ Confirmed Selections (3.19s)
+✅ Clicked Next after Confirm Selections (1.75s)
+✅ Commercial Package Data Entry Started (1.05s)
+✅ Edit Location Clicked (2.69s)
+✅ Confirmed Edit Location (2.15s)
+✅ Cancelled Edit Location (1.68s)
+✅ Clicked Next after Edit Location (2.14s)
+✅ Clicked Next after Edit Location 2 (2.16s)
+✅ Clicked Next after Edit Location 3 (2.14s)
+✅ Add the Coverage Clicked (2.17s)
+✅ Add Scheduled Item Clicked (0.47s)
+✅ ComboBox Clicked (0.15s)
+✅ Add New Clicked (0.19s)
+✅ Account Location Selected (0.28s)
+✅ Address Type ComboBox Clicked (0.18s)
+✅ Address Type Selected (0.15s)
+✅ Name Textbox Clicked (0.17s)
+✅ Name Filled (0.12s)
+✅ Third Party Contact Dialog Saved (0.15s)
+✅ Notice Days Clicked (0.55s)
+✅ Notice Days Filled (0.14s)
+✅ Schedule Item Dialog Saved (0.13s)
+✅ Schedule Dialog Saved (0.51s)
+✅ Clicked Next after Schedule Dialog (1.05s)
+✅ Edit Location Clicked 2 (5.81s)
+✅ Clicked Next after Edit Location 4 (0.68s)
+✅ Save Location Clicked (3.10s)
+✅ Clicked Next after Save Location (1.46s)
+✅ Clicked Next after Save Location 2 (1.96s)
+✅ Add Building Clicked (0.86s)
+✅ Building Option Selected (0.17s)
+✅ Building Description Clicked (4.50s)
+✅ Building Description Filled (0.98s)
+✅ Class Description Clicked (0.32s)
+✅ Class Description Selected (1.07s)
+✅ Construction Type ComboBox Clicked (1.18s)
+✅ Construction Type Selected (0.71s)
+✅ Number Of Stories Clicked (1.16s)
+✅ Number Of Stories Filled (0.13s)
+✅ ComboBox Clicked 2 (1.19s)
+✅ ComboBox Option Selected (1.34s)
+✅ Year Of Construction Clicked (1.14s)
+✅ Year Of Construction Filled (0.13s)
+✅ Clicked Next after Year Of Construction (2.14s)
+✅ Loaded After Year Of Construction (2.01s)
+✅ Edit Coverage Clicked (8.40s)
+✅ Create Estimator Clicked (2.03s)
+✅ Estimator page loaded successfully, continuing with normal workflow
+✅ Commercial Sq Ft Clicked (5.15s)
+✅ Commercial Sq Ft Filled (0.12s)
+✅ Commercial Sq Ft Tabbed (0.12s)
+✅ Template ID Primary Clicked (0.68s)
+✅ Apartment/Condo Selected (0.22s)
+✅ Continue Clicked (0.32s)
+✅ Calculate Now Clicked (0.59s)
+✅ Finish Clicked (1.28s)
+✅ Import Data Clicked (0.20s)
+✅ Save Clicked (8.81s)
+⏭️  Attention dialog found, attempting Next button first
+⚠️ Next button failed, executing error handling logic
+⏭️ Basic Symbol Number dropdown not available, skipping
+Commercial property package data entered  successfully.
+✅ Commercial Property Package Completed (221.79s)
+General Liability data entry started.
+General Liability data entered successfully.
+✅ General Liability Completed (83.63s)
+Inland Marine data entry started.
+Inland Marine data entered successfully.
+✅ Inland Marine Completed (36.18s)
+Crime data entry started.
+Crime data entered successfully.
+✅ Crime Completed (23.59s)
+Quote Number: 3003180427
+Rating is successful.
+✅ Quote Rated Successfully (76.80s)
+Starting policy submission workflow...
+📋 Step 1: Submitting policy in WriteBiz...
+🔘 Clicking Submit For Approval button...
+✅ Submit For Approval button clicked
+✅ Submission row 3003180427 is visible (attempt 1)
+✅ Business Entity Description field found, filling with "Test"...
+✅ Business Entity Description filled
+✅ WriteBiz submission completed
+✅ Submitting for Approval (36.80s)
+🔐 Step 2: Logging into PolicyCenter in new tab...
+🔎 Submitting number to PolicyCenter: 3003180427
+📍 Opening Policy menu...
+📍 Expanding Policy Tab...
+📍 Searching for submission: 3003180427...
+✅ Submission search completed
+✅ Found 1 nodes for locator: text=/Risk Analysis/i
+➡️ Clicked node #0 for locator: text=/Risk Analysis/i
+✅ UW Issues Approved in PolicyCenter (45.40s)
+⏳ Step 3: Submitting for issuance in WriteBiz...
+⏳ Waiting for radio button to be available...
+🔘 Clicking Bill Insured By Mail radio button...
+✅ Bill Insured By Mail radio button clicked
+📄 Policy Number generated: 1003052921
+✅ Policy Issued Successfully (155.56s)
+📋 Test Data: {
+  state: [32m'WI'[39m,
+  stateName: [32m'Wisconsin'[39m,
+  milestones: [
+    {
+      name: [32m'Test Started'[39m,
+      status: [32m'STARTED'[39m,
+      timestamp: [35m2026-01-06T17:50:57.765Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.00s'[39m
+    },
+    {
+      name: [32m'Account Created'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:09.927Z[39m,
+      details: [32m''[39m,
+      duration: [32m'72.16s'[39m
+    },
+    {
+      name: [32m'Account Created & Qualified'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:09.934Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.00s'[39m
+    },
+    {
+      name: [32m'Loaded Package Selection Page'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:12.945Z[39m,
+      details: [32m''[39m,
+      duration: [32m'3.01s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Package Selection'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:14.181Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.23s'[39m
+    },
+    {
+      name: [32m'Selected Prior Carrier'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:32.437Z[39m,
+      details: [32m''[39m,
+      duration: [32m'18.25s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Prior Carrier'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:33.053Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.61s'[39m
+    },
+    {
+      name: [32m'Loaded Coverage Selection Page'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:33.056Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.00s'[39m
+    },
+    {
+      name: [32m'Coverage Sliders Ready'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:34.060Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.00s'[39m
+    },
+    {
+      name: [32m'Toggled Inland Marine'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:35.350Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.29s'[39m
+    },
+    {
+      name: [32m'Toggled Crime'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:35.999Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.65s'[39m
+    },
+    {
+      name: [32m'Confirmed Selections'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:39.191Z[39m,
+      details: [32m''[39m,
+      duration: [32m'3.19s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Confirm Selections'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:40.938Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.75s'[39m
+    },
+    {
+      name: [32m'Commercial Package Data Entry Started'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:41.989Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.05s'[39m
+    },
+    {
+      name: [32m'Edit Location Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:44.680Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.69s'[39m
+    },
+    {
+      name: [32m'Confirmed Edit Location'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:46.828Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.15s'[39m
+    },
+    {
+      name: [32m'Cancelled Edit Location'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:48.505Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.68s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Edit Location'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:50.647Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.14s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Edit Location 2'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:52.810Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.16s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Edit Location 3'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:54.951Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.14s'[39m
+    },
+    {
+      name: [32m'Add the Coverage Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:57.118Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.17s'[39m
+    },
+    {
+      name: [32m'Add Scheduled Item Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:57.592Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.47s'[39m
+    },
+    {
+      name: [32m'ComboBox Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:57.749Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.15s'[39m
+    },
+    {
+      name: [32m'Add New Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:57.942Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.19s'[39m
+    },
+    {
+      name: [32m'Account Location Selected'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:58.221Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.28s'[39m
+    },
+    {
+      name: [32m'Address Type ComboBox Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:58.402Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.18s'[39m
+    },
+    {
+      name: [32m'Address Type Selected'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:58.559Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.15s'[39m
+    },
+    {
+      name: [32m'Name Textbox Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:58.733Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.17s'[39m
+    },
+    {
+      name: [32m'Name Filled'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:58.860Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.12s'[39m
+    },
+    {
+      name: [32m'Third Party Contact Dialog Saved'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:59.015Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.15s'[39m
+    },
+    {
+      name: [32m'Notice Days Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:59.567Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.55s'[39m
+    },
+    {
+      name: [32m'Notice Days Filled'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:59.710Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.14s'[39m
+    },
+    {
+      name: [32m'Schedule Item Dialog Saved'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:52:59.841Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.13s'[39m
+    },
+    {
+      name: [32m'Schedule Dialog Saved'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:00.348Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.51s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Schedule Dialog'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:01.402Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.05s'[39m
+    },
+    {
+      name: [32m'Edit Location Clicked 2'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:07.218Z[39m,
+      details: [32m''[39m,
+      duration: [32m'5.81s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Edit Location 4'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:07.902Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.68s'[39m
+    },
+    {
+      name: [32m'Save Location Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:11.006Z[39m,
+      details: [32m''[39m,
+      duration: [32m'3.10s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Save Location'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:12.468Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.46s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Save Location 2'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:14.426Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.96s'[39m
+    },
+    {
+      name: [32m'Add Building Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:15.284Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.86s'[39m
+    },
+    {
+      name: [32m'Building Option Selected'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:15.451Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.17s'[39m
+    },
+    {
+      name: [32m'Building Description Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:19.955Z[39m,
+      details: [32m''[39m,
+      duration: [32m'4.50s'[39m
+    },
+    {
+      name: [32m'Building Description Filled'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:20.935Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.98s'[39m
+    },
+    {
+      name: [32m'Class Description Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:21.253Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.32s'[39m
+    },
+    {
+      name: [32m'Class Description Selected'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:22.330Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.07s'[39m
+    },
+    {
+      name: [32m'Construction Type ComboBox Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:23.525Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.18s'[39m
+    },
+    {
+      name: [32m'Construction Type Selected'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:24.237Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.71s'[39m
+    },
+    {
+      name: [32m'Number Of Stories Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:25.394Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.16s'[39m
+    },
+    {
+      name: [32m'Number Of Stories Filled'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:25.522Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.13s'[39m
+    },
+    {
+      name: [32m'ComboBox Clicked 2'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:26.713Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.19s'[39m
+    },
+    {
+      name: [32m'ComboBox Option Selected'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:28.056Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.34s'[39m
+    },
+    {
+      name: [32m'Year Of Construction Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:29.203Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.14s'[39m
+    },
+    {
+      name: [32m'Year Of Construction Filled'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:29.333Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.13s'[39m
+    },
+    {
+      name: [32m'Clicked Next after Year Of Construction'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:31.476Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.14s'[39m
+    },
+    {
+      name: [32m'Loaded After Year Of Construction'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:33.493Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.01s'[39m
+    },
+    {
+      name: [32m'Edit Coverage Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:41.901Z[39m,
+      details: [32m''[39m,
+      duration: [32m'8.40s'[39m
+    },
+    {
+      name: [32m'Create Estimator Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:43.935Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.03s'[39m
+    },
+    {
+      name: [32m'Commercial Sq Ft Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:49.090Z[39m,
+      details: [32m''[39m,
+      duration: [32m'5.15s'[39m
+    },
+    {
+      name: [32m'Commercial Sq Ft Filled'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:49.216Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.12s'[39m
+    },
+    {
+      name: [32m'Commercial Sq Ft Tabbed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:49.337Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.12s'[39m
+    },
+    {
+      name: [32m'Template ID Primary Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:50.023Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.68s'[39m
+    },
+    {
+      name: [32m'Apartment/Condo Selected'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:50.248Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.22s'[39m
+    },
+    {
+      name: [32m'Continue Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:50.567Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.32s'[39m
+    },
+    {
+      name: [32m'Calculate Now Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:51.162Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.59s'[39m
+    },
+    {
+      name: [32m'Finish Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:52.445Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.28s'[39m
+    },
+    {
+      name: [32m'Import Data Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:53:52.648Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.20s'[39m
+    },
+    {
+      name: [32m'Save Clicked'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:54:01.467Z[39m,
+      details: [32m''[39m,
+      duration: [32m'8.81s'[39m
+    },
+    {
+      name: [32m'Commercial Property Package Completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:57:43.262Z[39m,
+      details: [32m'Building, Business Income, Occupancy, Personal Property entered'[39m,
+      duration: [32m'221.79s'[39m
+    },
+    {
+      name: [32m'General Liability Completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:59:06.896Z[39m,
+      details: [32m'Coverage limits and deductibles entered'[39m,
+      duration: [32m'83.63s'[39m
+    },
+    {
+      name: [32m'Inland Marine Completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T17:59:43.082Z[39m,
+      details: [32m'Coverage limits and deductibles entered'[39m,
+      duration: [32m'36.18s'[39m
+    },
+    {
+      name: [32m'Crime Completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T18:00:06.675Z[39m,
+      details: [32m'Crime coverage details entered'[39m,
+      duration: [32m'23.59s'[39m
+    },
+    {
+      name: [32m'Quote Rated Successfully'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T18:01:23.478Z[39m,
+      details: [32m'Quote #: 3003180427'[39m,
+      duration: [32m'76.80s'[39m
+    },
+    {
+      name: [32m'Submitting for Approval'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T18:02:00.277Z[39m,
+      details: [32m''[39m,
+      duration: [32m'36.80s'[39m
+    },
+    {
+      name: [32m'UW Issues Approved in PolicyCenter'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T18:02:45.674Z[39m,
+      details: [32m''[39m,
+      duration: [32m'45.40s'[39m
+    },
+    {
+      name: [32m'Policy Issued Successfully'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-06T18:05:21.239Z[39m,
+      details: [32m'Policy #: 1003052921'[39m,
+      duration: [32m'155.56s'[39m
+    }
+  ],
+  httpTimings: [],
+  networkErrors: [
+    {
+      url: [32m'https://as.atlassian.com/api/v1/batch'[39m,
+      error: [36m[Object][39m,
+      timestamp: [32m'2026-01-06T17:55:11.454Z'[39m
+    },
+    {
+      url: [32m'https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=01F5377E1D6B4AF38C25518C47ED6ED8'[39m,
+      error: [36m[Object][39m,
+      timestamp: [32m'2026-01-06T17:56:09.427Z'[39m
+    },
+    {
+      url: [32m'https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=E2537D9D9FAC4A559799448AE41A03A5'[39m,
+      error: [36m[Object][39m,
+      timestamp: [32m'2026-01-06T17:58:18.495Z'[39m
+    }
+  ],
+  retryCount: [33m0[39m,
+  quoteNumber: [32m'3003180427'[39m,
+  policyNumber: [32m'1003052921'[39m,
+  status: [32m'PASSED'[39m
+}
+💾 Test data written to test-data-WI.json
+✅ Test completed successfully
+
+📧 Sending final batch email report...
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+📨 Sending consolidated batch email...
+   iterations-data-package.json: 1 total, using 1 from runId 2026-01-06T17:50:51.576Z
+✔ Email sent successfully
+  ok 1 [chromium] › Create_Package.test.js:13:5 › Package Submission (14.4m)
+💾 Saved iteration 2: suite=Package, state=WI
+
+  Slow test file: [chromium] › Create_Package.test.js (14.4m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (15.0m)
+⏸️ Batch run detected; skipping individual email

@@ -1,0 +1,161 @@
+[dotenv@17.2.3] injecting env (4) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+Running 1 test using 1 worker
+
+🗺️ Running test for state: PA (Pennsylvania)
+⏫ Test Started (0.00s)
+WB Login successful
+✅ Phone number filled successfully: 717-365-5360
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+⚠️ Open dialog detected, attempting to close...
+✅ Contact phone number filled successfully: 717-555-1212
+Account creation completed
+✅ Account Created (73.53s)
+Account qualification completed
+✅ Account Created & Qualified (0.00s)
+✅ Loaded Package Selection Page (3.02s)
+✅ Commercial Package selected
+✅ Clicked Next after Package Selection (1.25s)
+✅ Selected Prior Carrier (17.57s)
+✅ Selected prior carrier: Acuity
+✅ Clicked Next after Prior Carrier (0.64s)
+✅ Loaded Coverage Selection Page (0.00s)
+✅ Coverage Sliders Ready (1.01s)
+✅ Toggled Inland Marine (1.49s)
+✅ Inland Marine toggled to Yes
+✅ Toggled Crime (0.66s)
+✅ Crime toggled to Yes
+✅ Confirmed Selections (3.21s)
+✅ Clicked Next after Confirm Selections (5.16s)
+✅ Commercial Package Data Entry Started (1.01s)
+✅ Edit Location Clicked (2.66s)
+✅ Confirmed Edit Location (2.17s)
+✅ Cancelled Edit Location (1.64s)
+✅ Clicked Next after Edit Location (2.13s)
+✅ Clicked Next after Edit Location 2 (2.15s)
+✅ Clicked Next after Edit Location 3 (2.15s)
+✅ Add the Coverage Clicked (2.19s)
+✅ Add Scheduled Item Clicked (0.51s)
+✅ ComboBox Clicked (0.14s)
+✅ Add New Clicked (0.18s)
+✅ Account Location Selected (0.24s)
+✅ Address Type ComboBox Clicked (0.17s)
+✅ Address Type Selected (0.16s)
+✅ Name Textbox Clicked (0.16s)
+✅ Name Filled (0.13s)
+✅ Third Party Contact Dialog Saved (0.16s)
+✅ Notice Days Clicked (1.05s)
+✅ Notice Days Filled (0.12s)
+✅ Schedule Item Dialog Saved (0.15s)
+✅ Schedule Dialog Saved (0.54s)
+✅ Clicked Next after Schedule Dialog (0.99s)
+✅ Edit Location Clicked 2 (5.74s)
+✅ Clicked Next after Edit Location 4 (0.71s)
+✅ Save Location Clicked (3.30s)
+✅ Clicked Next after Save Location (1.29s)
+✅ Clicked Next after Save Location 2 (1.97s)
+✅ Add Building Clicked (0.91s)
+✅ Building Option Selected (0.18s)
+✅ Building Description Clicked (4.70s)
+✅ Building Description Filled (1.11s)
+🔍 Extracted number from page text: 3003180426
+❌ Test Execution Failed (60.18s)
+💾 Test data written to test-data-PA.json with failure info
+
+📧 Sending final batch email report...
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+📨 Sending consolidated batch email...
+⚠️ No iterations found
+  x  1 [chromium] › Create_Package.test.js:13:5 › Package Submission (3.5m)
+💾 Saved iteration 1: suite=Package, state=PA
+
+
+  1) [chromium] › Create_Package.test.js:13:5 › Package Submission ─────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 60000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#txtClassDescription_displayAll > .input-group-text > .fas')[22m
+    [2m    - locator resolved to <i class="fas fa-th"></i>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722003953">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    - waiting for element to be visible, enabled and stable[22m
+    [2m    - element is visible, enabled and stable[22m
+    [2m    - scrolling into view if needed[22m
+    [2m    - done scrolling[22m
+    [2m    - <div class="modal-body">…</div> from <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722004307">…</div> subtree intercepts pointer events[22m
+    [2m  2 × retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m      - waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722004307">…</div> intercepts pointer events[22m
+    [2m  28 × retrying click action[22m
+    [2m       - waiting 500ms[22m
+    [2m       - waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722004307">…</div> intercepts pointer events[22m
+    [2m     - retrying click action[22m
+    [2m       - waiting 500ms[22m
+    [2m       - waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <div class="modal-body">…</div> from <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722004307">…</div> subtree intercepts pointer events[22m
+    [2m     - retrying click action[22m
+    [2m       - waiting 500ms[22m
+    [2m       - waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722004307">…</div> intercepts pointer events[22m
+    [2m     - retrying click action[22m
+    [2m       - waiting 500ms[22m
+    [2m       - waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722004307">…</div> intercepts pointer events[22m
+    [2m  - retrying click action[22m
+    [2m    - waiting 500ms[22m
+    [2m    - waiting for element to be visible, enabled and stable[22m
+    [2m    - element is visible, enabled and stable[22m
+    [2m    - scrolling into view if needed[22m
+    [2m    - done scrolling[22m
+    [2m    - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767722004307">…</div> intercepts pointer events[22m
+    [2m  - retrying click action[22m
+    [2m    - waiting 500ms[22m
+
+
+      372 |     await page.locator('#txtBuildingDescription').fill('test desc');
+      373 |     trackMilestone('Building Description Filled');
+    > 374 |     await page.locator('#txtClassDescription_displayAll > .input-group-text > .fas').click();
+          |                                                                                      ^
+      375 |     trackMilestone('Class Description Clicked');
+      376 |     await page.getByRole('gridcell', { name: 'Airports - Hangars with repairing or servicing' }).click();
+      377 |     trackMilestone('Class Description Selected');
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:374:86
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\Create_Package-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\Create_Package-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\Create_Package-Package-Submission-chromium\error-context.md
+
+  1 failed
+    [chromium] › Create_Package.test.js:13:5 › Package Submission ──────────────────────────────────
+⏸️ Batch run detected; skipping individual email
