@@ -111,24 +111,34 @@ class EmailReporter {
         actualStatus = 'PASSED';
       }
 
-      iterations.push({
-        iterationNumber: iterations.length + 1,
-        status: actualStatus,
-        state: testData.state || 'N/A',
-        stateName: testData.stateName || 'N/A',
-        quoteNumber: testData.quoteNumber || 'N/A',
-        policyNumber: testData.policyNumber || 'N/A',
-        milestones: testData.milestones || [],
-        timestamp: timestamp.toISOString(),
-        duration: Array.isArray(testData.milestones)
-          ? testData.milestones.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2)
-          : '0',
-        runId: this.runId,
-        suite,
-      });
+      // Check if an entry for this state+runId already exists to prevent duplicates
+      const isDuplicate = iterations.some(it => 
+        it.state === (testData.state || 'N/A') && 
+        it.runId === this.runId
+      );
 
-      fs.writeFileSync(iterationsFile, JSON.stringify(iterations, null, 2), 'utf8');
-      console.log(`💾 Iteration ${iterations.length} data saved for suite=${suite}`);
+      if (!isDuplicate) {
+        iterations.push({
+          iterationNumber: iterations.length + 1,
+          status: actualStatus,
+          state: testData.state || 'N/A',
+          stateName: testData.stateName || 'N/A',
+          quoteNumber: testData.quoteNumber || 'N/A',
+          policyNumber: testData.policyNumber || 'N/A',
+          milestones: testData.milestones || [],
+          timestamp: timestamp.toISOString(),
+          duration: Array.isArray(testData.milestones)
+            ? testData.milestones.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2)
+            : '0',
+          runId: this.runId,
+          suite,
+        });
+
+        fs.writeFileSync(iterationsFile, JSON.stringify(iterations, null, 2), 'utf8');
+        console.log(`💾 Iteration ${iterations.length} data saved for suite=${suite}, state=${testData.state}`);
+      } else {
+        console.log(`⚠️ Duplicate detected for state=${testData.state}, runId=${this.runId}; skipping.`);
+      }
     } catch (e) {
       console.log('⚠️ onTestEnd error:', e.message);
     }
