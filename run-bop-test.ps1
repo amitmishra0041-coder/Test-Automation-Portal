@@ -30,9 +30,11 @@ Write-Host "`n"
 # Create batch marker to defer emails
 '{"inBatch": true}' | Out-File -FilePath '.batch-run-in-progress' -Force -Encoding ASCII
 
-# Clean up old iterations
-if (Test-Path 'iterations-data-package.json') { Remove-Item 'iterations-data-package.json' -Force }
+# Clean up old iterations for BOP tests
+if (Test-Path 'iterations-data-bop.json') { Remove-Item 'iterations-data-bop.json' -Force }
 if (Test-Path '.batch-email-sent') { Remove-Item '.batch-email-sent' -Force }
+# Also clean up any stale lock files from previous runs
+Remove-Item -Force 'parallel-run-lock-bop.json' -ErrorAction SilentlyContinue
 
 # Call parallel PowerShell runner
 $headedArg = if ($Headed) { "-Headed" } else { "" }

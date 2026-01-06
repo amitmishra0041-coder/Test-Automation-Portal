@@ -163,8 +163,23 @@ Write-Host "Failed     : $failed`n"
 # Cleanup: Remove lock files
 Write-Host "🧹 Cleaning up lock files..." -ForegroundColor Gray
 Remove-Item -Force "$PSScriptRoot\parallel-run-lock-*.json" -ErrorAction SilentlyContinue
+Write-Host "✅ Lock files cleanup complete`n" -ForegroundColor Gray
+
+# Send consolidated email report
+try {
+    Write-Host "📧 Sending consolidated email report..." -ForegroundColor Cyan
+    $projectPath = $PSScriptRoot
+    Push-Location $projectPath
+    & node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-package.json'], 'WB Package Test Report');"
+    Pop-Location
+    Write-Host "✅ Consolidated email sent successfully`n" -ForegroundColor Green
+} catch {
+    Write-Host "⚠️ Failed to send consolidated email: $($_.Exception.Message)`n" -ForegroundColor Yellow
+}
+
+# Clean up batch marker AFTER sending email
 Remove-Item -Force "$PSScriptRoot\.batch-run-in-progress" -ErrorAction SilentlyContinue
-Write-Host "✅ Cleanup complete`n" -ForegroundColor Gray
+Write-Host "✅ Batch run complete`n" -ForegroundColor Gray
 
 if ($failed -gt 0) {
     exit 1
