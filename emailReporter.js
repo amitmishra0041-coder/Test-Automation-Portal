@@ -89,7 +89,18 @@ class EmailReporter {
   onTestEnd(test, result) {
     const timestamp = new Date();
     try {
-      const testDataFile = path.join(__dirname, 'test-data.json');
+      // Try to find state-specific test data file first (for parallel runs)
+      // State is passed via TEST_STATE environment variable
+      const testState = (process.env.TEST_STATE || '').toUpperCase();
+      let testDataFile = path.join(__dirname, 'test-data.json');
+      
+      if (testState && testState !== 'N/A') {
+        const stateSpecificFile = path.join(__dirname, `test-data-${testState}.json`);
+        if (fs.existsSync(stateSpecificFile)) {
+          testDataFile = stateSpecificFile;
+        }
+      }
+      
       if (!fs.existsSync(testDataFile)) return;
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
       const suite = this._suiteFromTest(test);

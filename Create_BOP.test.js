@@ -68,10 +68,10 @@ test('Package Submission', async ({ page }, testInfo) => {
   let currentStepStartTime = null;
   let testFailed = false;
 
-  // Helper to persist test data to JSON file
+  // Helper to persist test data to state-specific JSON file (prevent parallel conflicts)
   function saveTestData() {
     try {
-      const testDataFile = path.join(__dirname, 'test-data.json');
+      const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
       fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
     } catch (e) {
       console.log('⚠️ Could not save test-data.json:', e.message);
@@ -384,10 +384,10 @@ test('Package Submission', async ({ page }, testInfo) => {
   saveTestData();
   console.log('📋 Test Data:', global.testData);
 
-  // Write test data to JSON file so reporter can read it
-  const testDataFile = path.join(__dirname, 'test-data.json');
+  // Write test data to state-specific JSON file so reporter can read it
+  const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
-  console.log('💾 Test data written to test-data.json');
+  console.log(`💾 Test data written to test-data-${testState}.json`);
 
   console.log('Test completed successfully');
   
@@ -416,10 +416,10 @@ test('Package Submission', async ({ page }, testInfo) => {
 
     trackMilestone('Test Execution Failed', 'FAILED', error.message);
 
-    // Write final test data with failure info
-    const testDataFile = path.join(__dirname, 'test-data.json');
+    // Write final test data with failure info to state-specific file
+    const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
     fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
-    console.log('💾 Test data written to test-data.json with failure info');
+    console.log(`💾 Test data written to test-data-${testState}.json with failure info`);
 
     // Re-throw to mark test as failed in Playwright
     throw error;
