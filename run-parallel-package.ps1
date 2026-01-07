@@ -196,3 +196,19 @@ if ($failed -gt 0) {
     exit 1
 }
 exit 0
+ 
+# Post-run cleanup: remove transient files
+try {
+    Write-Host "Cleaning up transient files..." -ForegroundColor Gray
+    Remove-Item -Force "$PSScriptRoot\iterations-data-package.json" -ErrorAction SilentlyContinue
+    Remove-Item -Force "$PSScriptRoot\test-data-*.json" -ErrorAction SilentlyContinue
+    Remove-Item -Force "$PSScriptRoot\pw-*.out.log" -ErrorAction SilentlyContinue
+    Remove-Item -Force "$PSScriptRoot\pw-*.err.log" -ErrorAction SilentlyContinue
+    Remove-Item -Force "$PSScriptRoot\WB_Test_Report_*.xlsx" -ErrorAction SilentlyContinue
+    if (Test-Path "$PSScriptRoot\test-results\Create_Package-Package-Submission-chromium") {
+        Remove-Item -Recurse -Force "$PSScriptRoot\test-results\Create_Package-Package-Submission-chromium" -ErrorAction SilentlyContinue
+    }
+    Write-Host "Transient cleanup done" -ForegroundColor Gray
+} catch {
+    Write-Host "Cleanup warning: $($_.Exception.Message)" -ForegroundColor Yellow
+}

@@ -253,8 +253,32 @@ class EmailReporter {
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
-      const excelPath = path.join(__dirname, `WB_Test_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-      XLSX.writeFile(wb, excelPath);
+      const excelPath = path.join(__dirname, 'WB_Test_Report.xlsx');
+      // Load existing workbook if present, else create new
+      let existingWb = null;
+      try {
+        if (fs.existsSync(excelPath)) {
+          existingWb = XLSX.readFile(excelPath);
+        }
+      } catch {}
+      const targetWb = existingWb || wb;
+
+      // Timestamped sheet names to avoid collisions
+      const runTag = new Date().toISOString().replace(/[:]/g, '-').slice(0, 19);
+      const summarySheetName = (`Summary_${runTag}`).substring(0, 31);
+      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(summaryData), summarySheetName);
+      iterations.forEach(it => {
+        const milestoneData = (it.milestones || []).map(m => ({
+          'Milestone': m.name,
+          'Status': m.status || 'N/A',
+          'Duration (s)': m.duration || '-',
+          'Timestamp': m.timestamp || '-',
+        }));
+        const sheetName = `${(it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_')}_${it.state || 'N_A'}_${it.iterationNumber}`.substring(0,31);
+        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(milestoneData), sheetName);
+      });
+
+      XLSX.writeFile(targetWb, excelPath);
       return excelPath;
     } catch (e) {
       console.error('⚠️ Failed to create Excel:', e.message);

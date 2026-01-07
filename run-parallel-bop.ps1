@@ -275,13 +275,19 @@ try {
     Write-Host "⚠️ Could not clean lock file: $($_.Exception.Message)`n" -ForegroundColor Yellow
 }
 
-# Send consolidated email report and clean batch marker
+# Send consolidated email report (guarded) and clean markers
 try {
-    Write-Host "Sending consolidated email report..." -ForegroundColor Cyan
-    Push-Location $projectPath
-    & node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report');"
-    Pop-Location
-    Write-Host "Consolidated email sent" -ForegroundColor Green
+    $batchEmailSent = Join-Path $projectPath '.batch-email-sent'
+    if (Test-Path $batchEmailSent) {
+        Write-Host "Batch email already sent; skipping" -ForegroundColor Gray
+    } else {
+        Write-Host "Sending consolidated email report..." -ForegroundColor Cyan
+        Push-Location $projectPath
+        & node -e "const EmailReporter = require('./emailReporter.js'); EmailReporter.sendBatchEmailReport(['iterations-data-bop.json'], 'WB BOP Test Report');"
+        Pop-Location
+        'sent' | Out-File -FilePath $batchEmailSent -Force -Encoding ASCII
+        Write-Host "Consolidated email sent" -ForegroundColor Green
+    }
 
     if (Test-Path $batchMarker) {
         Remove-Item $batchMarker -Force -ErrorAction SilentlyContinue
@@ -295,5 +301,17 @@ try {
 if ($failed -gt 0) {
     exit 1
 } else {
+    # Post-run cleanup: remove transient files
+    try {
+        Write-Host "Cleaning up transient files..." -ForegroundColor Gray
+        Remove-Item -Force (Join-Path $projectPath 'iterations-data-bop.json') -ErrorAction SilentlyContinue
+        Remove-Item -Force (Join-Path $projectPath 'test-data-*.json') -ErrorAction SilentlyContinue
+        Remove-Item -Force (Join-Path $projectPath 'pw-*.out.log') -ErrorAction SilentlyContinue
+        Remove-Item -Force (Join-Path $projectPath 'pw-*.err.log') -ErrorAction SilentlyContinue
+        Remove-Item -Force (Join-Path $projectPath 'WB_Test_Report_*.xlsx') -ErrorAction SilentlyContinue
+        Write-Host "Transient cleanup done" -ForegroundColor Gray
+    } catch {
+        Write-Host "Cleanup warning: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
     exit 0
 }
