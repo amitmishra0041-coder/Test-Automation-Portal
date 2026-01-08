@@ -1,18 +1,10 @@
 {
   "state": "SD",
   "stateName": "South Dakota",
-  "milestones": [
-    {
-      "name": "Test Execution Failed",
-      "status": "FAILED",
-      "timestamp": "2026-01-08T21:05:16.175Z",
-      "details": "STATE_SELECTION_FAILED",
-      "duration": "109.25s"
-    }
-  ],
+  "milestones": [],
   "httpTimings": [],
   "networkErrors": [],
   "retryCount": 0,
-  "quoteNumber": "3003180914",
+  "quoteNumber": "N/A",
   "policyNumber": "N/A"
 }

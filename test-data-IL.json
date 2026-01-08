@@ -5,44 +5,44 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:53:21.951Z",
+      "timestamp": "2026-01-08T21:55:38.433Z",
       "details": "",
-      "duration": "107.94s"
+      "duration": "76.52s"
     },
     {
       "name": "Policy Details Entered",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:53:37.731Z",
+      "timestamp": "2026-01-08T21:55:53.668Z",
       "details": "",
-      "duration": "15.78s"
+      "duration": "15.23s"
     },
     {
       "name": "Businessowners page - coverages added",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:54:42.800Z",
+      "timestamp": "2026-01-08T21:57:15.083Z",
       "details": "",
-      "duration": "65.07s"
+      "duration": "81.41s"
     },
     {
       "name": "Locations added",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:54:45.607Z",
+      "timestamp": "2026-01-08T21:57:17.768Z",
       "details": "",
-      "duration": "2.81s"
+      "duration": "2.68s"
     },
     {
       "name": "State specific info completed",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:54:47.725Z",
+      "timestamp": "2026-01-08T21:57:19.766Z",
       "details": "",
-      "duration": "2.12s"
+      "duration": "2.00s"
     },
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2026-01-08T20:55:49.906Z",
+      "timestamp": "2026-01-08T21:58:21.971Z",
       "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xrgn_AddBuilding button.dropdown-toggle[role=\"combobox\"]')\u001b[22m\n",
-      "duration": "62.18s"
+      "duration": "62.20s"
     }
   ],
   "httpTimings": [],
@@ -52,10 +52,31 @@
       "error": {
         "errorText": "net::ERR_ABORTED"
       },
-      "timestamp": "2026-01-08T20:54:46.152Z"
+      "timestamp": "2026-01-08T21:55:52.046Z"
+    },
+    {
+      "url": "https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=A0C65E18675540548544141108F518B2",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T21:56:12.314Z"
+    },
+    {
+      "url": "https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=A0C65E18675540548544141108F518B2",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T21:56:17.339Z"
+    },
+    {
+      "url": "https://as.atlassian.com/api/v1/batch",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T21:57:18.392Z"
     }
   ],
   "retryCount": 0,
-  "quoteNumber": "3003181002",
+  "quoteNumber": "3003181034",
   "policyNumber": "N/A"
 }

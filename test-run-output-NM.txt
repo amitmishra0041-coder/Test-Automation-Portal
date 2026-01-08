@@ -1,8 +1,9 @@
-[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: NM (New Mexico)
+✅ Initialized test data for NM with N/A values
 WB Login successful
 ✅ Selected producer: CHRISTINA M. BOWER
 🔄 Retry 2/3: Clicking state dropdown...
@@ -38,10 +39,10 @@ Call log:
 ❌ All agency/producer options exhausted
 ❌ Test execution failed: STATE_SELECTION_FAILED
 🔍 Extracted number from page text: 3003180914
-❌ Test Execution Failed (107.07s)
+❌ Test Execution Failed (105.42s)
 💾 Test data written to test-data-NM.json with failure info
-  ✘  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (1.8m)
-💾 Saved iteration 12: suite=BOP, state=NM
+  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (1.8m)
+💾 Saved iteration 10: suite=BOP, state=NM
 
 
   1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
@@ -58,7 +59,7 @@ Call log:
       127 |             await page.waitForTimeout(2000);
       128 |           }
         at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:125:21)
-        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:130:5
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:136:5
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results\bop-NM\Create_BOP-Package-Submission-chromium\test-failed-1.png

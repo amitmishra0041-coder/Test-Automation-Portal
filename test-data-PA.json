@@ -5,98 +5,28 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:36:41.419Z",
+      "timestamp": "2026-01-08T21:45:31.817Z",
       "details": "",
-      "duration": "77.22s"
+      "duration": "80.43s"
     },
     {
       "name": "Policy Details Entered",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:36:56.869Z",
+      "timestamp": "2026-01-08T21:45:50.565Z",
       "details": "",
-      "duration": "15.45s"
+      "duration": "18.75s"
     },
     {
-      "name": "Businessowners page - coverages added",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:38:00.211Z",
-      "details": "",
-      "duration": "63.34s"
-    },
-    {
-      "name": "Locations added",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:38:03.203Z",
-      "details": "",
-      "duration": "2.99s"
-    },
-    {
-      "name": "State specific info completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:38:04.890Z",
-      "details": "",
-      "duration": "1.69s"
-    },
-    {
-      "name": "Building and Classification Added",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:38:58.255Z",
-      "details": "",
-      "duration": "53.36s"
-    },
-    {
-      "name": "Blankets page navigated",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:39:00.601Z",
-      "details": "",
-      "duration": "2.34s"
-    },
-    {
-      "name": "Mortages Tab navigated",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:39:01.570Z",
-      "details": "",
-      "duration": "0.97s"
-    },
-    {
-      "name": "US questions tab completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:39:03.892Z",
-      "details": "",
-      "duration": "2.32s"
-    },
-    {
-      "name": "Quote Rated Successfully",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:39:21.321Z",
-      "details": "Quote #: 3003180986",
-      "duration": "17.43s"
-    },
-    {
-      "name": "Submitting for Approval",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:40:01.431Z",
-      "details": "",
-      "duration": "40.11s"
-    },
-    {
-      "name": "UW Issues Approved in PolicyCenter",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:40:49.221Z",
-      "details": "",
-      "duration": "47.79s"
-    },
-    {
-      "name": "Submit for issuance",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:43:21.684Z",
-      "details": "Policy #: 1003053030",
-      "duration": "152.46s"
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-01-08T21:46:57.333Z",
+      "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ })\u001b[22m\n\u001b[2m    - waiting for\" https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=CLBOPBusinessOwnersDetails.aspx&sid=B27292410E3F41A8A22A80E679504CB3\" navigation to finish...\u001b[22m\n\u001b[2m    - navigated to \"https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=CLBOPBusinessOwnersDetails.aspx&sid=B27292410E3F41A8A22A80E679504CB3\"\u001b[22m\n\u001b[2m    - locator resolved to <a tabindex=\"0\" role=\"option\" id=\"bs-select-1-1\" class=\"dropdown-item\">…</a>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    110 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is not visible\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+      "duration": "66.77s"
     }
   ],
   "httpTimings": [],
   "networkErrors": [],
   "retryCount": 0,
-  "quoteNumber": "3003180986",
-  "policyNumber": "1003053030"
+  "quoteNumber": "3003181026",
+  "policyNumber": "N/A"
 }

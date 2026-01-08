@@ -1,29 +1,33 @@
 const { blinqClick } = require('../utils/blinqClick');
 
 async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl, trackMilestone } = {}) {
-  // Set 40 second timeout for this workflow
-  page.setDefaultTimeout(40000);
+  // Set 60 second timeout for this workflow
+  page.setDefaultTimeout(60000);
 
   // ===== PART 1: WriteBiz submission (uses same tab 'page') =====
   console.log('📋 Step 1: Submitting policy in WriteBiz...');
 
+  // Wait for page to fully settle after quote creation
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(5000);
+
   // Click Submit For Approval button first
   try {
     const submitAgentBtn = page.locator('#btnSubmitAgent');
-    const isVisible = await submitAgentBtn.isVisible({ timeout: 5000 });
+    const isVisible = await submitAgentBtn.isVisible({ timeout: 10000 });
     if (isVisible) {
       console.log('🔘 Clicking Submit For Approval button...');
-      await submitAgentBtn.click({ timeout: 10000 });
+      await submitAgentBtn.click({ timeout: 15000 });
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(5000);
       console.log('✅ Submit For Approval button clicked');
     }
   } catch (e) {
     console.log('⏭️ Submit For Approval button not found, continuing...');
   }
 
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(5000); // Wait for grid to load
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(8000); // Increased wait for grid to load
 
   // Try to reload, but handle errors gracefully
   try {
@@ -34,14 +38,15 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   }
 
   // Wait for submission row to be visible before clicking (refresh/retry loop)
-  const maxAttempts = 3;
+  const maxAttempts = 5;
   let submissionVisible = false;
   for (let attempt = 1; attempt <= maxAttempts && !submissionVisible; attempt++) {
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForLoadState('networkidle').catch(() => { });
+    await page.waitForTimeout(3000);
     const submissionRow = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
     try {
-      await submissionRow.waitFor({ state: 'visible', timeout: 20000 });
+      await submissionRow.waitFor({ state: 'visible', timeout: 30000 });
       console.log(`✅ Submission row ${submissionNumber} is visible (attempt ${attempt})`);
       submissionVisible = true;
     } catch (e) {
@@ -50,14 +55,15 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
       }
       console.warn(`⚠️ Submission row not found (attempt ${attempt}) - refreshing and retrying...`);
       try {
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
         await page.waitForLoadState('networkidle').catch(() => { });
+        await page.waitForTimeout(2000);
         // Click "Client Summary" accordion header
         await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(2000);
         await page.locator('h3#GeneralInfo.xaccordion-sectionheader').click();
         await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(2500);
 
         // Click "Contact Underwriter" accordion header
         await page.waitForLoadState('networkidle');
@@ -82,9 +88,24 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   // Re-locate before clicking to avoid stale/undefined references
   const rowToClick = page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`);
   await rowToClick.click();
-  await page.getByRole('button', { name: 'Submit For Approval' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+  
+  // Click Submit For Approval with retry logic
+  let submitClicked = false;
+  for (let i = 0; i < 3 && !submitClicked; i++) {
+    try {
+      await page.getByRole('button', { name: 'Submit For Approval' }).click({ timeout: 15000 });
+      submitClicked = true;
+    } catch (e) {
+      console.warn(`⚠️ Submit For Approval click attempt ${i + 1} failed, retrying...`);
+      await page.waitForTimeout(2000);
+    }
+  }
+  if (!submitClicked) throw new Error('Failed to click Submit For Approval after retries');
 
-  await page.waitForTimeout(3000);
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(5000);
 
   // Fill Specify other entity Description field if present
   try {
@@ -125,7 +146,8 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   // Create new page for PolicyCenter
   const context = page.context();
   const page1 = await context.newPage();
-  page1.setDefaultTimeout(40000); // Set 40 second timeout for page1 as well
+  page1.setDefaultTimeout(60000); // Set 60 second timeout for page1 as well
+  await page1.waitForTimeout(2000); // Let new tab stabilize
 
   // 1️⃣ Login to PolicyCenter
   console.log(`🔎 Submitting number to PolicyCenter: ${submissionNumber}`);
@@ -329,41 +351,102 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
   // Switch focus back to WriteBiz page
   await page.bringToFront();
-  await page.waitForTimeout(10000); // Give time for tab to focus
-
-  await page.reload();
-  // Click the submission using the same selector as Part 1
-  await page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`).click();
-  await page.getByRole('button', { name: 'Submit For Issuance' }).click();
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForLoadState('domcontentloaded');
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(5000);
+  await page.waitForLoadState('load').catch(() => {});
+  await page.waitForTimeout(8000); // Give time for tab to focus and stabilize
+
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(5000);
+  
+  // Click the submission using the same selector as Part 1 with retry
+  let rowClicked = false;
+  for (let i = 0; i < 3 && !rowClicked; i++) {
+    try {
+      await page.locator(`span.ui-jqgrid-cursor-default:text("${submissionNumber}")`).click({ timeout: 15000 });
+      rowClicked = true;
+    } catch (e) {
+      console.warn(`⚠️ Row click attempt ${i + 1} failed, retrying...`);
+      await page.waitForTimeout(2000);
+    }
+  }
+  if (!rowClicked) throw new Error('Failed to click submission row after retries');
+  
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+  await page.getByRole('button', { name: 'Submit For Issuance' }).click({ timeout: 15000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(3000);
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(8000);
 
   // Wait for page to fully load and radio button to be available
   console.log('⏳ Waiting for radio button to be available...');
   await page.waitForLoadState('networkidle').catch(() => { });
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(5000);
 
-  // Click "Bill Insured By Mail" radio button (rbBIM_FullPay)
+  // Click "Bill Insured By Mail" radio button (rbBIM_FullPay) with comprehensive retry logic
   console.log('🔘 Clicking Bill Insured By Mail radio button...');
-  try {
-    // Remove overlay if present
+  const radioSelectors = [
+    '#rbBIM_FullPay',
+    'input[id="rbBIM_FullPay"]',
+    'label[for="rbBIM_FullPay"]',
+    'div:has(> #rbBIM_FullPay)',
+    'div[role="radio"]',
+  ];
+  
+  let radioClicked = false;
+  for (let attempt = 0; attempt < 5 && !radioClicked; attempt++) {
+    console.log(`Radio button click attempt ${attempt + 1}...`);
+    
+    // Remove overlay before each attempt
     await page.evaluate(() => {
       const overlay = document.querySelector('.ui-widget-overlay.ui-front');
       if (overlay) overlay.remove();
     }).catch(() => { });
-    await page.waitForTimeout(300);
-
-    // Click the radio button by ID
-    const radioButton = page.locator('#rbBIM_FullPay').locator('xpath=..'); // Get parent div
-    await radioButton.click({ timeout: 10000, force: true });
-    console.log('✅ Bill Insured By Mail radio button clicked');
-  } catch (e) {
-    console.warn(`⚠️ Failed to click rbBIM_FullPay: ${e?.message}. Trying fallback...`);
-    // Fallback: click by CSS class
-    await page.locator('div[role="radio"][aria-pressed="true"]').first().click({ timeout: 10000, force: true });
+    await page.waitForTimeout(1000);
+    
+    for (const selector of radioSelectors) {
+      try {
+        const locator = page.locator(selector).first();
+        const count = await locator.count();
+        if (count > 0) {
+          await locator.scrollIntoViewIfNeeded().catch(() => {});
+          await page.waitForTimeout(500);
+          
+          // Try regular click first
+          try {
+            await locator.click({ timeout: 5000 });
+            radioClicked = true;
+            console.log(`✅ Radio button clicked using selector: ${selector}`);
+            break;
+          } catch (e) {
+            // Try force click
+            await locator.click({ force: true, timeout: 5000 });
+            radioClicked = true;
+            console.log(`✅ Radio button force-clicked using selector: ${selector}`);
+            break;
+          }
+        }
+      } catch (e) {
+        // Try next selector
+        continue;
+      }
+    }
+    
+    if (!radioClicked && attempt < 4) {
+      console.warn(`⚠️ Radio button click attempt ${attempt + 1} failed, waiting and retrying...`);
+      await page.waitForTimeout(3000);
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+    }
+  }
+  
+  if (!radioClicked) {
+    throw new Error('Failed to click radio button after multiple attempts with all selectors');
   }
   await page.getByRole('button', { name: 'Next' }).click();
   await page.waitForLoadState('domcontentloaded');

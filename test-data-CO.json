@@ -5,106 +5,78 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:49:11.018Z",
+      "timestamp": "2026-01-08T21:54:12.693Z",
       "details": "",
-      "duration": "107.83s"
+      "duration": "73.72s"
     },
     {
       "name": "Policy Details Entered",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:49:25.984Z",
+      "timestamp": "2026-01-08T21:54:26.386Z",
       "details": "",
-      "duration": "14.96s"
+      "duration": "13.69s"
     },
     {
       "name": "Businessowners page - coverages added",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:50:23.376Z",
+      "timestamp": "2026-01-08T21:55:23.607Z",
       "details": "",
-      "duration": "57.39s"
+      "duration": "57.22s"
     },
     {
       "name": "Locations added",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:50:25.673Z",
+      "timestamp": "2026-01-08T21:55:25.834Z",
       "details": "",
-      "duration": "2.29s"
+      "duration": "2.23s"
     },
     {
       "name": "State specific info completed",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:50:27.352Z",
+      "timestamp": "2026-01-08T21:55:27.515Z",
       "details": "",
       "duration": "1.68s"
     },
     {
-      "name": "Building and Classification Added",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:51:20.231Z",
-      "details": "",
-      "duration": "52.88s"
-    },
-    {
-      "name": "Blankets page navigated",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:51:21.668Z",
-      "details": "",
-      "duration": "1.44s"
-    },
-    {
-      "name": "Mortages Tab navigated",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:51:22.584Z",
-      "details": "",
-      "duration": "0.91s"
-    },
-    {
-      "name": "US questions tab completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:51:25.574Z",
-      "details": "",
-      "duration": "2.99s"
-    },
-    {
-      "name": "Quote Rated Successfully",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:51:45.194Z",
-      "details": "Quote #: 3003180998",
-      "duration": "19.62s"
-    },
-    {
-      "name": "Submitting for Approval",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:52:19.960Z",
-      "details": "",
-      "duration": "34.76s"
-    },
-    {
-      "name": "UW Issues Approved in PolicyCenter",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:53:05.421Z",
-      "details": "",
-      "duration": "45.46s"
-    },
-    {
-      "name": "Submit for issuance",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T20:55:32.944Z",
-      "details": "Policy #: 1003053035",
-      "duration": "147.52s"
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-01-08T21:57:06.473Z",
+      "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTitle('Edit Coverage')\u001b[22m\n",
+      "duration": "98.96s"
     }
   ],
   "httpTimings": [],
   "networkErrors": [
     {
-      "url": "https://as.atlassian.com/api/v1/batch",
+      "url": "https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=895400FFC53E49D094AAA48C10E1A550",
       "error": {
         "errorText": "net::ERR_ABORTED"
       },
-      "timestamp": "2026-01-08T20:51:20.743Z"
+      "timestamp": "2026-01-08T21:56:10.262Z"
+    },
+    {
+      "url": "https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=895400FFC53E49D094AAA48C10E1A550",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T21:56:10.360Z"
+    },
+    {
+      "url": "https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=895400FFC53E49D094AAA48C10E1A550",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T21:56:20.277Z"
+    },
+    {
+      "url": "https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=895400FFC53E49D094AAA48C10E1A550",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T21:56:21.258Z"
     }
   ],
   "retryCount": 0,
-  "quoteNumber": "3003180998",
-  "policyNumber": "1003053035"
+  "quoteNumber": "3003181033",
+  "policyNumber": "N/A"
 }

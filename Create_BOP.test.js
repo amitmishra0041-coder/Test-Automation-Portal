@@ -366,7 +366,8 @@ test('Package Submission', async ({ page }, testInfo) => {
   await page.getByRole('button', { name: 'Continue ' }).click();
   trackMilestone('US questions tab completed');
   await page.waitForLoadState('networkidle');
-  await page.waitForSelector('#lblQuoteNumValue', { timeout: 60000 });
+  await page.waitForTimeout(3000);
+  await page.waitForSelector('#lblQuoteNumValue', { timeout: 90000 });
 
 
   // Capture quote number

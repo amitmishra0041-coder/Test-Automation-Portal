@@ -5,9 +5,9 @@
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2026-01-08T21:03:21.505Z",
+      "timestamp": "2026-01-08T22:01:21.626Z",
       "details": "STATE_SELECTION_FAILED",
-      "duration": "107.07s"
+      "duration": "105.42s"
     }
   ],
   "httpTimings": [],

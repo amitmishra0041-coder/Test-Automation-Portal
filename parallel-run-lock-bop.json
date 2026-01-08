@@ -1,0 +1,26 @@
+{
+  "runId": "2026-01-08T16:43:34.3571625-05:00",
+  "targetStates": [
+    "DE",
+    "PA",
+    "WI",
+    "OH",
+    "MI",
+    "AZ",
+    "CO",
+    "IL",
+    "IA",
+    "NC",
+    "SC",
+    "NE",
+    "NM",
+    "SD",
+    "TX",
+    "UT",
+    "IN",
+    "TN",
+    "VA"
+  ],
+  "completedStates": [],
+  "startTime": "2026-01-08T16:43:34.3571625-05:00"
+}

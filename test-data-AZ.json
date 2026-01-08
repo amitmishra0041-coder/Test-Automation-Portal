@@ -5,9 +5,9 @@
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2026-01-08T20:47:11.371Z",
-      "details": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible\u001b[22m\n",
-      "duration": "159.48s"
+      "timestamp": "2026-01-08T21:54:12.294Z",
+      "details": "STATE_SELECTION_FAILED",
+      "duration": "104.47s"
     }
   ],
   "httpTimings": [],

@@ -1,0 +1,162 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003181033-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Sporer LLC
+            - generic [ref=e14]: 985 HALVORSON MOTORWAY
+            - generic [ref=e15]: FORT COLLINS, CO 80524
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - list [ref=e22]:
+        - listitem [ref=e23]:
+          - link " Policy Details" [ref=e24] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+            - generic [ref=e25]: 
+            - text: Policy Details
+        - listitem [ref=e26]:
+          - link " Businessowners" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+            - generic [ref=e28]: 
+            - text: Businessowners
+        - listitem [ref=e29]:
+          - link " Locations" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+            - generic [ref=e31]: 
+            - text: Locations
+        - listitem [ref=e32]:
+          - link " State Specific Info" [ref=e33] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+            - generic [ref=e34]: 
+            - text: State Specific Info
+        - listitem [ref=e35]:
+          - link "Buildings/Classifications" [ref=e36] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+        - listitem [ref=e37]:
+          - link "Blankets" [ref=e38] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+        - listitem [ref=e39]:
+          - link "Mortgagees" [ref=e40] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+        - listitem [ref=e41]:
+          - link "UW Questions" [ref=e42] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+        - listitem [ref=e43]:
+          - link "Rate" [ref=e44] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+        - listitem [ref=e45]:
+          - link "Review" [ref=e46] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181033_tabContent"
+      - generic [ref=e47]:
+        - list [ref=e50]:
+          - listitem [ref=e51]:
+            - link "" [ref=e52] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e53]: 
+          - listitem [ref=e54]:
+            - link "" [ref=e55] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e56]: 
+          - listitem [ref=e57]:
+            - link "" [ref=e58] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e59]: 
+          - listitem [ref=e60]:
+            - link "" [ref=e61] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e62]: 
+        - generic [ref=e66]:
+          - list [ref=e68]:
+            - listitem [ref=e69]:
+              - link "Bldg Details" [ref=e70] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e71]:
+              - text: "|"
+              - link "Bldg Cov" [ref=e72] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e73]:
+              - text: "|"
+              - link "Bldg Add'l Cov" [ref=e74] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e75]:
+              - text: "|"
+              - link "Class Details" [ref=e76] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e77]:
+              - text: "|"
+              - link "Class Cov" [ref=e78] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e79]:
+              - text: "|"
+              - link "Class Add'l Cov":
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+          - generic [ref=e80]:
+            - generic [ref=e81]:
+              - generic [ref=e84]: "Selected Building:"
+              - generic [ref=e86]:
+                - textbox [disabled] [ref=e87]: 985 HALVORSON MTWY FORT COLLINS CO 80524
+                - text: 
+              - button "Return to Summary" [ref=e89] [cursor=pointer]
+            - generic [ref=e92]: Classification Details
+            - generic [ref=e93]:
+              - generic [ref=e94]:
+                - generic [ref=e95]: Property Type
+                - generic [ref=e98]: Contractor
+              - generic [ref=e99]:
+                - generic [ref=e100]: Classification Description
+                - generic [ref=e101]:
+                  - generic [ref=e102]:
+                    - textbox [ref=e103]: Carpentry - Interior - Office
+                    - generic [ref=e106] [cursor=pointer]: 
+                  - text: "*"
+              - generic [ref=e107]:
+                - generic [ref=e108]: Classification Code
+                - generic [ref=e110]:
+                  - generic [ref=e111]:
+                    - combobox [ref=e112]:
+                      - option "74221" [selected]
+                    - combobox "74221" [ref=e113] [cursor=pointer]:
+                      - generic [ref=e116]: "74221"
+                  - generic [ref=e117]: "*"
+              - generic [ref=e118]:
+                - generic [ref=e119]: Occupancy Square Footage
+                - generic [ref=e121]:
+                  - textbox [ref=e122]: 2,999
+                  - generic [ref=e123]: "*"
+              - generic [ref=e124]:
+                - generic [ref=e125]: Class Group
+                - generic [ref=e127]:
+                  - generic [ref=e128]:
+                    - combobox [ref=e129]:
+                      - option "55" [selected]
+                    - combobox "55" [ref=e130] [cursor=pointer]:
+                      - generic [ref=e133]: "55"
+                  - generic [ref=e134]: "*"
+              - generic [ref=e135]:
+                - generic [ref=e136]: Liability Exposure Base
+                - generic [ref=e138]:
+                  - generic [ref=e139]:
+                    - combobox [ref=e140]:
+                      - option "Annual Payroll" [selected]
+                    - combobox "Annual Payroll" [ref=e141] [cursor=pointer]:
+                      - generic [ref=e144]: Annual Payroll
+                  - generic [ref=e145]: "*"
+            - generic [ref=e146]:
+              - button "Next " [ref=e147] [cursor=pointer]:
+                - text: Next
+                - generic [ref=e148]: 
+              - button " Previous" [ref=e149] [cursor=pointer]:
+                - generic [ref=e150]: 
+                - text: Previous
+    - generic [ref=e153]:
+      - paragraph [ref=e154]:
+        - link "Technical Support" [ref=e155] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e156]: © 2026 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e157]: Jira Service Management Widget
+```

@@ -5,93 +5,93 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:45:01.270Z",
+      "timestamp": "2026-01-08T21:46:28.359Z",
       "details": "",
-      "duration": "89.58s"
+      "duration": "74.66s"
     },
     {
       "name": "Policy Details Entered",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:45:17.022Z",
+      "timestamp": "2026-01-08T21:46:44.466Z",
       "details": "",
-      "duration": "15.75s"
+      "duration": "16.11s"
     },
     {
       "name": "Businessowners page - coverages added",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:46:14.137Z",
+      "timestamp": "2026-01-08T21:47:43.856Z",
       "details": "",
-      "duration": "57.11s"
+      "duration": "59.38s"
     },
     {
       "name": "Locations added",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:46:16.956Z",
+      "timestamp": "2026-01-08T21:47:46.146Z",
       "details": "",
-      "duration": "2.82s"
+      "duration": "2.29s"
     },
     {
       "name": "State specific info completed",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:46:18.674Z",
+      "timestamp": "2026-01-08T21:47:47.829Z",
       "details": "",
-      "duration": "1.72s"
+      "duration": "1.68s"
     },
     {
       "name": "Building and Classification Added",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:47:11.894Z",
+      "timestamp": "2026-01-08T21:48:41.781Z",
       "details": "",
-      "duration": "53.22s"
+      "duration": "53.95s"
     },
     {
       "name": "Blankets page navigated",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:47:14.112Z",
+      "timestamp": "2026-01-08T21:48:43.238Z",
       "details": "",
-      "duration": "2.21s"
+      "duration": "1.46s"
     },
     {
       "name": "Mortages Tab navigated",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:47:15.049Z",
+      "timestamp": "2026-01-08T21:48:44.059Z",
       "details": "",
-      "duration": "0.93s"
+      "duration": "0.82s"
     },
     {
       "name": "US questions tab completed",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:47:17.511Z",
+      "timestamp": "2026-01-08T21:48:46.807Z",
       "details": "",
-      "duration": "2.46s"
+      "duration": "2.75s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:47:34.127Z",
-      "details": "Quote #: 3003180992",
-      "duration": "16.61s"
+      "timestamp": "2026-01-08T21:48:59.292Z",
+      "details": "Quote #: 3003181028",
+      "duration": "12.48s"
     },
     {
       "name": "Submitting for Approval",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:48:09.096Z",
+      "timestamp": "2026-01-08T21:49:31.561Z",
       "details": "",
-      "duration": "34.97s"
+      "duration": "32.27s"
     },
     {
       "name": "UW Issues Approved in PolicyCenter",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:48:53.847Z",
+      "timestamp": "2026-01-08T21:50:16.594Z",
       "details": "",
-      "duration": "44.75s"
+      "duration": "45.03s"
     },
     {
       "name": "Submit for issuance",
       "status": "PASSED",
-      "timestamp": "2026-01-08T20:51:24.104Z",
-      "details": "Policy #: 1003053033",
-      "duration": "150.26s"
+      "timestamp": "2026-01-08T21:52:44.132Z",
+      "details": "Policy #: 1003053043",
+      "duration": "147.53s"
     }
   ],
   "httpTimings": [],
@@ -101,10 +101,10 @@
       "error": {
         "errorText": "net::ERR_ABORTED"
       },
-      "timestamp": "2026-01-08T20:47:12.463Z"
+      "timestamp": "2026-01-08T21:47:46.643Z"
     }
   ],
   "retryCount": 0,
-  "quoteNumber": "3003180992",
-  "policyNumber": "1003053033"
+  "quoteNumber": "3003181028",
+  "policyNumber": "1003053043"
 }
