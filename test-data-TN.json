@@ -1,0 +1,110 @@
+{
+  "state": "TN",
+  "stateName": "Tennessee",
+  "milestones": [
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:08:30.564Z",
+      "details": "",
+      "duration": "112.89s"
+    },
+    {
+      "name": "Policy Details Entered",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:08:45.662Z",
+      "details": "",
+      "duration": "15.09s"
+    },
+    {
+      "name": "Businessowners page - coverages added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:09:51.339Z",
+      "details": "",
+      "duration": "65.67s"
+    },
+    {
+      "name": "Locations added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:09:54.636Z",
+      "details": "",
+      "duration": "3.29s"
+    },
+    {
+      "name": "State specific info completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:09:56.324Z",
+      "details": "",
+      "duration": "1.69s"
+    },
+    {
+      "name": "Building and Classification Added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:10:50.344Z",
+      "details": "",
+      "duration": "54.02s"
+    },
+    {
+      "name": "Blankets page navigated",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:10:51.973Z",
+      "details": "",
+      "duration": "1.63s"
+    },
+    {
+      "name": "Mortages Tab navigated",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:10:52.849Z",
+      "details": "",
+      "duration": "0.87s"
+    },
+    {
+      "name": "US questions tab completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:10:55.886Z",
+      "details": "",
+      "duration": "3.04s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:11:17.773Z",
+      "details": "Quote #: 3003181015",
+      "duration": "21.89s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:12:40.584Z",
+      "details": "",
+      "duration": "82.81s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:13:26.583Z",
+      "details": "",
+      "duration": "46.00s"
+    },
+    {
+      "name": "Submit for issuance",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:16:00.191Z",
+      "details": "Policy #: 1003053039",
+      "duration": "153.61s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [
+    {
+      "url": "https://as.atlassian.com/api/v1/batch",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T21:10:50.925Z"
+    }
+  ],
+  "retryCount": 0,
+  "quoteNumber": "3003181015",
+  "policyNumber": "1003053039"
+}

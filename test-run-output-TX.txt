@@ -1,0 +1,113 @@
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+
+Running 1 test using 1 worker
+
+🗺️ Running test for state: TX (Texas)
+WB Login successful
+✅ Selected producer: CHRISTINA M. BOWER
+✅ Phone number filled successfully: 717-343-9177
+⚠️ "Accept As-Is" not available, handling fallback
+🔄 Retry attempt 1 - re-entering client information
+✅ Phone number filled successfully: 717-668-0997
+⚠️ "Accept As-Is" not available, handling fallback
+🔄 Retry attempt 2 - re-entering client information
+✅ Phone number filled successfully: 717-585-1610
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+✅ Client creation completed successfully
+⚠️ Open dialog detected, attempting to close...
+✅ Contact phone number filled successfully: 717-555-1212
+Account creation completed
+✅ Account Created (152.63s)
+Account qualification completed
+✅ Policy Details Entered (16.74s)
+✓ Legal Entity already set to "Other", skipping
+✅ Businessowners page - coverages added (59.41s)
+✅ Locations added (2.65s)
+❌ Test execution failed: locator.click: Timeout 60000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+[2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLBOPLocationDetails" class="ui-xcontrols ui-xcontrols-xbutton btn btn-primary" onclick="return $Kraken.HandleNavigationClick(true, false);">…</button>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-activityimpediments">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-activityimpediments">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    112 × waiting for element to be visible, enabled and stable[22m
+[2m        - element is visible, enabled and stable[22m
+[2m        - scrolling into view if needed[22m
+[2m        - done scrolling[22m
+[2m        - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-activityimpediments">…</div> intercepts pointer events[22m
+[2m      - retrying click action[22m
+[2m        - waiting 500ms[22m
+
+🔍 Extracted number from page text: 3003181012
+❌ Test Execution Failed (61.68s)
+💾 Test data written to test-data-TX.json with failure info
+  ✘  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (5.0m)
+💾 Saved iteration 16: suite=BOP, state=TX
+
+
+  1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+    [2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLBOPLocationDetails" class="ui-xcontrols ui-xcontrols-xbutton btn btn-primary" onclick="return $Kraken.HandleNavigationClick(true, false);">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-activityimpediments">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-activityimpediments">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    112 × waiting for element to be visible, enabled and stable[22m
+    [2m        - element is visible, enabled and stable[22m
+    [2m        - scrolling into view if needed[22m
+    [2m        - done scrolling[22m
+    [2m        - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-activityimpediments">…</div> intercepts pointer events[22m
+    [2m      - retrying click action[22m
+    [2m        - waiting 500ms[22m
+
+
+      225 |   await page.waitForLoadState('domcontentloaded');
+      226 |   await page.waitForTimeout(1500);
+    > 227 |   await page.getByRole('button', { name: 'Next ' }).click();
+          |                                                     ^
+      228 |   trackMilestone('State specific info completed');
+      229 |   await page.waitForLoadState('domcontentloaded');
+      230 |   await page.waitForTimeout(2000);
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:227:53
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bop-TX\Create_BOP-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bop-TX\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bop-TX\Create_BOP-Package-Submission-chromium\error-context.md
+
+  1 failed
+    [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
+⏸️ Batch run detected; skipping individual email

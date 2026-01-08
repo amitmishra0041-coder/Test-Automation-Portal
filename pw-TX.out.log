@@ -1,0 +1,242 @@
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+Running 4 tests using 4 workers
+
+🗺️ Running test for state: TX (Texas)
+⏫ Test Started (0.00s)
+🗺️ Running test for state: TX (Texas)
+WB Login successful
+✅ Clicked hyperlink 1
+WB Login successful
+[2026-01-08T15:27:50.405Z] WB Login successful - PASS
+WB Login successful
+✅ Clicked hyperlink 2
+✅ Phone number filled successfully: 717-856-9296
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+✅ Clicked hyperlink 3
+✅ Phone number filled successfully: 717-293-1973
+⚠️ Open dialog detected, attempting to close...
+✅ "Accept As-Is" clicked successfully
+✅ Clicked hyperlink 4
+⏭️  "Client not listed" button not present, skipping
+⏭️  "Continue" button not present, skipping
+⚠️ Open dialog detected, attempting to close...
+✅ Clicked hyperlink 5
+✅ Contact phone number filled successfully: 717-555-1212
+✅ Clicked hyperlink 6
+Account creation completed
+✅ Clicked hyperlink 7
+🔍 Extracted number from page text: 3003179976
+❌ Test Execution Failed (80.36s)
+💾 Test data written to test-data-TX.json with failure info
+✅ Account Created (86.45s)
+Account qualification completed
+✅ Account Created & Qualified (0.00s)
+✅ Clicked hyperlink 8
+✅ Loaded Package Selection Page (3.20s)
+✅ Commercial Package selected
+  ✘  3 [chromium] › Create_BOP.test.js:13:5 › Package Submission (1.6m)
+💾 Saved iteration 2: suite=Package, state=TX
+  ✘  4 [chromium] › Create_Account.test.js:6:5 › test (1.7m)
+⚠️ Duplicate skipped: state=TX, runId=2026-01-08T15:27:06.043Z
+✅ Clicked hyperlink 9
+✅ Clicked Next after Package Selection (13.49s)
+✅ Clicked hyperlink 10
+✅ Selected Prior Carrier (6.54s)
+✅ Selected prior carrier: Acuity
+✅ Clicked Next after Prior Carrier (0.94s)
+✅ Loaded Coverage Selection Page (0.20s)
+✅ Coverage Sliders Ready (1.02s)
+✅ Toggled Inland Marine (2.09s)
+✅ Inland Marine toggled to Yes
+✅ Toggled Crime (1.03s)
+✅ Crime toggled to Yes
+✅ Clicked hyperlink 11
+✅ Confirmed Selections (3.43s)
+✅ Clicked Next after Confirm Selections (4.29s)
+✅ Commercial Package Data Entry Started (1.99s)
+✅ Edit Location Clicked (2.73s)
+✅ Clicked hyperlink 12
+✅ Confirmed Edit Location (2.17s)
+✅ Cancelled Edit Location (1.68s)
+✅ Clicked Next after Edit Location (2.16s)
+✅ Clicked Next after Edit Location 2 (2.16s)
+✅ Clicked hyperlink 13
+✅ Clicked Next after Edit Location 3 (2.49s)
+✅ Add the Coverage Clicked (2.23s)
+✅ Add Scheduled Item Clicked (1.01s)
+✅ ComboBox Clicked (0.21s)
+✅ Add New Clicked (0.22s)
+✅ Account Location Selected (0.36s)
+✅ Address Type ComboBox Clicked (0.17s)
+✅ Address Type Selected (0.20s)
+✅ Name Textbox Clicked (0.19s)
+✅ Name Filled (0.13s)
+✅ Third Party Contact Dialog Saved (0.22s)
+✅ Notice Days Clicked (0.68s)
+✅ Notice Days Filled (0.16s)
+✅ Schedule Item Dialog Saved (0.20s)
+✅ Schedule Dialog Saved (0.52s)
+✅ Clicked Next after Schedule Dialog (1.24s)
+✅ Clicked hyperlink 14
+✅ Edit Location Clicked 2 (6.79s)
+✅ Clicked hyperlink 15
+✅ Clicked hyperlink 16
+✅ Clicked hyperlink 17
+✅ Clicked hyperlink 18
+✅ Clicked hyperlink 19
+✅ Clicked hyperlink 20
+❌ Test Execution Failed (65.92s)
+💾 Test data written to test-data-TX.json with failure info
+✅ Clicked hyperlink 21
+  ✘  2 [chromium] › Create_Package.test.js:13:5 › Package Submission (3.7m)
+⚠️ Duplicate skipped: state=TX, runId=2026-01-08T15:27:06.043Z
+✅ Clicked hyperlink 22
+✅ Clicked hyperlink 23
+✅ Clicked hyperlink 24
+✅ Clicked hyperlink 25
+✅ Clicked hyperlink 26
+✅ Clicked hyperlink 27
+✅ Clicked hyperlink 28
+✅ Clicked hyperlink 29
+✅ Clicked hyperlink 30
+✅ Clicked hyperlink 31
+✅ Clicked hyperlink 32
+✅ Clicked hyperlink 33
+✅ Clicked hyperlink 34
+✅ Clicked hyperlink 35
+✅ Clicked hyperlink 36
+✅ Clicked hyperlink 37
+✅ Clicked hyperlink 38
+✅ Clicked hyperlink 39
+✅ Clicked hyperlink 40
+✅ Clicked hyperlink 41
+✅ Clicked hyperlink 42
+✅ Clicked hyperlink 43
+✅ Clicked hyperlink 44
+✅ Clicked hyperlink 45
+✅ Clicked hyperlink 46
+✅ Clicked hyperlink 47
+✅ Clicked hyperlink 48
+✅ Clicked hyperlink 49
+✅ Clicked hyperlink 50
+✅ Clicked hyperlink 51
+✅ Finished clicking 51 hyperlink(s)
+  ✓  1 [chromium] › Clear_Account_Summ.test.js:4:5 › test (8.2m)
+⚠️ Duplicate skipped: state=TX, runId=2026-01-08T15:27:06.043Z
+
+
+  1) [chromium] › Create_Account.test.js:6:5 › test ────────────────────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Accept As-Is' })[22m
+
+
+      40 |
+      41 |   // Accept defaults
+    > 42 |   await page.getByRole('button', { name: 'Accept As-Is' }).click();
+         |                                                            ^
+      43 |   await page.getByRole('button', { name: 'Client not listed' }).click();
+      44 |   await page.getByRole('button', { name: 'Continue' }).click();
+      45 |
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Account.test.js:42:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Account-test-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Account-test-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\..\..\Playwright\Create_Account-test-chromium\error-context.md
+
+  2) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
+
+    TimeoutError: locator.waitFor: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible[22m
+
+
+       at accountCreationHelper.js:205
+
+      203 |     // Business Description - wait for it to be visible and enabled
+      204 |     const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
+    > 205 |     await businessDescField.waitFor({ state: 'visible', timeout: 30000 });
+          |                             ^
+      206 |     await businessDescField.fill('test desc');
+      207 |
+      208 |     // Click the Business Entity input to open dropdown
+        at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:205:29)
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:128:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_BOP-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\..\..\Playwright\Create_BOP-Package-Submission-chromium\error-context.md
+
+  3) [chromium] › Create_Package.test.js:13:5 › Package Submission ─────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+    [2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLPropertyLocationDetails" class="ui-xcontrols ui-xcontrols-xbutton btn btn-primary" onclick="$Page.setPageValue('ValidateStep', 'false'); return $Kraken.HandleTabClick({parentAjaxPanelID: "ajp_PropertyLocationDetails", value: "Static|CLPropertyLocationCoverages.aspx"});">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    108 × waiting for element to be visible, enabled and stable[22m
+    [2m        - element is visible, enabled and stable[22m
+    [2m        - scrolling into view if needed[22m
+    [2m        - done scrolling[22m
+    [2m        - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+    [2m      - retrying click action[22m
+    [2m        - waiting 500ms[22m
+
+
+      141 |     await waitForModalsToClose();
+      142 |     await locator.scrollIntoViewIfNeeded();
+    > 143 |     await locator.click(options);
+          |                   ^
+      144 |   }
+      145 |
+      146 |   try {
+        at safeClick (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:143:19)
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:346:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Package-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Package-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\..\..\Playwright\Create_Package-Package-Submission-chromium\error-context.md
+
+  Slow test file: [chromium] › Clear_Account_Summ.test.js (8.2m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  3 failed
+    [chromium] › Create_Account.test.js:6:5 › test ─────────────────────────────────────────────────
+    [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
+    [chromium] › Create_Package.test.js:13:5 › Package Submission ──────────────────────────────────
+  1 passed (8.6m)

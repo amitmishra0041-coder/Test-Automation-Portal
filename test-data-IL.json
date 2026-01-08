@@ -1,0 +1,61 @@
+{
+  "state": "IL",
+  "stateName": "Illinois",
+  "milestones": [
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T20:53:21.951Z",
+      "details": "",
+      "duration": "107.94s"
+    },
+    {
+      "name": "Policy Details Entered",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T20:53:37.731Z",
+      "details": "",
+      "duration": "15.78s"
+    },
+    {
+      "name": "Businessowners page - coverages added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T20:54:42.800Z",
+      "details": "",
+      "duration": "65.07s"
+    },
+    {
+      "name": "Locations added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T20:54:45.607Z",
+      "details": "",
+      "duration": "2.81s"
+    },
+    {
+      "name": "State specific info completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T20:54:47.725Z",
+      "details": "",
+      "duration": "2.12s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-01-08T20:55:49.906Z",
+      "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#xrgn_AddBuilding button.dropdown-toggle[role=\"combobox\"]')\u001b[22m\n",
+      "duration": "62.18s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [
+    {
+      "url": "https://as.atlassian.com/api/v1/batch",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-01-08T20:54:46.152Z"
+    }
+  ],
+  "retryCount": 0,
+  "quoteNumber": "3003181002",
+  "policyNumber": "N/A"
+}

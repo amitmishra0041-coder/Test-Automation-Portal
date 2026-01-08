@@ -8,7 +8,7 @@ param(
 # -------------------------------
 # State setup
 # -------------------------------
-$allowedStates = @('DE','MI','OH','PA','WI')
+$allowedStates = @('DE','MI','OH','PA','WI','AZ','CO','IL','IA','NC','SC','NE','NM','SD','TX','UT','IN','TN','VA')
 
 if ($States -and $States.Count -gt 0) {
     if ($States.Count -eq 1 -and $States[0] -match ',') {
@@ -114,10 +114,12 @@ while ($pendingStates.Count -gt 0 -or $activeRuns.Count -gt 0) {
         $env:TEST_ENV   = $TestEnv
         $env:TEST_TYPE  = "PACKAGE"
 
+        $outDir = Join-Path (Get-Location) ("test-results" + [System.IO.Path]::DirectorySeparatorChar + "package-$state")
         $args = @(
             "playwright", "test",
             "Create_Package.test.js",
-            "--project=$Project"
+            "--project=$Project",
+            "--output=$outDir"
         )
 
         if ($Headed) {

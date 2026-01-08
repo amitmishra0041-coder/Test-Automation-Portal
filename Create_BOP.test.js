@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./helpers/randomData');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
-const { getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
+const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const { createAccountAndQualify } = require('./accountCreationHelper');
 const fs = require('fs');
 const path = require('path');
@@ -18,8 +18,8 @@ test('Package Submission', async ({ page }, testInfo) => {
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
 
-  // Select state via TEST_STATE (DE|MI|OH|PA|WI). Defaults to DE.
-  const allowedStates = ['DE', 'MI', 'OH', 'PA', 'WI'];
+  // Select state via TEST_STATE. Defaults to DE.
+  const allowedStates = Object.keys(STATE_CONFIG);
   let testState = (process.env.TEST_STATE || 'DE').toUpperCase();
   if (!allowedStates.includes(testState)) {
     console.log(`⚠️ TEST_STATE "${testState}" not allowed; defaulting to DE`);
@@ -35,8 +35,16 @@ test('Package Submission', async ({ page }, testInfo) => {
     milestones: [],
     httpTimings: [],
     networkErrors: [],
-    retryCount: testInfo.retry || 0
+    retryCount: testInfo.retry || 0,
+    quoteNumber: 'N/A',
+    policyNumber: 'N/A'
   };
+  
+  // Immediately save initialized test data to prevent stale values from previous iterations
+  const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
+  fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+  console.log(`✅ Initialized test data for ${testState} with N/A values`);
+  
     // Track HTTP response times and errors
     page.on('response', async (response) => {
       try {
@@ -141,6 +149,7 @@ test('Package Submission', async ({ page }, testInfo) => {
   await page.getByRole('button').filter({ hasText: /^$/ }).nth(1).click();
   await page.locator('#ddlPriorCarrier').selectOption('Progressive');
   await page.getByRole('button', { name: 'Next ' }).click();
+  trackMilestone('Policy Details Entered');
   
   // Wait for any modal dialogs to close before interacting with dropdowns
   await page.waitForSelector('.modal.show', { state: 'hidden', timeout: 5000 }).catch(() => {
@@ -214,12 +223,15 @@ test('Package Submission', async ({ page }, testInfo) => {
 
   //existing code
   await page.getByRole('button', { name: 'Next ' }).click();
+  trackMilestone('Businessowners page - coverages added');
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: 'Next ' }).click();
+  trackMilestone('Locations added');
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: 'Next ' }).click();
+  trackMilestone('State specific info completed');
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
   console.log('BOP quote - preliminary info completed');
@@ -341,8 +353,10 @@ test('Package Submission', async ({ page }, testInfo) => {
   // Continue workflow
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Next ' }).click();
+  trackMilestone('Blankets page navigated');
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue ' }).click();
+  trackMilestone('Mortages Tab navigated');
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue ' }).click();
   await page.waitForLoadState('networkidle');
@@ -350,6 +364,7 @@ test('Package Submission', async ({ page }, testInfo) => {
   await page.locator('#for_xrdo_Question_Form_BP7UnderwritingQuestion_Ext_0_BP7CertificateQuestion_Ext_Yes').click();
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue ' }).click();
+  trackMilestone('US questions tab completed');
   await page.waitForLoadState('networkidle');
   await page.waitForSelector('#lblQuoteNumValue', { timeout: 60000 });
 

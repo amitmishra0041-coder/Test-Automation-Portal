@@ -1,0 +1,102 @@
+{
+  "state": "IN",
+  "stateName": "Indiana",
+  "milestones": [
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:06:41.144Z",
+      "details": "",
+      "duration": "75.62s"
+    },
+    {
+      "name": "Policy Details Entered",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:06:56.670Z",
+      "details": "",
+      "duration": "15.52s"
+    },
+    {
+      "name": "Businessowners page - coverages added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:07:57.200Z",
+      "details": "",
+      "duration": "60.52s"
+    },
+    {
+      "name": "Locations added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:07:59.596Z",
+      "details": "",
+      "duration": "2.39s"
+    },
+    {
+      "name": "State specific info completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:08:01.295Z",
+      "details": "",
+      "duration": "1.70s"
+    },
+    {
+      "name": "Building and Classification Added",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:08:53.663Z",
+      "details": "",
+      "duration": "52.37s"
+    },
+    {
+      "name": "Blankets page navigated",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:08:56.067Z",
+      "details": "",
+      "duration": "2.40s"
+    },
+    {
+      "name": "Mortages Tab navigated",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:08:57.042Z",
+      "details": "",
+      "duration": "0.97s"
+    },
+    {
+      "name": "US questions tab completed",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:08:59.417Z",
+      "details": "",
+      "duration": "2.37s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:09:20.035Z",
+      "details": "Quote #: 3003181013",
+      "duration": "20.62s"
+    },
+    {
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:09:56.704Z",
+      "details": "",
+      "duration": "36.67s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:10:37.932Z",
+      "details": "",
+      "duration": "41.23s"
+    },
+    {
+      "name": "Submit for issuance",
+      "status": "PASSED",
+      "timestamp": "2026-01-08T21:13:06.398Z",
+      "details": "Policy #: 1003053038",
+      "duration": "148.47s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "3003181013",
+  "policyNumber": "1003053038"
+}

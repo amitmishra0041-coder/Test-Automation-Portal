@@ -1,0 +1,139 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003181012-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Murray and Sons
+            - generic [ref=e14]: 38934 FRITSCH SPURS
+            - generic [ref=e15]: ALLEN, TX 76102
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - list [ref=e22]:
+        - listitem [ref=e23]:
+          - link " Policy Details" [ref=e24] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+            - generic [ref=e25]: 
+            - text: Policy Details
+        - listitem [ref=e26]:
+          - link " Businessowners" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+            - generic [ref=e28]: 
+            - text: Businessowners
+        - listitem [ref=e29]:
+          - link "Locations" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+        - listitem [ref=e31]:
+          - link "State Specific Info" [ref=e32] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+        - listitem [ref=e33]:
+          - link "Buildings/Classifications" [ref=e34] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+        - listitem [ref=e35]:
+          - link "Blankets" [ref=e36] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+        - listitem [ref=e37]:
+          - link "Mortgagees" [ref=e38] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+        - listitem [ref=e39]:
+          - link "UW Questions" [ref=e40] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+        - listitem [ref=e41]:
+          - link "Rate" [ref=e42] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+        - listitem [ref=e43]:
+          - link "Review" [ref=e44] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181012_tabContent"
+      - generic [ref=e45]:
+        - list [ref=e48]:
+          - listitem [ref=e49]:
+            - link "" [ref=e50] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e51]: 
+          - listitem [ref=e52]:
+            - link "" [ref=e53] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e54]: 
+          - listitem [ref=e55]:
+            - link "" [ref=e56] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e57]: 
+          - listitem [ref=e58]:
+            - link "" [ref=e59] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e60]: 
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e69]: Locations
+            - generic [ref=e70]:
+              - button " Add New Location" [ref=e71] [cursor=pointer]:
+                - generic [ref=e72]: 
+                - text: Add New Location
+              - generic [ref=e74]:
+                - status [ref=e77]: Showing 1 to 1 of 1 entries
+                - grid [ref=e79]:
+                  - rowgroup [ref=e80]:
+                    - 'row "Location Number : activate to sort column ascending Address : activate to sort column ascending City : activate to sort column ascending State : activate to sort column ascending Zip Code : activate to sort column ascending Primary : activate to sort column ascending Actions : activate to sort column ascending" [ref=e81]':
+                      - 'columnheader "Location Number : activate to sort column ascending" [ref=e82]':
+                        - text: Location Number
+                        - generic [ref=e83]: 
+                      - 'columnheader "Address : activate to sort column ascending" [ref=e84]':
+                        - text: Address
+                        - generic [ref=e85]: 
+                      - 'columnheader "City : activate to sort column ascending" [ref=e86]':
+                        - text: City
+                        - generic [ref=e87]: 
+                      - 'columnheader "State : activate to sort column ascending" [ref=e88]':
+                        - text: State
+                        - generic [ref=e89]: 
+                      - 'columnheader "Zip Code : activate to sort column ascending" [ref=e90]':
+                        - text: Zip Code
+                        - generic [ref=e91]: 
+                      - 'columnheader "Primary : activate to sort column ascending" [ref=e92]':
+                        - text: Primary
+                        - generic [ref=e93]: 
+                      - 'columnheader "Actions : activate to sort column ascending" [ref=e94]':
+                        - text: Actions
+                        - generic [ref=e95]: 
+                  - rowgroup [ref=e96]:
+                    - row "1 38934 FRITSCH SPURS ALLEN TX 76102   " [ref=e97]:
+                      - gridcell "1" [ref=e98]
+                      - gridcell "38934 FRITSCH SPURS" [ref=e99]
+                      - gridcell "ALLEN" [ref=e100]
+                      - gridcell "TX" [ref=e101]
+                      - gridcell "76102" [ref=e102]
+                      - gridcell "" [ref=e103]:
+                        - generic [ref=e104]: 
+                      - gridcell " " [ref=e105]:
+                        - button "" [ref=e106] [cursor=pointer]:
+                          - generic [ref=e107]: 
+                        - button "" [ref=e108] [cursor=pointer]:
+                          - generic [ref=e109]: 
+          - generic [ref=e110]:
+            - button " Previous" [ref=e111] [cursor=pointer]:
+              - generic [ref=e112]: 
+              - text: Previous
+            - button "Next " [ref=e113] [cursor=pointer]:
+              - text: Next
+              - generic [ref=e114]: 
+    - generic [ref=e117]:
+      - paragraph [ref=e118]:
+        - link "Technical Support" [ref=e119] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e120]: © 2026 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e121]: Jira Service Management Widget
+  - dialog [active] [ref=e123]:
+    - document:
+      - generic [ref=e124]:
+        - heading "Attention" [level=5] [ref=e126]
+        - generic [ref=e132]:
+          - generic [ref=e135]: Errors
+          - generic [ref=e138]: "Territory Code on Location 1: 38934 FRITSCH SPURS, ALLEN, TX 76102 is required"
+        - button " Close" [ref=e140] [cursor=pointer]:
+          - generic [ref=e141]: 
+          - text: Close
+```

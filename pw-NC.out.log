@@ -1,0 +1,253 @@
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+
+Running 4 tests using 4 workers
+
+🗺️ Running test for state: NC (North Carolina)
+⏫ Test Started (0.00s)
+🗺️ Running test for state: NC (North Carolina)
+WB Login successful
+WB Login successful
+[2026-01-08T15:27:30.827Z] WB Login successful - PASS
+✅ Clicked hyperlink 1
+WB Login successful
+✅ Clicked hyperlink 2
+✅ Phone number filled successfully: 717-652-9707
+✅ Clicked hyperlink 3
+✅ Phone number filled successfully: 717-689-1654
+✅ Clicked hyperlink 4
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+✅ "Accept As-Is" clicked successfully
+⚠️ Open dialog detected, attempting to close...
+✅ Clicked hyperlink 5
+⏭️  "Client not listed" button not present, skipping
+⏭️  "Continue" button not present, skipping
+⚠️ Open dialog detected, attempting to close...
+✅ Clicked hyperlink 6
+Account creation completed
+[2026-01-08T15:28:23.742Z] Client creation completed - PASS
+✅ Clicked hyperlink 7
+✅ Contact phone number filled successfully: 717-555-1212
+✅ Clicked hyperlink 8
+Account creation completed
+🔍 Extracted number from page text: 3003179966
+❌ Test Execution Failed (93.20s)
+💾 Test data written to test-data-NC.json with failure info
+✅ Clicked hyperlink 9
+✅ Account Created (98.92s)
+Account qualification completed
+  ✘  3 [chromium] › Create_Package.test.js:13:5 › Package Submission (1.7m)
+💾 Saved iteration 1: suite=Package, state=NC
+✅ Clicked hyperlink 10
+✅ Clicked hyperlink 11
+✓ Legal Entity already set to "Other", skipping
+✅ Clicked hyperlink 12
+✅ Clicked hyperlink 13
+  ✘  2 [chromium] › Create_Account.test.js:6:5 › test (2.3m)
+⚠️ Duplicate skipped: state=NC, runId=2026-01-08T15:26:56.965Z
+✅ Clicked hyperlink 14
+✅ Clicked hyperlink 15
+✅ Clicked hyperlink 16
+✅ Clicked hyperlink 17
+✅ Clicked hyperlink 18
+BOP quote - preliminary info completed
+✅ Clicked hyperlink 19
+Building details filled
+✅ Clicked hyperlink 20
+✅ Clicked hyperlink 21
+✅ Clicked hyperlink 22
+✅ Clicked hyperlink 23
+✅ Building and Classification Added (140.01s)
+Building and classification added
+✅ Clicked hyperlink 24
+✅ Clicked hyperlink 25
+✅ Clicked hyperlink 26
+✅ Clicked hyperlink 27
+Quote Number: 3003180890
+✅ Quote Rated Successfully (31.11s)
+Starting policy submission workflow...
+📋 Step 1: Submitting policy in WriteBiz...
+🔘 Clicking Submit For Approval button...
+✅ Clicked hyperlink 28
+✅ Submit For Approval button clicked
+✅ Clicked hyperlink 29
+✅ Submission row 3003180890 is visible (attempt 1)
+✅ Business Entity Description field found, filling with "Test"...
+✅ Business Entity Description filled
+✅ Clicked hyperlink 30
+✅ Clicked hyperlink 31
+✅ Clicked hyperlink 32
+✅ WriteBiz submission completed
+✅ Submitting for Approval (36.88s)
+🔐 Step 2: Logging into PolicyCenter in new tab...
+🔎 Submitting number to PolicyCenter: 3003180890
+✅ Clicked hyperlink 33
+📍 Opening Policy menu...
+📍 Expanding Policy Tab...
+✅ Clicked hyperlink 34
+📍 Searching for submission: 3003180890...
+✅ Submission search completed
+✅ Found 1 nodes for locator: text=/Risk Analysis/i
+➡️ Clicked node #0 for locator: text=/Risk Analysis/i
+✅ Clicked hyperlink 35
+✅ Clicked hyperlink 36
+✅ UW Issues Approved in PolicyCenter (42.32s)
+⏳ Step 3: Submitting for issuance in WriteBiz...
+✅ Clicked hyperlink 37
+✅ Clicked hyperlink 38
+✅ Clicked hyperlink 39
+⏳ Waiting for radio button to be available...
+✅ Clicked hyperlink 40
+✅ Clicked hyperlink 41
+✅ Clicked hyperlink 42
+✅ Clicked hyperlink 43
+✅ Clicked hyperlink 44
+🔘 Clicking Bill Insured By Mail radio button...
+✅ Bill Insured By Mail radio button clicked
+✅ Clicked hyperlink 45
+✅ Clicked hyperlink 46
+✅ Clicked hyperlink 47
+✅ Clicked hyperlink 48
+✅ Clicked hyperlink 49
+✅ Clicked hyperlink 50
+✅ Clicked hyperlink 51
+✅ Clicked hyperlink 52
+✅ Clicked hyperlink 53
+✅ Finished clicking 53 hyperlink(s)
+  ✓  1 [chromium] › Clear_Account_Summ.test.js:4:5 › test (8.2m)
+⚠️ Duplicate skipped: state=NC, runId=2026-01-08T15:26:56.965Z
+📄 Policy Number generated: 1003052996
+✅ Policy Issued Successfully (150.32s)
+📋 Test Data: {
+  state: [32m'NC'[39m,
+  stateName: [32m'North Carolina'[39m,
+  milestones: [
+    {
+      name: [32m'Account Created'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T15:28:59.412Z[39m,
+      details: [32m''[39m,
+      duration: [32m'98.92s'[39m
+    },
+    {
+      name: [32m'Building and Classification Added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T15:31:19.431Z[39m,
+      details: [32m''[39m,
+      duration: [32m'140.01s'[39m
+    },
+    {
+      name: [32m'Quote Rated Successfully'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T15:31:50.549Z[39m,
+      details: [32m'Quote #: 3003180890'[39m,
+      duration: [32m'31.11s'[39m
+    },
+    {
+      name: [32m'Submitting for Approval'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T15:32:27.433Z[39m,
+      details: [32m''[39m,
+      duration: [32m'36.88s'[39m
+    },
+    {
+      name: [32m'UW Issues Approved in PolicyCenter'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T15:33:09.753Z[39m,
+      details: [32m''[39m,
+      duration: [32m'42.32s'[39m
+    },
+    {
+      name: [32m'Policy Issued Successfully'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T15:35:40.077Z[39m,
+      details: [32m'Policy #: 1003052996'[39m,
+      duration: [32m'150.32s'[39m
+    }
+  ],
+  httpTimings: [],
+  networkErrors: [
+    {
+      url: [32m'https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=F9C1FFE0118D44BCA4B8A7C0FDA898BF'[39m,
+      error: [36m[Object][39m,
+      timestamp: [32m'2026-01-08T15:29:34.638Z'[39m
+    },
+    {
+      url: [32m'https://nautilusqa.donegalgroup.com/ajinvoke.aspx?sid=4ADF3F14614F4E558FB4FB83331D2010'[39m,
+      error: [36m[Object][39m,
+      timestamp: [32m'2026-01-08T15:29:55.455Z'[39m
+    }
+  ],
+  retryCount: [33m0[39m,
+  quoteNumber: [32m'3003180890'[39m,
+  policyNumber: [32m'1003052996'[39m
+}
+💾 Test data written to test-data-NC.json
+Test completed successfully
+  ✓  4 [chromium] › Create_BOP.test.js:13:5 › Package Submission (8.3m)
+⚠️ Duplicate skipped: state=NC, runId=2026-01-08T15:26:56.965Z
+
+
+  1) [chromium] › Create_Account.test.js:6:5 › test ────────────────────────────────────────────────
+
+    TimeoutError: locator.selectOption: Timeout 60000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question')[22m
+
+
+      65 |   stepLogger.logStep("Client creation completed");
+      66 |   // Coverage selections
+    > 67 |   await page.locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question').selectOption('BOP');
+         |                                                                                                                                                                        ^
+      68 |   await page.locator('#xrgn_WillBuildingCoverageBeRequested_124_WillBuildingCoverageBeRequested_124_Question_Control').getByText('No', { exact: true }).click();
+      69 |   await page.getByRole('radio').first().click();
+      70 |   await page.locator('#xddl_WhatIsTheTotalNumberOfPowerUnits_121_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').selectOption('01');
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Account.test.js:67:168
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Account-test-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Account-test-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\..\..\Playwright\Create_Account-test-chromium\error-context.md
+
+  2) [chromium] › Create_Package.test.js:13:5 › Package Submission ─────────────────────────────────
+
+    TimeoutError: locator.waitFor: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible[22m
+
+
+       at accountCreationHelper.js:205
+
+      203 |     // Business Description - wait for it to be visible and enabled
+      204 |     const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
+    > 205 |     await businessDescField.waitFor({ state: 'visible', timeout: 30000 });
+          |                             ^
+      206 |     await businessDescField.fill('test desc');
+      207 |
+      208 |     // Click the Business Entity input to open dropdown
+        at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:205:29)
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:163:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Package-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\..\..\Playwright\Create_Package-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\..\..\Playwright\Create_Package-Package-Submission-chromium\error-context.md
+
+  Slow test file: [chromium] › Create_BOP.test.js (8.3m)
+  Slow test file: [chromium] › Clear_Account_Summ.test.js (8.2m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  2 failed
+    [chromium] › Create_Account.test.js:6:5 › test ─────────────────────────────────────────────────
+    [chromium] › Create_Package.test.js:13:5 › Package Submission ──────────────────────────────────
+  2 passed (8.8m)

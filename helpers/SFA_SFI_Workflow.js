@@ -402,7 +402,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   const policyNumber = (await policyCell.innerText()).trim();
   console.log(`📄 Policy Number generated: ${policyNumber}`);
   if (trackMilestone) {
-    trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${policyNumber}`);
+    trackMilestone('Submit for issuance', 'PASSED', `Policy #: ${policyNumber}`);
   }
   return policyNumber;
 }

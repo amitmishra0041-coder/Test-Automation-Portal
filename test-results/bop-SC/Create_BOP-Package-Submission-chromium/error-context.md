@@ -1,0 +1,137 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Vandervort, Veum and Hessel
+        - generic [ref=e11]: 3242 STUART RIVER
+        - generic [ref=e12]: MOUNT PLEASANT, SC 29303
+      - button "Close This Client" [ref=e14] [cursor=pointer]:
+        - generic [ref=e16]: Close This Client
+    - generic [ref=e17]:
+      - tablist [ref=e19]:
+        - tab "Client Summary" [ref=e20] [cursor=pointer]
+        - tab "Businessowners 3003181007 $963" [ref=e21] [cursor=pointer]:
+          - 'generic "{\"index\":1434758,\"lastUpdate\":\"0001-01-01T00:00:00\",\"policyNumber\":\"3003181007\",\"policyDateTime\":\"1/8/2026 3:57 PM\",\"displayPolicyNumber\":\"3003181007\",\"ratingState\":\"SC\",\"planCode\":\"\",\"company\":\"Southern Insurance Co of Virginia\",\"version\":1,\"description\":\"CUSTOM\",\"tranType\":\"New Business\",\"status\":\"A_QuoteInProgress\",\"isActive\":true,\"isHidden\":false,\"isReadOnly\":true,\"isUserAttached\":true}" [ref=e23]':
+            - generic [ref=e24]: Businessowners
+            - button [ref=e27]
+            - generic [ref=e31]: "3003181007"
+            - generic [ref=e32]: $963
+        - tab "Contact Underwriter" [expanded] [selected] [ref=e34] [cursor=pointer]
+        - tab "Documents" [ref=e35] [cursor=pointer]
+        - tab "Reports" [ref=e36] [cursor=pointer]: Reports
+        - tab "UW Workstation" [ref=e38] [cursor=pointer]: UW Workstation
+        - tab "Manage Contacts" [ref=e40] [cursor=pointer]
+      - generic [ref=e47]:
+        - tablist [ref=e48]:
+          - tab "Submissions" [expanded] [selected] [ref=e49]:
+            - link "Submissions" [ref=e50]:
+              - /url: "#ajtcUnderwriterComm_tabContent"
+        - tabpanel "Submissions" [ref=e51]:
+          - generic [ref=e53]:
+            - generic [ref=e56]:
+              - generic [ref=e59]:
+                - generic:
+                  - generic [ref=e62]: Submit Quote(s) For Approval
+                  - button "Set Status" [ref=e64] [cursor=pointer]:
+                    - generic [ref=e66]: Set Status
+                - generic [ref=e69]: Please check the quote(s) you will like to submit for approval
+                - grid [ref=e72]:
+                  - table "Active Line of Business Quote Number Description Premium Status Term Agency Producer directIssue Businessowners 3003181007-1 CUSTOM $ 963 In Progress (A) 1/8/2026 - 1/8/2027 0000988 MICHAEL JACOBS" [ref=e75]:
+                    - row "Active Line of Business Quote Number Description Premium Status Term Agency Producer directIssue" [ref=e76]:
+                      - columnheader [ref=e77]:
+                        - checkbox [ref=e79]
+                      - columnheader "Active" [ref=e80]:
+                        - generic [ref=e82] [cursor=pointer]: Active
+                      - columnheader "Line of Business" [ref=e83]:
+                        - generic [ref=e85] [cursor=pointer]: Line of Business
+                      - columnheader "Quote Number" [ref=e86]:
+                        - generic [ref=e88] [cursor=pointer]: Quote Number
+                      - columnheader "Description" [ref=e89]:
+                        - generic [ref=e91] [cursor=pointer]: Description
+                      - columnheader "Premium" [ref=e92]:
+                        - generic [ref=e94] [cursor=pointer]: Premium
+                      - columnheader "Status" [ref=e95]:
+                        - generic [ref=e97] [cursor=pointer]: Status
+                      - columnheader "Term" [ref=e98]:
+                        - generic [ref=e100] [cursor=pointer]: Term
+                      - columnheader "Agency" [ref=e101]:
+                        - generic [ref=e103] [cursor=pointer]: Agency
+                      - columnheader "Producer" [ref=e104]:
+                        - generic [ref=e106] [cursor=pointer]: Producer
+                      - columnheader "directIssue" [ref=e107]:
+                        - generic [ref=e109] [cursor=pointer]: directIssue
+                  - table "Active Line of Business Quote Number Description Premium Status Term Agency Producer directIssue Businessowners 3003181007-1 CUSTOM $ 963 In Progress (A) 1/8/2026 - 1/8/2027 0000988 MICHAEL JACOBS" [ref=e112]:
+                    - rowgroup [ref=e113]:
+                      - row [ref=e114]:
+                        - gridcell [ref=e115]
+                        - gridcell [ref=e116]
+                        - gridcell [ref=e117]
+                        - gridcell [ref=e118]
+                        - gridcell [ref=e119]
+                        - gridcell [ref=e120]
+                        - gridcell [ref=e121]
+                        - gridcell [ref=e122]
+                        - gridcell [ref=e123]
+                        - gridcell [ref=e124]
+                        - gridcell [ref=e125]
+                      - row "Businessowners 3003181007-1 CUSTOM $ 963 In Progress (A) 1/8/2026 - 1/8/2027 0000988 MICHAEL JACOBS" [active] [selected] [ref=e126]:
+                        - gridcell [ref=e127]:
+                          - checkbox [checked] [ref=e128]
+                        - gridcell [ref=e129]:
+                          - img [ref=e130]
+                        - gridcell "Businessowners" [ref=e131]
+                        - gridcell "3003181007-1" [ref=e132]
+                        - gridcell "CUSTOM" [ref=e133]
+                        - gridcell "$ 963" [ref=e134]
+                        - gridcell "In Progress (A)" [ref=e135]
+                        - gridcell "1/8/2026 - 1/8/2027" [ref=e136]
+                        - gridcell "0000988" [ref=e137]
+                        - gridcell "MICHAEL JACOBS" [ref=e138]
+                        - gridcell [ref=e139]:
+                          - button "Edit the Quote" [ref=e141] [cursor=pointer]
+                - button "Submit For Approval" [ref=e145] [cursor=pointer]:
+                  - generic [ref=e147]: Submit For Approval
+              - generic [ref=e151]:
+                - generic [ref=e154]: Submit Quote(s) For Issuance
+                - generic [ref=e157]: Please check the quote(s) you will like to submit for issuance
+                - generic [ref=e160]: Currently there are no quotes that may be submitted for issuance.
+                - button "Submit For Issuance" [disabled] [ref=e163]:
+                  - generic [ref=e165]: Submit For Issuance
+            - generic [ref=e172]:
+              - generic [ref=e176]: Items Required For Approval
+              - generic [ref=e178]:
+                - generic:
+                  - generic:
+                    - button [ref=e180] [cursor=pointer]
+                    - generic [ref=e185]: Verify Client
+                    - generic [ref=e190]:
+                      - img [ref=e191]
+                      - text: (Complete)
+              - generic [ref=e193]:
+                - generic:
+                  - generic:
+                    - button [ref=e195] [cursor=pointer]
+                    - generic [ref=e200]: Prior Carriers
+                    - generic [ref=e205]:
+                      - img [ref=e206]
+                      - text: (Incomplete)
+              - generic [ref=e208]:
+                - generic:
+                  - generic:
+                    - button [ref=e210] [cursor=pointer]
+                    - generic [ref=e215]: Loss History
+                    - generic [ref=e220]:
+                      - img [ref=e221]
+                      - text: (Complete)
+    - generic [ref=e226]:
+      - paragraph [ref=e227]:
+        - link "Technical Support" [ref=e228] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e229]: © 2026 Donegal Insurance Group, All Rights Reserved.
+  - log [ref=e230]
+  - log [ref=e231]
+  - generic [ref=e232]: Jira Service Management Widget
+```

@@ -1,0 +1,69 @@
+❌ Test execution failed: locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('textbox', { name: 'Business Description' }) to be visible[22m
+
+❌ Test execution failed: locator.click: Timeout 60000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+[2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLPropertyLocationDetails" class="ui-xcontrols ui-xcontrols-xbutton btn btn-primary" onclick="$Page.setPageValue('ValidateStep', 'false'); return $Kraken.HandleTabClick({parentAjaxPanelID: "ajp_PropertyLocationDetails", value: "Static|CLPropertyLocationCoverages.aspx"});">…</button>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    108 × waiting for element to be visible, enabled and stable[22m
+[2m        - element is visible, enabled and stable[22m
+[2m        - scrolling into view if needed[22m
+[2m        - done scrolling[22m
+[2m        - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+[2m      - retrying click action[22m
+[2m        - waiting 500ms[22m
+
+📍 Stack: locator.click: Timeout 60000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+[2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLPropertyLocationDetails" class="ui-xcontrols ui-xcontrols-xbutton btn btn-primary" onclick="$Page.setPageValue('ValidateStep', 'false'); return $Kraken.HandleTabClick({parentAjaxPanelID: "ajp_PropertyLocationDetails", value: "Static|CLPropertyLocationCoverages.aspx"});">…</button>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    108 × waiting for element to be visible, enabled and stable[22m
+[2m        - element is visible, enabled and stable[22m
+[2m        - scrolling into view if needed[22m
+[2m        - done scrolling[22m
+[2m        - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-modal-alert_1767886204535">…</div> intercepts pointer events[22m
+[2m      - retrying click action[22m
+[2m        - waiting 500ms[22m
+
+    at safeClick (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:143:19)
+    at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_Package.test.js:346:5
+❌ Email send failed: getaddrinfo ENOTFOUND smtp.server
+Error in reporter Error: getaddrinfo ENOTFOUND smtp.server
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:121:26) {
+  errno: -3008,
+  code: 'EDNS',
+  syscall: 'getaddrinfo',
+  hostname: 'smtp.server',
+  command: 'CONN'
+}

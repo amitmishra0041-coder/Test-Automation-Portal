@@ -226,9 +226,12 @@ class EmailReporter {
   // Create Excel report
   async _createExcelReport(iterations) {
     try {
-      const wb = XLSX.utils.book_new();
+      const excelPath = path.join(__dirname, 'WB_Test_Report.xlsx');
       
-      // Summary sheet
+      // Always start fresh to avoid sheet name collisions
+      let targetWb = XLSX.utils.book_new();
+
+      // Summary sheet with timestamp
       const summaryData = iterations.map(it => ({
         'Iteration #': it.iterationNumber,
         'Line of Business': `${it.suite || 'Package'} (${it.state || 'N/A'})`,
@@ -238,9 +241,50 @@ class EmailReporter {
         'Duration (s)': it.duration,
         'State': it.state
       }));
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Summary');
+      const runTag = new Date().toISOString().replace(/[:]/g, '-').slice(0, 19);
+      const summarySheetName = (`Summary_${runTag}`).substring(0, 31);
+      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(summaryData), summarySheetName);
 
-      // Individual iteration sheets
+      // Milestones Analytics sheet - aggregate average times by milestone
+      // Use a Map to preserve the order milestones are first encountered (tracking order)
+      const milestoneAggregates = new Map();
+      const passedIterations = iterations.filter(it => it.status === 'PASSED');
+      
+      passedIterations.forEach(it => {
+        (it.milestones || []).forEach(m => {
+          if (!m.name || m.status !== 'PASSED') return;
+          if (!milestoneAggregates.has(m.name)) {
+            milestoneAggregates.set(m.name, { totalDuration: 0, count: 0, runs: [] });
+          }
+          const duration = parseFloat(m.duration) || 0;
+          const existing = milestoneAggregates.get(m.name);
+          existing.totalDuration += duration;
+          existing.count += 1;
+          existing.runs.push({
+            suite: it.suite || 'Package',
+            state: it.state,
+            duration: duration
+          });
+        });
+      });
+
+      // Convert Map to analytics data, preserving the order milestones were tracked
+      const analyticsData = Array.from(milestoneAggregates.entries())
+        .map(([milestoneName, data]) => ({
+          'Milestone': milestoneName,
+          'Average Duration (s)': (data.totalDuration / data.count).toFixed(2),
+          'Min Duration (s)': Math.min(...data.runs.map(r => r.duration)).toFixed(2),
+          'Max Duration (s)': Math.max(...data.runs.map(r => r.duration)).toFixed(2),
+          'Total Runs': data.count,
+          'Suites': [...new Set(data.runs.map(r => r.suite))].join(', '),
+          'States': [...new Set(data.runs.map(r => r.state))].join(', ')
+        }));
+        // Removed .sort() to maintain tracking order
+
+      const analyticsSheetName = ('Milestones_Analytics').substring(0, 31);
+      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(analyticsData), analyticsSheetName);
+
+      // Individual iteration sheets with unique names
       iterations.forEach(it => {
         const milestoneData = (it.milestones || []).map(m => ({
           'Milestone': m.name,
@@ -249,33 +293,14 @@ class EmailReporter {
           'Timestamp': m.timestamp || '-',
         }));
         const ws = XLSX.utils.json_to_sheet(milestoneData);
-        const sheetName = `${it.suite || 'Suite'}_${it.iterationNumber}`.substring(0, 31).replace(/[^A-Za-z0-9_]/g, '_');
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      });
-
-      const excelPath = path.join(__dirname, 'WB_Test_Report.xlsx');
-      // Load existing workbook if present, else create new
-      let existingWb = null;
-      try {
-        if (fs.existsSync(excelPath)) {
-          existingWb = XLSX.readFile(excelPath);
+        // Create unique sheet name: Suite_State_IterNum_Timestamp
+        const sheetBase = `${(it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_')}_${it.state || 'N_A'}_${it.iterationNumber}`;
+        let sheetName = sheetBase.substring(0, 31);
+        // If name is exactly 31 chars, append run tag to ensure uniqueness
+        if (sheetName.length === 31) {
+          sheetName = `${(it.suite || 'Suite').substring(0, 8)}_${(it.state || 'N_A').substring(0, 4)}_${it.iterationNumber}_${runTag.slice(0, 5)}`.substring(0, 31);
         }
-      } catch {}
-      const targetWb = existingWb || wb;
-
-      // Timestamped sheet names to avoid collisions
-      const runTag = new Date().toISOString().replace(/[:]/g, '-').slice(0, 19);
-      const summarySheetName = (`Summary_${runTag}`).substring(0, 31);
-      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(summaryData), summarySheetName);
-      iterations.forEach(it => {
-        const milestoneData = (it.milestones || []).map(m => ({
-          'Milestone': m.name,
-          'Status': m.status || 'N/A',
-          'Duration (s)': m.duration || '-',
-          'Timestamp': m.timestamp || '-',
-        }));
-        const sheetName = `${(it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_')}_${it.state || 'N_A'}_${it.iterationNumber}`.substring(0,31);
-        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(milestoneData), sheetName);
+        XLSX.utils.book_append_sheet(targetWb, ws, sheetName);
       });
 
       XLSX.writeFile(targetWb, excelPath);

@@ -1,0 +1,166 @@
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+
+Running 1 test using 1 worker
+
+🗺️ Running test for state: NE (Nebraska)
+WB Login successful
+✅ Selected producer: CHRISTINA M. BOWER
+✅ Phone number filled successfully: 717-881-0848
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+✅ Client creation completed successfully
+⚠️ Open dialog detected, attempting to close...
+✅ Contact phone number filled successfully: 717-555-1212
+Account creation completed
+✅ Account Created (73.80s)
+Account qualification completed
+✅ Policy Details Entered (15.84s)
+✓ Legal Entity already set to "Other", skipping
+✅ Businessowners page - coverages added (64.39s)
+✅ Locations added (2.53s)
+✅ State specific info completed (1.71s)
+BOP quote - preliminary info completed
+Building details filled
+✅ Building and Classification Added (56.82s)
+Building and classification added
+✅ Blankets page navigated (1.64s)
+✅ Mortages Tab navigated (0.95s)
+✅ US questions tab completed (3.58s)
+Quote Number: 3003181006
+✅ Quote Rated Successfully (24.81s)
+Starting policy submission workflow...
+📋 Step 1: Submitting policy in WriteBiz...
+🔘 Clicking Submit For Approval button...
+✅ Submit For Approval button clicked
+✅ Submission row 3003181006 is visible (attempt 1)
+✅ Business Entity Description field found, filling with "Test"...
+✅ Business Entity Description filled
+✅ WriteBiz submission completed
+✅ Submitting for Approval (38.26s)
+🔐 Step 2: Logging into PolicyCenter in new tab...
+🔎 Submitting number to PolicyCenter: 3003181006
+📍 Opening Policy menu...
+📍 Expanding Policy Tab...
+📍 Searching for submission: 3003181006...
+✅ Submission search completed
+✅ Found 1 nodes for locator: text=/Risk Analysis/i
+➡️ Clicked node #0 for locator: text=/Risk Analysis/i
+✅ UW Issues Approved in PolicyCenter (49.84s)
+⏳ Step 3: Submitting for issuance in WriteBiz...
+⏳ Waiting for radio button to be available...
+🔘 Clicking Bill Insured By Mail radio button...
+✅ Bill Insured By Mail radio button clicked
+📄 Policy Number generated: 1003053037
+✅ Submit for issuance (167.22s)
+📋 Test Data: {
+  state: [32m'NE'[39m,
+  stateName: [32m'Nebraska'[39m,
+  milestones: [
+    {
+      name: [32m'Account Created'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:57:26.150Z[39m,
+      details: [32m''[39m,
+      duration: [32m'73.80s'[39m
+    },
+    {
+      name: [32m'Policy Details Entered'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:57:41.988Z[39m,
+      details: [32m''[39m,
+      duration: [32m'15.84s'[39m
+    },
+    {
+      name: [32m'Businessowners page - coverages added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:58:46.391Z[39m,
+      details: [32m''[39m,
+      duration: [32m'64.39s'[39m
+    },
+    {
+      name: [32m'Locations added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:58:48.925Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.53s'[39m
+    },
+    {
+      name: [32m'State specific info completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:58:50.634Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.71s'[39m
+    },
+    {
+      name: [32m'Building and Classification Added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:59:47.457Z[39m,
+      details: [32m''[39m,
+      duration: [32m'56.82s'[39m
+    },
+    {
+      name: [32m'Blankets page navigated'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:59:49.097Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.64s'[39m
+    },
+    {
+      name: [32m'Mortages Tab navigated'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:59:50.050Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.95s'[39m
+    },
+    {
+      name: [32m'US questions tab completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:59:53.633Z[39m,
+      details: [32m''[39m,
+      duration: [32m'3.58s'[39m
+    },
+    {
+      name: [32m'Quote Rated Successfully'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:00:18.449Z[39m,
+      details: [32m'Quote #: 3003181006'[39m,
+      duration: [32m'24.81s'[39m
+    },
+    {
+      name: [32m'Submitting for Approval'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:00:56.713Z[39m,
+      details: [32m''[39m,
+      duration: [32m'38.26s'[39m
+    },
+    {
+      name: [32m'UW Issues Approved in PolicyCenter'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:01:46.558Z[39m,
+      details: [32m''[39m,
+      duration: [32m'49.84s'[39m
+    },
+    {
+      name: [32m'Submit for issuance'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:04:33.782Z[39m,
+      details: [32m'Policy #: 1003053037'[39m,
+      duration: [32m'167.22s'[39m
+    }
+  ],
+  httpTimings: [],
+  networkErrors: [],
+  retryCount: [33m0[39m,
+  quoteNumber: [32m'3003181006'[39m,
+  policyNumber: [32m'1003053037'[39m
+}
+💾 Test data written to test-data-NE.json
+Test completed successfully
+  ✓  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (8.4m)
+💾 Saved iteration 13: suite=BOP, state=NE
+
+  Slow test file: [chromium] › Create_BOP.test.js (8.4m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (8.4m)
+⏸️ Batch run detected; skipping individual email

@@ -1,0 +1,173 @@
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+
+Running 1 test using 1 worker
+
+🗺️ Running test for state: VA (Virginia)
+WB Login successful
+✅ Selected producer: CHRISTINA M. BOWER
+✅ Phone number filled successfully: 717-756-4612
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+✅ Client creation completed successfully
+⚠️ Open dialog detected, attempting to close...
+✅ Contact phone number filled successfully: 717-555-1212
+Account creation completed
+✅ Account Created (74.79s)
+Account qualification completed
+✅ Policy Details Entered (15.13s)
+✓ Legal Entity already set to "Other", skipping
+✅ Businessowners page - coverages added (58.98s)
+✅ Locations added (2.90s)
+✅ State specific info completed (1.71s)
+BOP quote - preliminary info completed
+Building details filled
+✅ Building and Classification Added (52.84s)
+Building and classification added
+✅ Blankets page navigated (2.20s)
+✅ Mortages Tab navigated (2.14s)
+✅ US questions tab completed (3.38s)
+Quote Number: 3003181017
+✅ Quote Rated Successfully (13.30s)
+Starting policy submission workflow...
+📋 Step 1: Submitting policy in WriteBiz...
+🔘 Clicking Submit For Approval button...
+✅ Submit For Approval button clicked
+⚠️ Submission row not found (attempt 1) - refreshing and retrying...
+✅ Submission row 3003181017 is visible (attempt 2)
+✅ Business Entity Description field found, filling with "Test"...
+✅ Business Entity Description filled
+✅ WriteBiz submission completed
+✅ Submitting for Approval (80.00s)
+🔐 Step 2: Logging into PolicyCenter in new tab...
+🔎 Submitting number to PolicyCenter: 3003181017
+📍 Opening Policy menu...
+📍 Expanding Policy Tab...
+📍 Searching for submission: 3003181017...
+✅ Submission search completed
+✅ Found 1 nodes for locator: text=/Risk Analysis/i
+➡️ Clicked node #0 for locator: text=/Risk Analysis/i
+✅ UW Issues Approved in PolicyCenter (57.45s)
+⏳ Step 3: Submitting for issuance in WriteBiz...
+⏳ Waiting for radio button to be available...
+🔘 Clicking Bill Insured By Mail radio button...
+✅ Bill Insured By Mail radio button clicked
+📄 Policy Number generated: 1003053040
+✅ Submit for issuance (149.78s)
+📋 Test Data: {
+  state: [32m'VA'[39m,
+  stateName: [32m'Virginia'[39m,
+  milestones: [
+    {
+      name: [32m'Account Created'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:10:19.120Z[39m,
+      details: [32m''[39m,
+      duration: [32m'74.79s'[39m
+    },
+    {
+      name: [32m'Policy Details Entered'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:10:34.247Z[39m,
+      details: [32m''[39m,
+      duration: [32m'15.13s'[39m
+    },
+    {
+      name: [32m'Businessowners page - coverages added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:11:33.228Z[39m,
+      details: [32m''[39m,
+      duration: [32m'58.98s'[39m
+    },
+    {
+      name: [32m'Locations added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:11:36.135Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.90s'[39m
+    },
+    {
+      name: [32m'State specific info completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:11:37.851Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.71s'[39m
+    },
+    {
+      name: [32m'Building and Classification Added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:12:30.687Z[39m,
+      details: [32m''[39m,
+      duration: [32m'52.84s'[39m
+    },
+    {
+      name: [32m'Blankets page navigated'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:12:32.885Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.20s'[39m
+    },
+    {
+      name: [32m'Mortages Tab navigated'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:12:35.027Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.14s'[39m
+    },
+    {
+      name: [32m'US questions tab completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:12:38.407Z[39m,
+      details: [32m''[39m,
+      duration: [32m'3.38s'[39m
+    },
+    {
+      name: [32m'Quote Rated Successfully'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:12:51.713Z[39m,
+      details: [32m'Quote #: 3003181017'[39m,
+      duration: [32m'13.30s'[39m
+    },
+    {
+      name: [32m'Submitting for Approval'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:14:11.717Z[39m,
+      details: [32m''[39m,
+      duration: [32m'80.00s'[39m
+    },
+    {
+      name: [32m'UW Issues Approved in PolicyCenter'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:15:09.169Z[39m,
+      details: [32m''[39m,
+      duration: [32m'57.45s'[39m
+    },
+    {
+      name: [32m'Submit for issuance'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T21:17:38.948Z[39m,
+      details: [32m'Policy #: 1003053040'[39m,
+      duration: [32m'149.78s'[39m
+    }
+  ],
+  httpTimings: [],
+  networkErrors: [
+    {
+      url: [32m'https://as.atlassian.com/api/v1/batch'[39m,
+      error: [36m[Object][39m,
+      timestamp: [32m'2026-01-08T21:12:35.443Z'[39m
+    }
+  ],
+  retryCount: [33m0[39m,
+  quoteNumber: [32m'3003181017'[39m,
+  policyNumber: [32m'1003053040'[39m
+}
+💾 Test data written to test-data-VA.json
+Test completed successfully
+  ✓  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (8.6m)
+💾 Saved iteration 19: suite=BOP, state=VA
+
+  Slow test file: [chromium] › Create_BOP.test.js (8.6m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (8.7m)
+⏸️ Batch run detected; skipping individual email

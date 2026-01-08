@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./helpers/randomData');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
-const { getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
+const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const { createAccountAndQualify } = require('./accountCreationHelper');
 const fs = require('fs');
 const path = require('path');
@@ -18,8 +18,8 @@ test('Package Submission', async ({ page }, testInfo) => {
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
 
-  // Select state via TEST_STATE (DE|MI|OH|PA|WI). Defaults to DE.
-  const allowedStates = ['DE', 'MI', 'OH', 'PA', 'WI'];
+  // Select state via TEST_STATE. Defaults to DE.
+  const allowedStates = Object.keys(STATE_CONFIG);
   let testState = (process.env.TEST_STATE || 'DE').toUpperCase();
   if (!allowedStates.includes(testState)) {
     console.log(`⚠️ TEST_STATE "${testState}" not allowed; defaulting to DE`);
@@ -35,8 +35,16 @@ test('Package Submission', async ({ page }, testInfo) => {
     milestones: [],
     httpTimings: [],
     networkErrors: [],
-    retryCount: testInfo.retry || 0
+    retryCount: testInfo.retry || 0,
+    quoteNumber: 'N/A',
+    policyNumber: 'N/A'
   };
+  
+  // Immediately save initialized test data to prevent stale values from previous iterations
+  const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
+  fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
+  console.log(`✅ Initialized test data for ${testState} with N/A values`);
+  
   // Track HTTP response times and errors
   page.on('response', async (response) => {
     try {
@@ -850,7 +858,7 @@ test('Package Submission', async ({ page }, testInfo) => {
     //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLExposuresDetails.aspx&selectedsubline=%22Premises/Operations%20and%20Products/Completed%20Operations%22&sid=E1A86E1405BA4536A6D78577D333850B');
     await page.locator('#txtExposure_Prem').click();
     await page.locator('#txtExposure_Prem').click();
-    await page.locator('#txtExposure_Prem').fill('15566');
+    await page.locator('#txtExposure_Prem').fill('166');
     await safeClick(page.getByRole('button', { name: 'Next ' }));
     //await page.goto('https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLGLExposuresCoverages.aspx&sid=B7D53EFD48D34942B45549FB2627936C');
     await safeClick(page.getByRole('button', { name: 'Next ' }));

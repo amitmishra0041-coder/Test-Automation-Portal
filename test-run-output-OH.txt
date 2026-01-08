@@ -1,78 +1,58 @@
-[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: OH (Ohio)
 WB Login successful
-✅ Phone number filled successfully: 717-294-4134
+✅ Selected producer: CHRISTINA M. BOWER
+✅ Phone number filled successfully: 717-705-1243
 ✅ "Accept As-Is" clicked successfully
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
+✅ Client creation completed successfully
 ⚠️ Open dialog detected, attempting to close...
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (81.66s)
+✅ Account Created (89.58s)
 Account qualification completed
+✅ Policy Details Entered (15.75s)
 ✓ Legal Entity already set to "Other", skipping
+✅ Businessowners page - coverages added (57.11s)
+✅ Locations added (2.82s)
+✅ State specific info completed (1.72s)
 BOP quote - preliminary info completed
 Building details filled
-✅ Building and Classification Added (134.54s)
+✅ Building and Classification Added (53.22s)
 Building and classification added
-Quote Number: 3003180420
-✅ Quote Rated Successfully (50.15s)
+✅ Blankets page navigated (2.21s)
+✅ Mortages Tab navigated (0.93s)
+✅ US questions tab completed (2.46s)
+Quote Number: 3003180992
+✅ Quote Rated Successfully (16.61s)
 Starting policy submission workflow...
 📋 Step 1: Submitting policy in WriteBiz...
 🔘 Clicking Submit For Approval button...
 ✅ Submit For Approval button clicked
-⚠️ Submission row not found (attempt 1) - refreshing and retrying...
-⚠️ Reload failed on attempt 1: locator.click: Timeout 40000ms exceeded.
-Call log:
-[2m  - waiting for locator('h3#UnderwriterComm.xaccordion-sectionheader')[22m
-[2m    - locator resolved to <h3 oce="" role="tab" tabindex="-1" prenavigate="" id="UnderwriterComm" aria-selected="false" aria-expanded="false" aria-controls="UnderwriterComm_content" destination="crystal.aspx?a=init&p=UnderwriterComm.aspx" class="xaccordion-sectionheader single-menu-item ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons">…</h3>[22m
-[2m  - attempting click action[22m
-[2m    2 × waiting for element to be visible, enabled and stable[22m
-[2m      - element is visible, enabled and stable[22m
-[2m      - scrolling into view if needed[22m
-[2m      - done scrolling[22m
-[2m      - <div class="ui-widget-overlay ui-front"></div> intercepts pointer events[22m
-[2m    - retrying click action[22m
-[2m    - waiting 20ms[22m
-[2m    2 × waiting for element to be visible, enabled and stable[22m
-[2m      - element is visible, enabled and stable[22m
-[2m      - scrolling into view if needed[22m
-[2m      - done scrolling[22m
-[2m      - <div class="ui-widget-overlay ui-front"></div> intercepts pointer events[22m
-[2m    - retrying click action[22m
-[2m      - waiting 100ms[22m
-[2m    75 × waiting for element to be visible, enabled and stable[22m
-[2m       - element is visible, enabled and stable[22m
-[2m       - scrolling into view if needed[22m
-[2m       - done scrolling[22m
-[2m       - <div class="ui-widget-overlay ui-front"></div> intercepts pointer events[22m
-[2m     - retrying click action[22m
-[2m       - waiting 500ms[22m
-
-⚠️ Submission row not found (attempt 2) - refreshing and retrying...
-✅ Submission row 3003180420 is visible (attempt 3)
+✅ Submission row 3003180992 is visible (attempt 1)
 ✅ Business Entity Description field found, filling with "Test"...
 ✅ Business Entity Description filled
 ✅ WriteBiz submission completed
-✅ Submitting for Approval (178.23s)
+✅ Submitting for Approval (34.97s)
 🔐 Step 2: Logging into PolicyCenter in new tab...
-🔎 Submitting number to PolicyCenter: 3003180420
+🔎 Submitting number to PolicyCenter: 3003180992
 📍 Opening Policy menu...
 📍 Expanding Policy Tab...
-📍 Searching for submission: 3003180420...
+📍 Searching for submission: 3003180992...
 ✅ Submission search completed
 ✅ Found 1 nodes for locator: text=/Risk Analysis/i
 ➡️ Clicked node #0 for locator: text=/Risk Analysis/i
-✅ UW Issues Approved in PolicyCenter (41.05s)
+✅ UW Issues Approved in PolicyCenter (44.75s)
 ⏳ Step 3: Submitting for issuance in WriteBiz...
 ⏳ Waiting for radio button to be available...
 🔘 Clicking Bill Insured By Mail radio button...
 ✅ Bill Insured By Mail radio button clicked
-📄 Policy Number generated: 1003052918
-✅ Policy Issued Successfully (151.27s)
+📄 Policy Number generated: 1003053033
+✅ Submit for issuance (150.26s)
 📋 Test Data: {
   state: [32m'OH'[39m,
   stateName: [32m'Ohio'[39m,
@@ -80,58 +60,113 @@ Call log:
     {
       name: [32m'Account Created'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-06T16:58:19.248Z[39m,
+      timestamp: [35m2026-01-08T20:45:01.270Z[39m,
       details: [32m''[39m,
-      duration: [32m'81.66s'[39m
+      duration: [32m'89.58s'[39m
+    },
+    {
+      name: [32m'Policy Details Entered'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:45:17.022Z[39m,
+      details: [32m''[39m,
+      duration: [32m'15.75s'[39m
+    },
+    {
+      name: [32m'Businessowners page - coverages added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:46:14.137Z[39m,
+      details: [32m''[39m,
+      duration: [32m'57.11s'[39m
+    },
+    {
+      name: [32m'Locations added'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:46:16.956Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.82s'[39m
+    },
+    {
+      name: [32m'State specific info completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:46:18.674Z[39m,
+      details: [32m''[39m,
+      duration: [32m'1.72s'[39m
     },
     {
       name: [32m'Building and Classification Added'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-06T17:00:33.794Z[39m,
+      timestamp: [35m2026-01-08T20:47:11.894Z[39m,
       details: [32m''[39m,
-      duration: [32m'134.54s'[39m
+      duration: [32m'53.22s'[39m
+    },
+    {
+      name: [32m'Blankets page navigated'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:47:14.112Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.21s'[39m
+    },
+    {
+      name: [32m'Mortages Tab navigated'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:47:15.049Z[39m,
+      details: [32m''[39m,
+      duration: [32m'0.93s'[39m
+    },
+    {
+      name: [32m'US questions tab completed'[39m,
+      status: [32m'PASSED'[39m,
+      timestamp: [35m2026-01-08T20:47:17.511Z[39m,
+      details: [32m''[39m,
+      duration: [32m'2.46s'[39m
     },
     {
       name: [32m'Quote Rated Successfully'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-06T17:01:23.946Z[39m,
-      details: [32m'Quote #: 3003180420'[39m,
-      duration: [32m'50.15s'[39m
+      timestamp: [35m2026-01-08T20:47:34.127Z[39m,
+      details: [32m'Quote #: 3003180992'[39m,
+      duration: [32m'16.61s'[39m
     },
     {
       name: [32m'Submitting for Approval'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-06T17:04:22.176Z[39m,
+      timestamp: [35m2026-01-08T20:48:09.096Z[39m,
       details: [32m''[39m,
-      duration: [32m'178.23s'[39m
+      duration: [32m'34.97s'[39m
     },
     {
       name: [32m'UW Issues Approved in PolicyCenter'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-06T17:05:03.223Z[39m,
+      timestamp: [35m2026-01-08T20:48:53.847Z[39m,
       details: [32m''[39m,
-      duration: [32m'41.05s'[39m
+      duration: [32m'44.75s'[39m
     },
     {
-      name: [32m'Policy Issued Successfully'[39m,
+      name: [32m'Submit for issuance'[39m,
       status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-06T17:07:34.496Z[39m,
-      details: [32m'Policy #: 1003052918'[39m,
-      duration: [32m'151.27s'[39m
+      timestamp: [35m2026-01-08T20:51:24.104Z[39m,
+      details: [32m'Policy #: 1003053033'[39m,
+      duration: [32m'150.26s'[39m
     }
   ],
   httpTimings: [],
-  networkErrors: [],
+  networkErrors: [
+    {
+      url: [32m'https://as.atlassian.com/api/v1/batch'[39m,
+      error: [36m[Object][39m,
+      timestamp: [32m'2026-01-08T20:47:12.463Z'[39m
+    }
+  ],
   retryCount: [33m0[39m,
-  quoteNumber: [32m'3003180420'[39m,
-  policyNumber: [32m'1003052918'[39m
+  quoteNumber: [32m'3003180992'[39m,
+  policyNumber: [32m'1003053033'[39m
 }
 💾 Test data written to test-data-OH.json
 Test completed successfully
-  ok 1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (10.6m)
+  ✓  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (7.9m)
 💾 Saved iteration 5: suite=BOP, state=OH
 
-  Slow test file: [chromium] › Create_BOP.test.js (10.6m)
+  Slow test file: [chromium] › Create_BOP.test.js (7.9m)
   Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
-  1 passed (24.2m)
+  1 passed (8.0m)
 ⏸️ Batch run detected; skipping individual email

@@ -3,550 +3,108 @@
   "stateName": "Delaware",
   "milestones": [
     {
-      "name": "Test Started",
-      "status": "STARTED",
-      "timestamp": "2026-01-06T17:50:54.609Z",
-      "details": "",
-      "duration": "0.00s"
-    },
-    {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:52:44.938Z",
+      "timestamp": "2026-01-08T20:36:07.785Z",
       "details": "",
-      "duration": "110.33s"
+      "duration": "74.62s"
     },
     {
-      "name": "Account Created & Qualified",
+      "name": "Policy Details Entered",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:52:44.940Z",
+      "timestamp": "2026-01-08T20:36:23.370Z",
       "details": "",
-      "duration": "0.00s"
+      "duration": "15.58s"
     },
     {
-      "name": "Loaded Package Selection Page",
+      "name": "Businessowners page - coverages added",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:52:47.962Z",
+      "timestamp": "2026-01-08T20:37:28.109Z",
       "details": "",
-      "duration": "3.02s"
+      "duration": "64.73s"
     },
     {
-      "name": "Clicked Next after Package Selection",
+      "name": "Locations added",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:52:49.301Z",
+      "timestamp": "2026-01-08T20:37:30.830Z",
       "details": "",
-      "duration": "1.34s"
+      "duration": "2.72s"
     },
     {
-      "name": "Selected Prior Carrier",
+      "name": "State specific info completed",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:03.518Z",
+      "timestamp": "2026-01-08T20:37:32.511Z",
       "details": "",
-      "duration": "14.21s"
+      "duration": "1.68s"
     },
     {
-      "name": "Clicked Next after Prior Carrier",
+      "name": "Building and Classification Added",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:04.151Z",
+      "timestamp": "2026-01-08T20:38:28.699Z",
       "details": "",
-      "duration": "0.63s"
+      "duration": "56.19s"
     },
     {
-      "name": "Loaded Coverage Selection Page",
+      "name": "Blankets page navigated",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:04.154Z",
+      "timestamp": "2026-01-08T20:38:30.581Z",
       "details": "",
-      "duration": "0.00s"
+      "duration": "1.88s"
     },
     {
-      "name": "Coverage Sliders Ready",
+      "name": "Mortages Tab navigated",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:05.164Z",
+      "timestamp": "2026-01-08T20:38:32.298Z",
       "details": "",
-      "duration": "1.01s"
+      "duration": "1.71s"
     },
     {
-      "name": "Toggled Inland Marine",
+      "name": "US questions tab completed",
       "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:05.907Z",
+      "timestamp": "2026-01-08T20:38:35.936Z",
       "details": "",
-      "duration": "0.74s"
-    },
-    {
-      "name": "Toggled Crime",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:06.590Z",
-      "details": "",
-      "duration": "0.68s"
-    },
-    {
-      "name": "Confirmed Selections",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:09.771Z",
-      "details": "",
-      "duration": "3.18s"
-    },
-    {
-      "name": "Clicked Next after Confirm Selections",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:13.036Z",
-      "details": "",
-      "duration": "3.26s"
-    },
-    {
-      "name": "Commercial Package Data Entry Started",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:13.042Z",
-      "details": "",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Edit Location Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:15.716Z",
-      "details": "",
-      "duration": "2.67s"
-    },
-    {
-      "name": "Confirmed Edit Location",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:17.896Z",
-      "details": "",
-      "duration": "2.18s"
-    },
-    {
-      "name": "Cancelled Edit Location",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:19.558Z",
-      "details": "",
-      "duration": "1.66s"
-    },
-    {
-      "name": "Clicked Next after Edit Location",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:21.708Z",
-      "details": "",
-      "duration": "2.14s"
-    },
-    {
-      "name": "Clicked Next after Edit Location 2",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:23.835Z",
-      "details": "",
-      "duration": "2.12s"
-    },
-    {
-      "name": "Clicked Next after Edit Location 3",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:26.013Z",
-      "details": "",
-      "duration": "2.17s"
-    },
-    {
-      "name": "Add the Coverage Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:28.187Z",
-      "details": "",
-      "duration": "2.17s"
-    },
-    {
-      "name": "Add Scheduled Item Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:28.688Z",
-      "details": "",
-      "duration": "0.50s"
-    },
-    {
-      "name": "ComboBox Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:28.825Z",
-      "details": "",
-      "duration": "0.13s"
-    },
-    {
-      "name": "Add New Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:29.003Z",
-      "details": "",
-      "duration": "0.18s"
-    },
-    {
-      "name": "Account Location Selected",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:29.203Z",
-      "details": "",
-      "duration": "0.20s"
-    },
-    {
-      "name": "Address Type ComboBox Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:29.378Z",
-      "details": "",
-      "duration": "0.17s"
-    },
-    {
-      "name": "Address Type Selected",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:29.536Z",
-      "details": "",
-      "duration": "0.16s"
-    },
-    {
-      "name": "Name Textbox Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:29.691Z",
-      "details": "",
-      "duration": "0.15s"
-    },
-    {
-      "name": "Name Filled",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:29.822Z",
-      "details": "",
-      "duration": "0.13s"
-    },
-    {
-      "name": "Third Party Contact Dialog Saved",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:29.964Z",
-      "details": "",
-      "duration": "0.14s"
-    },
-    {
-      "name": "Notice Days Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:30.986Z",
-      "details": "",
-      "duration": "1.02s"
-    },
-    {
-      "name": "Notice Days Filled",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:31.105Z",
-      "details": "",
-      "duration": "0.12s"
-    },
-    {
-      "name": "Schedule Item Dialog Saved",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:31.243Z",
-      "details": "",
-      "duration": "0.14s"
-    },
-    {
-      "name": "Schedule Dialog Saved",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:31.758Z",
-      "details": "",
-      "duration": "0.51s"
-    },
-    {
-      "name": "Clicked Next after Schedule Dialog",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:32.852Z",
-      "details": "",
-      "duration": "1.09s"
-    },
-    {
-      "name": "Edit Location Clicked 2",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:38.587Z",
-      "details": "",
-      "duration": "5.73s"
-    },
-    {
-      "name": "Clicked Next after Edit Location 4",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:39.333Z",
-      "details": "",
-      "duration": "0.74s"
-    },
-    {
-      "name": "Save Location Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:42.472Z",
-      "details": "",
-      "duration": "3.14s"
-    },
-    {
-      "name": "Clicked Next after Save Location",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:43.791Z",
-      "details": "",
-      "duration": "1.32s"
-    },
-    {
-      "name": "Clicked Next after Save Location 2",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:45.425Z",
-      "details": "",
-      "duration": "1.63s"
-    },
-    {
-      "name": "Add Building Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:46.120Z",
-      "details": "",
-      "duration": "0.69s"
-    },
-    {
-      "name": "Building Option Selected",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:46.293Z",
-      "details": "",
-      "duration": "0.17s"
-    },
-    {
-      "name": "Building Description Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:53.262Z",
-      "details": "",
-      "duration": "6.97s"
-    },
-    {
-      "name": "Building Description Filled",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:53.385Z",
-      "details": "",
-      "duration": "0.12s"
-    },
-    {
-      "name": "Class Description Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:53.519Z",
-      "details": "",
-      "duration": "0.13s"
-    },
-    {
-      "name": "Class Description Selected",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:54.516Z",
-      "details": "",
-      "duration": "0.99s"
-    },
-    {
-      "name": "Construction Type ComboBox Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:55.925Z",
-      "details": "",
-      "duration": "1.41s"
-    },
-    {
-      "name": "Construction Type Selected",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:56.537Z",
-      "details": "",
-      "duration": "0.61s"
-    },
-    {
-      "name": "Number Of Stories Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:57.705Z",
-      "details": "",
-      "duration": "1.17s"
-    },
-    {
-      "name": "Number Of Stories Filled",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:57.838Z",
-      "details": "",
-      "duration": "0.13s"
-    },
-    {
-      "name": "ComboBox Clicked 2",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:53:58.991Z",
-      "details": "",
-      "duration": "1.15s"
-    },
-    {
-      "name": "ComboBox Option Selected",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:00.339Z",
-      "details": "",
-      "duration": "1.35s"
-    },
-    {
-      "name": "Year Of Construction Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:01.468Z",
-      "details": "",
-      "duration": "1.13s"
-    },
-    {
-      "name": "Year Of Construction Filled",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:01.598Z",
-      "details": "",
-      "duration": "0.13s"
-    },
-    {
-      "name": "Clicked Next after Year Of Construction",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:03.751Z",
-      "details": "",
-      "duration": "2.15s"
-    },
-    {
-      "name": "Loaded After Year Of Construction",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:05.770Z",
-      "details": "",
-      "duration": "2.02s"
-    },
-    {
-      "name": "Edit Coverage Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:14.376Z",
-      "details": "",
-      "duration": "8.60s"
-    },
-    {
-      "name": "Create Estimator Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:16.407Z",
-      "details": "",
-      "duration": "2.03s"
-    },
-    {
-      "name": "Commercial Sq Ft Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:21.567Z",
-      "details": "",
-      "duration": "5.16s"
-    },
-    {
-      "name": "Commercial Sq Ft Filled",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:21.688Z",
-      "details": "",
-      "duration": "0.12s"
-    },
-    {
-      "name": "Commercial Sq Ft Tabbed",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:21.819Z",
-      "details": "",
-      "duration": "0.13s"
-    },
-    {
-      "name": "Template ID Primary Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:22.508Z",
-      "details": "",
-      "duration": "0.69s"
-    },
-    {
-      "name": "Apartment/Condo Selected",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:22.705Z",
-      "details": "",
-      "duration": "0.19s"
-    },
-    {
-      "name": "Continue Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:22.976Z",
-      "details": "",
-      "duration": "0.27s"
-    },
-    {
-      "name": "Calculate Now Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:23.478Z",
-      "details": "",
-      "duration": "0.50s"
-    },
-    {
-      "name": "Finish Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:24.748Z",
-      "details": "",
-      "duration": "1.27s"
-    },
-    {
-      "name": "Import Data Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:24.918Z",
-      "details": "",
-      "duration": "0.17s"
-    },
-    {
-      "name": "Save Clicked",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:54:34.183Z",
-      "details": "",
-      "duration": "9.26s"
-    },
-    {
-      "name": "Commercial Property Package Completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:58:12.582Z",
-      "details": "Building, Business Income, Occupancy, Personal Property entered",
-      "duration": "218.40s"
-    },
-    {
-      "name": "General Liability Completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T17:59:36.551Z",
-      "details": "Coverage limits and deductibles entered",
-      "duration": "83.97s"
-    },
-    {
-      "name": "Inland Marine Completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T18:00:12.636Z",
-      "details": "Coverage limits and deductibles entered",
-      "duration": "36.08s"
-    },
-    {
-      "name": "Crime Completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-06T18:00:34.724Z",
-      "details": "Crime coverage details entered",
-      "duration": "22.09s"
+      "duration": "3.64s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2026-01-06T18:01:39.899Z",
-      "details": "Quote #: 3003180428",
-      "duration": "65.17s"
+      "timestamp": "2026-01-08T20:38:53.451Z",
+      "details": "Quote #: 3003180985",
+      "duration": "17.51s"
     },
     {
       "name": "Submitting for Approval",
       "status": "PASSED",
-      "timestamp": "2026-01-06T18:02:15.577Z",
+      "timestamp": "2026-01-08T20:40:18.189Z",
       "details": "",
-      "duration": "35.67s"
+      "duration": "84.74s"
     },
     {
       "name": "UW Issues Approved in PolicyCenter",
       "status": "PASSED",
-      "timestamp": "2026-01-06T18:03:14.739Z",
+      "timestamp": "2026-01-08T20:41:03.569Z",
       "details": "",
-      "duration": "59.16s"
+      "duration": "45.38s"
     },
     {
-      "name": "Policy Issued Successfully",
+      "name": "Submit for issuance",
       "status": "PASSED",
-      "timestamp": "2026-01-06T18:05:50.178Z",
-      "details": "Policy #: 1003052923",
-      "duration": "155.44s"
+      "timestamp": "2026-01-08T20:43:35.212Z",
+      "details": "Policy #: 1003053032",
+      "duration": "151.64s"
     }
   ],
   "httpTimings": [],
   "networkErrors": [
     {
-      "url": "https://as.atlassian.com/api/v1/batch",
+      "url": "https://writebizqa.donegalgroup.com/ajinvoke.aspx?sid=F266D7AA06694BAD91BDF9ED869C848F",
       "error": {
         "errorText": "net::ERR_ABORTED"
       },
-      "timestamp": "2026-01-06T17:59:08.932Z"
+      "timestamp": "2026-01-08T20:43:34.969Z"
     }
   ],
   "retryCount": 0,
-  "quoteNumber": "3003180428",
-  "policyNumber": "1003052923",
-  "status": "PASSED"
+  "quoteNumber": "3003180985",
+  "policyNumber": "1003053032"
 }

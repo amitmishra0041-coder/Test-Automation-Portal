@@ -1,0 +1,119 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003181002-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Gutmann Group
+            - generic [ref=e14]: 560 PINE STREET
+            - generic [ref=e15]: NAPERVILLE, IL 60201
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - list [ref=e22]:
+        - listitem [ref=e23]:
+          - link " Policy Details" [ref=e24] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+            - generic [ref=e25]: 
+            - text: Policy Details
+        - listitem [ref=e26]:
+          - link " Businessowners" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+            - generic [ref=e28]: 
+            - text: Businessowners
+        - listitem [ref=e29]:
+          - link " Locations" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+            - generic [ref=e31]: 
+            - text: Locations
+        - listitem [ref=e32]:
+          - link "State Specific Info" [ref=e33] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+        - listitem [ref=e34]:
+          - link "Buildings/Classifications" [ref=e35] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+        - listitem [ref=e36]:
+          - link "Blankets" [ref=e37] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+        - listitem [ref=e38]:
+          - link "Mortgagees" [ref=e39] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+        - listitem [ref=e40]:
+          - link "UW Questions" [ref=e41] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+        - listitem [ref=e42]:
+          - link "Rate" [ref=e43] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+        - listitem [ref=e44]:
+          - link "Review" [ref=e45] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181002_tabContent"
+      - generic [ref=e46]:
+        - list [ref=e49]:
+          - listitem [ref=e50]:
+            - link "" [ref=e51] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e52]: 
+          - listitem [ref=e53]:
+            - link "" [ref=e54] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e55]: 
+          - listitem [ref=e56]:
+            - link "" [ref=e57] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e58]: 
+          - listitem [ref=e59]:
+            - link "" [ref=e60] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e61]: 
+        - generic [ref=e65]:
+          - list [ref=e67]:
+            - listitem [ref=e68]:
+              - link "Coverages" [ref=e69] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPStateSpecificInfoAdditionalCoverages_tabContent"
+            - listitem [ref=e70]:
+              - text: "|"
+              - link "Additional Coverages" [ref=e71] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPStateSpecificInfoAdditionalCoverages_tabContent"
+          - generic [ref=e72]:
+            - link "View Available Form Details" [ref=e74] [cursor=pointer]:
+              - /url: https://qa-www.donegalgroup.com/policy-form-search?run=1&formLob=Businessowners&state=IL
+            - generic [ref=e75]:
+              - generic [ref=e79]: Additional Coverages
+              - generic [ref=e81]:
+                - group [ref=e82]:
+                  - button "All" [ref=e83] [cursor=pointer]
+                  - button "Additional Coverages" [ref=e84] [cursor=pointer]
+                - grid [ref=e87]:
+                  - rowgroup [ref=e88]:
+                    - 'row "Type: activate to sort column ascending Selected: activate to sort column descending Coverage Name : activate to sort column ascending Actions: activate to sort column ascending" [ref=e89]':
+                      - 'columnheader "Type: activate to sort column ascending" [ref=e90]': Type
+                      - 'columnheader "Selected: activate to sort column descending" [ref=e91]': Selected
+                      - 'columnheader "Coverage Name : activate to sort column ascending" [ref=e92]':
+                        - text: Coverage Name
+                        - generic [ref=e93]: 
+                      - 'columnheader "Actions: activate to sort column ascending" [ref=e94]': Actions
+                  - rowgroup [ref=e95]:
+                    - row "Additional Coverages Illinois Changes - Contractors - Home Repair And Remodeling " [ref=e96]:
+                      - gridcell "Additional Coverages" [ref=e97]
+                      - gridcell [ref=e98]
+                      - gridcell "Illinois Changes - Contractors - Home Repair And Remodeling" [ref=e99]
+                      - gridcell "" [ref=e100]:
+                        - button "" [ref=e101] [cursor=pointer]:
+                          - generic [ref=e102]: 
+            - generic [ref=e103]:
+              - button "Next " [ref=e104] [cursor=pointer]:
+                - text: Next
+                - generic [ref=e105]: 
+              - button " Previous" [ref=e106] [cursor=pointer]:
+                - generic [ref=e107]: 
+                - text: Previous
+    - generic [ref=e110]:
+      - paragraph [ref=e111]:
+        - link "Technical Support" [ref=e112] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e113]: © 2026 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e114]: Jira Service Management Widget
+```

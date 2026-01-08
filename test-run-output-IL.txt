@@ -1,0 +1,74 @@
+[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  override existing env vars with { override: true }
+
+Running 1 test using 1 worker
+
+🗺️ Running test for state: IL (Illinois)
+WB Login successful
+✅ Selected producer: CHRISTINA M. BOWER
+🔄 Retry 2/3: Clicking state dropdown...
+🔄 Retry 3/3: Clicking state dropdown...
+❌ Failed to click state dropdown after 3 attempts: locator.click: Timeout 5000ms exceeded.
+Call log:
+[2m  - waiting for locator('.ui-menu.ui-widget').getByText('IL', { exact: true })[22m
+
+❌ State selection failed with agency 0000988. Attempting cleanup...
+✅ Cancel button clicked
+🔄 Will retry with next agency/producer option...
+🔄 Restarting client creation with alternative agency/producer (attempt 2/3)
+✅ Selected producer: JEFFERY S. REYNOLDS
+✅ Phone number filled successfully: 717-143-4482
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+✅ Client creation completed successfully
+⚠️ Open dialog detected, attempting to close...
+✅ Contact phone number filled successfully: 717-555-1212
+Account creation completed
+✅ Account Created (107.94s)
+Account qualification completed
+✅ Policy Details Entered (15.78s)
+✓ Legal Entity already set to "Other", skipping
+✅ Businessowners page - coverages added (65.07s)
+✅ Locations added (2.81s)
+✅ State specific info completed (2.12s)
+BOP quote - preliminary info completed
+❌ Test execution failed: locator.click: Timeout 60000ms exceeded.
+Call log:
+[2m  - waiting for locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]')[22m
+
+🔍 Extracted number from page text: 3003181002
+❌ Test Execution Failed (62.18s)
+💾 Test data written to test-data-IL.json with failure info
+  ✘  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (4.3m)
+💾 Saved iteration 9: suite=BOP, state=IL
+
+
+  1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 60000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]')[22m
+
+
+      231 |   console.log('BOP quote - preliminary info completed');
+      232 |   // Add building
+    > 233 |   await page.locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]').click();
+          |                                                                                   ^
+      234 |   await page.locator('.dropdown-menu.show .text').filter({ hasText: /^[0-9]+: .*/ }).first().click();
+      235 |   await page.waitForLoadState('load');
+      236 |   // Ensure overlays/modals are gone before interacting with Construction Type
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:233:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bop-IL\Create_BOP-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bop-IL\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bop-IL\Create_BOP-Package-Submission-chromium\error-context.md
+
+  1 failed
+    [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
+⏸️ Batch run detected; skipping individual email
