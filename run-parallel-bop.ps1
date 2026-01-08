@@ -166,9 +166,9 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
         $logBuffer += ("    [Resource at start] CPU: $cpuStart, RAM: $memStart")
         $stateLogs[$state] = $logBuffer
         $logPath = Join-Path $projectPath ("test-run-output-" + $state + ".txt")
-        $headedFlag = if ($Headed.IsPresent) { "--headed" } else { "" }
+        $headedFlag = if ($Headed.IsPresent) { " --headed" } else { "" }
         $outDir = "test-results\bop-$state"
-        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=BOP" && npx playwright test Create_BOP.test.js --project=' + $Project + ' ' + $headedFlag + ' --output="' + $outDir + '" > "' + $logPath + '" 2>&1'
+        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=BOP" && npx playwright test Create_BOP.test.js --project=' + $Project + $headedFlag + ' --output="' + $outDir + '" > "' + $logPath + '" 2>&1'
         $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @('/c', $envCmd) -WorkingDirectory $projectPath -WindowStyle Hidden -PassThru
         $activeProcs += @{ proc = $proc; state = $state; log = $logPath; startTime = $iterationStart; parallelAtStart = $parallelAtStart; cpuStart = $cpuStart; memStart = $memStart }
         $lastStartTime = $iterationStart
