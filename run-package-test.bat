@@ -44,7 +44,7 @@ for %%A in (%*) do (
 )
 
 if not defined ENV set "ENV=qa"
-if not defined STATES set "STATES=DE,PA,WI,OH,MI"
+if not defined STATES set "STATES=DE,PA,WI,OH,MI,AZ,CO,IL,IA,NC,SC,NE,NM,SD,TX,UT,IN,TN,VA"
 
 if /I "%HEADED_FLAG%"=="headed" (
     powershell.exe -ExecutionPolicy Bypass -File "%~dp0run-package-test.ps1" -TestEnv %ENV% -States "%STATES%" -Headed
