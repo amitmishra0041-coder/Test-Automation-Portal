@@ -74,7 +74,15 @@ test('Package Submission', async ({ page }, testInfo) => {
     global.testData.networkErrors.push({ url: request.url(), error: request.failure(), timestamp: new Date().toISOString() });
   });
   let currentStepStartTime = null;
+  let waitBudgetMs = 0; // tracks explicit waits to exclude from milestone duration
   let testFailed = false;
+
+  // Wrap waitForTimeout so we can subtract intentional sleeps from milestone timing
+  const originalWaitForTimeout = page.waitForTimeout.bind(page);
+  page.waitForTimeout = async (ms) => {
+    await originalWaitForTimeout(ms);
+    waitBudgetMs += ms;
+  };
 
   // Helper to persist test data to state-specific JSON file (prevent parallel conflicts)
   function saveTestData() {
@@ -90,9 +98,10 @@ test('Package Submission', async ({ page }, testInfo) => {
     const now = new Date();
     let duration = null;
 
-    // Calculate duration since last milestone (excluding wait times)
+    // Calculate duration since last milestone (exclude intentional waits)
     if (currentStepStartTime) {
-      duration = ((now - currentStepStartTime) / 1000).toFixed(2); // in seconds
+      const elapsedMs = now - currentStepStartTime - waitBudgetMs;
+      duration = (Math.max(elapsedMs, 0) / 1000).toFixed(2); // in seconds
     }
 
     const milestone = {
@@ -110,6 +119,7 @@ test('Package Submission', async ({ page }, testInfo) => {
 
     // Reset timer for next step
     currentStepStartTime = new Date();
+    waitBudgetMs = 0;
   }
 
   // Ensure retry count is always up to date
