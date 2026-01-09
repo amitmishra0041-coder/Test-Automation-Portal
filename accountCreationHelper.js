@@ -76,41 +76,87 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
       }).catch(() => {});
       await page.waitForTimeout(200);
 
-      // 2) If producer input exists, clear it and open menu
+      // 2) Deterministically select producer tied to the current agency
+      //    - Clear input, type full producer name, open suggestions, choose exact match
+      //    - Verify the input value equals the expected producer before proceeding
+      const expectedProducer = currentOption.producer;
+      
+      // Wait for producer input to become visible with extended timeout
+      const producerInput = page.locator('#txtProducer_input').first();
+      await page.waitForTimeout(1000); // Allow page to settle after agency click
+      
       try {
-        const producerInput = page.locator('#txtProducer_input');
-        if (await producerInput.count() > 0 && await producerInput.first().isVisible().catch(() => false)) {
-          await producerInput.first().click({ timeout: 5000 });
-          await producerInput.first().press('Control+A');
-          await page.keyboard.press('Backspace');
-          // Open suggestions (common for jQuery UI combobox)
-          await page.keyboard.press('ArrowDown').catch(() => {});
-          await page.waitForTimeout(300);
-        }
-      } catch {}
-
-      // 3) Wait for a visible jQuery UI menu and click the exact producer text
-      const menu = page.locator('.ui-menu.ui-widget:visible');
-      await menu.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-
-      const targetItem = menu.locator(`text=${currentOption.producer}`);
-      const foundCount = await targetItem.count().catch(() => 0);
-      if (foundCount > 0) {
-        await targetItem.first().click({ timeout: 10000 });
-        console.log(`✅ Selected producer (menu): ${currentOption.producer}`);
-      } else {
-        // 4) Fallback: try label-based or any visible menu items containing exact text
-        const anyMenuItem = page.locator('.ui-menu-item:visible').locator(`text=${currentOption.producer}`);
-        if (await anyMenuItem.count().catch(() => 0)) {
-          await anyMenuItem.first().click({ timeout: 10000 });
-          console.log(`✅ Selected producer (fallback): ${currentOption.producer}`);
-        } else {
-          throw new Error(`PRODUCER_NOT_FOUND_${currentOption.producer}`);
+        await producerInput.waitFor({ state: 'visible', timeout: 15000 });
+        console.log('✅ Producer input field is visible');
+      } catch (e) {
+        console.log('❌ Producer input field not visible after 15s. Checking if element exists...');
+        const count = await producerInput.count().catch(() => 0);
+        console.log(`   Element count: ${count}`);
+        // Try to scroll into view and wait again
+        try {
+          await producerInput.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(1000);
+          await producerInput.waitFor({ state: 'visible', timeout: 5000 });
+          console.log('✅ Producer input became visible after scroll');
+        } catch (scrollError) {
+          throw new Error(`PRODUCER_INPUT_NOT_VISIBLE: ${e.message}`);
         }
       }
 
-      // 5) Optional: small buffer after selection
+      // Clear and type exact producer text to drive filtering
+      await producerInput.click({ timeout: 5000 });
+      await producerInput.press('Control+A');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type(expectedProducer);
+
+      // Ensure the suggestions menu is open and target the exact text
+      const menu = page.locator('.ui-menu.ui-widget:visible');
+      await menu.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+
+      let clicked = false;
+      const exactItem = menu.getByText(expectedProducer, { exact: true });
+      if (await exactItem.count().catch(() => 0)) {
+        await exactItem.first().click({ timeout: 10000 });
+        clicked = true;
+      } else {
+        const anyMenuItem = page.locator('.ui-menu-item:visible').getByText(expectedProducer, { exact: true });
+        if (await anyMenuItem.count().catch(() => 0)) {
+          await anyMenuItem.first().click({ timeout: 10000 });
+          clicked = true;
+        }
+      }
+
+      if (!clicked) {
+        // As a final fallback, press Enter to accept the typed exact match
+        await page.keyboard.press('Enter').catch(() => {});
+      }
+
+      // Small buffer after selection and then verify value
       await page.waitForTimeout(300);
+      const selectedProducerValue = (await producerInput.inputValue().catch(() => '')).trim();
+      if (selectedProducerValue.toUpperCase() !== expectedProducer.toUpperCase()) {
+        // Try once more by re-opening the menu and clicking exact item
+        await producerInput.click({ timeout: 5000 });
+        await page.keyboard.press('Control+A');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.type(expectedProducer);
+        await menu.first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+        if (await exactItem.count().catch(() => 0)) {
+          await exactItem.first().click({ timeout: 8000 }).catch(() => {});
+        } else {
+          const anyMenuItem2 = page.locator('.ui-menu-item:visible').getByText(expectedProducer, { exact: true });
+          if (await anyMenuItem2.count().catch(() => 0)) {
+            await anyMenuItem2.first().click({ timeout: 8000 }).catch(() => {});
+          }
+        }
+        await page.waitForTimeout(300);
+      }
+
+      const finalProducerValue = (await producerInput.inputValue().catch(() => '')).trim();
+      if (finalProducerValue.toUpperCase() !== expectedProducer.toUpperCase()) {
+        throw new Error(`PRODUCER_MISMATCH_Selected='${finalProducerValue}'_Expected='${expectedProducer}'`);
+      }
+      console.log(`✅ Selected producer: ${expectedProducer}`);
       
       await page.getByRole('button', { name: 'Next' }).click();
 
