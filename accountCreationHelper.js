@@ -145,9 +145,20 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
                 await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => { });
               }
             }
-            await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click({ timeout: 10000 });
-            await page.waitForTimeout(1000);
-            await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click({ timeout: 5000 });
+            
+            // Click the state combobox
+            const stateCombo = page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first();
+            await stateCombo.click({ timeout: 10000 });
+            await page.waitForTimeout(300);
+            
+            // Type the state code to filter
+            await page.keyboard.type(testState);
+            await page.waitForTimeout(500);
+            
+            // Press Enter or arrow down to select
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(500);
+            
             stateClickSuccess = true;
             if (attempt > 1) console.log('✅ State dropdown clicked successfully');
           } catch (e) {
