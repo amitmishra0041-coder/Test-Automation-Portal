@@ -1,0 +1,252 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e10]: "3003181108-1: CUSTOM - New Business"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Spinka - Wolff
+            - generic [ref=e14]: 291 BETTY HILLS
+            - generic [ref=e15]: HAMMOND, IN 47630
+          - button "" [ref=e17] [cursor=pointer]:
+            - generic "Close Client" [ref=e18]: 
+      - list [ref=e22]:
+        - listitem [ref=e23]:
+          - link " Policy Details" [ref=e24] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+            - generic [ref=e25]: 
+            - text: Policy Details
+        - listitem [ref=e26]:
+          - link " Businessowners" [ref=e27] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+            - generic [ref=e28]: 
+            - text: Businessowners
+        - listitem [ref=e29]:
+          - link " Locations" [ref=e30] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+            - generic [ref=e31]: 
+            - text: Locations
+        - listitem [ref=e32]:
+          - link " State Specific Info" [ref=e33] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+            - generic [ref=e34]: 
+            - text: State Specific Info
+        - listitem [ref=e35]:
+          - link "Buildings/Classifications" [ref=e36] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+        - listitem [ref=e37]:
+          - link "Blankets" [ref=e38] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+        - listitem [ref=e39]:
+          - link "Mortgagees" [ref=e40] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+        - listitem [ref=e41]:
+          - link "UW Questions" [ref=e42] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+        - listitem [ref=e43]:
+          - link "Rate" [ref=e44] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+        - listitem [ref=e45]:
+          - link "Review" [ref=e46] [cursor=pointer]:
+            - /url: "#XNav_POL_3003181108_tabContent"
+      - generic [ref=e47]:
+        - list [ref=e50]:
+          - listitem [ref=e51]:
+            - link "" [ref=e52] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e53]: 
+          - listitem [ref=e54]:
+            - link "" [ref=e55] [cursor=pointer]:
+              - /url: javascript:navigationClickHandler(true);
+              - generic [ref=e56]: 
+          - listitem [ref=e57]:
+            - link "" [ref=e58] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e59]: 
+          - listitem [ref=e60]:
+            - link "" [ref=e61] [cursor=pointer]:
+              - /url: "#ClientNavigation_tabContent"
+              - generic [ref=e62]: 
+        - generic [ref=e66]:
+          - list [ref=e68]:
+            - listitem [ref=e69]:
+              - link "Bldg Details" [ref=e70] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e71]:
+              - text: "|"
+              - link "Bldg Cov" [ref=e72] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e73]:
+              - text: "|"
+              - link "Bldg Add'l Cov" [ref=e74] [cursor=pointer]:
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e75]:
+              - text: "|"
+              - link "Class Details":
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e76]:
+              - text: "|"
+              - link "Class Cov":
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+            - listitem [ref=e77]:
+              - text: "|"
+              - link "Class Add'l Cov":
+                - /url: "#ajtc_CLBOPBuildingsClassifications_tabContent"
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e82]: "Selected Building:"
+              - generic [ref=e84]:
+                - textbox [disabled] [ref=e85]: 291 BETTY HLS HAMMOND IN 47630
+                - text: 
+              - button "Return to Summary" [ref=e87] [cursor=pointer]
+            - button "Collapse All Coverages" [ref=e89] [cursor=pointer]
+            - generic [ref=e90]:
+              - generic [ref=e93]: Building Coverages
+              - generic [ref=e94]:
+                - tablist [ref=e96]:
+                  - tab "Building " [expanded] [selected] [ref=e97] [cursor=pointer]:
+                    - text: Building
+                    - button
+                    - generic "Add Coverage" [ref=e98]: 
+                - tablist [ref=e100]:
+                  - tab "Damage To Premises Rented To You " [expanded] [selected] [ref=e101] [cursor=pointer]:
+                    - text: Damage To Premises Rented To You
+                    - button
+                    - generic "Add Coverage" [ref=e102]: 
+                - tablist [ref=e104]:
+                  - tab "Protective Safeguards " [expanded] [selected] [ref=e105] [cursor=pointer]:
+                    - text: Protective Safeguards
+                    - button
+                    - generic "Add Coverage" [ref=e106]: 
+                - tablist [ref=e108]:
+                  - tab "Mine Subsidence   " [expanded] [selected] [ref=e109] [cursor=pointer]:
+                    - text: Mine Subsidence
+                    - button "" [expanded] [ref=e110]
+                    - generic "Delete Coverage" [ref=e111]: 
+                    - generic "Edit Coverage" [ref=e112]: 
+                  - tabpanel "Mine Subsidence   " [ref=e113]:
+                    - generic [ref=e114]:
+                      - generic [ref=e115]:
+                        - generic [ref=e118]: Structure Type
+                        - generic [ref=e121]:
+                          - combobox [disabled] [ref=e122]:
+                            - option [selected]
+                            - option "Not Applicable"
+                            - option "Non-Dwelling"
+                            - option "Dwelling"
+                          - combobox "Nothing selected" [disabled] [ref=e123]:
+                            - generic [ref=e126]: Nothing selected
+                      - generic [ref=e127]:
+                        - generic [ref=e130]: Mine Subsidence Building Limit
+                        - textbox [disabled] [ref=e133]: "0"
+                - tablist [ref=e135]:
+                  - tab "Indiana Changes - Coal Mine Subsidence   " [expanded] [selected] [ref=e136] [cursor=pointer]:
+                    - text: Indiana Changes - Coal Mine Subsidence
+                    - button "" [expanded] [ref=e137]
+                    - generic "Delete Coverage" [ref=e138]: 
+                    - generic "Edit Coverage" [ref=e139]: 
+                  - tabpanel "Indiana Changes - Coal Mine Subsidence   " [ref=e140]:
+                    - generic [ref=e142]:
+                      - generic [ref=e145]: "Additional Living Expense Coverage:"
+                      - generic [ref=e148]:
+                        - combobox [disabled] [ref=e149]:
+                          - option "Yes"
+                          - option "No" [selected]
+                        - combobox "No" [disabled] [ref=e150]:
+                          - generic [ref=e153]: "No"
+            - generic [ref=e154]:
+              - button "Next " [ref=e155] [cursor=pointer]:
+                - text: Next
+                - generic [ref=e156]: 
+              - button " Previous" [ref=e157] [cursor=pointer]:
+                - generic [ref=e158]: 
+                - text: Previous
+    - generic [ref=e161]:
+      - paragraph [ref=e162]:
+        - link "Technical Support" [ref=e163] [cursor=pointer]:
+          - /url: "#/"
+      - paragraph [ref=e164]: © 2026 Donegal Insurance Group, All Rights Reserved.
+  - generic [ref=e165]: Jira Service Management Widget
+  - dialog [ref=e167]:
+    - document:
+      - generic [ref=e168]:
+        - heading "Edit Building" [level=5] [ref=e170]
+        - generic [ref=e177]:
+          - generic [ref=e178]:
+            - generic [ref=e179]:
+              - generic [ref=e182]: Valuation
+              - generic [ref=e184]:
+                - generic [ref=e185]:
+                  - combobox [ref=e186]:
+                    - option [selected]
+                    - option "Replacement Cost"
+                    - option "Not Applicable"
+                  - combobox "Nothing selected" [expanded] [ref=e187] [cursor=pointer]:
+                    - generic [ref=e190]: Nothing selected
+                    - listbox [active] [ref=e191]:
+                      - option [selected] [ref=e192]
+                      - option "Replacement Cost" [ref=e194]:
+                        - generic [ref=e195]: Replacement Cost
+                      - option "Not Applicable" [ref=e196]:
+                        - generic [ref=e197]: Not Applicable
+                - generic [ref=e199]: "*"
+            - generic [ref=e200]:
+              - generic [ref=e203]: Limit
+              - generic [ref=e205]:
+                - textbox [ref=e206]
+                - generic [ref=e207]: "*"
+            - generic [ref=e208]:
+              - generic [ref=e211]: Automatic Increase Percent
+              - generic [ref=e213]:
+                - generic [ref=e214]:
+                  - combobox [disabled] [ref=e215]:
+                    - option "6%" [selected]
+                  - combobox "6%" [disabled] [ref=e216]:
+                    - generic [ref=e219]: 6%
+                - generic [ref=e220]: "*"
+            - generic [ref=e221]:
+              - generic [ref=e224]: Percentage Owner Occupied
+              - generic [ref=e226]:
+                - generic [ref=e227]:
+                  - combobox [ref=e228]:
+                    - option [selected]
+                    - option "10% or less"
+                    - option "Over 10%"
+                  - combobox "Nothing selected" [ref=e229] [cursor=pointer]:
+                    - generic [ref=e232]: Nothing selected
+                - generic [ref=e233]: "*"
+            - generic [ref=e234]:
+              - generic [ref=e237]: Building Square Footage
+              - generic [ref=e239]:
+                - textbox [ref=e240]: "0"
+                - generic [ref=e241]: "*"
+            - generic [ref=e242]:
+              - generic [ref=e245]: Number of Stories
+              - textbox [ref=e248]: "0"
+          - generic [ref=e249]:
+            - generic [ref=e254]:
+              - generic [ref=e255]: 
+              - text: Property Information Not Found
+            - generic [ref=e256]:
+              - generic [ref=e258]:
+                - generic [ref=e261]: Estimated Replacement Cost
+                - generic [ref=e262]:
+                  - textbox [disabled] [ref=e264]
+                  - generic [ref=e269]: 
+              - generic [ref=e271]:
+                - generic [ref=e274]: Estimator ID Number
+                - textbox [disabled] [ref=e277]
+            - link "Create Estimator" [ref=e281] [cursor=pointer]:
+              - /url: javascript:void(0)
+        - generic [ref=e282]:
+          - button " Save" [ref=e283] [cursor=pointer]:
+            - generic [ref=e284]: 
+            - text: Save
+          - button " Remove Coverage" [ref=e285] [cursor=pointer]:
+            - generic [ref=e286]: 
+            - text: Remove Coverage
+  - log [ref=e287]
+```
