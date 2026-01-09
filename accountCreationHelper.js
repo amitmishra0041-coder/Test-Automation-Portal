@@ -174,6 +174,14 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
         await page.waitForTimeout(800);
         await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill(randZipForState(testState));
         await page.waitForTimeout(800);
+        
+        // Remove overlay before clicking phone field
+        await page.evaluate(() => {
+          const overlay = document.querySelector('.ui-widget-overlay');
+          if (overlay) overlay.remove();
+        }).catch(() => {});
+        await page.waitForTimeout(300);
+        
         // Retry phone fill until it sticks - use keyboard typing to trigger mask, validate 10 digits
         const phoneNumber = randPhone717();
         let phoneFilledCorrectly = false;
