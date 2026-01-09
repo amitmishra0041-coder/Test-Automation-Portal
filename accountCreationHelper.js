@@ -65,20 +65,52 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
       await page.locator('#txtAgency_input').fill(currentOption.agency);
       await page.getByRole('gridcell', { name: currentOption.agency }).click();
       
-      // Wait for the producer dropdown to be visible and select the producer
-      // Use a more flexible selector that works for any producer dropdown
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000);
-      
-      // Try to find and click the producer by text in any visible dropdown/menu
+      // Reset any prior producer selection and select the producer deterministically
+      // 1) Close any open menus from prior attempts
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(200);
+      // Remove possible overlay
+      await page.evaluate(() => {
+        const overlay = document.querySelector('.ui-widget-overlay');
+        if (overlay) overlay.remove();
+      }).catch(() => {});
+      await page.waitForTimeout(200);
+
+      // 2) If producer input exists, clear it and open menu
       try {
-        await page.locator('.ui-menu.ui-widget').locator(`text=${currentOption.producer}`).first().click({ timeout: 10000 });
-        console.log(`✅ Selected producer: ${currentOption.producer}`);
-      } catch (e) {
-        console.log(`⚠️ Producer dropdown selection with menu failed, trying alternative selector...`);
-        // Fallback: try the original hardcoded selector
-        await page.locator('#ui-id-9').getByText(currentOption.producer).click();
+        const producerInput = page.locator('#txtProducer_input');
+        if (await producerInput.count() > 0 && await producerInput.first().isVisible().catch(() => false)) {
+          await producerInput.first().click({ timeout: 5000 });
+          await producerInput.first().press('Control+A');
+          await page.keyboard.press('Backspace');
+          // Open suggestions (common for jQuery UI combobox)
+          await page.keyboard.press('ArrowDown').catch(() => {});
+          await page.waitForTimeout(300);
+        }
+      } catch {}
+
+      // 3) Wait for a visible jQuery UI menu and click the exact producer text
+      const menu = page.locator('.ui-menu.ui-widget:visible');
+      await menu.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+
+      const targetItem = menu.locator(`text=${currentOption.producer}`);
+      const foundCount = await targetItem.count().catch(() => 0);
+      if (foundCount > 0) {
+        await targetItem.first().click({ timeout: 10000 });
+        console.log(`✅ Selected producer (menu): ${currentOption.producer}`);
+      } else {
+        // 4) Fallback: try label-based or any visible menu items containing exact text
+        const anyMenuItem = page.locator('.ui-menu-item:visible').locator(`text=${currentOption.producer}`);
+        if (await anyMenuItem.count().catch(() => 0)) {
+          await anyMenuItem.first().click({ timeout: 10000 });
+          console.log(`✅ Selected producer (fallback): ${currentOption.producer}`);
+        } else {
+          throw new Error(`PRODUCER_NOT_FOUND_${currentOption.producer}`);
+        }
       }
+
+      // 5) Optional: small buffer after selection
+      await page.waitForTimeout(300);
       
       await page.getByRole('button', { name: 'Next' }).click();
 
