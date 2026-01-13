@@ -1,4 +1,4 @@
-const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/randomData');
+﻿const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/randomData');
 const { randCityForState, randZipForState } = require('./stateConfig');
 
 // Create account and reach the package selection stage, reusing the same page/tab.
@@ -16,317 +16,151 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.getByRole('button', { name: 'Log In' }).click();
   console.log('WB Login successful');
 
-  // Configurable agency/producer values - can be updated later
-  const agencyProducerOptions = [
-    { agency: '0000988', producer: 'CHRISTINA M. BOWER' },
-    { agency: '4501307', producer: 'JEFFERY S. REYNOLDS' },
-    { agency: '9000325', producer: 'CHRISTINA M. BOWER' },
-    // Add alternative options here in the future
-  ];
-
-  let clientCreationSuccess = false;
-  let agencyProducerAttempt = 0;
-  const maxAgencyProducerRetries = agencyProducerOptions.length;
-
-  // Outer retry loop: Try different agency/producer combinations if state selection fails
-  while (!clientCreationSuccess && agencyProducerAttempt < maxAgencyProducerRetries) {
-    const currentOption = agencyProducerOptions[agencyProducerAttempt];
+  // Create new client
+    await page.getByRole('button', { name: 'Create a New Client' }).click();
+    await page.getByText('Enter Search Text here or').click();
+    await page.locator('#txtAgency_input').fill('0000988');
+    await page.getByRole('gridcell', { name: '0000988' }).click();
+    await page.locator('#ui-id-9').getByText('CHRISTINA M. BOWER').click();
+    await page.getByRole('button', { name: 'Next' }).click();
     
-    if (agencyProducerAttempt > 0) {
-      console.log(`🔄 Restarting client creation with alternative agency/producer (attempt ${agencyProducerAttempt + 1}/${maxAgencyProducerRetries})`);
+  // Create new client - retry until "Accept As-Is" is presented (not "Use Suggested")
+  let acceptAsIsPresented = false;
+  let retryCount = 0;
+  const maxRetries = 5;
+
+  while (!acceptAsIsPresented && retryCount < maxRetries) {
+    if (retryCount > 0) {
+      console.log(`≡ƒöä Retry attempt ${retryCount} - re-entering client information`);
     }
 
-    try {
-      // Create new client
-      await page.getByRole('button', { name: 'Create a New Client' }).click();
-      // Wait for page to fully load after clicking Create a New Client
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(2000); // Allow UI to render fully in perf env
-      
-      // Robust wait for search field with flexible text matching for webkit/perf issues
-      await page.waitForFunction(() => {
-        const elements = Array.from(document.querySelectorAll('*')).filter(el => {
-          const text = el.textContent || '';
-          return text.includes('Enter Search Text') || text.includes('Search Text here');
-        });
-        if (elements.length === 0) return false;
-        const el = elements[0];
-        const rect = el.getBoundingClientRect();
-        const style = window.getComputedStyle(el);
-        // Element must have dimensions and be visible
-        return rect.width > 0 && rect.height > 0 && 
-               style.display !== 'none' && 
-               style.visibility !== 'hidden' &&
-               style.opacity !== '0';
-      }, { timeout: 25000 });
-      
-      const searchTextField = page.getByText('Enter Search Text here or');
-      await searchTextField.click();
-      await page.locator('#txtAgency_input').fill(currentOption.agency);
-      await page.getByRole('gridcell', { name: currentOption.agency }).click();
-      
-      // Reset any prior producer selection and select the producer deterministically
-      // 1) Close any open menus from prior attempts
-      await page.keyboard.press('Escape').catch(() => {});
-      await page.waitForTimeout(200);
-      // Remove possible overlay
-      await page.evaluate(() => {
-        const overlay = document.querySelector('.ui-widget-overlay');
-        if (overlay) overlay.remove();
-      }).catch(() => {});
-      await page.waitForTimeout(200);
 
-      // 2) Select producer from the pre-configured list
+    // Fill client info
+    await page.getByRole('textbox', { name: 'Company/ Individual Name' }).fill(randCompany());
+    await page.waitForTimeout(800);
+    await page.getByRole('textbox', { name: 'Street Line 1' }).fill(randAddress());
+    await page.waitForTimeout(800);
+    await page.getByRole('textbox', { name: 'City' }).fill(randCityForState(testState));
+    await page.waitForTimeout(800);
+    
+    // State dropdown click - retry if blocked by dialog overlay
+    let stateClickSuccess = false;
+    for (let attempt = 1; attempt <= 3 && !stateClickSuccess; attempt++) {
       try {
-        const producerInput = page.locator('#txtProducer_input');
-        if (await producerInput.count() > 0 && await producerInput.first().isVisible().catch(() => false)) {
-          await producerInput.first().click({ timeout: 5000 });
-          await producerInput.first().press('Control+A');
-          await page.keyboard.press('Backspace');
-          // Open suggestions (common for jQuery UI combobox)
-          await page.keyboard.press('ArrowDown').catch(() => {});
-          await page.waitForTimeout(300);
-        }
-      } catch {}
-
-      // 3) Wait for a visible jQuery UI menu and click the exact producer text
-      const menu = page.locator('.ui-menu.ui-widget:visible');
-      await menu.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-
-      const targetItem = menu.locator(`text=${currentOption.producer}`);
-      const foundCount = await targetItem.count().catch(() => 0);
-      if (foundCount > 0) {
-        await targetItem.first().click({ timeout: 10000 });
-        console.log(`✅ Selected producer: ${currentOption.producer}`);
-      } else {
-        // 4) Fallback: try label-based or any visible menu items containing exact text
-        const anyMenuItem = page.locator('.ui-menu-item:visible').locator(`text=${currentOption.producer}`);
-        if (await anyMenuItem.count().catch(() => 0)) {
-          await anyMenuItem.first().click({ timeout: 10000 });
-          console.log(`✅ Selected producer (fallback): ${currentOption.producer}`);
-        } else {
-          throw new Error(`PRODUCER_NOT_FOUND_${currentOption.producer}`);
-        }
-      }
-
-      // 5) Optional: small buffer after selection
-      await page.waitForTimeout(300);
-      
-      await page.getByRole('button', { name: 'Next' }).click();
-
-      // Create new client - retry until "Accept As-Is" is presented (not "Use Suggested")
-      let acceptAsIsPresented = false;
-      let retryCount = 0;
-      const maxRetries = 5;
-
-      while (!acceptAsIsPresented && retryCount < maxRetries) {
-        if (retryCount > 0) {
-          console.log(`🔄 Retry attempt ${retryCount} - re-entering client information`);
-        }
-
-        // Fill client info
-        await page.getByRole('textbox', { name: 'Company/ Individual Name' }).fill(randCompany());
-        await page.waitForTimeout(800);
-        await page.getByRole('textbox', { name: 'Street Line 1' }).fill(randAddress());
-        await page.waitForTimeout(800);
-        await page.getByRole('textbox', { name: 'City' }).fill(randCityForState(testState));
-        await page.waitForTimeout(800);
-
-        // State dropdown click - retry if blocked by dialog overlay
-        let stateClickSuccess = false;
-        for (let attempt = 1; attempt <= 3 && !stateClickSuccess; attempt++) {
-          try {
-            if (attempt > 1) {
-              console.log(`🔄 Retry ${attempt}/3: Clicking state dropdown...`);
-              // Check for blocking dialog overlay
-              const overlay = page.locator('.ui-widget-overlay');
-              if (await overlay.isVisible().catch(() => false)) {
-                console.log('⚠️ Dialog overlay detected, waiting for it to clear...');
-                await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => { });
-              }
-            }
-            
-            // Click the state combobox
-            const stateCombo = page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first();
-            await stateCombo.click({ timeout: 10000 });
-            await page.waitForTimeout(300);
-            
-            // Type the state code to filter
-            await page.keyboard.type(testState);
-            await page.waitForTimeout(500);
-            
-            // Press Enter or arrow down to select
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(500);
-            
-            stateClickSuccess = true;
-            if (attempt > 1) console.log('✅ State dropdown clicked successfully');
-          } catch (e) {
-            if (attempt === 3) {
-              console.log(`❌ Failed to click state dropdown after ${attempt} attempts: ${e.message}`);
-              // State selection failed - throw to trigger outer retry with different agency/producer
-              throw new Error('STATE_SELECTION_FAILED');
-            }
-            await page.waitForTimeout(2000);
+        if (attempt > 1) {
+          console.log(`≡ƒöä Retry ${attempt}/3: Clicking state dropdown...`);
+          // Check for blocking dialog overlay
+          const overlay = page.locator('.ui-widget-overlay');
+          if (await overlay.isVisible().catch(() => false)) {
+            console.log('ΓÜá∩╕Å Dialog overlay detected, waiting for it to clear...');
+            await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
           }
         }
-
-        await page.waitForTimeout(800);
-        await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill(randZipForState(testState));
-        await page.waitForTimeout(800);
-        
-        // Remove overlay before clicking phone field
-        await page.evaluate(() => {
-          const overlay = document.querySelector('.ui-widget-overlay');
-          if (overlay) overlay.remove();
-        }).catch(() => {});
-        await page.waitForTimeout(300);
-        
-        // Retry phone fill until it sticks - use keyboard typing to trigger mask, validate 10 digits
-        const phoneNumber = randPhone717();
-        let phoneFilledCorrectly = false;
-        const phoneField = page.locator('#txtPhone');
-        for (let i = 0; i < 3; i++) {
-          await phoneField.click({ clickCount: 3 });
-          await page.keyboard.press('Backspace');
-          await page.keyboard.type(phoneNumber);
-          await phoneField.blur();
-          await page.waitForTimeout(500);
-          const phoneValue = await phoneField.inputValue();
-          const digits = (phoneValue || '').replace(/\D/g, '');
-          if (digits.length === 10) {
-            phoneFilledCorrectly = true;
-            console.log(`✅ Phone number filled successfully: ${phoneValue}`);
-            break;
-          }
-          console.log(`⚠️ Phone fill failed (got: '${phoneValue}', digits: '${digits}') - retrying (attempt ${i + 1})`);
-        }
-        if (!phoneFilledCorrectly) {
-          const lastVal = await phoneField.inputValue();
-          console.log(`❌ Phone number failed to fill after 3 attempts. Last value: ${lastVal}`);
-        }
-        await page.waitForTimeout(800);
-        await page.getByRole('textbox', { name: 'Email Address' }).fill(randEmail());
+        await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click({ timeout: 10000 });
         await page.waitForTimeout(1000);
-        await page.getByRole('button', { name: 'Next' }).click();
-        await page.waitForLoadState('domcontentloaded');
+        await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click({ timeout: 5000 });
+        stateClickSuccess = true;
+        if (attempt > 1) console.log('Γ£à State dropdown clicked successfully');
+      } catch (e) {
+        if (attempt === 3) {
+          console.log(`Γ¥î Failed to click state dropdown after ${attempt} attempts: ${e.message}`);
+          throw e;
+        }
         await page.waitForTimeout(2000);
-
-        //accept as is logic
-        const acceptAsIsButton = page.locator('button:has-text("Accept As-Is")');
-
-        try {
-          // Wait for Address Validation dialog to stabilize
-          await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => { });
-
-          // Wait up to 25s for button (PERF-safe)
-          await acceptAsIsButton.first().waitFor({
-            state: 'visible',
-            timeout: 25000
-          });
-
-          // Re-resolve + stabilize
-          await acceptAsIsButton.first().scrollIntoViewIfNeeded();
-          await page.waitForTimeout(300); // allow re-render to settle
-
-          await acceptAsIsButton.first().click({ force: true });
-
-          console.log('✅ "Accept As-Is" clicked successfully');
-          acceptAsIsPresented = true;
-          
-          // Click optional buttons immediately after Accept As-Is
-          await clickIfExists('Client not listed');
-          await clickIfExists('Continue');
-          break; // Exit retry loop on success
-
-        } catch (e) {
-          console.log('⚠️ "Accept As-Is" not available, handling fallback');
-
-          const cancelButton = page
-            .getByLabel('Address Validation')
-            .getByRole('button', { name: 'Cancel' });
-
-          if (await cancelButton.isVisible().catch(() => false)) {
-            await cancelButton.click();
-            await page.waitForTimeout(1000);
-          }
-
-          retryCount++;
-          continue; // Go to next retry iteration
-        }
-      } // End of while loop
-
-      // If we reached here, client creation was successful
-      clientCreationSuccess = true;
-      console.log('✅ Client creation completed successfully');
-
-    } catch (error) {
-      // Handle state selection failure or other critical errors
-      if (error.message === 'STATE_SELECTION_FAILED') {
-        console.log(`❌ State selection failed with agency ${currentOption.agency}. Attempting cleanup...`);
-        
-        // Try to click Cancel button to close any open dialogs
-        try {
-          const cancelButton = page.getByRole('button', { name: 'Cancel' }).first();
-          if (await cancelButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await cancelButton.click();
-            await page.waitForTimeout(1000);
-            console.log('✅ Cancel button clicked');
-          }
-        } catch (cancelError) {
-          console.log('⚠️ Could not find/click Cancel button, continuing...');
-        }
-
-        // Wait for page to stabilize
-        await page.waitForTimeout(2000);
-        
-        // Move to next agency/producer option
-        agencyProducerAttempt++;
-        
-        if (agencyProducerAttempt < maxAgencyProducerRetries) {
-          console.log(`🔄 Will retry with next agency/producer option...`);
-          continue; // Restart outer loop with next option
-        } else {
-          console.log('❌ All agency/producer options exhausted');
-          throw error;
-        }
-      } else {
-        // Re-throw other errors
-        throw error;
       }
     }
-  } // End of outer while loop
+    
+    await page.waitForTimeout(800);
+    await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill(randZipForState(testState));
+    await page.waitForTimeout(800);
+    // Retry phone fill until it sticks - use keyboard typing to trigger mask, validate 10 digits
+    const phoneNumber = randPhone717();
+    let phoneFilledCorrectly = false;
+    const phoneField = page.locator('#txtPhone');
+    for (let i = 0; i < 3; i++) {
+      await phoneField.click({ clickCount: 3 });
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type(phoneNumber);
+      await phoneField.blur();
+      await page.waitForTimeout(500);
+      const phoneValue = await phoneField.inputValue();
+      const digits = (phoneValue || '').replace(/\D/g, '');
+      if (digits.length === 10) {
+        phoneFilledCorrectly = true;
+        console.log(`Γ£à Phone number filled successfully: ${phoneValue}`);
+        break;
+      }
+      console.log(`ΓÜá∩╕Å Phone fill failed (got: '${phoneValue}', digits: '${digits}') - retrying (attempt ${i + 1})`);
+    }
+    if (!phoneFilledCorrectly) {
+      const lastVal = await phoneField.inputValue();
+      console.log(`Γ¥î Phone number failed to fill after 3 attempts. Last value: ${lastVal}`);
+    }
+    await page.waitForTimeout(800);
+    await page.getByRole('textbox', { name: 'Email Address' }).fill(randEmail());
+    await page.waitForTimeout(1000);
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
 
-  if (!clientCreationSuccess) {
-    throw new Error('Failed to create client after trying all agency/producer options');
+    // Require "Accept As-Is" to proceed, otherwise retry with new data
+    const acceptAsIsButton = page.getByRole('button', { name: 'Accept As-Is' });
+    const acceptAsIsVisible = await acceptAsIsButton.isVisible().catch(() => false);
+
+    if (acceptAsIsVisible) {
+      console.log('Γ£à "Accept As-Is" detected - proceeding');
+      // Click Accept As-Is if the dialog requires explicit confirmation
+      await acceptAsIsButton.click().catch(() => {});
+      acceptAsIsPresented = true;
+    } else {
+      console.log('ΓÜá∩╕Å "Accept As-Is" not found - retrying with new client info');
+      // If validation dialog is present (e.g., showing "Use Suggested"), click Cancel to close it
+      const cancelButton = page.getByLabel('Address Validation').getByRole('button', { name: 'Cancel' });
+      const cancelVisible = await cancelButton.isVisible().catch(() => false);
+      if (cancelVisible) {
+        await cancelButton.click();
+        await page.waitForTimeout(1000);
+      }
+      retryCount++;
+    }
   }
 
-  // Everything after this point runs ONCE after successfully exiting the retry loop
+  if (retryCount >= maxRetries) {
+    console.log(`ΓÜá∩╕Å Max retries (${maxRetries}) reached, proceeding anyway`);
+  }
+
+  // Click optional buttons - they may or may not appear depending on the flow
+  //await clickIfExists('Accept As-Is');
+  //await clickIfExists('Use Suggested');
+  //await clickIfExists('Accept As-Is');
+  await clickIfExists('Client not listed');
+  await clickIfExists('Continue');
   // CRITICAL: Wait for any address validation dialogs to fully close before proceeding
   // In parallel runs, dialogs can linger and block subsequent interactions
   await page.waitForTimeout(2000);
-
+  
   // Check if any modal/dialog is still present and wait for it to close
   const modalOverlay = page.locator('.ui-widget-overlay');
   const dialogPresent = await modalOverlay.isVisible().catch(() => false);
   if (dialogPresent) {
-    console.log('⏳ Waiting for dialog overlay to disappear...');
+    console.log('ΓÅ│ Waiting for dialog overlay to disappear...');
     await modalOverlay.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {
-      console.log('⚠️ Dialog overlay still present, attempting to continue');
+      console.log('ΓÜá∩╕Å Dialog overlay still present, attempting to continue');
     });
     await page.waitForTimeout(1000); // Extra buffer after overlay clears
   }
-
+  
   // Also check for any open dialogs and try to close them
   const openDialog = page.locator('.ui-dialog:visible');
   if (await openDialog.isVisible().catch(() => false)) {
-    console.log('⚠️ Open dialog detected, attempting to close...');
+    console.log('ΓÜá∩╕Å Open dialog detected, attempting to close...');
     const closeBtn = openDialog.locator('button.ui-dialog-titlebar-close').first();
     if (await closeBtn.isVisible().catch(() => false)) {
-      await closeBtn.click().catch(() => { });
+      await closeBtn.click().catch(() => {});
       await page.waitForTimeout(1000);
     }
   }
+
 
   // Wait for the page to be ready - more reliable than networkidle
   await page.waitForLoadState('domcontentloaded');
@@ -348,7 +182,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
 
   // Wait for dropdown and click first option
-  await page.waitForLoadState('domcontentloaded').catch(() => { });
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page.waitForTimeout(1500);
   await menuOption.waitFor({ state: 'visible', timeout: 15000 });
   await menuOption.click();
@@ -376,14 +210,14 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     const digits = (contactPhoneValue || '').replace(/\D/g, '');
     if (digits.length === 10) {
       contactPhoneFilledCorrectly = true;
-      console.log(`✅ Contact phone number filled successfully: ${contactPhoneValue}`);
+      console.log(`Γ£à Contact phone number filled successfully: ${contactPhoneValue}`);
       break;
     }
-    console.log(`⚠️ Contact phone fill failed (got: '${contactPhoneValue}', digits: '${digits}') - retrying (attempt ${i + 1})`);
+    console.log(`ΓÜá∩╕Å Contact phone fill failed (got: '${contactPhoneValue}', digits: '${digits}') - retrying (attempt ${i + 1})`);
   }
   if (!contactPhoneFilledCorrectly) {
     const lastVal = await contactPhoneField.inputValue();
-    console.log(`❌ Contact phone number failed to fill after 3 attempts. Last value: ${lastVal}`);
+    console.log(`Γ¥î Contact phone number failed to fill after 3 attempts. Last value: ${lastVal}`);
   }
   await page.waitForTimeout(800);
   await page.getByRole('textbox', { name: 'Contact Email' }).fill(randEmail());
@@ -419,14 +253,11 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.waitForTimeout(2000);
   await page.waitForLoadState('domcontentloaded');
   await page.getByRole('button', { name: 'Next' }).click();
-  // Robust wait for package selection page (commercial package icon)
-  const packageIcon = page.locator('#chk_CommercialPackage + .ui-checkbox-icon');
-  await packageIcon.waitFor({ state: 'visible', timeout: 60000 });
-  await page.waitForTimeout(1000); // Small buffer for UI stability
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000);
   if (trackMilestone) {
     trackMilestone('Account Created');
   }
-
   console.log('Account qualification completed');
 }
 
