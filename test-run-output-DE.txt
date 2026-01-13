@@ -1,174 +1,117 @@
-[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  override existing env vars with { override: true }
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: DE (Delaware)
 ✅ Initialized test data for DE with N/A values
 WB Login successful
-✅ Selected producer: CHRISTINA M. BOWER
-✅ Phone number filled successfully: 717-278-6551
-✅ "Accept As-Is" clicked successfully
+
+🏢 Attempting agency/producer combination 1/3: 0008707 / BRENT W. PARENTEAU
+WB Login successful
+✅ Phone number filled successfully: 717-169-9192
+✅ "Accept As-Is" detected - proceeding
+⏭️  "Accept As-Is" button not present, skipping
+⏭️  "Use Suggested" button not present, skipping
+⏭️  "Accept As-Is" button not present, skipping
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
-✅ Client creation completed successfully
 ⚠️ Open dialog detected, attempting to close...
+✅ Successfully created client with agency/producer: 0008707 / BRENT W. PARENTEAU
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (77.43s)
+✅ Account Created (49.75s)
 Account qualification completed
-✅ Policy Details Entered (14.53s)
+✅ Policy Details Entered (11.18s)
 ✓ Legal Entity already set to "Other", skipping
-✅ Businessowners page - coverages added (64.40s)
-✅ Locations added (2.59s)
-✅ State specific info completed (1.65s)
+✅ Businessowners page - coverages added (55.74s)
+✅ Locations added (0.93s)
+✅ State specific info completed (0.17s)
 BOP quote - preliminary info completed
 Building details filled
-✅ Building and Classification Added (60.51s)
-Building and classification added
-✅ Blankets page navigated (2.20s)
-✅ Mortages Tab navigated (0.98s)
-✅ US questions tab completed (3.64s)
-Quote Number: 3003181024
-✅ Quote Rated Successfully (17.68s)
-Starting policy submission workflow...
-📋 Step 1: Submitting policy in WriteBiz...
-🔘 Clicking Submit For Approval button...
-✅ Submit For Approval button clicked
-⚠️ Submission row not found (attempt 1) - refreshing and retrying...
-✅ Submission row 3003181024 is visible (attempt 2)
-✅ Business Entity Description field found, filling with "Test"...
-✅ Business Entity Description filled
-✅ WriteBiz submission completed
-✅ Submitting for Approval (86.03s)
-🔐 Step 2: Logging into PolicyCenter in new tab...
-🔎 Submitting number to PolicyCenter: 3003181024
-📍 Opening Policy menu...
-📍 Expanding Policy Tab...
-📍 Searching for submission: 3003181024...
-✅ Submission search completed
-✅ Found 1 nodes for locator: text=/Risk Analysis/i
-➡️ Clicked node #0 for locator: text=/Risk Analysis/i
-✅ UW Issues Approved in PolicyCenter (51.25s)
-⏳ Step 3: Submitting for issuance in WriteBiz...
-⏳ Waiting for radio button to be available...
-🔘 Clicking Bill Insured By Mail radio button...
-✅ Bill Insured By Mail radio button clicked
-📄 Policy Number generated: 1003053041
-✅ Submit for issuance (149.23s)
-📋 Test Data: {
-  state: [32m'DE'[39m,
-  stateName: [32m'Delaware'[39m,
-  milestones: [
-    {
-      name: [32m'Account Created'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:41:39.619Z[39m,
-      details: [32m''[39m,
-      duration: [32m'77.43s'[39m
-    },
-    {
-      name: [32m'Policy Details Entered'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:41:54.151Z[39m,
-      details: [32m''[39m,
-      duration: [32m'14.53s'[39m
-    },
-    {
-      name: [32m'Businessowners page - coverages added'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:42:58.550Z[39m,
-      details: [32m''[39m,
-      duration: [32m'64.40s'[39m
-    },
-    {
-      name: [32m'Locations added'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:43:01.139Z[39m,
-      details: [32m''[39m,
-      duration: [32m'2.59s'[39m
-    },
-    {
-      name: [32m'State specific info completed'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:43:02.788Z[39m,
-      details: [32m''[39m,
-      duration: [32m'1.65s'[39m
-    },
-    {
-      name: [32m'Building and Classification Added'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:44:03.297Z[39m,
-      details: [32m''[39m,
-      duration: [32m'60.51s'[39m
-    },
-    {
-      name: [32m'Blankets page navigated'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:44:05.499Z[39m,
-      details: [32m''[39m,
-      duration: [32m'2.20s'[39m
-    },
-    {
-      name: [32m'Mortages Tab navigated'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:44:06.480Z[39m,
-      details: [32m''[39m,
-      duration: [32m'0.98s'[39m
-    },
-    {
-      name: [32m'US questions tab completed'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:44:10.124Z[39m,
-      details: [32m''[39m,
-      duration: [32m'3.64s'[39m
-    },
-    {
-      name: [32m'Quote Rated Successfully'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:44:27.807Z[39m,
-      details: [32m'Quote #: 3003181024'[39m,
-      duration: [32m'17.68s'[39m
-    },
-    {
-      name: [32m'Submitting for Approval'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:45:53.843Z[39m,
-      details: [32m''[39m,
-      duration: [32m'86.03s'[39m
-    },
-    {
-      name: [32m'UW Issues Approved in PolicyCenter'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:46:45.093Z[39m,
-      details: [32m''[39m,
-      duration: [32m'51.25s'[39m
-    },
-    {
-      name: [32m'Submit for issuance'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:49:14.324Z[39m,
-      details: [32m'Policy #: 1003053041'[39m,
-      duration: [32m'149.23s'[39m
-    }
-  ],
-  httpTimings: [],
-  networkErrors: [
-    {
-      url: [32m'https://as.atlassian.com/api/v1/batch'[39m,
-      error: [36m[Object][39m,
-      timestamp: [32m'2026-01-08T21:43:01.728Z'[39m
-    }
-  ],
-  retryCount: [33m0[39m,
-  quoteNumber: [32m'3003181024'[39m,
-  policyNumber: [32m'1003053041'[39m
-}
-💾 Test data written to test-data-DE.json
-Test completed successfully
-  ok 1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (8.9m)
-💾 Saved iteration 2: suite=BOP, state=DE
+❌ Test execution failed: locator.click: Target page, context or browser has been closed
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+[2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLBOPBuildingCoverages" class="ui-xcontrols ui-xcontrols-xbutton btn btn-primary" onclick="$Page.setPageValue('ValidateStep', 'false'); return $Kraken.HandleTabClick({parentAjaxPanelID: "ajp_CLBOPBuildingCoverages", value: "Static|CLBOPBuildingAdditionalCoverages.aspx"});">…</button>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-status-message">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-status-message">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-status-message">…</div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m      - waiting 500ms[22m
+[2m    - waiting for" https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLBOPBuildingCoverages.aspx&sid=A9A7FD00589D42E2815BCFFE82959903" navigation to finish...[22m
+[2m    - navigated to "https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLBOPBuildingCoverages.aspx&sid=A9A7FD00589D42E2815BCFFE82959903"[22m
+[2m    - waiting for element to be visible, enabled and stable[22m
+[2m  - element was detached from the DOM, retrying[22m
 
-  Slow test file: [chromium] › Create_BOP.test.js (8.9m)
-  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
-  1 passed (8.9m)
+❌ Test Execution Failed (23.28s)
+💾 Test data written to test-data-DE.json with failure info
+  ✘  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (3.2m)
+💾 Saved iteration 1: suite=BOP, state=DE
+
+
+  1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
+
+    Error: locator.click: Target page, context or browser has been closed
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Next ' })[22m
+    [2m    - locator resolved to <button data-isuibutton="true" store_null_if_empty="N" id="btnNext_CLBOPBuildingCoverages" class="ui-xcontrols ui-xcontrols-xbutton btn btn-primary" onclick="$Page.setPageValue('ValidateStep', 'false'); return $Kraken.HandleTabClick({parentAjaxPanelID: "ajp_CLBOPBuildingCoverages", value: "Static|CLBOPBuildingAdditionalCoverages.aspx"});">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-status-message">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-status-message">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <div tabindex="-1" role="dialog" aria-modal="true" class="modal show" id="dgic-status-message">…</div> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 500ms[22m
+    [2m    - waiting for" https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLBOPBuildingCoverages.aspx&sid=A9A7FD00589D42E2815BCFFE82959903" navigation to finish...[22m
+    [2m    - navigated to "https://nautilusqa.donegalgroup.com/crystal.aspx?p=CLBOPBuildingCoverages.aspx&sid=A9A7FD00589D42E2815BCFFE82959903"[22m
+    [2m    - waiting for element to be visible, enabled and stable[22m
+    [2m  - element was detached from the DOM, retrying[22m
+
+
+      299 |   await page.locator('#bs-select-9-1').click();
+      300 |   await page.getByRole('button', { name: ' Save' }).click();
+    > 301 |   await page.getByRole('button', { name: 'Next ' }).click();
+          |                                                     ^
+      302 |   await page.getByRole('button', { name: 'Next ' }).click();
+      303 |   // Classification
+      304 |   await page.waitForLoadState('networkidle');
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:301:53
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bop-DE\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
 ⏸️ Batch run detected; skipping individual email

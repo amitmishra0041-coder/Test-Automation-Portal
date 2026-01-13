@@ -6,4 +6,54 @@ Running 1 test using 1 worker
 ✅ Initialized test data for SC with N/A values
 WB Login successful
 ✅ Selected producer: CHRISTINA M. BOWER
-✅ Phone number filled successfully: 717-366-9793
+✅ Phone number filled successfully: 717-341-0601
+✅ "Accept As-Is" clicked successfully
+✅ "Client not listed" button clicked
+✅ "Continue" button clicked
+✅ Client creation completed successfully
+⚠️ Open dialog detected, attempting to close...
+✅ Contact phone number filled successfully: 717-555-1212
+Account creation completed
+❌ Test execution failed: locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible[22m
+
+🔍 Extracted number from page text: 3003180914
+❌ Test Execution Failed (63.13s)
+💾 Test data written to test-data-SC.json with failure info
+  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (1.6m)
+💾 Saved iteration 9: suite=BOP, state=SC
+
+
+  1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
+
+    TimeoutError: locator.waitFor: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question') to be visible[22m
+
+
+       at accountCreationHelper.js:351
+
+      349 |   // Coverage selections - wait for dropdown to be available
+      350 |   const coverageDropdown = page.locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question');
+    > 351 |   await coverageDropdown.waitFor({ state: 'visible', timeout: 30000 });
+          |                          ^
+      352 |   await coverageDropdown.selectOption('BOP');
+      353 |   await page.waitForTimeout(1200);
+      354 |   await page.locator('#xrgn_WillBuildingCoverageBeRequested_124_WillBuildingCoverageBeRequested_124_Question_Control').getByText('No', { exact: true }).click();
+        at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:351:26)
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:146:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bop-SC\Create_BOP-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bop-SC\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bop-SC\Create_BOP-Package-Submission-chromium\error-context.md
+
+  1 failed
+    [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
+⏸️ Batch run detected; skipping individual email

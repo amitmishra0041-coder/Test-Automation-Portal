@@ -1,11 +1,12 @@
-[dotenv@17.2.3] injecting env (6) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: IN (Indiana)
+✅ Initialized test data for IN with N/A values
 WB Login successful
 ✅ Selected producer: CHRISTINA M. BOWER
-✅ Phone number filled successfully: 717-663-7614
+✅ Phone number filled successfully: 717-372-5533
 ✅ "Accept As-Is" clicked successfully
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
@@ -13,154 +14,56 @@ WB Login successful
 ⚠️ Open dialog detected, attempting to close...
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (75.62s)
+✅ Account Created (35.12s)
 Account qualification completed
-✅ Policy Details Entered (15.52s)
+✅ Policy Details Entered (12.63s)
 ✓ Legal Entity already set to "Other", skipping
-✅ Businessowners page - coverages added (60.52s)
-✅ Locations added (2.39s)
-✅ State specific info completed (1.70s)
+✅ Businessowners page - coverages added (56.33s)
+✅ Locations added (1.79s)
+✅ State specific info completed (0.18s)
 BOP quote - preliminary info completed
 Building details filled
-✅ Building and Classification Added (52.37s)
-Building and classification added
-✅ Blankets page navigated (2.40s)
-✅ Mortages Tab navigated (0.97s)
-✅ US questions tab completed (2.37s)
-Quote Number: 3003181013
-✅ Quote Rated Successfully (20.62s)
-Starting policy submission workflow...
-📋 Step 1: Submitting policy in WriteBiz...
-🔘 Clicking Submit For Approval button...
-✅ Submit For Approval button clicked
-✅ Submission row 3003181013 is visible (attempt 1)
-✅ Business Entity Description field found, filling with "Test"...
-✅ Business Entity Description filled
-✅ WriteBiz submission completed
-✅ Submitting for Approval (36.67s)
-🔐 Step 2: Logging into PolicyCenter in new tab...
-🔎 Submitting number to PolicyCenter: 3003181013
-📍 Opening Policy menu...
-📍 Expanding Policy Tab...
-📍 Searching for submission: 3003181013...
-✅ Submission search completed
-✅ Found 1 nodes for locator: text=/Risk Analysis/i
-➡️ Clicked node #0 for locator: text=/Risk Analysis/i
-✅ UW Issues Approved in PolicyCenter (41.23s)
-⏳ Step 3: Submitting for issuance in WriteBiz...
-⏳ Waiting for radio button to be available...
-🔘 Clicking Bill Insured By Mail radio button...
-✅ Bill Insured By Mail radio button clicked
-📄 Policy Number generated: 1003053038
-✅ Submit for issuance (148.47s)
-📋 Test Data: {
-  state: [32m'IN'[39m,
-  stateName: [32m'Indiana'[39m,
-  milestones: [
-    {
-      name: [32m'Account Created'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:06:41.144Z[39m,
-      details: [32m''[39m,
-      duration: [32m'75.62s'[39m
-    },
-    {
-      name: [32m'Policy Details Entered'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:06:56.670Z[39m,
-      details: [32m''[39m,
-      duration: [32m'15.52s'[39m
-    },
-    {
-      name: [32m'Businessowners page - coverages added'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:07:57.200Z[39m,
-      details: [32m''[39m,
-      duration: [32m'60.52s'[39m
-    },
-    {
-      name: [32m'Locations added'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:07:59.596Z[39m,
-      details: [32m''[39m,
-      duration: [32m'2.39s'[39m
-    },
-    {
-      name: [32m'State specific info completed'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:08:01.295Z[39m,
-      details: [32m''[39m,
-      duration: [32m'1.70s'[39m
-    },
-    {
-      name: [32m'Building and Classification Added'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:08:53.663Z[39m,
-      details: [32m''[39m,
-      duration: [32m'52.37s'[39m
-    },
-    {
-      name: [32m'Blankets page navigated'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:08:56.067Z[39m,
-      details: [32m''[39m,
-      duration: [32m'2.40s'[39m
-    },
-    {
-      name: [32m'Mortages Tab navigated'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:08:57.042Z[39m,
-      details: [32m''[39m,
-      duration: [32m'0.97s'[39m
-    },
-    {
-      name: [32m'US questions tab completed'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:08:59.417Z[39m,
-      details: [32m''[39m,
-      duration: [32m'2.37s'[39m
-    },
-    {
-      name: [32m'Quote Rated Successfully'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:09:20.035Z[39m,
-      details: [32m'Quote #: 3003181013'[39m,
-      duration: [32m'20.62s'[39m
-    },
-    {
-      name: [32m'Submitting for Approval'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:09:56.704Z[39m,
-      details: [32m''[39m,
-      duration: [32m'36.67s'[39m
-    },
-    {
-      name: [32m'UW Issues Approved in PolicyCenter'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:10:37.932Z[39m,
-      details: [32m''[39m,
-      duration: [32m'41.23s'[39m
-    },
-    {
-      name: [32m'Submit for issuance'[39m,
-      status: [32m'PASSED'[39m,
-      timestamp: [35m2026-01-08T21:13:06.398Z[39m,
-      details: [32m'Policy #: 1003053038'[39m,
-      duration: [32m'148.47s'[39m
-    }
-  ],
-  httpTimings: [],
-  networkErrors: [],
-  retryCount: [33m0[39m,
-  quoteNumber: [32m'3003181013'[39m,
-  policyNumber: [32m'1003053038'[39m
-}
-💾 Test data written to test-data-IN.json
-Test completed successfully
-  ✓  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (7.7m)
-💾 Saved iteration 17: suite=BOP, state=IN
+❌ Test execution failed: page.waitForLoadState: Timeout 60000ms exceeded.
+=========================== logs ===========================
+  "commit" event fired
+  "domcontentloaded" event fired
+  "load" event fired
+============================================================
+🔍 Extracted number from page text: 3003181232
+❌ Test Execution Failed (83.46s)
+💾 Test data written to test-data-IN.json with failure info
+  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (4.2m)
+💾 Saved iteration 16: suite=BOP, state=IN
 
-  Slow test file: [chromium] › Create_BOP.test.js (7.7m)
-  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
-  1 passed (7.8m)
+
+  1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
+
+    TimeoutError: page.waitForLoadState: Timeout 60000ms exceeded.
+    =========================== logs ===========================
+      "commit" event fired
+      "domcontentloaded" event fired
+      "load" event fired
+    ============================================================
+
+      302 |   await page.getByRole('button', { name: 'Next ' }).click();
+      303 |   // Classification
+    > 304 |   await page.waitForLoadState('networkidle');
+          |              ^
+      305 |   await page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll > .input-group-text > .fas').click();
+      306 |   await page.getByRole('gridcell', { name: 'Carpentry - Interior - Office' }).click();
+      307 |   await page.waitForLoadState('networkidle');
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:304:14
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bop-IN\Create_BOP-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bop-IN\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bop-IN\Create_BOP-Package-Submission-chromium\error-context.md
+
+  1 failed
+    [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
 ⏸️ Batch run detected; skipping individual email

@@ -5,14 +5,14 @@
     {
       "name": "Test Execution Failed",
       "status": "FAILED",
-      "timestamp": "2026-01-08T21:54:12.294Z",
-      "details": "STATE_SELECTION_FAILED",
-      "duration": "104.47s"
+      "timestamp": "2026-01-13T14:33:15.460Z",
+      "details": "locator.click: Test ended.\nCall log:\n\u001b[2m  - waiting for locator('#ui-id-35')\u001b[22m\n",
+      "duration": "53.68s"
     }
   ],
   "httpTimings": [],
   "networkErrors": [],
   "retryCount": 0,
-  "quoteNumber": "3003180914",
+  "quoteNumber": "N/A",
   "policyNumber": "N/A"
 }

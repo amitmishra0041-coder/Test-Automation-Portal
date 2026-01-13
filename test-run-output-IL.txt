@@ -1,4 +1,4 @@
-[dotenv@17.2.3] injecting env (6) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
 
 Running 1 test using 1 worker
 
@@ -6,7 +6,7 @@ Running 1 test using 1 worker
 ✅ Initialized test data for IL with N/A values
 WB Login successful
 ✅ Selected producer: CHRISTINA M. BOWER
-✅ Phone number filled successfully: 717-273-8198
+✅ Phone number filled successfully: 717-525-6897
 ✅ "Accept As-Is" clicked successfully
 ✅ "Client not listed" button clicked
 ✅ "Continue" button clicked
@@ -14,23 +14,23 @@ WB Login successful
 ⚠️ Open dialog detected, attempting to close...
 ✅ Contact phone number filled successfully: 717-555-1212
 Account creation completed
-✅ Account Created (76.52s)
+✅ Account Created (34.87s)
 Account qualification completed
-✅ Policy Details Entered (15.23s)
+✅ Policy Details Entered (10.36s)
 ✓ Legal Entity already set to "Other", skipping
-✅ Businessowners page - coverages added (81.41s)
-✅ Locations added (2.68s)
-✅ State specific info completed (2.00s)
+✅ Businessowners page - coverages added (59.84s)
+✅ Locations added (1.26s)
+✅ State specific info completed (0.58s)
 BOP quote - preliminary info completed
 ❌ Test execution failed: locator.click: Timeout 60000ms exceeded.
 Call log:
 [2m  - waiting for locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]')[22m
 
-🔍 Extracted number from page text: 3003181034
-❌ Test Execution Failed (62.20s)
+🔍 Extracted number from page text: 3003181223
+❌ Test Execution Failed (60.14s)
 💾 Test data written to test-data-IL.json with failure info
-  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (4.1m)
-💾 Saved iteration 8: suite=BOP, state=IL
+  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (3.8m)
+💾 Saved iteration 6: suite=BOP, state=IL
 
 
   1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
@@ -40,14 +40,14 @@ Call log:
     [2m  - waiting for locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]')[22m
 
 
-      237 |   console.log('BOP quote - preliminary info completed');
-      238 |   // Add building
-    > 239 |   await page.locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]').click();
+      247 |   console.log('BOP quote - preliminary info completed');
+      248 |   // Add building
+    > 249 |   await page.locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]').click();
           |                                                                                   ^
-      240 |   await page.locator('.dropdown-menu.show .text').filter({ hasText: /^[0-9]+: .*/ }).first().click();
-      241 |   await page.waitForLoadState('load');
-      242 |   // Ensure overlays/modals are gone before interacting with Construction Type
-        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:239:83
+      250 |   await page.locator('.dropdown-menu.show .text').filter({ hasText: /^[0-9]+: .*/ }).first().click();
+      251 |   await page.waitForLoadState('load');
+      252 |   // Ensure overlays/modals are gone before interacting with Construction Type
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:249:83
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results\bop-IL\Create_BOP-Package-Submission-chromium\test-failed-1.png

@@ -382,71 +382,71 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
   await page.waitForTimeout(2000);
   await page.getByRole('button', { name: 'Next' }).click();
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(2000);
 
-  // Wait for page to fully load and radio button to be available
-  console.log('⏳ Waiting for radio button to be available...');
-  await page.waitForLoadState('networkidle').catch(() => { });
-  await page.waitForTimeout(5000);
-
-  // Click "Bill Insured By Mail" radio button (rbBIM_FullPay) with comprehensive retry logic
+  // Click "Bill Insured By Mail" radio button (rbBIM_FullPay)
   console.log('🔘 Clicking Bill Insured By Mail radio button...');
-  const radioSelectors = [
-    '#rbBIM_FullPay',
-    'input[id="rbBIM_FullPay"]',
-    'label[for="rbBIM_FullPay"]',
-    'div:has(> #rbBIM_FullPay)',
-    'div[role="radio"]',
-  ];
   
+  // Remove overlay if present
+  await page.evaluate(() => {
+    const overlay = document.querySelector('.ui-widget-overlay.ui-front');
+    if (overlay) overlay.remove();
+  }).catch(() => { });
+  await page.waitForTimeout(10000);
+
+  // Try multiple approaches to click the radio button
   let radioClicked = false;
-  for (let attempt = 0; attempt < 5 && !radioClicked; attempt++) {
-    console.log(`Radio button click attempt ${attempt + 1}...`);
-    
-    // Remove overlay before each attempt
-    await page.evaluate(() => {
-      const overlay = document.querySelector('.ui-widget-overlay.ui-front');
-      if (overlay) overlay.remove();
-    }).catch(() => { });
-    await page.waitForTimeout(1000);
-    
-    for (const selector of radioSelectors) {
-      try {
-        const locator = page.locator(selector).first();
-        const count = await locator.count();
-        if (count > 0) {
-          await locator.scrollIntoViewIfNeeded().catch(() => {});
-          await page.waitForTimeout(500);
-          
-          // Try regular click first
-          try {
-            await locator.click({ timeout: 5000 });
-            radioClicked = true;
-            console.log(`✅ Radio button clicked using selector: ${selector}`);
-            break;
-          } catch (e) {
-            // Try force click
-            await locator.click({ force: true, timeout: 5000 });
-            radioClicked = true;
-            console.log(`✅ Radio button force-clicked using selector: ${selector}`);
-            break;
-          }
-        }
-      } catch (e) {
-        // Try next selector
-        continue;
-      }
+  
+  // Approach 1: Direct click on radio input
+  if (!radioClicked) {
+    try {
+      await page.locator('#rbBIM_FullPay').click({ timeout: 10000, force: true });
+      console.log('✅ Radio button clicked (direct input)');
+      radioClicked = true;
+    } catch (e) {
+      console.warn(`⚠️ Direct input click failed: ${e?.message}`);
     }
-    
-    if (!radioClicked && attempt < 4) {
-      console.warn(`⚠️ Radio button click attempt ${attempt + 1} failed, waiting and retrying...`);
-      await page.waitForTimeout(3000);
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
+  }
+  
+  // Approach 2: Click parent div
+  if (!radioClicked) {
+    try {
+      const radioButton = page.locator('#rbBIM_FullPay').locator('xpath=..');
+      await radioButton.click({ timeout: 10000, force: true });
+      console.log('✅ Radio button clicked (parent div)');
+      radioClicked = true;
+    } catch (e) {
+      console.warn(`⚠️ Parent div click failed: ${e?.message}`);
+    }
+  }
+  
+  // Approach 3: Click label
+  if (!radioClicked) {
+    try {
+      await page.locator('label[for="rbBIM_FullPay"]').click({ timeout: 10000, force: true });
+      console.log('✅ Radio button clicked (label)');
+      radioClicked = true;
+    } catch (e) {
+      console.warn(`⚠️ Label click failed: ${e?.message}`);
+    }
+  }
+  
+  // Approach 4: JavaScript click
+  if (!radioClicked) {
+    try {
+      await page.evaluate(() => {
+        const radio = document.getElementById('rbBIM_FullPay');
+        if (radio) radio.click();
+      });
+      console.log('✅ Radio button clicked (JavaScript)');
+      radioClicked = true;
+    } catch (e) {
+      console.warn(`⚠️ JavaScript click failed: ${e?.message}`);
     }
   }
   
   if (!radioClicked) {
-    throw new Error('Failed to click radio button after multiple attempts with all selectors');
+    throw new Error('Failed to click Bill Insured By Mail radio button after all attempts');
   }
   await page.getByRole('button', { name: 'Next' }).click();
   await page.waitForLoadState('domcontentloaded');
@@ -465,7 +465,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
   await page.getByRole('button', { name: 'Bind and Issue' }).click();
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(60000);
+  await page.waitForTimeout(30000);
 
   await page.locator('.esign-button.esign-paper').click();
   await page.waitForLoadState('domcontentloaded');

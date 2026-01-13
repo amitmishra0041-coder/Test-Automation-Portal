@@ -5,106 +5,21 @@
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2026-01-08T21:41:39.619Z",
+      "timestamp": "2026-01-13T14:45:36.459Z",
       "details": "",
-      "duration": "77.43s"
+      "duration": "35.39s"
     },
     {
-      "name": "Policy Details Entered",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:41:54.151Z",
-      "details": "",
-      "duration": "14.53s"
-    },
-    {
-      "name": "Businessowners page - coverages added",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:42:58.550Z",
-      "details": "",
-      "duration": "64.40s"
-    },
-    {
-      "name": "Locations added",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:43:01.139Z",
-      "details": "",
-      "duration": "2.59s"
-    },
-    {
-      "name": "State specific info completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:43:02.788Z",
-      "details": "",
-      "duration": "1.65s"
-    },
-    {
-      "name": "Building and Classification Added",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:44:03.297Z",
-      "details": "",
-      "duration": "60.51s"
-    },
-    {
-      "name": "Blankets page navigated",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:44:05.499Z",
-      "details": "",
-      "duration": "2.20s"
-    },
-    {
-      "name": "Mortages Tab navigated",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:44:06.480Z",
-      "details": "",
-      "duration": "0.98s"
-    },
-    {
-      "name": "US questions tab completed",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:44:10.124Z",
-      "details": "",
-      "duration": "3.64s"
-    },
-    {
-      "name": "Quote Rated Successfully",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:44:27.807Z",
-      "details": "Quote #: 3003181024",
-      "duration": "17.68s"
-    },
-    {
-      "name": "Submitting for Approval",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:45:53.843Z",
-      "details": "",
-      "duration": "86.03s"
-    },
-    {
-      "name": "UW Issues Approved in PolicyCenter",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:46:45.093Z",
-      "details": "",
-      "duration": "51.25s"
-    },
-    {
-      "name": "Submit for issuance",
-      "status": "PASSED",
-      "timestamp": "2026-01-08T21:49:14.324Z",
-      "details": "Policy #: 1003053041",
-      "duration": "149.23s"
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-01-13T14:45:49.656Z",
+      "details": "locator.click: Test ended.\nCall log:\n\u001b[2m  - waiting for getByRole('button').filter({ hasText: /^$/ }).nth(1)\u001b[22m\n\u001b[2m    - waiting for\" https://writebizqa.donegalgroup.com/crystal.aspx?p=ClientSummary.aspx&undkey=455252&sid=E4596EB8A85C4A029211DACC1108AA6E\" navigation to finish...\u001b[22m\n\u001b[2m    - navigated to \"https://writebizqa.donegalgroup.com/crystal.aspx?p=ClientSummary.aspx&undkey=455252&sid=E4596EB8A85C4A029211DACC1108AA6E\"\u001b[22m\n",
+      "duration": "8.19s"
     }
   ],
   "httpTimings": [],
-  "networkErrors": [
-    {
-      "url": "https://as.atlassian.com/api/v1/batch",
-      "error": {
-        "errorText": "net::ERR_ABORTED"
-      },
-      "timestamp": "2026-01-08T21:43:01.728Z"
-    }
-  ],
+  "networkErrors": [],
   "retryCount": 0,
-  "quoteNumber": "3003181024",
-  "policyNumber": "1003053041"
+  "quoteNumber": "N/A",
+  "policyNumber": "N/A"
 }

@@ -1,91 +1,48 @@
-[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: PA (Pennsylvania)
 ✅ Initialized test data for PA with N/A values
 WB Login successful
-✅ Selected producer: CHRISTINA M. BOWER
-✅ Phone number filled successfully: 717-112-1525
-✅ "Accept As-Is" clicked successfully
-✅ "Client not listed" button clicked
-✅ "Continue" button clicked
-✅ Client creation completed successfully
-⚠️ Open dialog detected, attempting to close...
-✅ Contact phone number filled successfully: 717-555-1212
-Account creation completed
-✅ Account Created (80.43s)
-Account qualification completed
-✅ Policy Details Entered (18.75s)
-⚠️ Modal dialog did not close within timeout, attempting close
-❌ Test execution failed: locator.click: Timeout 60000ms exceeded.
+🔄 Retry 2/3: Clicking state dropdown...
+🔄 Retry 3/3: Clicking state dropdown...
+❌ Failed to click state dropdown after 3 attempts: locator.click: Target page, context or browser has been closed
 Call log:
-[2m  - waiting for locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ })[22m
-[2m    - waiting for" https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=CLBOPBusinessOwnersDetails.aspx&sid=B27292410E3F41A8A22A80E679504CB3" navigation to finish...[22m
-[2m    - navigated to "https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=CLBOPBusinessOwnersDetails.aspx&sid=B27292410E3F41A8A22A80E679504CB3"[22m
-[2m    - locator resolved to <a tabindex="0" role="option" id="bs-select-1-1" class="dropdown-item">…</a>[22m
-[2m  - attempting click action[22m
-[2m    2 × waiting for element to be visible, enabled and stable[22m
-[2m      - element is not visible[22m
-[2m    - retrying click action[22m
-[2m    - waiting 20ms[22m
-[2m    2 × waiting for element to be visible, enabled and stable[22m
-[2m      - element is not visible[22m
-[2m    - retrying click action[22m
-[2m      - waiting 100ms[22m
-[2m    110 × waiting for element to be visible, enabled and stable[22m
-[2m        - element is not visible[22m
-[2m      - retrying click action[22m
-[2m        - waiting 500ms[22m
+[2m  - waiting for locator('.ui-menu.ui-widget').getByText('PA', { exact: true })[22m
 
-🔍 Extracted number from page text: 3003181026
-❌ Test Execution Failed (66.77s)
+❌ Test execution failed: locator.click: Target page, context or browser has been closed
+Call log:
+[2m  - waiting for locator('.ui-menu.ui-widget').getByText('PA', { exact: true })[22m
+
+❌ Test Execution Failed (20.88s)
 💾 Test data written to test-data-PA.json with failure info
-  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (3.0m)
+  ✘  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (31.7s)
 💾 Saved iteration 1: suite=BOP, state=PA
 
 
   1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
 
-    TimeoutError: locator.click: Timeout 60000ms exceeded.
+    Error: locator.click: Target page, context or browser has been closed
     Call log:
-    [2m  - waiting for locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ })[22m
-    [2m    - waiting for" https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=CLBOPBusinessOwnersDetails.aspx&sid=B27292410E3F41A8A22A80E679504CB3" navigation to finish...[22m
-    [2m    - navigated to "https://nautilusqa.donegalgroup.com/crystal.aspx?a=show&p=CLBOPBusinessOwnersDetails.aspx&sid=B27292410E3F41A8A22A80E679504CB3"[22m
-    [2m    - locator resolved to <a tabindex="0" role="option" id="bs-select-1-1" class="dropdown-item">…</a>[22m
-    [2m  - attempting click action[22m
-    [2m    2 × waiting for element to be visible, enabled and stable[22m
-    [2m      - element is not visible[22m
-    [2m    - retrying click action[22m
-    [2m    - waiting 20ms[22m
-    [2m    2 × waiting for element to be visible, enabled and stable[22m
-    [2m      - element is not visible[22m
-    [2m    - retrying click action[22m
-    [2m      - waiting 100ms[22m
-    [2m    110 × waiting for element to be visible, enabled and stable[22m
-    [2m        - element is not visible[22m
-    [2m      - retrying click action[22m
-    [2m        - waiting 500ms[22m
+    [2m  - waiting for locator('.ui-menu.ui-widget').getByText('PA', { exact: true })[22m
 
 
-      169 |   if (!isOther) {
-      170 |     await legalEntityBtn.click({ force: true, timeout: 10000 });
-    > 171 |     await page.locator('.dropdown-menu.show .dropdown-item').filter({ hasText: /^Association$/ }).click();
-          |                                                                                                   ^
-      172 |     console.log('✓ Legal Entity set to Association');
-      173 |   } else {
-      174 |     console.log('✓ Legal Entity already set to "Other", skipping');
-        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:171:99
+       at accountCreationHelper.js:61
 
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results\bop-PA\Create_BOP-Package-Submission-chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+      59 |         await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click({ timeout: 10000 });
+      60 |         await page.waitForTimeout(1000);
+    > 61 |         await page.locator('.ui-menu.ui-widget').getByText(testState, { exact: true }).click({ timeout: 5000 });
+         |                                                                                        ^
+      62 |         stateClickSuccess = true;
+      63 |         if (attempt > 1) console.log('✅ State dropdown clicked successfully');
+      64 |       } catch (e) {
+        at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:61:88)
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:146:5
 
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results\bop-PA\Create_BOP-Package-Submission-chromium\video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: test-results\bop-PA\Create_BOP-Package-Submission-chromium\error-context.md
 
   1 failed
     [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────

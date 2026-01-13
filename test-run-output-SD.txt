@@ -1,0 +1,76 @@
+[dotenv@17.2.3] injecting env (6) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+Running 1 test using 1 worker
+
+🗺️ Running test for state: SD (South Dakota)
+✅ Initialized test data for SD with N/A values
+WB Login successful
+✅ Selected producer: CHRISTINA M. BOWER
+🔄 Retry 2/3: Clicking state dropdown...
+🔄 Retry 3/3: Clicking state dropdown...
+❌ Failed to click state dropdown after 3 attempts: locator.click: Timeout 5000ms exceeded.
+Call log:
+[2m  - waiting for locator('.ui-menu.ui-widget').getByText('SD', { exact: true })[22m
+
+❌ State selection failed with agency 0000988. Attempting cleanup...
+✅ Cancel button clicked
+🔄 Will retry with next agency/producer option...
+🔄 Restarting client creation with alternative agency/producer (attempt 2/3)
+✅ Selected producer: JEFFERY S. REYNOLDS
+🔄 Retry 2/3: Clicking state dropdown...
+🔄 Retry 3/3: Clicking state dropdown...
+❌ Failed to click state dropdown after 3 attempts: locator.click: Timeout 5000ms exceeded.
+Call log:
+[2m  - waiting for locator('.ui-menu.ui-widget').getByText('SD', { exact: true })[22m
+
+❌ State selection failed with agency 4501307. Attempting cleanup...
+✅ Cancel button clicked
+🔄 Will retry with next agency/producer option...
+🔄 Restarting client creation with alternative agency/producer (attempt 3/3)
+✅ Selected producer: CHRISTINA M. BOWER
+🔄 Retry 2/3: Clicking state dropdown...
+🔄 Retry 3/3: Clicking state dropdown...
+❌ Failed to click state dropdown after 3 attempts: locator.click: Timeout 5000ms exceeded.
+Call log:
+[2m  - waiting for locator('.ui-menu.ui-widget').getByText('SD', { exact: true })[22m
+
+❌ State selection failed with agency 9000325. Attempting cleanup...
+✅ Cancel button clicked
+❌ All agency/producer options exhausted
+❌ Test execution failed: STATE_SELECTION_FAILED
+🔍 Extracted number from page text: 3003180914
+❌ Test Execution Failed (58.77s)
+💾 Test data written to test-data-SD.json with failure info
+  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (1.8m)
+💾 Saved iteration 13: suite=BOP, state=SD
+
+
+  1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
+
+    Error: STATE_SELECTION_FAILED
+
+       at accountCreationHelper.js:125
+
+      123 |               console.log(`❌ Failed to click state dropdown after ${attempt} attempts: ${e.message}`);
+      124 |               // State selection failed - throw to trigger outer retry with different agency/producer
+    > 125 |               throw new Error('STATE_SELECTION_FAILED');
+          |                     ^
+      126 |             }
+      127 |             await page.waitForTimeout(2000);
+      128 |           }
+        at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:125:21)
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:146:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bop-SD\Create_BOP-Package-Submission-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bop-SD\Create_BOP-Package-Submission-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bop-SD\Create_BOP-Package-Submission-chromium\error-context.md
+
+  1 failed
+    [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────
+⏸️ Batch run detected; skipping individual email

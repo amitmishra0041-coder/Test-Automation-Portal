@@ -1,75 +1,72 @@
-[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
 
 Running 1 test using 1 worker
 
 🗺️ Running test for state: AZ (Arizona)
 ✅ Initialized test data for AZ with N/A values
 WB Login successful
-✅ Selected producer: CHRISTINA M. BOWER
+🟢 Playwright tracing started
+
+🏢 Attempting agency/producer combination 1/3: 0008707 / BRENT W. PARENTEAU
+WB Login successful
+📋 Producer menu items: []
+🎯 Trying to click producer: BRENT W. PARENTEAU
+✅ Producer clicked: BRENT W. PARENTEAU
 🔄 Retry 2/3: Clicking state dropdown...
 🔄 Retry 3/3: Clicking state dropdown...
 ❌ Failed to click state dropdown after 3 attempts: locator.click: Timeout 5000ms exceeded.
 Call log:
 [2m  - waiting for locator('.ui-menu.ui-widget').getByText('AZ', { exact: true })[22m
 
-❌ State selection failed with agency 0000988. Attempting cleanup...
-✅ Cancel button clicked
-🔄 Will retry with next agency/producer option...
-🔄 Restarting client creation with alternative agency/producer (attempt 2/3)
-✅ Selected producer: JEFFERY S. REYNOLDS
+❌ State selection failed for agency/producer: 0008707 / BRENT W. PARENTEAU
+🔄 Attempting to click Cancel button before retrying...
+🔄 Retrying with next agency/producer combination...
+WB Login successful
+
+🏢 Attempting agency/producer combination 2/3: 0000988 / CHRISTINA M. BOWER
+WB Login successful
+📋 Producer menu items: []
+🎯 Trying to click producer: CHRISTINA M. BOWER
+✅ Producer clicked: CHRISTINA M. BOWER
 🔄 Retry 2/3: Clicking state dropdown...
 🔄 Retry 3/3: Clicking state dropdown...
 ❌ Failed to click state dropdown after 3 attempts: locator.click: Timeout 5000ms exceeded.
 Call log:
 [2m  - waiting for locator('.ui-menu.ui-widget').getByText('AZ', { exact: true })[22m
 
-❌ State selection failed with agency 4501307. Attempting cleanup...
-✅ Cancel button clicked
-🔄 Will retry with next agency/producer option...
-🔄 Restarting client creation with alternative agency/producer (attempt 3/3)
-✅ Selected producer: CHRISTINA M. BOWER
-🔄 Retry 2/3: Clicking state dropdown...
-🔄 Retry 3/3: Clicking state dropdown...
-❌ Failed to click state dropdown after 3 attempts: locator.click: Timeout 5000ms exceeded.
-Call log:
-[2m  - waiting for locator('.ui-menu.ui-widget').getByText('AZ', { exact: true })[22m
+❌ State selection failed for agency/producer: 0000988 / CHRISTINA M. BOWER
+🔄 Attempting to click Cancel button before retrying...
+🔄 Retrying with next agency/producer combination...
+WB Login successful
 
-❌ State selection failed with agency 9000325. Attempting cleanup...
-✅ Cancel button clicked
-❌ All agency/producer options exhausted
-❌ Test execution failed: STATE_SELECTION_FAILED
-🔍 Extracted number from page text: 3003180914
-❌ Test Execution Failed (104.47s)
+🏢 Attempting agency/producer combination 3/3: 4501307 / JEFFERY S. REYNOLDS
+WB Login successful
+❌ Test execution failed: locator.fill: Target page, context or browser has been closed
+❌ Test Execution Failed (179.82s)
 💾 Test data written to test-data-AZ.json with failure info
-  x  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (1.8m)
-💾 Saved iteration 5: suite=BOP, state=AZ
+  ✘  1 [chromium] › Create_BOP.test.js:13:5 › Package Submission (3.4m)
+💾 Saved iteration 1: suite=BOP, state=AZ
 
 
   1) [chromium] › Create_BOP.test.js:13:5 › Package Submission ─────────────────────────────────────
 
-    Error: STATE_SELECTION_FAILED
+    Error: locator.fill: Target page, context or browser has been closed
 
-       at accountCreationHelper.js:125
+       at accountCreationHelper.js:71
 
-      123 |               console.log(`❌ Failed to click state dropdown after ${attempt} attempts: ${e.message}`);
-      124 |               // State selection failed - throw to trigger outer retry with different agency/producer
-    > 125 |               throw new Error('STATE_SELECTION_FAILED');
-          |                     ^
-      126 |             }
-      127 |             await page.waitForTimeout(2000);
-      128 |           }
-        at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:125:21)
-        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:136:5
+      69 |       await page.getByRole('button', { name: 'Create a New Client' }).click();
+      70 |       await page.getByText('Enter Search Text here or').click();
+    > 71 |       await page.locator('#txtAgency_input').fill(currentOption.agency);
+         |                                              ^
+      72 |       await page.getByRole('gridcell', { name: currentOption.agency }).click();
+      73 |       const producerMenu = page.locator('.ui-menu.ui-widget:visible');
+      74 |       const producerOptions = await producerMenu.locator('.ui-menu-item').allTextContents().catch(() => []);
+        at createAccountAndQualify (C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\accountCreationHelper.js:71:46)
+        at C:\Users\amitmish\Playwright Projects\WB BOP Standard workflow\Automation_Portal\Test-Automation-Portal\Create_BOP.test.js:146:5
 
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results\bop-AZ\Create_BOP-Package-Submission-chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results\bop-AZ\Create_BOP-Package-Submission-chromium\video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: test-results\bop-AZ\Create_BOP-Package-Submission-chromium\error-context.md
 
   1 failed
     [chromium] › Create_BOP.test.js:13:5 › Package Submission ──────────────────────────────────────

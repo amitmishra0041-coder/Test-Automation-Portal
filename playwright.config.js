@@ -17,6 +17,7 @@ module.exports = defineConfig({
     navigationTimeout: 60 * 1000,
     video: 'retain-on-failure', // Record video only on failure for debugging
     screenshot: 'only-on-failure', // Capture screenshot on failure
+    trace: 'on-first-retry', // Enable trace for debugging
   },
 
   reporter: [
