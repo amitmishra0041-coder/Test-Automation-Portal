@@ -1,12 +1,13 @@
 @echo off
 REM BOP Test Runner - wrapper that calls PowerShell
-REM Usage: run-bop-test.bat [qa|test|prod] [state1 state2 ...] [headed]
+REM Usage: run-bop-test.bat [qa|test|prod] [state1 state2 ...] [HEADLESS]
+REM Default: HEADED mode enabled
 
 setlocal EnableExtensions EnableDelayedExpansion
 
 set "ENV="
 set "STATES="
-set "HEADED_FLAG="
+set "HEADED_FLAG=headed"
 set "_first=1"
 
 REM Detect environment from first argument only if it matches known envs
@@ -24,13 +25,13 @@ for %%A in (%*) do (
         set "_first=0"
         if defined ENV (
             REM first token was env; skip adding as state
-        ) else if /I "%%A"=="headed" (
-            set "HEADED_FLAG=headed"
+        ) else if /I "%%A"=="headless" (
+            set "HEADED_FLAG="
         ) else (
             set "STATES=%%A"
         )
-    ) else if /I "%%A"=="headed" (
-        set "HEADED_FLAG=headed"
+    ) else if /I "%%A"=="headless" (
+        set "HEADED_FLAG="
     ) else (
         if defined STATES (
             set "STATES=!STATES!,%%A"
