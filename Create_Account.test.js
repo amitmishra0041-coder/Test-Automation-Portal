@@ -1,25 +1,21 @@
-import { test, expect } from '@playwright/test';
-const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddress, randCity, randZipCode, randSSN } = require('./helpers/randomData');
-const StepLogger = require("./stepLogger");
-const stepLogger = new StepLogger();
+const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/randomData');
 
-test('test', async ({ page }) => {
-  test.setTimeout(300000); // 5 minutes timeout
-
-  // Helper function to generate a random 717 phone number
+// Create account and reach the package selection stage, reusing the same page/tab.
+async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfExists, trackMilestone }) {
+  // Local helper to generate a random 717 phone number
   function randPhone717() {
     const randomDigits = Math.floor(1000000 + Math.random() * 9000000); // 7 random digits
     return `717${randomDigits}`;
   }
 
   // Navigate and login
-  await page.goto('https://writebizqa.donegalgroup.com/agentlogin.aspx');
+  await page.goto(writeBizUrl);
   await page.getByRole('textbox', { name: 'User ID:' }).fill('amitmish');
   await page.getByRole('textbox', { name: 'Password:' }).fill('Bombay12$');
   await page.getByRole('button', { name: 'Log In' }).click();
   console.log('WB Login successful');
-  stepLogger.logStep("WB Login successful");
-  // Create new client
+
+  // Create new client (using Dec 15 working approach)
   await page.getByRole('button', { name: 'Create a New Client' }).click();
   await page.getByText('Enter Search Text here or').click();
   await page.locator('#txtAgency_input').fill('8707');
@@ -27,10 +23,10 @@ test('test', async ({ page }) => {
   await page.locator('#ui-id-9').getByText('BRENT W. PARENTEAU').click();
   await page.getByRole('button', { name: 'Next' }).click();
 
-  // Fill client info
+  // Fill client info (simplified - using hardcoded values that work)
   await page.getByRole('textbox', { name: 'Company/ Individual Name' }).fill(randCompany());
   await page.getByRole('textbox', { name: 'Street Line 1' }).fill(randAddress());
-  await page.getByRole('textbox', { name: 'City' }).fill(randCity());
+  await page.getByRole('textbox', { name: 'City' }).fill('Wilmington');
   await page.locator('.ui-xcontrols > .ui-combobox > .ui-widget.ui-widget-content').first().click();
   await page.locator('#ui-id-30').click();
   await page.getByRole('textbox', { name: 'Zip Code Phone Number' }).fill('19709');
@@ -38,12 +34,14 @@ test('test', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Email Address' }).fill(randEmail());
   await page.getByRole('button', { name: 'Next' }).click();
 
-  // Accept defaults
-  await page.getByRole('button', { name: 'Accept As-Is' }).click();
-  await page.getByRole('button', { name: 'Client not listed' }).click();
-  await page.getByRole('button', { name: 'Continue' }).click();
+  // Click optional buttons - they may or may not appear depending on the flow
+  await clickIfExists('Use Suggested');
+  await clickIfExists('Accept As-Is');
+  await clickIfExists('Client not listed');
+  await clickIfExists('Continue');
 
-  await page.waitForTimeout(40000);
+  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   // Business Description
   await page.getByRole('textbox', { name: 'Business Description' }).fill('test desc');
@@ -62,7 +60,7 @@ test('test', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Contact Email' }).fill(randEmail());
   await page.getByRole('button', { name: 'Next' }).click();
   console.log('Account creation completed');
-  stepLogger.logStep("Client creation completed");
+
   // Coverage selections
   await page.locator('#xddl_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question').selectOption('BOP');
   await page.locator('#xrgn_WillBuildingCoverageBeRequested_124_WillBuildingCoverageBeRequested_124_Question_Control').getByText('No', { exact: true }).click();
@@ -72,200 +70,15 @@ test('test', async ({ page }) => {
   await page.locator('#xddl_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').selectOption('13');
   await page.locator('#txt_AnnualGrossSales_All_008_AnnualGrossSales_All_008_Integer_Question').fill('45555');
   await page.locator('#xrgn_CertifyQuestion_101_Ext_CertifyQuestion_101_Ext_Question_Control > div > .ui-xcontrols-row > div > div > .ui-xcontrols > div:nth-child(2) > span').first().click();
-
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
+  await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.waitForTimeout(5000);
+  await page.waitForLoadState('networkidle');
   console.log('Account qualification completed');
-  
-  stepLogger.logStep("Account qualification completed");
 
-
-  // Businessowners quote
-  await page.getByText('Businessowners (v7)').click();
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByRole('button').filter({ hasText: /^$/ }).nth(1).click();
-  await page.locator('#ddlPriorCarrier').selectOption('Allstate');
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('combobox', { name: 'Nothing selected' }).click();
-  await page.locator('#bs-select-2-3').click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  //Contractors' Tools And Equip
-  await page.getByTitle('Edit Coverage').nth(3).click();
-  await page.locator('#xrgn_CoverageDetails').getByRole('combobox', { name: '500' }).click();
-  await page.locator('#bs-select-13-0').click();
-  await page.getByRole('button', { name: ' Save' }).click();
-  //Contractors Installation
-  await page.locator('#xacc_BP7ContrctrsInstalltnToolsAndEquipmtInstalltn').getByTitle('Add Coverage').click();
-  await page.getByRole('combobox', { name: 'Nothing selected' }).first().click();
-  await page.locator('#bs-select-13-1').click();
-  await page.getByRole('combobox', { name: 'Nothing selected' }).click();
-  await page.locator('#bs-select-20-1').click();
-  await page.getByRole('button', { name: ' Save' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  //Add't Cov
-  //Cyber Coverage Insurance
-  //await page.getByTitle('Edit the Coverage').first().click();
-  //await page.getByRole('button', { name: ' Save' }).click();
-  //Waiver Of Transfer Of Rights Of Recovery Against 
-  await page.locator('#z9ui28llcn0ikdavhkktuu7uqpa > td:nth-child(4) > .btn-sm').click();
-  await page.locator('#z0lhi64ee7joqeidb4r7kqm5bp9 > td:nth-child(4) > .btn-sm').click();
-  await page.getByRole('combobox', { name: 'Nothing selected' }).first().click();
-  await page.locator('#bs-select-1-1').click();
-  await page.getByRole('combobox', { name: 'Nothing selected' }).click();
-  await page.locator('#bs-select-5-1').click();
-  await page.getByRole('button', { name: ' Save' }).click();
-
-  //existing code
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  //await page.getByRole('button', { name: 'Next ' }).click();
-  //await page.waitForTimeout(5000);
-  //await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  console.log('BOP quote - preliminary info completed');
-  stepLogger.logStep("BOP quote - preliminary info completed");
-
-  // Add building
-  await page.locator('#xrgn_AddBuilding button.dropdown-toggle[role="combobox"]').click();
-  await page.locator('.dropdown-menu.show .text').filter({ hasText: /^[0-9]+: .*/ }).first().click();
-  await page.waitForTimeout(3000);
-  // Click the dropdown button
-  await page.locator('button[data-id="ddlConstructionType"]').click();
-
-  // Wait for the dropdown menu to appear
-  const menu = page.locator('#bs-select-6');
-  await menu.waitFor({ state: 'visible' });
-
-  // Click the option by visible text
-  await menu.locator('li span.text', { hasText: 'Frame Construction' }).click();
-
-  await page.locator('#xrgn_CLBOPBuildingDetails_RoofTypeValue').getByRole('combobox', { name: 'Nothing selected' }).click();
-  await page.locator('#bs-select-7-0').first().click();
-  await page.locator('#txtYearOfConstruction').fill('2015');
-  console.log('Building details filled');
-  stepLogger.logStep("Building details filled");
-
-  await page.getByRole('button', { name: 'Next ' }).click();
-  // Add coverage
-
-  await page.locator('#xacc_BP7StructureBuilding').getByTitle('Add Coverage').click();
-  await page.locator('#xrgn_BP7RatingBasisValue').getByRole('combobox', { name: 'Nothing selected' }).click();
-  await page.locator('#bs-select-1-1').click();
-  await page.getByRole('link', { name: 'Create Estimator' }).click();
-  const locator = page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL');
-  await locator.click({ clickCount: 3 });
-  await page.keyboard.press('Backspace');
-  for (const digit of '999') {
-    await page.keyboard.press(digit);
+  if (trackMilestone) {
+    trackMilestone('Account Created');
   }
-  await page.keyboard.press('Tab');
-  //await page.locator('#lblClassGroup').click();
+}
 
-  // Template selection
-  await page.locator('#PRI-XT_TEMPLATE_ID_PRIMARY-VAL').click();
-  await page.getByText('Apartment / Condominium').click();
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Calculate Now' }).click();
-  await page.getByRole('button', { name: 'Finish' }).click();
-
-  // Import data & save
-  await page.getByRole('button', { name: 'Import Data' }).click();
-  await page.getByRole('combobox', { name: 'Nothing selected' }).click();
-  await page.locator('#bs-select-9-1').click();
-  await page.getByRole('button', { name: ' Save' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Next ' }).click();
-  // Classification
-  await page.waitForTimeout(5000);
-  await page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll > .input-group-text > .fas').click();
-  await page.getByRole('gridcell', { name: 'Carpentry - Interior - Office' }).click();
-  //await page.locator('#txtClassificationSquareFootage_integerWithCommas').fill('999');
-  const squareFootageInput = page.locator('#txtClassificationSquareFootage_integerWithCommas');
-
-  // Focus the field
-  await squareFootageInput.click({ clickCount: 3 }); // select existing value
-
-  // Clear existing content
-  await page.keyboard.press('Backspace');
-
-  // Type the value
-  await page.keyboard.type('999');
-
-  // Trigger blur
-  await squareFootageInput.blur();
-
-
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  //Business Personal Propert
-  await page.getByTitle('Edit Coverage').click();
-  //await page.locator('#txtexposure_integerWithCommas').click();
-  //await page.locator('#txtexposure_integerWithCommas').fill('25300');
-
-  const exposureInput = page.locator('#txtexposure_integerWithCommas');
-
-  // Focus the field and select existing content
-  await exposureInput.click({ clickCount: 3 });
-
-  // Clear any existing value
-  await page.keyboard.press('Backspace');
-
-  // Type the value manually to trigger comma formatting
-  await page.keyboard.type('25300');
-
-  // Trigger blur so the UI processes and formats the value
-  await exposureInput.blur();
-
-  await page.getByRole('button', { name: 'Save' }).click();
-
-  //await page.getByRole('button', { name: ' Close' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.getByRole('button', { name: 'Save Building/Classification' }).click();
-  console.log('Building and classification added');
-  stepLogger.logStep("Building and classification added");
-
-  // Continue workflow
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Next ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
-  await page.waitForTimeout(5000);
-  await page.locator('#for_xrdo_Question_Form_BP7UnderwritingQuestion_Ext_0_BP7MortgageonProp_Ext_No').click();
-  await page.locator('#for_xrdo_Question_Form_BP7UnderwritingQuestion_Ext_0_BP7CertificateQuestion_Ext_Yes').click();
-  await page.waitForTimeout(5000);
-  await page.getByRole('button', { name: 'Continue ' }).click();
-  await page.waitForTimeout(5000);
-
-  // Capture quote number
-  const quoteNumber = await page.locator('#lblQuoteNumValue').textContent();
-  console.log('Quote Number:', quoteNumber.trim());
-
-  const quoteValue = await page.locator('#lblQuoteNumValue').textContent();
-  console.log('Quote Number:', quoteValue.trim());
-
-  const fs = require('fs');
-  const path = require('path');
-
-  // Append to file
-  const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] Quote Number: ${quoteValue.trim()}\n`;
-
-  const filePath = path.join(__dirname, 'quoteNumbers.txt');
-  fs.appendFileSync(filePath, line, 'utf8');
-
-
-  console.log(`Quote Number appended to ${filePath}`);
-  stepLogger.logStep("Quote Number captured");
-
-});
-
-
+module.exports = { createAccountAndQualify };

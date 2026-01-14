@@ -15,8 +15,10 @@ Write-Host "========================================`n" -ForegroundColor Cyan
 if ([string]::IsNullOrEmpty($TestEnv)) { $TestEnv = "qa" }
 Write-Host "Environment: $TestEnv" -ForegroundColor Yellow
 
-# Set states
-if ([string]::IsNullOrEmpty($States)) { $States = "DE,PA,WI,OH,MI" }
+# Set states (default to all 19 BOP states)
+if ([string]::IsNullOrEmpty($States)) {
+    $States = "DE,PA,WI,OH,MI,AZ,CO,IL,IA,NC,SC,NE,NM,SD,TX,UT,IN,TN,VA"
+}
 Write-Host "States: $States" -ForegroundColor Yellow
 
 # Show mode
@@ -27,18 +29,17 @@ if ($Headed) {
 }
 Write-Host "`n"
 
-# Create batch marker to defer emails
-'{"inBatch": true}' | Out-File -FilePath '.batch-run-in-progress' -Force -Encoding ASCII
+# Call parallel PowerShell runner with proper switch handling
+$args = @(
+    '-ExecutionPolicy', 'Bypass',
+    '-File', "$projectPath\run-parallel-bop.ps1",
+    '-TestEnv', $TestEnv,
+    '-States', $States,
+    '-Project', 'chromium',
+    '-KillStrays'
+)
+if ($Headed) { $args += '-Headed' }
 
-# Clean up old iterations for BOP tests
-if (Test-Path 'iterations-data-bop.json') { Remove-Item 'iterations-data-bop.json' -Force }
-if (Test-Path '.batch-email-sent') { Remove-Item '.batch-email-sent' -Force }
-# Also clean up any stale lock files and test data files from previous runs
-Remove-Item -Force 'parallel-run-lock-bop.json' -ErrorAction SilentlyContinue
-Remove-Item -Force 'test-data-*.json' -ErrorAction SilentlyContinue
-
-# Call parallel PowerShell runner
-$headedArg = if ($Headed) { "-Headed" } else { "" }
-& powershell.exe -ExecutionPolicy Bypass -File "$projectPath\run-parallel-bop.ps1" -TestEnv $TestEnv -States $States -Project chromium -KillStrays $headedArg
+& powershell.exe @args
 
 Pop-Location

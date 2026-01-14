@@ -1,4 +1,4 @@
-const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/randomData');
+﻿const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/randomData');
 const { randCityForState, randZipForState } = require('./stateConfig');
 
 // Create account and reach the package selection stage, reusing the same page/tab.
@@ -41,9 +41,64 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   
   const searchTextField = page.getByText('Enter Search Text here or');
   await searchTextField.click();
-  await page.locator('#txtAgency_input').fill('0000988');
-  await page.getByRole('gridcell', { name: '0000988' }).click();
-  await page.locator('#ui-id-9').getByText('CHRISTINA M. BOWER').click();
+  
+  // Select agency and producer based on state
+  let agencyCode, producerName;
+  
+  if (['CO', 'IL', 'IN'].includes(testState)) {
+    agencyCode = '4501307';
+    producerName = 'JEFFERY S. REYNOLDS';
+  } else if (testState === 'AZ') {
+    agencyCode = '9000325';
+    producerName = 'CHRISTINA M. BOWER';
+  } else {
+    agencyCode = '0000988';
+    producerName = 'CHRISTINA M. BOWER';
+  }
+  
+  // Agency selection
+  await page.locator('#txtAgency_input').fill(agencyCode);
+  await page.getByRole('gridcell', { name: agencyCode }).click();
+  
+  // Wait for producer dropdown to auto-open after agency selection
+  await page.waitForTimeout(2000);
+  
+  // Wait for menu to appear
+  await page.locator('.ui-menu.ui-widget:visible').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForTimeout(500);
+  
+  // Get all available producers
+  const allProducers = await page.locator('.ui-menu.ui-widget:visible a').allTextContents();
+  console.log(`📋 Available producers in menu: ${JSON.stringify(allProducers)}`);
+  console.log(`🎯 Looking for producer: "${producerName}"`);
+  
+  // Find the exact producer match index
+  const producerIndex = allProducers.findIndex(p => p === producerName);
+  
+  if (producerIndex === -1) {
+    throw new Error(`Producer "${producerName}" not found in dropdown`);
+  }
+  
+  console.log(`🔍 Found exact producer at index ${producerIndex}: "${allProducers[producerIndex]}"`);
+  
+  // Get the menu item element and trigger jQuery click with proper event handling
+  const producerItem = page.locator('.ui-menu.ui-widget:visible a').nth(producerIndex);
+  const itemText = await producerItem.textContent();
+  console.log(`✅ About to select producer: "${itemText}"`);
+  
+  // Use jQuery to trigger the click through the page's jQuery instance
+  await producerItem.evaluate((el) => {
+    // Trigger the actual select_menu event that jQuery UI listens for
+    const jQueryClick = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true
+    });
+    el.dispatchEvent(jQueryClick);
+  });
+  
+  await page.waitForTimeout(500);
+  
   await page.getByRole('button', { name: 'Next' }).click();
 
   // Create new client - retry until "Accept As-Is" is presented (not "Use Suggested")

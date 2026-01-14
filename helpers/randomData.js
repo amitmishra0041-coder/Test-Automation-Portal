@@ -1,6 +1,9 @@
 // Reusable test data generators using @faker-js/faker for realistic data.
 const { faker } = require('@faker-js/faker');
 
+// Counter for generating unique SSNs
+let ssnCounter = 0;
+
 function randAlphaNum(len = 8) {
   return Math.random().toString(36).slice(2, 2 + len);
 }
@@ -45,8 +48,9 @@ function randZipCode() {
 }
 
 function randSSN() {
-  // Generate a random 9-digit SSN (format: ###-##-####, but as plain number)
-  return faker.string.numeric(9);
+  // Generate a valid faker SSN and add incrementing counter for uniqueness
+  const baseSsn = parseInt(faker.string.numeric(9));
+  return String(baseSsn + ssnCounter++);
 }
 
 module.exports = {
