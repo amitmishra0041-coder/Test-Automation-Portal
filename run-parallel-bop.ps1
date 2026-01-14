@@ -70,6 +70,9 @@ try {
     if (Test-Path $lockFile) { Remove-Item $lockFile -Force -ErrorAction SilentlyContinue }
     if (Test-Path $iterationsFile) { Remove-Item $iterationsFile -Force -ErrorAction SilentlyContinue }
     if (Test-Path $testDataFile) { Remove-Item $testDataFile -Force -ErrorAction SilentlyContinue }
+    # Clean up batch email flag so new emails can be sent on next run
+    $batchEmailSentFile = Join-Path $projectPath '.batch-email-sent'
+    if (Test-Path $batchEmailSentFile) { Remove-Item $batchEmailSentFile -Force -ErrorAction SilentlyContinue }
 
     $runId = [DateTime]::Now.ToString('o')
     $lockData = [ordered]@{
