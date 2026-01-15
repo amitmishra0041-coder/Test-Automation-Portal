@@ -16,7 +16,7 @@ if ([string]::IsNullOrEmpty($TestEnv)) { $TestEnv = "qa" }
 Write-Host "Environment: $TestEnv" -ForegroundColor Yellow
 
 # Set states
-if ([string]::IsNullOrEmpty($States)) { $States = "DE,PA,WI,OH,MI" }
+if ([string]::IsNullOrEmpty($States)) { $States = "DE,PA,WI,OH,MI,AZ,CO,IL,IA,NC,SC,NE,NM,SD,TX,UT,IN,TN,VA" }
 Write-Host "States: $States" -ForegroundColor Yellow
 
 # Show mode
@@ -37,8 +37,17 @@ if (Test-Path '.batch-email-sent') { Remove-Item '.batch-email-sent' -Force }
 Remove-Item -Force 'parallel-run-lock-package.json' -ErrorAction SilentlyContinue
 Remove-Item -Force 'test-data-*.json' -ErrorAction SilentlyContinue
 
-# Call parallel PowerShell runner
-$headedArg = if ($Headed) { "-Headed" } else { "" }
-& powershell.exe -ExecutionPolicy Bypass -File "$projectPath\run-parallel-package.ps1" -TestEnv $TestEnv -States $States -Project chromium -KillStrays $headedArg
+# Call parallel PowerShell runner with proper switch handling
+$args = @(
+    '-ExecutionPolicy', 'Bypass',
+    '-File', "$projectPath\run-parallel-package.ps1",
+    '-TestEnv', $TestEnv,
+    '-States', $States,
+    '-Project', 'chromium',
+    '-KillStrays'
+)
+if ($Headed) { $args += '-Headed' }
+
+& powershell.exe @args
 
 Pop-Location
