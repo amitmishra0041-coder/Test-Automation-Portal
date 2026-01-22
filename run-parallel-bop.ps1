@@ -173,7 +173,7 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
         $outDir = "test-results\bop-$state"
         $windowStyle = "Hidden"  # Always hide cmd.exe terminal windows - browser will show in headed mode
         # Use cmd's 2>&1 redirection since PowerShell Start-Process doesn't allow same file for both streams
-        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=BOP" && (npx playwright test Create_BOP.test.js --project=' + $Project + $headedFlag + ' --output="' + $outDir + '") > "' + $logPath + '" 2>&1'
+        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=BOP" && (npx playwright test Create_BOP.test.js --project=' + $Project + ' --workers=1' + $headedFlag + ' --output="' + $outDir + '") > "' + $logPath + '" 2>&1'
         $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @('/c', $envCmd) -WorkingDirectory $projectPath -WindowStyle $windowStyle -PassThru
         $activeProcs += @{ proc = $proc; state = $state; log = $logPath; startTime = $iterationStart; parallelAtStart = $parallelAtStart; cpuStart = $cpuStart; memStart = $memStart }
         $lastStartTime = $iterationStart

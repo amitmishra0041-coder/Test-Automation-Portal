@@ -35,6 +35,8 @@ for %%A in (%*) do (
         )
     ) else if /I "%%A"=="headless" (
         set "HEADED_FLAG="
+    ) else if /I "%%A"=="headed" (
+        REM headed mode is already default, just skip this token
     ) else (
         if defined STATES (
             set "STATES=!STATES!,%%A"

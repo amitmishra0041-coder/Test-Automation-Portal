@@ -571,7 +571,8 @@ test('Package Submission', async ({ page }, testInfo) => {
     await page.waitForTimeout(1200);
     await page.locator('#bs-select-2-1').click();
     await page.waitForTimeout(1000);
-    await page.getByRole('combobox', { name: 'Nothing selected' }).click();
+    // Use specific locator to avoid strict mode violation (3 comboboxes with same name)
+    await page.locator('#xrgn_TypeOfRisk_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
     await page.waitForTimeout(1200);
     await page.locator('#bs-select-6-0').click();
     await page.waitForTimeout(1500);
@@ -615,6 +616,10 @@ test('Package Submission', async ({ page }, testInfo) => {
     await page.getByRole('button', { name: 'Save Building Business Income' }).click();
     // add occupancy and personal property
     await page.getByTitle('Add Occupancy Building').click();
+    // Wait for page navigation and load after clicking Add Occupancy
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2500);
+    await page.locator('#txtOccupancyDescription').waitFor({ state: 'visible', timeout: 15000 });
     await page.locator('#txtOccupancyDescription').click();
     await page.locator('#txtOccupancyDescription').fill('occupancy desc');
     await page.locator('#txtSquareFootage').click();
