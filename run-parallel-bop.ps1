@@ -168,14 +168,12 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
         $memStart = (Get-Process -Id $PID).WorkingSet64
         $logBuffer += ("    [Resource at start] CPU: $cpuStart, RAM: $memStart")
         $stateLogs[$state] = $logBuffer
-        $logPath = Join-Path $projectPath ("test-run-output-" + $state + ".txt")
         $headedFlag = if ($Headed.IsPresent) { " --headed" } else { "" }
         $outDir = "test-results\bop-$state"
         $windowStyle = "Hidden"  # Always hide cmd.exe terminal windows - browser will show in headed mode
-        # Use cmd's 2>&1 redirection since PowerShell Start-Process doesn't allow same file for both streams
-        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=BOP" && (npx playwright test Create_BOP.test.js --project=' + $Project + ' --workers=1' + $headedFlag + ' --output="' + $outDir + '") > "' + $logPath + '" 2>&1'
+        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=BOP" && npx playwright test Create_BOP.test.js --project=' + $Project + ' --workers=1' + $headedFlag + ' --output="' + $outDir + '"'
         $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @('/c', $envCmd) -WorkingDirectory $projectPath -WindowStyle $windowStyle -PassThru
-        $activeProcs += @{ proc = $proc; state = $state; log = $logPath; startTime = $iterationStart; parallelAtStart = $parallelAtStart; cpuStart = $cpuStart; memStart = $memStart }
+        $activeProcs += @{ proc = $proc; state = $state; startTime = $iterationStart; parallelAtStart = $parallelAtStart; cpuStart = $cpuStart; memStart = $memStart }
         $lastStartTime = $iterationStart
     }
     Start-Sleep -Seconds 1
@@ -250,8 +248,6 @@ if ($failed -gt 0) {
         Write-Host "Cleaning up transient files..." -ForegroundColor Gray
         Remove-Item -Force (Join-Path $projectPath 'iterations-data-bop.json') -ErrorAction SilentlyContinue
         Remove-Item -Force (Join-Path $projectPath 'test-data-*.json') -ErrorAction SilentlyContinue
-        Remove-Item -Force (Join-Path $projectPath 'pw-*.out.log') -ErrorAction SilentlyContinue
-        Remove-Item -Force (Join-Path $projectPath 'pw-*.err.log') -ErrorAction SilentlyContinue
         Remove-Item -Force (Join-Path $projectPath 'WB_Test_Report_*.xlsx') -ErrorAction SilentlyContinue
         Write-Host "Transient cleanup done" -ForegroundColor Gray
     } catch {
