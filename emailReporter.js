@@ -258,7 +258,7 @@ class EmailReporter {
             allDetails.push({
               type: 'add_coverage',
               coverageSection: 'Commercial Auto',
-              detail: `Added Coverage: ${timing.coverage || `#${timing.index}`}`,
+              detail: `${timing.coverage || `Coverage #${timing.index}`}`,
               status: 'Added',
               duration: `${timing.duration}s`
             });
