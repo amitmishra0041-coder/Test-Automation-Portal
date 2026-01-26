@@ -113,8 +113,13 @@ class EmailReporter {
 
   async onEnd() {
     // Skip if batch run (wrapper will send consolidated email)
-    const batchMarker = path.join(__dirname, '.batch-run-in-progress');
-    if (fs.existsSync(batchMarker)) {
+    const suite = this._getSuiteLabel();
+    const batchMarkers = [
+      path.join(__dirname, '.batch-run-in-progress'),
+      path.join(__dirname, `.batch-run-in-progress-${suite.toLowerCase()}`)
+    ];
+    const isBatchRun = batchMarkers.some(marker => fs.existsSync(marker));
+    if (isBatchRun) {
       console.log('⏸️ Batch run detected; skipping individual email');
       return;
     }

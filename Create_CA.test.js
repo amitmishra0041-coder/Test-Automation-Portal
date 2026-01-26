@@ -37,7 +37,10 @@ test('CA Submission', async ({ page }, testInfo) => {
     networkErrors: [],
     retryCount: testInfo.retry || 0,
     quoteNumber: 'N/A',
-    policyNumber: 'N/A'
+    policyNumber: 'N/A',
+    coverageChanges: [],
+    coverageSectionStats: [],
+    addCoverageTimings: []
   };
   
   // Immediately save initialized test data to prevent stale values from previous iterations
