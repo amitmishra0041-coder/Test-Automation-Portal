@@ -16,6 +16,7 @@ class EmailReporter {
     const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
     if (suiteEnv === 'BOP') return 'BOP';
     if (suiteEnv === 'PACKAGE') return 'Package';
+    if (suiteEnv === 'CA') return 'CA';
     return 'Package';
   }
 
@@ -55,10 +56,14 @@ class EmailReporter {
       const suite = this._getSuiteLabel();
       const testState = (process.env.TEST_STATE || '').toUpperCase();
       
+      console.log(`🔍 onTestEnd called: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
+      
       // Read state-specific test data file
       const testDataFile = testState 
         ? path.join(__dirname, `test-data-${testState}.json`)
         : path.join(__dirname, 'test-data.json');
+      
+      console.log(`🔍 Looking for test data: ${testDataFile}, exists: ${fs.existsSync(testDataFile)}`);
       
       if (!fs.existsSync(testDataFile)) return;
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
@@ -88,6 +93,9 @@ class EmailReporter {
         quoteNumber: testData.quoteNumber || 'N/A',
         policyNumber: testData.policyNumber || 'N/A',
         milestones: testData.milestones || [],
+        coverageChanges: testData.coverageChanges || [],
+        coverageSectionStats: testData.coverageSectionStats || [],
+        addCoverageTimings: testData.addCoverageTimings || [],
         timestamp: new Date().toISOString(),
         duration: Array.isArray(testData.milestones)
           ? testData.milestones.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2)
@@ -97,7 +105,7 @@ class EmailReporter {
       });
 
       fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2));
-      console.log(`💾 Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}`);
+      console.log(`💾 Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}, quote=${testData.quoteNumber}`);
     } catch (e) {
       console.log('⚠️ onTestEnd error:', e.message);
     }
@@ -114,16 +122,25 @@ class EmailReporter {
     const suite = this._getSuiteLabel();
     const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
     
+    console.log(`🔍 Looking for iterations file: ${iterFile}`);
+    console.log(`🔍 File exists: ${fs.existsSync(iterFile)}`);
+    console.log(`🔍 Current runId: ${this.runId}`);
+    
     if (!fs.existsSync(iterFile)) {
       console.log('⚠️ No iterations to email');
       return;
     }
 
     const allIterations = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
+    console.log(`🔍 Total iterations in file: ${Array.isArray(allIterations) ? allIterations.length : 'not an array'}`);
+    
     const iterations = this.runId ? allIterations.filter(it => it.runId === this.runId) : allIterations;
+    console.log(`🔍 Filtered iterations (runId filter): ${iterations.length}`);
 
     if (!iterations.length) {
-      console.log('⚠️ No iterations for this runId');
+      console.log('⚠️ No iterations for this runId, sending all available iterations instead');
+      // Fall back to sending all iterations if runId doesn't match
+      await this._sendEmail(allIterations, 'WB Smoke Testing Report');
       return;
     }
 
@@ -136,37 +153,153 @@ class EmailReporter {
     const failed = iterations.length - passed;
     const overallPassed = failed === 0;
 
-    // Build HTML table
-    const summaryTableHtml = `
-      <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+    // Build passed iterations table
+    const passedIterations = iterations.filter(it => it.status === 'PASSED');
+    const passedTableHtml = passedIterations.length > 0 ? `
+      <h3 style="color:#4CAF50;margin-top:20px;">✅ Passed Iterations (${passedIterations.length})</h3>
+      <table style="width:100%;border-collapse:collapse;margin:10px 0;">
         <thead>
-          <tr style="background:#2196F3;color:white;">
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;">Line of Business</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;">Quote Number</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;">Policy Number</th>
-            <th style="padding:12px;text-align:center;border:1px solid #ddd;">Status</th>
+          <tr style="background:#4CAF50;color:white;">
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Iteration</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Line of Business</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Quote Number</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Policy Number</th>
           </tr>
         </thead>
         <tbody>
-          ${iterations.map((it, idx) => {
+          ${passedIterations.map((it, idx) => {
             const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
-            const statusIcon = it.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED';
-            const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
             const lobDisplay = `${it.suite || 'Package'} (${it.state || 'N/A'})`;
             return `
               <tr style="background:${bg};">
-                <td style="padding:12px;border:1px solid #ddd;">${lobDisplay}</td>
-                <td style="padding:12px;border:1px solid #ddd;">${it.quoteNumber}</td>
-                <td style="padding:12px;border:1px solid #ddd;">${it.policyNumber}</td>
-                <td style="padding:12px;border:1px solid #ddd;text-align:center;color:${statusColor};font-weight:bold;">${statusIcon}</td>
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${lobDisplay}</td>
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.policyNumber}</td>
               </tr>
             `;
           }).join('')}
         </tbody>
       </table>
-    `;
+    ` : '';
+
+    // Build failed iterations table
+    const failedIterations = iterations.filter(it => it.status === 'FAILED');
+    const failedTableHtml = failedIterations.length > 0 ? `
+      <h3 style="color:#f44336;margin-top:20px;">❌ Failed Iterations (${failedIterations.length})</h3>
+      <table style="width:100%;border-collapse:collapse;margin:10px 0;">
+        <thead>
+          <tr style="background:#f44336;color:white;">
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Iteration</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Line of Business</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Quote Number</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${failedIterations.map((it, idx) => {
+            const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
+            const lobDisplay = `${it.suite || 'Package'} (${it.state || 'N/A'})`;
+            return `
+              <tr style="background:${bg};">
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${lobDisplay}</td>
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
+                <td style="padding:10px;border:1px solid #ddd;font-size:12px;color:#f44336;font-weight:bold;">FAILED</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    ` : '';
 
     const totalDuration = iterations.reduce((sum, it) => sum + parseFloat(it.duration || 0), 0).toFixed(2);
+
+    // Build combined coverage changes and add coverage table
+    const coverageDetailsHtml = iterations.map(it => {
+      if ((!it.coverageChanges || it.coverageChanges.length === 0) && (!it.addCoverageTimings || it.addCoverageTimings.length === 0)) return '';
+      
+      // Aggregate coverage changes by section
+      const sectionMap = {};
+      if (it.coverageChanges && it.coverageChanges.length > 0) {
+        it.coverageChanges.forEach(change => {
+          if (!sectionMap[change.coverageSection]) {
+            sectionMap[change.coverageSection] = {
+              coverageSection: change.coverageSection,
+              changes: [],
+              totalDuration: 0,
+              totalCount: 0
+            };
+          }
+          const duration = parseFloat(change.durationSeconds || 0);
+          sectionMap[change.coverageSection].changes.push(change);
+          sectionMap[change.coverageSection].totalDuration += duration;
+          sectionMap[change.coverageSection].totalCount++;
+        });
+      }
+      
+      // Create aggregated details (one entry per coverage section showing total time)
+      const allDetails = [];
+      Object.keys(sectionMap).forEach(sectionName => {
+        const section = sectionMap[sectionName];
+        allDetails.push({
+          type: 'coverage_section',
+          coverageSection: section.coverageSection,
+          detail: `${section.totalCount} dropdown(s) updated`,
+          status: 'Updated',
+          duration: `${section.totalDuration.toFixed(2)}s`
+        });
+      });
+      
+      // Add coverage button timings (only add actions, not remove)
+      if (it.addCoverageTimings && it.addCoverageTimings.length > 0) {
+        it.addCoverageTimings.forEach(timing => {
+          if (timing.action === 'Add Coverage') {
+            allDetails.push({
+              type: 'add_coverage',
+              coverageSection: 'Commercial Auto',
+              detail: `Added Coverage: ${timing.coverage || `#${timing.index}`}`,
+              status: 'Added',
+              duration: `${timing.duration}s`
+            });
+          }
+        });
+      }
+      
+      if (allDetails.length === 0) return '';
+      
+      const rows = allDetails.map((detail, idx) => {
+        const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
+        const statusColor = detail.status === 'Added' ? '#2196F3' : '#4CAF50';
+        return `
+          <tr style="background:${bg};">
+            <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${detail.coverageSection}</td>
+            <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${detail.detail}</td>
+            <td style="padding:10px;border:1px solid #ddd;font-size:12px;color:${statusColor};font-weight:bold;">${detail.status}</td>
+            <td style="padding:10px;border:1px solid #ddd;font-size:12px;text-align:center;">${detail.duration}</td>
+          </tr>
+        `;
+      }).join('');
+      
+      return `
+        <div style="margin:20px 0;page-break-inside:avoid;">
+          <h3 style="color:#1976d2;margin-bottom:10px;">${it.suite} (${it.state}) - Coverage updates</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#2196F3;color:white;">
+                <th style="padding:10px;text-align:left;border:1px solid #ddd;font-size:12px;">Coverage Section</th>
+                <th style="padding:10px;text-align:left;border:1px solid #ddd;font-size:12px;">Detail</th>
+                <th style="padding:10px;text-align:center;border:1px solid #ddd;font-size:12px;">Status</th>
+                <th style="padding:10px;text-align:center;border:1px solid #ddd;font-size:12px;">Time (s)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
 
     const html = `
       <div style="font-family: Arial, sans-serif;">
@@ -178,8 +311,10 @@ class EmailReporter {
           <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span> &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
           <p><b>Test Duration:</b> ${totalDuration}s</p>
         </div>
-        <h2 style="color:#333;margin-top:20px;">Test Execution Details</h2>
-        ${summaryTableHtml}
+        <h2 style="color:#333;margin-top:30px;">Iteration Details</h2>
+        ${passedTableHtml}
+        ${failedTableHtml}
+        ${coverageDetailsHtml ? `<h2 style="color:#333;margin-top:30px;">Coverage updates</h2>${coverageDetailsHtml}` : ''}
       </div>
     `;
 
@@ -283,6 +418,70 @@ class EmailReporter {
 
       const analyticsSheetName = ('Milestones_Analytics').substring(0, 31);
       XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(analyticsData), analyticsSheetName);
+
+      // Coverage Changes Analytics sheet
+      const coverageAnalyticsData = [];
+      iterations.forEach(it => {
+        (it.coverageChanges || []).forEach(change => {
+          coverageAnalyticsData.push({
+            'Quote Number': change.quoteNumber || 'N/A',
+            'Coverage Section': change.coverageSection || 'N/A',
+            'Coverage': change.coverage || 'N/A',
+            'Old Value': change.oldValue || 'N/A',
+            'New Value': change.newValue || 'N/A',
+            'Status': change.status || 'N/A',
+            'Suite': it.suite || 'N/A',
+            'State': it.state || 'N/A',
+            'Iteration': it.iterationNumber
+          });
+        });
+      });
+      
+      if (coverageAnalyticsData.length > 0) {
+        const coverageSheetName = ('Coverage_Changes').substring(0, 31);
+        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageAnalyticsData), coverageSheetName);
+      }
+
+      // Coverage section timings sheet
+      const coverageSectionData = [];
+      iterations.forEach(it => {
+        (it.coverageSectionStats || []).forEach(row => {
+          coverageSectionData.push({
+            'Quote Number': row.quoteNumber || 'N/A',
+            'Coverage Section': row.coverageSection || 'N/A',
+            'Dropdowns Updated': row.dropdownsUpdated || 0,
+            'Duration (s)': row.durationSeconds || '0',
+            'Suite': it.suite || 'N/A',
+            'State': it.state || 'N/A',
+            'Iteration': it.iterationNumber
+          });
+        });
+      });
+      if (coverageSectionData.length) {
+        const sheetName = ('Coverage_Section_Timings').substring(0, 31);
+        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageSectionData), sheetName);
+      }
+
+      // Add Coverage button timings sheet
+      const addCoverageData = [];
+      iterations.forEach(it => {
+        (it.addCoverageTimings || []).forEach(row => {
+          addCoverageData.push({
+            'Iteration': it.iterationNumber,
+            'Quote Number': it.quoteNumber || 'N/A',
+            'Action': row.action || 'Add',
+            'Step #': row.index,
+            'Coverage Name': row.coverage || 'Unknown',
+            'Duration (s)': row.duration || '0',
+            'Suite': it.suite || 'N/A',
+            'State': it.state || 'N/A'
+          });
+        });
+      });
+      if (addCoverageData.length) {
+        const sheetName = ('Add_Coverage_Timings').substring(0, 31);
+        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(addCoverageData), sheetName);
+      }
 
       // Individual iteration sheets with unique names
       iterations.forEach(it => {
