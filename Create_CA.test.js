@@ -364,20 +364,18 @@ test('CA Submission', async ({ page }, testInfo) => {
         await currentButton.scrollIntoViewIfNeeded();
         await page.waitForTimeout(500);
         
-        // Capture coverage name from button's parent container (look for nearby text/label)
+        // Capture coverage name from td.sorting_1 element in the same row
         let coverageName = 'Unknown Coverage';
         try {
-          // Try to find the coverage label near the button (parent chain)
-          const parentText = await currentButton.locator('xpath=ancestor::*[contains(@class,"panel") or contains(@class,"card")][1]').locator('h3, h4, .section-title, label').first().textContent({ timeout: 500 }).catch(() => '');
-          if (parentText?.trim()) {
-            coverageName = parentText.trim();
+          // Find the td.sorting_1 element in the same row as the Add button
+          const row = currentButton.locator('xpath=ancestor::tr[1]');
+          const coverageCell = row.locator('td.sorting_1').first();
+          const cellText = await coverageCell.textContent({ timeout: 1000 }).catch(() => '');
+          if (cellText?.trim()) {
+            coverageName = cellText.trim();
           }
         } catch (e) {
-          // If not found, try to get button's title attribute
-          coverageName = await currentButton.getAttribute('title').catch(() => 'Unknown Coverage');
-          if (!coverageName || coverageName === 'Add') {
-            coverageName = 'Unknown Coverage';
-          }
+          console.log(`⚠️ Could not extract coverage name: ${e.message}`);
         }
         
         await currentButton.click();
