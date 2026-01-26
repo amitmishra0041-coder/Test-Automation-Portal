@@ -260,6 +260,7 @@ test('CA Submission', async ({ page }, testInfo) => {
   }
   
   await page.getByRole('button', { name: 'Next ' }).click();
+  trackMilestone('Commercial Auto Product Eligibility Completed');
 
   //await page.getByRole('button', { name: 'Finish' }).click();
 
@@ -362,9 +363,26 @@ test('CA Submission', async ({ page }, testInfo) => {
         const currentButton = addCoverageButtons.first();
         await currentButton.scrollIntoViewIfNeeded();
         await page.waitForTimeout(500);
+        
+        // Capture coverage name from button's parent container (look for nearby text/label)
+        let coverageName = 'Unknown Coverage';
+        try {
+          // Try to find the coverage label near the button (parent chain)
+          const parentText = await currentButton.locator('xpath=ancestor::*[contains(@class,"panel") or contains(@class,"card")][1]').locator('h3, h4, .section-title, label').first().textContent({ timeout: 500 }).catch(() => '');
+          if (parentText?.trim()) {
+            coverageName = parentText.trim();
+          }
+        } catch (e) {
+          // If not found, try to get button's title attribute
+          coverageName = await currentButton.getAttribute('title').catch(() => 'Unknown Coverage');
+          if (!coverageName || coverageName === 'Add') {
+            coverageName = 'Unknown Coverage';
+          }
+        }
+        
         await currentButton.click();
         processedCount++;
-        console.log(`✓ Clicked "Add coverage" button #${processedCount}`);
+        console.log(`✓ Clicked "Add coverage" button #${processedCount} - Coverage: ${coverageName}`);
         
         // Wait for popup/dialog to appear
         await page.waitForTimeout(2000);
@@ -385,7 +403,7 @@ test('CA Submission', async ({ page }, testInfo) => {
             console.log('✓ Clicked "Remove Coverage" button');
             await page.waitForTimeout(2000); // Wait for dialog to close
             const duration = ((Date.now() - iterationStart) / 1000).toFixed(2);
-            addCoverageTimings.push({ index: processedCount, action: 'Remove Coverage', duration });
+            addCoverageTimings.push({ index: processedCount, action: 'Remove Coverage', duration, coverage: coverageName });
           } else {
             console.log('⚠️ "Remove Coverage" button not found');
           }
@@ -414,7 +432,7 @@ test('CA Submission', async ({ page }, testInfo) => {
             }
           }
           const duration = ((Date.now() - iterationStart) / 1000).toFixed(2);
-          addCoverageTimings.push({ index: processedCount, action: 'Add Coverage', duration });
+          addCoverageTimings.push({ index: processedCount, action: 'Add Coverage', duration, coverage: coverageName });
         }
         
         // Small delay before checking for next button
