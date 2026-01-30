@@ -124,7 +124,6 @@ class EmailReporter {
       return;
     }
 
-    const suite = this._getSuiteLabel();
     const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
     
     console.log(`🔍 Looking for iterations file: ${iterFile}`);
@@ -224,6 +223,20 @@ class EmailReporter {
     const coverageDetailsHtml = iterations.map(it => {
       if ((!it.coverageChanges || it.coverageChanges.length === 0) && (!it.addCoverageTimings || it.addCoverageTimings.length === 0)) return '';
       
+      // Build section timing lookup from coverageSectionStats
+      const sectionTimings = {};
+      if (it.coverageSectionStats && it.coverageSectionStats.length > 0) {
+        it.coverageSectionStats.forEach(stat => {
+          const durSec = parseFloat(stat.durationSeconds || 0);
+          const durMs = durSec * 1000;
+          sectionTimings[stat.coverageSection] = {
+            duration: durSec,
+            durationFormatted: stat.durationFormatted || (durMs < 100 ? `${Math.round(durMs)}ms` : `${durSec.toFixed(2)}s`),
+            count: stat.dropdownsUpdated || 0
+          };
+        });
+      }
+      
       // Aggregate coverage changes by section
       const sectionMap = {};
       if (it.coverageChanges && it.coverageChanges.length > 0) {
@@ -232,14 +245,12 @@ class EmailReporter {
             sectionMap[change.coverageSection] = {
               coverageSection: change.coverageSection,
               changes: [],
-              totalDuration: 0,
-              totalCount: 0
+              totalDuration: sectionTimings[change.coverageSection]?.duration || 0,
+              totalDurationFormatted: sectionTimings[change.coverageSection]?.durationFormatted || '0ms',
+              totalCount: sectionTimings[change.coverageSection]?.count || 0
             };
           }
-          const duration = parseFloat(change.durationSeconds || 0);
           sectionMap[change.coverageSection].changes.push(change);
-          sectionMap[change.coverageSection].totalDuration += duration;
-          sectionMap[change.coverageSection].totalCount++;
         });
       }
       
@@ -252,7 +263,7 @@ class EmailReporter {
           coverageSection: section.coverageSection,
           detail: `${section.totalCount} dropdown(s) updated`,
           status: 'Updated',
-          duration: `${section.totalDuration.toFixed(2)}s`
+          duration: section.totalDurationFormatted
         });
       });
       
@@ -455,7 +466,7 @@ class EmailReporter {
             'Quote Number': row.quoteNumber || 'N/A',
             'Coverage Section': row.coverageSection || 'N/A',
             'Dropdowns Updated': row.dropdownsUpdated || 0,
-            'Duration (s)': row.durationSeconds || '0',
+            'Duration': row.durationFormatted || `${row.durationSeconds || '0'}s`,
             'Suite': it.suite || 'N/A',
             'State': it.state || 'N/A',
             'Iteration': it.iterationNumber

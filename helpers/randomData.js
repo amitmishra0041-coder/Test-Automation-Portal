@@ -48,9 +48,29 @@ function randZipCode() {
 }
 
 function randSSN() {
-  // Generate a valid faker SSN and add incrementing counter for uniqueness
-  const baseSsn = parseInt(faker.string.numeric(9));
-  return String(baseSsn + ssnCounter++);
+  // Generate a valid 9-digit SSN following SSA rules:
+  // - Area number (first 3 digits): 001-899, excluding 666
+  // - Group number (middle 2 digits): 01-99
+  // - Serial number (last 4 digits): 0001-9999
+  
+  // Generate area number (001-899, but not 666)
+  let area;
+  do {
+    area = Math.floor(Math.random() * 899) + 1; // 1-899
+  } while (area === 666);
+  
+  // Generate group number (01-99)
+  const group = Math.floor(Math.random() * 99) + 1;
+  
+  // Generate serial number (0001-9999) with counter for uniqueness
+  const serial = ((Math.floor(Math.random() * 9000) + 1000) + ssnCounter++) % 10000;
+  
+  // Format as 9-digit string with leading zeros
+  const ssn = String(area).padStart(3, '0') + 
+              String(group).padStart(2, '0') + 
+              String(serial === 0 ? 1 : serial).padStart(4, '0');
+  
+  return ssn;
 }
 
 function randStreetLine1() {

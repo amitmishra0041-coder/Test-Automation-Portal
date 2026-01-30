@@ -59,12 +59,15 @@ let failCount = 0;
 
 resultsData.forEach((result, index) => {
   const bgColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff';
-  const status = result.ExitCode === 0 ? 'PASSED' : 'FAILED';
-  const statusColor = result.ExitCode === 0 ? '#4CAF50' : '#f44336';
-  const quoteRequestNumber = result.QuoteRequestNumber || 'N/A';
-  const insuredName = result.InsuredName || 'N/A';
+  // Handle both old and new data formats
+  const status = result.TestStatus || (result.ExitCode === 0 ? 'PASSED' : 'FAILED');
+  const statusColor = status === 'PASSED' ? '#4CAF50' : '#f44336';
+  const quoteNumber = result.QuoteNumber || result.QuoteRequestNumber || 'N/A';
+  const policyNumber = result.PolicyNumber || result.InsuredName || 'N/A';
+  const state = result.State || 'N/A';
+  const duration = result.Duration || 'N/A';
   
-  if (result.ExitCode === 0) {
+  if (status === 'PASSED') {
     passCount++;
   } else {
     failCount++;
@@ -72,10 +75,11 @@ resultsData.forEach((result, index) => {
   
   tableRows += `
     <tr style="background-color: ${bgColor};">
-      <td style="padding: 10px; text-align: center;"><strong>${result.State}</strong></td>
+      <td style="padding: 10px; text-align: center;"><strong>${state}</strong></td>
       <td style="padding: 10px; text-align: center; color: ${statusColor}; font-weight: bold;">${status}</td>
-      <td style="padding: 10px; text-align: left;">${quoteRequestNumber}</td>
-      <td style="padding: 10px; text-align: left;">${insuredName}</td>
+      <td style="padding: 10px; text-align: left;">${quoteNumber}</td>
+      <td style="padding: 10px; text-align: left;">${policyNumber}</td>
+      <td style="padding: 10px; text-align: center;">${duration}s</td>
     </tr>
   `;
 });
@@ -114,8 +118,9 @@ const htmlContent = `
         <tr>
           <th>State</th>
           <th>Status</th>
-          <th>Quote Request Number</th>
-          <th>Insured Name</th>
+          <th>Quote Number</th>
+          <th>Policy Number</th>
+          <th>Duration (s)</th>
         </tr>
       </thead>
       <tbody>

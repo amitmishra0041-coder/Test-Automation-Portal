@@ -1,75 +1,83 @@
-# PowerShell script to run CA Tarmika tests in parallel for all states
+# PowerShell script to run CA tests in parallel for all states
 param(
     [string]$TestEnv = "qa",
     [string[]]$States,
-    [switch]$Headed,
     [string]$Project = "chromium",
     [switch]$KillStrays
 )
 
-# Allow overriding states from parameter for quick testing
+# CA states from stateConfig.js TARGET_STATES
 if ($States -and $States.Count -gt 0) {
-    # Support comma-separated string passed as a single argument
     if ($States.Count -eq 1 -and $States[0] -match ',') {
         $states = $States[0].Split(',') | ForEach-Object { $_.Trim() }
     } else {
         $states = $States
     }
 } else {
-    $states = @('DE', 'PA', 'WI', 'OH', 'MI', 'AZ', 'CO', 'IL', 'IA', 'NC', 'SC', 'NE', 'NM', 'SD', 'TX', 'UT', 'IN', 'TN', 'VA')
+    $states = @('CO', 'DE', 'PA', 'WI', 'OH', 'MI', 'AZ', 'IL', 'IA', 'NC', 'SC', 'NE', 'NM', 'SD', 'TX', 'UT', 'IN', 'TN', 'VA')
 }
-$allowed = @('DE','MI','OH','PA','WI','AZ','CO','IL','IA','NC','SC','NE','NM','SD','TX','UT','IN','TN','VA')
+$allowed = @('CO', 'DE', 'PA', 'WI', 'OH', 'MI', 'AZ', 'IL', 'IA', 'NC', 'SC', 'NE', 'NM', 'SD', 'TX', 'UT', 'IN', 'TN', 'VA')
+
 # Normalize and enforce allowed state list
 $states = $states | ForEach-Object { $_.ToUpper() } | Where-Object { $allowed -contains $_ }
 if ($states.Count -eq 0) {
-    Write-Host "⚠️ No valid states provided. Defaulting to: $($allowed -join ', ')" -ForegroundColor Yellow
+    Write-Host "No valid states provided. Defaulting to: $($allowed -join ', ')" -ForegroundColor Yellow
     $states = $allowed
-} elseif ($states.Count -lt ($States.Count)) {
-    # Some provided states were filtered out
-    $invalid = $States | ForEach-Object { $_.ToUpper() } | Where-Object { $allowed -notcontains $_ }
-    if ($invalid.Count -gt 0) {
-        Write-Host "⚠️ Filtering out unsupported states: $($invalid -join ', ')" -ForegroundColor Yellow
-    }
 }
+
 $projectPath = Split-Path -Parent $PSCommandPath
+$lockFile = Join-Path $projectPath 'parallel-run-lock-ca.json'
+$iterationsFile = Join-Path $projectPath 'iterations-data-ca.json'
+$testDataFile = Join-Path $projectPath 'test-data.json'
+$batchMarker = Join-Path $projectPath '.batch-run-in-progress-ca'
 
 Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "CA Tarmika Test Runner - Parallel Execution" -ForegroundColor Cyan
+Write-Host "CA Test Runner - Parallel Execution" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 Write-Host "Environment: $TestEnv" -ForegroundColor Yellow
 Write-Host "States: $($states -join ', ')" -ForegroundColor Yellow
-Write-Host "Project: $Project | Headed: $Headed" -ForegroundColor Yellow
+Write-Host "Project: $Project | Headed: YES (Always)" -ForegroundColor Yellow
+Write-Host "Max Parallel: 3 Workers" -ForegroundColor Yellow
 Write-Host "Project Path: $projectPath`n" -ForegroundColor Yellow
 
-# Optionally stop stray Playwright runs (gentle): only Node processes running Playwright CLI
-if ($KillStrays) {
-    try {
-        Write-Host "Checking for stray Playwright runs..." -ForegroundColor Yellow
-        $playProcs = Get-WmiObject Win32_Process -ErrorAction SilentlyContinue |
-            Where-Object { $_.CommandLine -match 'playwright\s+test' -or $_.CommandLine -match 'npx\s+playwright' }
-        $count = 0
-        foreach ($p in $playProcs) {
-            try {
-                Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
-                $count++
-            } catch {}
-        }
-        Write-Host "Stopped $count Playwright-related processes" -ForegroundColor Gray
-    } catch {
-        Write-Host "Could not query/stop stray processes: $($_.Exception.Message)" -ForegroundColor Yellow
+# Initialize lock and clean previous artifacts
+try {
+    if (Test-Path $lockFile) { Remove-Item $lockFile -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $iterationsFile) { Remove-Item $iterationsFile -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $testDataFile) { Remove-Item $testDataFile -Force -ErrorAction SilentlyContinue }
+    $batchEmailSentFile = Join-Path $projectPath '.batch-email-sent-ca'
+    if (Test-Path $batchEmailSentFile) { Remove-Item $batchEmailSentFile -Force -ErrorAction SilentlyContinue }
+
+    $runId = [DateTime]::Now.ToString('o')
+    $lockData = [ordered]@{
+        runId = $runId
+        targetStates = $states
+        completedStates = @()
+        startTime = $runId
     }
+    $lockJson = $lockData | ConvertTo-Json -Depth 3 -Compress
+    [System.IO.File]::WriteAllText($lockFile, $lockJson, [System.Text.UTF8Encoding]$false)
+    Write-Host "Initialized parallel run lock (CA suite) with runId: $runId" -ForegroundColor Green
+    Write-Host "Target states: $($states -join ', ')" -ForegroundColor Green
+
+    if (-not (Test-Path $batchMarker)) {
+        '{"inBatch": true}' | Out-File -FilePath $batchMarker -Encoding ASCII -Force
+        Write-Host "Batch marker created to defer per-iteration emails" -ForegroundColor Gray
+    }
+
+    Start-Sleep -Milliseconds 500
+} catch {
+    Write-Host "Failed to initialize lock: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
-# Match package runner: true parallelism, resource logging, per-iteration timing
+# True parallelism with 3 workers
 $results = @()
 $startTime = [DateTime]::Now
 $maxParallel = 3
 $pendingStates = $states.Clone()
 $activeProcs = @()
 $lastStartTime = $null
-
-# Buffer to store per-state logs until completion
 $stateLogs = @{}
 
 while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
@@ -85,39 +93,15 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
             if ($procInfo.startTime) {
                 $duration = ($endTime - $procInfo.startTime).TotalSeconds
             }
-            # Log resource usage at end
-            $procStats = $null
-            try {
-                $procStats = Get-Process -Id $procInfo.proc.Id -ErrorAction SilentlyContinue
-            } catch {}
-            $cpu = $procStats.CPU
-            $mem = $procStats.WorkingSet64
-
-            # Compose all logs for this state
             $state = $procInfo.state
             $logBuffer = $stateLogs[$state]
             if (-not $logBuffer) { $logBuffer = @() }
-            $logBuffer += "    [$state] CA test completed (ExitCode: $exitCode, Duration: $duration s, CPU: $cpu, RAM: $mem)"
-            # Print all logs for this state together
-            Write-Host "" -NoNewline
+            $logBuffer += "    [$state] CA test completed (ExitCode: $exitCode, Duration: $([math]::Round($duration, 2)) s)"
+            Write-Host ""
             foreach ($line in $logBuffer) { Write-Host $line }
             $stateLogs.Remove($state)
 
-            # Enrich with quote details written by the Playwright test
-            $quoteRequestNumber = 'N/A'
-            $insuredName = 'N/A'
-            try {
-                $resultFile = Join-Path $projectPath ("ca-result-" + $state + ".json")
-                if (Test-Path $resultFile) {
-                    $detail = Get-Content -Path $resultFile -Raw | ConvertFrom-Json -ErrorAction Stop
-                    if ($detail.QuoteRequestNumber) { $quoteRequestNumber = $detail.QuoteRequestNumber }
-                    if ($detail.InsuredName) { $insuredName = $detail.InsuredName }
-                }
-            } catch {
-                Write-Host "Warning: Could not read quote details for $state - $($_.Exception.Message)" -ForegroundColor Yellow
-            }
-
-            $results += @{ State = $state; ExitCode = $exitCode; Duration = $duration; CPU = $cpu; RAM = $mem; ParallelAtStart = $procInfo.parallelAtStart; QuoteRequestNumber = $quoteRequestNumber; InsuredName = $insuredName }
+            $results += @{ State = $state; ExitCode = $exitCode; Duration = $duration }
         }
     }
     $activeProcs = $stillRunning
@@ -137,19 +121,15 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
         }
         $iterationStart = Get-Date
         $parallelAtStart = $activeProcs.Count + 1
-        # Buffer logs for this state
         $logBuffer = @()
-        $logBuffer += ("Starting CA test for state: $state at $iterationStart (Parallel jobs: $parallelAtStart)")
-        $cpuStart = (Get-Process -Id $PID).CPU
-        $memStart = (Get-Process -Id $PID).WorkingSet64
-        $logBuffer += ("    [Resource at start] CPU: $cpuStart, RAM: $memStart")
+        $logBuffer += "Starting CA test for state: $state at $iterationStart (Parallel jobs: $parallelAtStart)"
         $stateLogs[$state] = $logBuffer
-        $headedFlag = if ($Headed.IsPresent) { " --headed" } else { "" }
+
         $outDir = "test-results\ca-$state"
-        $windowStyle = "Hidden"  # Always hide cmd.exe terminal windows - browser will show in headed mode
-        $envCmd = 'set "TEST_STATES=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && npx playwright test CA_Tarmika.test.js --project=' + $Project + ' --workers=1' + $headedFlag + ' --output="' + $outDir + '"'
+        $windowStyle = "Hidden"
+        $envCmd = 'set "TEST_STATE=' + $state + '" && set "TEST_ENV=' + $TestEnv + '" && set "TEST_TYPE=CA" && npx playwright test Create_CA.test.js --project=' + $Project + ' --workers=1 --headed --output="' + $outDir + '"'
         $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @('/c', $envCmd) -WorkingDirectory $projectPath -WindowStyle $windowStyle -PassThru
-        $activeProcs += @{ proc = $proc; state = $state; startTime = $iterationStart; parallelAtStart = $parallelAtStart; cpuStart = $cpuStart; memStart = $memStart }
+        $activeProcs += @{ proc = $proc; state = $state; startTime = $iterationStart; parallelAtStart = $parallelAtStart }
         $lastStartTime = $iterationStart
     }
     Start-Sleep -Seconds 1
@@ -163,7 +143,7 @@ $totalSecs = [int][Math]::Floor($totalTime % 60)
 $totalSecondsFormatted = $totalSecs.ToString("00")
 
 Write-Host "`n========================================" -ForegroundColor Yellow
-Write-Host "CA TARMIKA TEST RESULTS SUMMARY" -ForegroundColor Yellow
+Write-Host "CA TEST RESULTS SUMMARY" -ForegroundColor Yellow
 Write-Host "========================================`n" -ForegroundColor Yellow
 
 Write-Host "Total Execution Time: ${totalMinutes}:${totalSecondsFormatted}s" -ForegroundColor Cyan
@@ -173,60 +153,103 @@ $failed = 0
 
 foreach ($result in $results) {
     if ($result.ExitCode -eq 0) {
-        Write-Host "[$($result.State)] PASSED" -ForegroundColor Green
+        Write-Host "[$($result.State)] PASSED (Duration: $([math]::Round($result.Duration, 2))s)" -ForegroundColor Green
         $passed++
     } else {
-        Write-Host "[$($result.State)] FAILED" -ForegroundColor Red
+        Write-Host "[$($result.State)] FAILED (Duration: $([math]::Round($result.Duration, 2))s)" -ForegroundColor Red
         $failed++
     }
 }
 
 Write-Host "`nTotal: $($results.Count) | Passed: $passed | Failed: $failed`n" -ForegroundColor Cyan
 
-# Persist results to JSON for later reporting
+# Clean up lock file
 try {
-    $resultsPath = Join-Path $projectPath 'ca-parallel-results.json'
-    $results | ConvertTo-Json -Depth 4 | Set-Content -Path $resultsPath -Encoding UTF8
-    Write-Host "Saved results to $resultsPath" -ForegroundColor Gray
+    if (Test-Path $lockFile) {
+        Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+        Write-Host "Lock file cleaned up" -ForegroundColor Gray
+    }
 } catch {
-    Write-Host "Warning: Could not save results JSON - $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Could not clean lock file: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 # Send consolidated email report
-Write-Host "`nSending consolidated email report..." -ForegroundColor Cyan
 try {
-    # Write results to temp file for Node.js to read (UTF-8 without BOM)
-    $tempResultsPath = Join-Path $projectPath 'ca-email-temp.json'
-    $emailData = @{
-        results = $results
-        totalTime = "${totalMinutes}:${totalSecondsFormatted}"
-        env = $TestEnv
-    }
-    $jsonContent = $emailData | ConvertTo-Json -Depth 5
-    [System.IO.File]::WriteAllText($tempResultsPath, $jsonContent, (New-Object System.Text.UTF8Encoding $false))
-    
-    # Call email reporter script
-    node send-ca-email.js
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "✅ Email sent successfully`n" -ForegroundColor Green
-        # Clean up temp file
-        Remove-Item -Path $tempResultsPath -Force -ErrorAction SilentlyContinue
+    $batchEmailSent = Join-Path $projectPath '.batch-email-sent-ca'
+    if (Test-Path $batchEmailSent) {
+        Write-Host "Batch email already sent; skipping" -ForegroundColor Gray
     } else {
-        Write-Host "⚠️ Email sending failed (Exit Code: $LASTEXITCODE)`n" -ForegroundColor Yellow
+        Write-Host "Sending consolidated email report..." -ForegroundColor Cyan
+        
+        $emailResults = @()
+        foreach ($state in $states) {
+            $testDataFile = Join-Path $projectPath "test-data-$state.json"
+            if (Test-Path $testDataFile) {
+                $testData = Get-Content $testDataFile -Raw | ConvertFrom-Json
+                $resultForState = $results | Where-Object { $_.State -eq $state } | Select-Object -First 1
+                $emailResults += @{
+                    State = $state
+                    StateName = $testData.stateName
+                    Status = if ($resultForState -and $resultForState.ExitCode -eq 0) { "PASSED" } else { "FAILED" }
+                    Duration = if ($resultForState) { [math]::Round($resultForState.Duration, 2) } else { 0 }
+                    QuoteNumber = $testData.quoteNumber
+                    PolicyNumber = $testData.policyNumber
+                    Milestones = $testData.milestones
+                    coverageChanges = $testData.coverageChanges
+                    coverageSectionStats = $testData.coverageSectionStats
+                    addCoverageTimings = $testData.addCoverageTimings
+                }
+            }
+        }
+        
+        $emailTempPath = Join-Path $projectPath 'ca-email-temp.json'
+        $emailPayload = @{
+            results = $emailResults
+            env = $TestEnv
+            totalTime = "${totalMinutes}:${totalSecondsFormatted}"
+            timestamp = (Get-Date -Format 'o')
+            passed = $passed
+            failed = $failed
+        }
+        $jsonString = $emailPayload | ConvertTo-Json -Depth 20
+        [System.IO.File]::WriteAllText($emailTempPath, $jsonString)
+
+        Write-Host "Email data prepared: $emailTempPath" -ForegroundColor Gray
+
+        $sendEmailScript = Join-Path $projectPath 'send-ca-email-optimized.js'
+        if (Test-Path $sendEmailScript) {
+            & node $sendEmailScript
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Email report sent successfully" -ForegroundColor Green
+            } else {
+                Write-Host "Email script exited with code $LASTEXITCODE" -ForegroundColor Yellow
+            }
+            Remove-Item $emailTempPath -Force -ErrorAction SilentlyContinue
+        } else {
+            Write-Host "send-ca-email-optimized.js not found at $sendEmailScript" -ForegroundColor Yellow
+        }
+
+        'sent' | Out-File -FilePath $batchEmailSent -Force -Encoding ASCII
+        Write-Host "Consolidated email sent" -ForegroundColor Green
+    }
+
+    if (Test-Path $batchMarker) {
+        Remove-Item $batchMarker -Force -ErrorAction SilentlyContinue
+        Write-Host "Batch marker cleaned" -ForegroundColor Gray
     }
 } catch {
-    Write-Host "⚠️ Email error: $($_.Exception.Message)`n" -ForegroundColor Yellow
+    Write-Host "Failed to send consolidated email: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 # Exit with error code if any tests failed
 if ($failed -gt 0) {
     exit 1
 } else {
-    # Post-run cleanup: remove transient files
     try {
         Write-Host "Cleaning up transient files..." -ForegroundColor Gray
+        Remove-Item -Force (Join-Path $projectPath 'iterations-data-ca.json') -ErrorAction SilentlyContinue
         Remove-Item -Force (Join-Path $projectPath 'test-data-*.json') -ErrorAction SilentlyContinue
+        Remove-Item -Force (Join-Path $projectPath 'WB_CA_Test_Report_*.xlsx') -ErrorAction SilentlyContinue
         Write-Host "Transient cleanup done" -ForegroundColor Gray
     } catch {
         Write-Host "Cleanup warning: $($_.Exception.Message)" -ForegroundColor Yellow

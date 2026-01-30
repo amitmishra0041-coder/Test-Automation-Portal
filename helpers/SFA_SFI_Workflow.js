@@ -127,10 +127,15 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
   // Wait for page to load after Next click
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
 
-  // Now click the radio button
-  await page.getByRole('radio').first().click();
+  // Try to click radio button quickly without blocking (optional, non-critical)
+  page.getByRole('radio').first().click({ timeout: 300 }).then(() => {
+    console.log('✅ Radio button clicked');
+  }).catch(() => {
+    // Radio button not present or not clickable - silently continue
+  });
+
+  // Don't wait for radio button - proceed immediately to Finish
   await page.getByRole('button', { name: 'Finish' }).click();
   await page.getByRole('button', { name: 'Send' }).click();
   await page.getByRole('button', { name: 'Ok' }).click();

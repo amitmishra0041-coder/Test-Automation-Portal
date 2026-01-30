@@ -201,8 +201,11 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
       console.log('✅ "Accept As-Is" clicked successfully');
       acceptAsIsPresented = true;
       
-      // Click optional buttons immediately after Accept As-Is
+      await page.waitForTimeout(200);
+
+            // Click optional buttons immediately after Accept As-Is
       await clickIfExists('Client not listed');
+      await page.waitForTimeout(200);
       await clickIfExists('Continue');
       break; // Exit retry loop on success
 
