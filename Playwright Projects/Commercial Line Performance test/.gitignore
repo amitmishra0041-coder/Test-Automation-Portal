@@ -1,0 +1,13 @@
+@"
+node_modules/
+test-results/
+playwright-report/
+*.log
+*.json.bak
+.batch-run-in-progress-ca
+.batch-email-sent-ca
+parallel-run-lock-ca.json
+iterations-data-ca.json
+test-data-*.json
+ca-email-temp.json
+"@ | Out-File -FilePath ".gitignore" -Encoding UTF8
