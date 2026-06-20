@@ -1,0 +1,28 @@
+{
+  "state": "MN",
+  "stateName": "Minnesota",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T13:33:10.276Z",
+      "details": "",
+      "duration": "7.67s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:34:18.543Z",
+      "details": "Unable to select state 'MN'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "65.06s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

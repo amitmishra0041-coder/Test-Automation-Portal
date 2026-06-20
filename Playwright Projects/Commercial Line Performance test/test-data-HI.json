@@ -1,0 +1,28 @@
+{
+  "state": "HI",
+  "stateName": "Hawaii",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T13:00:59.997Z",
+      "details": "",
+      "duration": "7.21s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:02:08.201Z",
+      "details": "Unable to select state 'HI'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "65.00s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

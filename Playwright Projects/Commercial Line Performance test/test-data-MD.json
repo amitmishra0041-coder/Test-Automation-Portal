@@ -1,0 +1,28 @@
+{
+  "state": "MD",
+  "stateName": "Maryland",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T13:26:22.569Z",
+      "details": "",
+      "duration": "6.78s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:27:30.861Z",
+      "details": "Unable to select state 'MD'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "65.09s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

@@ -1,0 +1,28 @@
+{
+  "state": "CT",
+  "stateName": "Connecticut",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:49:36.962Z",
+      "details": "",
+      "duration": "8.78s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T12:50:45.156Z",
+      "details": "Unable to select state 'CT'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "64.99s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

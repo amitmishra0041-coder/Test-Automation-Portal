@@ -1,0 +1,28 @@
+{
+  "state": "KS",
+  "stateName": "Kansas",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T13:17:39.601Z",
+      "details": "",
+      "duration": "7.81s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:18:47.656Z",
+      "details": "Unable to select state 'KS'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "64.85s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

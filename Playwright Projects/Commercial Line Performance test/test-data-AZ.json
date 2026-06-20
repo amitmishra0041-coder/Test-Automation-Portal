@@ -1,0 +1,35 @@
+{
+  "state": "AZ",
+  "stateName": "Arizona",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T11:58:18.314Z",
+      "details": "",
+      "duration": "8.15s"
+    },
+    {
+      "name": "Next clicked - Client information step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T11:58:30.507Z",
+      "details": "",
+      "duration": "5.98s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T11:59:04.859Z",
+      "details": "page.originalWaitForTimeout: Target page, context or browser has been closed",
+      "duration": "20.95s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "N/A",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

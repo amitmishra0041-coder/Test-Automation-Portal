@@ -1,0 +1,28 @@
+{
+  "state": "RI",
+  "stateName": "Rhode Island",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T14:11:47.860Z",
+      "details": "",
+      "duration": "7.54s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T14:12:56.108Z",
+      "details": "Unable to select state 'RI'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "65.05s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "3002694996",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

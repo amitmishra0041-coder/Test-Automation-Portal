@@ -1,0 +1,49 @@
+{
+  "state": "GA",
+  "stateName": "Georgia",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:57:05.862Z",
+      "details": "",
+      "duration": "6.63s"
+    },
+    {
+      "name": "Next clicked - Client information step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:57:18.256Z",
+      "details": "",
+      "duration": "6.19s"
+    },
+    {
+      "name": "Next clicked - Eligibility step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:58:21.880Z",
+      "details": "",
+      "duration": "34.92s"
+    },
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:58:22.914Z",
+      "details": "",
+      "duration": "0.03s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:00:29.280Z",
+      "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Yes' })\u001b[22m\n",
+      "duration": "120.86s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

@@ -1,0 +1,1 @@
+export { zipToCityState, stateToZips } from '../../zipData';

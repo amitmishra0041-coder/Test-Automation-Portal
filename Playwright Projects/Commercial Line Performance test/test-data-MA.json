@@ -1,0 +1,28 @@
+{
+  "state": "MA",
+  "stateName": "Massachusetts",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T13:27:55.180Z",
+      "details": "",
+      "duration": "7.09s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:29:03.410Z",
+      "details": "Unable to select state 'MA'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "65.03s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

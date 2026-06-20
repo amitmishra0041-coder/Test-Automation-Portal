@@ -1,0 +1,17 @@
+{
+  "name": "address-helper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "node --no-experimental-webstorage node_modules/jest/bin/jest.js",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^25.0.0",
+    "jest-util": "^29.7.0",
+    "ts-jest": "^25.5.1",
+    "typescript": "^5.9.3"
+  }
+}

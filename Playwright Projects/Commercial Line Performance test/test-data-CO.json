@@ -1,0 +1,91 @@
+{
+  "state": "CO",
+  "stateName": "Colorado",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:45:56.297Z",
+      "details": "",
+      "duration": "9.79s"
+    },
+    {
+      "name": "Next clicked - Client information step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:46:08.644Z",
+      "details": "",
+      "duration": "6.14s"
+    },
+    {
+      "name": "Next clicked - Eligibility step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:47:11.543Z",
+      "details": "",
+      "duration": "34.20s"
+    },
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:47:12.577Z",
+      "details": "",
+      "duration": "0.03s"
+    },
+    {
+      "name": "Commercial Auto Product Eligibility Completed",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:47:29.021Z",
+      "details": "",
+      "duration": "8.34s"
+    },
+    {
+      "name": "Policy Details Entered",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:47:30.825Z",
+      "details": "",
+      "duration": "0.80s"
+    },
+    {
+      "name": "Commercial Auto Coverage Completed",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:47:38.209Z",
+      "details": "",
+      "duration": "5.78s"
+    },
+    {
+      "name": "Coverage Added: Abuse Or Molestation Exclusion For Covered Autos Liability Exposure (Added), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed)",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:48:04.330Z",
+      "details": "",
+      "duration": "3.12s"
+    },
+    {
+      "name": "Commercial Auto additional Coverage Added",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:48:04.333Z",
+      "details": "",
+      "duration": "0.00s"
+    },
+    {
+      "name": "locations tab navigated",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T12:48:05.524Z",
+      "details": "",
+      "duration": "1.04s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T12:49:05.842Z",
+      "details": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Next ' })\u001b[22m\n\u001b[2m    - locator resolved to <button data-isuibutton=\"true\" store_null_if_empty=\"N\" id=\"btnNext_CLAutoLocations\" class=\"ui-xcontrols ui-xcontrols-xbutton btn btn-primary\" onclick=\"return $Kraken.HandleNavigationClick(true, false);\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-activityimpediments\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-activityimpediments\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    111 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <div tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\" class=\"modal show\" id=\"dgic-modal-activityimpediments\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n",
+      "duration": "60.17s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "3002706347",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

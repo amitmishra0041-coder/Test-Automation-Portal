@@ -1,0 +1,390 @@
+{
+  "state": "PA",
+  "stateName": "Pennsylvania",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:08:25.282Z",
+      "details": "",
+      "duration": "8.74s"
+    },
+    {
+      "name": "Next clicked - Client information step",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:08:38.153Z",
+      "details": "",
+      "duration": "6.67s"
+    },
+    {
+      "name": "Next clicked - Eligibility step",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:09:41.939Z",
+      "details": "",
+      "duration": "35.08s"
+    },
+    {
+      "name": "Account Created",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:09:42.987Z",
+      "details": "",
+      "duration": "0.04s"
+    },
+    {
+      "name": "Commercial Auto Product Eligibility Completed",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:10:03.217Z",
+      "details": "",
+      "duration": "12.13s"
+    },
+    {
+      "name": "Policy Details Entered",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:10:04.593Z",
+      "details": "",
+      "duration": "0.37s"
+    },
+    {
+      "name": "Commercial Auto Coverage Completed",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:10:22.729Z",
+      "details": "",
+      "duration": "16.51s"
+    },
+    {
+      "name": "Coverage Added: Abuse Or Molestation Exclusion For Covered Autos Liability Exposure (Added), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed)",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:10:49.396Z",
+      "details": "",
+      "duration": "3.67s"
+    },
+    {
+      "name": "Commercial Auto additional Coverage Added",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:10:49.398Z",
+      "details": "",
+      "duration": "0.00s"
+    },
+    {
+      "name": "State specific info tab navigated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:11:41.113Z",
+      "details": "",
+      "duration": "25.61s"
+    },
+    {
+      "name": "Private pessanger Vehicle Added",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:13:01.719Z",
+      "details": "",
+      "duration": "54.05s"
+    },
+    {
+      "name": "Truck Vehicle Added",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:13:54.557Z",
+      "details": "",
+      "duration": "43.19s"
+    },
+    {
+      "name": "Liability: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.957Z",
+      "details": "Duration: 0.00s",
+      "duration": "3.40s"
+    },
+    {
+      "name": "Uninsured Motorists Coverage: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.961Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "PIP Coverage: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.963Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Personal Injury Protection Medical Expenses: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.966Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Excess Attendant Care: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.970Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Property Damage Liability Coverage Buyback: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.972Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Private Passenger Other Than Collision: 2 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.975Z",
+      "details": "Duration: 5.47s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Private Passenger Collision: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.977Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Private Passenger Towing Labor: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.980Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Private Passenger Personal Injury Protection: 2 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.990Z",
+      "details": "Duration: 6.09s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Truck Other Than Collision: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.995Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Truck Collision: 1 dropdown(s) updated",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:00.998Z",
+      "details": "Duration: 0.00s",
+      "duration": "0.00s"
+    },
+    {
+      "name": "Quote Rated Successfully",
+      "status": "PASSED",
+      "timestamp": "2026-06-20T11:14:31.316Z",
+      "details": "Quote #: 3002706527",
+      "duration": "30.31s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-20T11:14:47.225Z",
+      "details": "page.originalWaitForTimeout: Target page, context or browser has been closed",
+      "duration": "14.90s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [
+    {
+      "url": "https://nautilustest.donegalgroup.com/crystal.aspx?p=CLAutoStateSpecificInfoCoverages.aspx&sid=793143AD161D40AC8691A308B38283FD",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-06-20T11:11:06.814Z"
+    }
+  ],
+  "retryCount": 0,
+  "quoteNumber": "3002706527",
+  "policyNumber": "N/A",
+  "coverageChanges": [
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddlSelectState",
+      "coverageSection": "Liability",
+      "oldValue": "PA",
+      "newValue": "MI",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7CovType22",
+      "coverageSection": "Uninsured Motorists Coverage",
+      "oldValue": "Combined Single Limit",
+      "newValue": "No Coverage",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_zbhhond56sf12eso232u6coeu2a",
+      "coverageSection": "PIP Coverage",
+      "oldValue": "Yes",
+      "newValue": "No",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_zt6h0domeqa994n9qehj513i0j9",
+      "coverageSection": "Personal Injury Protection Medical Expenses",
+      "oldValue": "Unlimited",
+      "newValue": "250,000",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_zd7jer5isf6qa3n6h29t515558a",
+      "coverageSection": "Excess Attendant Care",
+      "oldValue": "Not Provided",
+      "newValue": "Provided",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_z7jh2m3oi3h0nevdavhbj13jp78",
+      "coverageSection": "Property Damage Liability Coverage Buyback",
+      "oldValue": "Yes",
+      "newValue": "No",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7CovType16",
+      "coverageSection": "Private Passenger Other Than Collision",
+      "oldValue": "ACV",
+      "newValue": "No Coverage",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7Ded20",
+      "coverageSection": "Private Passenger Other Than Collision",
+      "oldValue": "Current",
+      "newValue": "Not Applicable",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7CovType9",
+      "coverageSection": "Private Passenger Collision",
+      "oldValue": "ACV",
+      "newValue": "No Coverage",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7Limit9",
+      "coverageSection": "Private Passenger Towing Labor",
+      "oldValue": "No Coverage",
+      "newValue": "50",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7CovrdByWorkersCompensation1",
+      "coverageSection": "Private Passenger Personal Injury Protection",
+      "oldValue": "No",
+      "newValue": "Yes",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7RatingBasis6",
+      "coverageSection": "Private Passenger Personal Injury Protection",
+      "oldValue": "Principally Operated by Employees",
+      "newValue": "Not Principally Operated by Employees",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7CovType19",
+      "coverageSection": "Truck Other Than Collision",
+      "oldValue": "ACV",
+      "newValue": "No Coverage",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverage": "ddl_CA7CovType12",
+      "coverageSection": "Truck Collision",
+      "oldValue": "ACV",
+      "newValue": "No Coverage",
+      "status": "Updated"
+    }
+  ],
+  "coverageSectionStats": [
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Liability",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Uninsured Motorists Coverage",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "PIP Coverage",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Personal Injury Protection Medical Expenses",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Excess Attendant Care",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Property Damage Liability Coverage Buyback",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Private Passenger Other Than Collision",
+      "durationSeconds": "5.47",
+      "dropdownsUpdated": 2
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Private Passenger Collision",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Private Passenger Towing Labor",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Private Passenger Personal Injury Protection",
+      "durationSeconds": "6.09",
+      "dropdownsUpdated": 2
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Truck Other Than Collision",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "3002706527-1",
+      "coverageSection": "Truck Collision",
+      "durationSeconds": "0.00",
+      "dropdownsUpdated": 1
+    }
+  ],
+  "addCoverageTimings": []
+}

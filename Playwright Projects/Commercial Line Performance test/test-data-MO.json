@@ -1,0 +1,28 @@
+{
+  "state": "MO",
+  "stateName": "Missouri",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T13:36:16.811Z",
+      "details": "",
+      "duration": "7.56s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:37:24.895Z",
+      "details": "Unable to select state 'MO'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "64.88s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "3002694996",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

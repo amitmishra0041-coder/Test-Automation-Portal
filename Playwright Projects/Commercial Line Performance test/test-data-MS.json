@@ -1,0 +1,28 @@
+{
+  "state": "MS",
+  "stateName": "Mississippi",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T13:34:43.233Z",
+      "details": "",
+      "duration": "6.69s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T13:35:51.500Z",
+      "details": "Unable to select state 'MS'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "65.07s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "1002241330",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}

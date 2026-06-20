@@ -1,0 +1,28 @@
+{
+  "state": "AR",
+  "stateName": "Arkansas",
+  "milestones": [
+    {
+      "name": "Next clicked - Agency/Producer step",
+      "status": "PASSED",
+      "timestamp": "2026-06-19T11:59:26.922Z",
+      "details": "",
+      "duration": "7.63s"
+    },
+    {
+      "name": "Test Execution Failed",
+      "status": "FAILED",
+      "timestamp": "2026-06-19T12:00:35.191Z",
+      "details": "Unable to select state 'AR'. State dropdown may be a custom control or the locator is incorrect.",
+      "duration": "65.07s"
+    }
+  ],
+  "httpTimings": [],
+  "networkErrors": [],
+  "retryCount": 0,
+  "quoteNumber": "3002694996",
+  "policyNumber": "N/A",
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": []
+}
