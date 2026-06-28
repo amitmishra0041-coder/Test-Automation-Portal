@@ -3,10 +3,15 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: '.',
   testIgnore: [
-    'Compare_PDFs.test.js',
-    'Compare_PDFs.test.mjs',
-    'tests/**'
-  ],
+  'Compare_PDFs.test.js',
+  'Compare_PDFs.test.mjs',
+  'tests/**',
+  '_BACKUP_*/**',
+  'runners/**',
+  'cleanup-v3.ps1',
+  'deploy-bop.ps1',
+  'fix-account-helper.ps1',
+],
   timeout: 1200 * 1000, // 20 minutes for entire test
   expect: { timeout: 40 * 1000 },
 
