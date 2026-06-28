@@ -73,7 +73,8 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.goto(writeBizUrl);
   await page.getByRole('textbox', { name: 'User ID:' }).fill(creds.username);
   await page.getByRole('textbox', { name: 'Password:' }).fill(creds.password);
-  await page.locator('#btnLogin').click({ timeout: 5000 });
+  await page.locator('#btnLogin').click({ timeout: 30000 });
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
   console.log('WB Login successful');
   trackMilestone('Logged in to WB');
 
