@@ -1,11 +1,12 @@
 # runners/run-states.ps1
-# Consolidated runner - replaces 5 separate PS1 scripts.
+# Consolidated runner for Package, CA and BOP suites.
 # Usage:
 #   .\runners\run-states.ps1 -TestType PACKAGE -States DE,PA,MI,WI
-#   .\runners\run-states.ps1 -TestType CA -States ALL
+#   .\runners\run-states.ps1 -TestType CA      -States ALL
+#   .\runners\run-states.ps1 -TestType BOP     -States DE,PA
 
 param(
-  [Parameter(Mandatory)][ValidateSet('PACKAGE','CA')] [string]$TestType,
+  [Parameter(Mandatory)][ValidateSet('PACKAGE','CA','BOP')] [string]$TestType,
   [string]$States      = 'DE',
   [int]$MaxParallel    = 2,
   [int]$StaggerSeconds = 60,
@@ -21,7 +22,11 @@ if (Test-Path ".env") {
 }
 
 $stateList = if ($States -eq 'ALL') { @('DE','PA','MI','WI') } else { $States -split ',' | ForEach-Object { $_.Trim().ToUpper() } }
-$testFile  = if ($TestType -eq 'PACKAGE') { 'Create_Package.test.js' } else { 'Create_CA.test.js' }
+$testFile  = switch ($TestType) {
+  'PACKAGE' { 'Create_Package.test.js' }
+  'CA'      { 'Create_CA.test.js' }
+  'BOP'     { 'Create_BOP.test.js' }
+}
 
 Write-Host "Running $TestType for states: $($stateList -join ', ')"
 
