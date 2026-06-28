@@ -4,7 +4,13 @@ param(
 )
 
 $states = @("DE", "PA", "MI", "WI")
+$states = $states | Select-Object -Unique
 $activeProcesses = @()
+
+$batchMarker = Join-Path $PSScriptRoot '.batch-run-in-progress-ca'
+if (-not (Test-Path $batchMarker)) {
+    '{"inBatch": true}' | Out-File -FilePath $batchMarker -Encoding ASCII -Force
+}
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "CA Test Runner - VISIBLE Parallel Execution" -ForegroundColor Cyan
@@ -93,6 +99,9 @@ node send-ca-email-optimized.js
 # 6. Clean up temp files
 Remove-Item "test-data-*.json" -ErrorAction SilentlyContinue
 Remove-Item "ca-email-temp.json" -ErrorAction SilentlyContinue
+if (Test-Path $batchMarker) {
+    Remove-Item $batchMarker -ErrorAction SilentlyContinue
+}
 
 Write-Host "Done!" -ForegroundColor Green
 

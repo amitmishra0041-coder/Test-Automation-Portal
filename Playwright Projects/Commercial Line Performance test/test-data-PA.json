@@ -3,388 +3,464 @@
   "stateName": "Pennsylvania",
   "milestones": [
     {
-      "name": "Next clicked - Agency/Producer step",
+      "name": "Logged in to WB",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:08:25.282Z",
+      "timestamp": "2026-06-26T21:30:53.568Z",
       "details": "",
-      "duration": "8.74s"
-    },
-    {
-      "name": "Next clicked - Client information step",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:08:38.153Z",
-      "details": "",
-      "duration": "6.67s"
-    },
-    {
-      "name": "Next clicked - Eligibility step",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:09:41.939Z",
-      "details": "",
-      "duration": "35.08s"
+      "duration": "6.63s"
     },
     {
       "name": "Account Created",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:09:42.987Z",
+      "timestamp": "2026-06-26T21:32:20.295Z",
       "details": "",
-      "duration": "0.04s"
-    },
-    {
-      "name": "Commercial Auto Product Eligibility Completed",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:10:03.217Z",
-      "details": "",
-      "duration": "12.13s"
+      "duration": "43.63s"
     },
     {
       "name": "Policy Details Entered",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:10:04.593Z",
+      "timestamp": "2026-06-26T21:33:00.887Z",
       "details": "",
-      "duration": "0.37s"
+      "duration": "32.39s"
     },
     {
-      "name": "Commercial Auto Coverage Completed",
+      "name": "Line Selections Tab Navigation Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:10:22.729Z",
+      "timestamp": "2026-06-26T21:33:12.913Z",
       "details": "",
-      "duration": "16.51s"
+      "duration": "9.32s"
     },
     {
-      "name": "Coverage Added: Abuse Or Molestation Exclusion For Covered Autos Liability Exposure (Added), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed)",
+      "name": "Locations tab Navigation Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:10:49.396Z",
+      "timestamp": "2026-06-26T21:33:31.837Z",
       "details": "",
-      "duration": "3.67s"
+      "duration": "17.62s"
     },
     {
-      "name": "Commercial Auto additional Coverage Added",
+      "name": "CP - Commercial Property tab navigation Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:10:49.398Z",
+      "timestamp": "2026-06-26T21:33:59.769Z",
       "details": "",
-      "duration": "0.00s"
+      "duration": "6.63s"
     },
     {
-      "name": "State specific info tab navigated",
+      "name": "CP - Locations tab navigation Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:11:41.113Z",
+      "timestamp": "2026-06-26T21:34:09.022Z",
       "details": "",
-      "duration": "25.61s"
+      "duration": "5.85s"
     },
     {
-      "name": "Private pessanger Vehicle Added",
+      "name": "Commercial Property Package Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:13:01.719Z",
-      "details": "",
-      "duration": "54.05s"
+      "timestamp": "2026-06-26T21:38:28.792Z",
+      "details": "Building, Business Income, Occupancy, Personal Property entered",
+      "duration": "148.91s"
     },
     {
-      "name": "Truck Vehicle Added",
+      "name": "General Liability Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:13:54.557Z",
-      "details": "",
-      "duration": "43.19s"
+      "timestamp": "2026-06-26T21:39:48.485Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "75.89s"
     },
     {
-      "name": "Liability: 1 dropdown(s) updated",
+      "name": "Inland Marine Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.957Z",
-      "details": "Duration: 0.00s",
-      "duration": "3.40s"
+      "timestamp": "2026-06-26T21:40:33.636Z",
+      "details": "Coverage limits and deductibles entered",
+      "duration": "20.45s"
     },
     {
-      "name": "Uninsured Motorists Coverage: 1 dropdown(s) updated",
+      "name": "Crime Completed",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.961Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "PIP Coverage: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.963Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Personal Injury Protection Medical Expenses: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.966Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Excess Attendant Care: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.970Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Property Damage Liability Coverage Buyback: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.972Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Private Passenger Other Than Collision: 2 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.975Z",
-      "details": "Duration: 5.47s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Private Passenger Collision: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.977Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Private Passenger Towing Labor: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.980Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Private Passenger Personal Injury Protection: 2 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.990Z",
-      "details": "Duration: 6.09s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Truck Other Than Collision: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.995Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
-    },
-    {
-      "name": "Truck Collision: 1 dropdown(s) updated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:00.998Z",
-      "details": "Duration: 0.00s",
-      "duration": "0.00s"
+      "timestamp": "2026-06-26T21:40:46.417Z",
+      "details": "Crime coverage details entered",
+      "duration": "9.88s"
     },
     {
       "name": "Quote Rated Successfully",
       "status": "PASSED",
-      "timestamp": "2026-06-20T11:14:31.316Z",
-      "details": "Quote #: 3002706527",
-      "duration": "30.31s"
+      "timestamp": "2026-06-26T21:42:31.051Z",
+      "details": "Quote #: 3002711551",
+      "duration": "34.43s"
     },
     {
-      "name": "Test Execution Failed",
-      "status": "FAILED",
-      "timestamp": "2026-06-20T11:14:47.225Z",
-      "details": "page.originalWaitForTimeout: Target page, context or browser has been closed",
-      "duration": "14.90s"
+      "name": "Submitting for Approval",
+      "status": "PASSED",
+      "timestamp": "2026-06-26T21:42:38.819Z",
+      "details": "",
+      "duration": "2.26s"
+    },
+    {
+      "name": "UW Issues Approved in PolicyCenter",
+      "status": "PASSED",
+      "timestamp": "2026-06-26T21:43:44.382Z",
+      "details": "",
+      "duration": "65.56s"
+    },
+    {
+      "name": "Policy Issued Successfully",
+      "status": "PASSED",
+      "timestamp": "2026-06-26T21:45:37.631Z",
+      "details": "Policy #: 1002241746",
+      "duration": "23.75s"
+    },
+    {
+      "name": "Submit for issuance",
+      "status": "PASSED",
+      "timestamp": "2026-06-26T21:45:37.633Z",
+      "details": "Policy #: 1002241746",
+      "duration": "0.00s"
     }
   ],
   "httpTimings": [],
   "networkErrors": [
     {
-      "url": "https://nautilustest.donegalgroup.com/crystal.aspx?p=CLAutoStateSpecificInfoCoverages.aspx&sid=793143AD161D40AC8691A308B38283FD",
+      "url": "https://nautilustest.donegalgroup.com/ajinvoke.aspx?sid=2C19B89D4FFE4BC498E8C494416CFA27",
       "error": {
         "errorText": "net::ERR_ABORTED"
       },
-      "timestamp": "2026-06-20T11:11:06.814Z"
+      "timestamp": "2026-06-26T21:34:54.629Z"
+    },
+    {
+      "url": "https://nautilustest.donegalgroup.com/ajinvoke.aspx?sid=2C19B89D4FFE4BC498E8C494416CFA27",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-06-26T21:34:54.631Z"
+    },
+    {
+      "url": "https://nautilustest.donegalgroup.com/ajinvoke.aspx?sid=703109881651432F9883CBD91BF9CA50",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-06-26T21:35:03.537Z"
+    },
+    {
+      "url": "https://as.atlassian.com/api/v1/batch",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-06-26T21:40:23.109Z"
+    },
+    {
+      "url": "https://as.atlassian.com/api/v1/batch",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-06-26T21:40:35.716Z"
+    },
+    {
+      "url": "https://as.atlassian.com/api/v1/batch",
+      "error": {
+        "errorText": "net::ERR_ABORTED"
+      },
+      "timestamp": "2026-06-26T21:45:04.152Z"
     }
   ],
-  "retryCount": 0,
-  "quoteNumber": "3002706527",
-  "policyNumber": "N/A",
   "coverageChanges": [
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddlSelectState",
-      "coverageSection": "Liability",
-      "oldValue": "PA",
-      "newValue": "MI",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_zo4g6vrinvheb3ops5spoofucla",
+      "coverageSection": "Silver Series Property Coverage Enhancement",
+      "oldValue": "Plus Preferred",
+      "newValue": "Contractor",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7CovType22",
-      "coverageSection": "Uninsured Motorists Coverage",
-      "oldValue": "Combined Single Limit",
-      "newValue": "No Coverage",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_zktg81nssadcmfncr0cmfvmpn49",
+      "coverageSection": "Silver Series Property Coverage Enhancement",
+      "oldValue": "Actual Loss Sustained",
+      "newValue": "50,000",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_zbhhond56sf12eso232u6coeu2a",
-      "coverageSection": "PIP Coverage",
-      "oldValue": "Yes",
-      "newValue": "No",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_zt6h0domeqa994n9qehj513i0j9",
-      "coverageSection": "Personal Injury Protection Medical Expenses",
-      "oldValue": "Unlimited",
-      "newValue": "250,000",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_zd7jer5isf6qa3n6h29t515558a",
-      "coverageSection": "Excess Attendant Care",
-      "oldValue": "Not Provided",
-      "newValue": "Provided",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_z7jh2m3oi3h0nevdavhbj13jp78",
-      "coverageSection": "Property Damage Liability Coverage Buyback",
-      "oldValue": "Yes",
-      "newValue": "No",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7CovType16",
-      "coverageSection": "Private Passenger Other Than Collision",
-      "oldValue": "ACV",
-      "newValue": "No Coverage",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7Ded20",
-      "coverageSection": "Private Passenger Other Than Collision",
-      "oldValue": "Current",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7Ded4",
+      "coverageSection": "Property Information Not Found",
+      "oldValue": "1,000",
       "newValue": "Not Applicable",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7CovType9",
-      "coverageSection": "Private Passenger Collision",
-      "oldValue": "ACV",
-      "newValue": "No Coverage",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7CauseOfLoss7",
+      "coverageSection": "Property Information Not Found",
+      "oldValue": "Special",
+      "newValue": "Basic",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7Limit9",
-      "coverageSection": "Private Passenger Towing Labor",
-      "oldValue": "No Coverage",
-      "newValue": "50",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7InflationGuard1",
+      "coverageSection": "Structure Inflation Guard",
+      "oldValue": "6%",
+      "newValue": "Not Applicable",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7CovrdByWorkersCompensation1",
-      "coverageSection": "Private Passenger Personal Injury Protection",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7MaxPeriod1",
+      "coverageSection": "Business Income",
       "oldValue": "No",
       "newValue": "Yes",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7RatingBasis6",
-      "coverageSection": "Private Passenger Personal Injury Protection",
-      "oldValue": "Principally Operated by Employees",
-      "newValue": "Not Principally Operated by Employees",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7MonthlyLimitOfIndemnity1",
+      "coverageSection": "Business Income",
+      "oldValue": "Not Applicable",
+      "newValue": "1/3",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7CovType19",
-      "coverageSection": "Truck Other Than Collision",
-      "oldValue": "ACV",
-      "newValue": "No Coverage",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7ExtendedPeriod3",
+      "coverageSection": "Business Income Extended Period Of Indemnity",
+      "oldValue": "Current",
+      "newValue": "Not Applicable",
       "status": "Updated"
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverage": "ddl_CA7CovType12",
-      "coverageSection": "Truck Collision",
-      "oldValue": "ACV",
-      "newValue": "No Coverage",
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7ValuationType4",
+      "coverageSection": "Personal Property",
+      "oldValue": "Replacement Cost",
+      "newValue": "Actual Cash Value",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7Ded3",
+      "coverageSection": "Special Class",
+      "oldValue": "1,000",
+      "newValue": "500",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7WindstormOrHailDed",
+      "coverageSection": "Special Class",
+      "oldValue": "Not Applicable",
+      "newValue": "1%",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7CauseOfLoss5",
+      "coverageSection": "Special Class",
+      "oldValue": "Basic",
+      "newValue": "Broad",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7Coinsurance4",
+      "coverageSection": "Special Class",
+      "oldValue": "80%",
+      "newValue": "90%",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_CP7InflationGuard",
+      "coverageSection": "Special Class Inflation Guard",
+      "oldValue": "Not Applicable",
+      "newValue": "2%",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_z5mjq4lrc6vfd2lgbepnhrhok68",
+      "coverageSection": "Accounts Receivable Coverage",
+      "oldValue": "Current",
+      "newValue": "None of the following",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_zhqgo81c55opsd7lvq33ivpive8",
+      "coverageSection": "Accounts Receivable Coverage",
+      "oldValue": "Not Applicable",
+      "newValue": "50%",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_zvphcf273hn0v0bjdvnaalltrn8",
+      "coverageSection": "Accounts Receivable Coverage",
+      "oldValue": "Current",
+      "newValue": "Less than 51% are maintained in a separate fire division",
+      "status": "Updated"
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverage": "ddl_zdtiee53f3uub49kaats1giu03b",
+      "coverageSection": "Accounts Receivable Coverage",
+      "oldValue": "Current",
+      "newValue": "Not Applicable",
       "status": "Updated"
     }
   ],
   "coverageSectionStats": [
     {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Liability",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Uninsured Motorists Coverage",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "PIP Coverage",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Personal Injury Protection Medical Expenses",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Excess Attendant Care",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Property Damage Liability Coverage Buyback",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Private Passenger Other Than Collision",
-      "durationSeconds": "5.47",
+      "quoteNumber": "N/A",
+      "coverageSection": "Silver Series Property Coverage Enhancement",
+      "durationSeconds": "4.04",
+      "durationFormatted": "4.04s",
       "dropdownsUpdated": 2
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Private Passenger Collision",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Private Passenger Towing Labor",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Private Passenger Personal Injury Protection",
-      "durationSeconds": "6.09",
+      "quoteNumber": "N/A",
+      "coverageSection": "Property Information Not Found",
+      "durationSeconds": "8.54",
+      "durationFormatted": "8.54s",
       "dropdownsUpdated": 2
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Truck Other Than Collision",
+      "quoteNumber": "N/A",
+      "coverageSection": "Structure Inflation Guard",
       "durationSeconds": "0.00",
+      "durationFormatted": "0ms",
       "dropdownsUpdated": 1
     },
     {
-      "quoteNumber": "3002706527-1",
-      "coverageSection": "Truck Collision",
+      "quoteNumber": "N/A",
+      "coverageSection": "Business Income",
+      "durationSeconds": "4.19",
+      "durationFormatted": "4.19s",
+      "dropdownsUpdated": 2
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverageSection": "Business Income Extended Period Of Indemnity",
       "durationSeconds": "0.00",
+      "durationFormatted": "0ms",
       "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverageSection": "Personal Property",
+      "durationSeconds": "0.00",
+      "durationFormatted": "0ms",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverageSection": "Special Class",
+      "durationSeconds": "13.00",
+      "durationFormatted": "13.00s",
+      "dropdownsUpdated": 4
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverageSection": "Special Class Inflation Guard",
+      "durationSeconds": "0.00",
+      "durationFormatted": "0ms",
+      "dropdownsUpdated": 1
+    },
+    {
+      "quoteNumber": "N/A",
+      "coverageSection": "Accounts Receivable Coverage",
+      "durationSeconds": "12.36",
+      "durationFormatted": "12.36s",
+      "dropdownsUpdated": 4
     }
   ],
-  "addCoverageTimings": []
+  "addCoverageTimings": [
+    {
+      "iteration": 1,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "3.26",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 2,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "2.94",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 3,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "3.00",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 4,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "2.94",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 1,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "0.84",
+      "status": "Added"
+    },
+    {
+      "iteration": 2,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "0.88",
+      "status": "Added"
+    },
+    {
+      "iteration": 3,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "2.96",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 4,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "5.76",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 5,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "5.74",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 6,
+      "coverageName": "Add the Coverage",
+      "durationSeconds": "5.74",
+      "action": "Removed",
+      "status": "Removed"
+    },
+    {
+      "iteration": 1,
+      "coverageName": "Add Business Income Building",
+      "durationSeconds": "1.87",
+      "status": "Added"
+    },
+    {
+      "iteration": 2,
+      "coverageName": "Add Business Income Building",
+      "durationSeconds": "1.82",
+      "status": "Added"
+    },
+    {
+      "iteration": 3,
+      "coverageName": "Add Business Income Building",
+      "durationSeconds": "1.78",
+      "status": "Added"
+    }
+  ],
+  "retryCount": 0,
+  "quoteNumber": "3002711551",
+  "policyNumber": "1002241746",
+  "status": "PASSED"
 }

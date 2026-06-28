@@ -11,7 +11,7 @@ module.exports = defineConfig({
   expect: { timeout: 40 * 1000 },
 
   use: {
-    headless: true,
+    headless: false,
     ignoreHTTPSErrors: true,
     actionTimeout: 60 * 1000,
     navigationTimeout: 60 * 1000,

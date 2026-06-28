@@ -20,7 +20,7 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   // Select state via TEST_STATE. Defaults to DE.
   const allowedStates = Object.keys(STATE_CONFIG);
-  let testState = (process.env.TEST_STATE || 'DE').toUpperCase();
+  let testState = String(process.env.TEST_STATE || 'DE').trim().toUpperCase();
   if (!allowedStates.includes(testState)) {
     console.log(`⚠️ TEST_STATE "${testState}" not allowed; defaulting to DE`);
     testState = 'DE';
@@ -167,6 +167,21 @@ test('CA Submission', async ({ page }, testInfo) => {
     // Wait for next page to fully load before interacting with Auto selection
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(5000);
+
+    // Select the correct rating state before selecting coverage
+    const ratingStateSelect = page.locator('#ddl_ratingstates');
+    if (await ratingStateSelect.count() > 0 && await ratingStateSelect.isVisible().catch(() => false)) {
+      try {
+        await ratingStateSelect.selectOption({ value: testState });
+        await page.waitForTimeout(2000); // wait for refreshProductLines() to complete
+        console.log(`✅ Rating state selected: ${testState}`);
+      } catch (e) {
+        console.log(`⚠️ Could not select rating state: ${e.message}`);
+      }
+    } else {
+      console.log('⚠️ Rating state dropdown not found, continuing...');
+    }
+
     // Commercial Auto quote - simple click on the real checkbox
     const autoInput = page.locator('#chk_commercialauto');
     await autoInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => { });
@@ -330,6 +345,7 @@ test('CA Submission', async ({ page }, testInfo) => {
 
     //commercial auto page loads
     await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('Commercial Auto - Details)');
     await page.waitForTimeout(300);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForLoadState('networkidle').catch(() => { });
@@ -351,7 +367,7 @@ test('CA Submission', async ({ page }, testInfo) => {
 
     await page.waitForTimeout(300);
     await page.getByRole('button', { name: 'Next ' }).click();
-    trackMilestone('Commercial Auto Coverage Completed');
+    trackMilestone('Commercial Auto - Coverage ');
 
     // Initialize global tracking arrays if not already present
     if (!global.testData.coverageChanges) global.testData.coverageChanges = [];
@@ -517,7 +533,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       // Create a milestone for coverage additions with details
       if (addCoverageDetails.length > 0) {
         const detail = addCoverageDetails.map(c => `${c.coverage} (${c.action})`).join(', ');
-        trackMilestone(`Coverage Added: ${detail}`, 'PASSED');
+        //trackMilestone(`Coverage Added: ${detail}`, 'PASSED');
       }
       return addCoverageDetails;
     }
@@ -745,8 +761,9 @@ test('CA Submission', async ({ page }, testInfo) => {
 
     // Call the function to process all coverage buttons
     await processAllAddCoverageButtons();
-    trackMilestone('Commercial Auto additional Coverage Added');
+
     await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('Commercial Auto - Additional Coverage ');
     await page.waitForTimeout(150);
     // Locations page
     await page.locator('#tblCLAutoLocations button[data-action="edit"]').first().click();
@@ -834,8 +851,10 @@ test('CA Submission', async ({ page }, testInfo) => {
     await closeNoAddressModal();
     // Next button (safe)
     await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('Locations page Loaded'); 
     // State specific info page
     await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('State specific info - Details tab');
 
     await page.waitForTimeout(150);
     // Ensure coverages page is loaded before processing dropdowns
@@ -863,10 +882,12 @@ test('CA Submission', async ({ page }, testInfo) => {
     } catch (e) {
       console.log('⏭️ No modal to close, continuing...');
     }
-    trackMilestone('State specific info tab navigated');
+    
     await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('State specific info - Coverages ');
     await page.waitForTimeout(150);
     await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('State specific info - Additional coverages ');
     await page.waitForTimeout(150);
     // Vehicles page
     //Private pessanger vehicles
@@ -895,7 +916,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.waitForTimeout(150);
     await page.getByRole('button', { name: 'Save Vehicle ' }).click();
     await page.waitForTimeout(300);
-    trackMilestone('Private pessanger Vehicle Added');
+    trackMilestone('Vehicles Page: Private pessanger Vehicle Added');
     //Truck Vehicle 
     await page.getByRole('combobox', { name: 'Add New Vehicle' }).click();
     await page.locator('#bs-select-2-3').click();
@@ -928,13 +949,16 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.getByRole('button', { name: 'Next ' }).click();
     await page.waitForTimeout(150);
     await page.getByRole('button', { name: 'Save Vehicle ' }).click();
-    trackMilestone('Truck Vehicle Added');
+    trackMilestone('Vehicles Page: Truck Vehicle Added');
     await page.waitForTimeout(3000);
     await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('Drivers Page');
     await page.getByRole('button', { name: ' Close' }).click();
-    await page.getByRole('button', { name: 'Next ' }).click();
+    trackMilestone('Symbols Page');
     await page.getByRole('button', { name: 'Next ' }).click();
 
+    await page.getByRole('button', { name: 'Next ' }).click();
+    //trackMilestone('Commercial Auto Rated successfully');
 
 
 
@@ -982,7 +1006,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       Object.values(consolidatedStats).forEach(section => {
         if (section.dropdownsUpdated > 0) {
           const detail = `${section.dropdownsUpdated} dropdown(s) updated`;
-          trackMilestone(`${section.coverageSection}: ${detail}`, 'PASSED', `Duration: ${section.durationSeconds.toFixed(2)}s`);
+          //trackMilestone(`${section.coverageSection}: ${detail}`, 'PASSED', `Duration: ${section.durationSeconds.toFixed(2)}s`);
         }
       });
     }
@@ -1092,7 +1116,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       console.log('⚠️ Could not extract submission number:', extractErr.message);
     }
 
-    trackMilestone('Test Execution Failed', 'FAILED', error.message);
+    //trackMilestone('Test Execution Failed', 'FAILED', error.message);
 
     // Write final test data with failure info to state-specific file
     const testDataFile = path.join(__dirname, `test-data-${testState}.json`);

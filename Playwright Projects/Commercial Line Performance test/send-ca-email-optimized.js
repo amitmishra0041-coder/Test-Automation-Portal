@@ -106,12 +106,9 @@ const coverageStats = parseCombinedCoverageStats(resultsData);
 
 // Calculate average milestone durations across all states
 function calculateAverageMilestones(results) {
-  // Filter to only PASSED states
-  const passedResults = results.filter(r => r.Status === 'PASSED');
-  
   const milestoneMap = new Map(); // Key: milestone name, Value: { durations[], stateCounts[], avgDuration }
   
-  passedResults.forEach(result => {
+  results.forEach(result => {
     if (!result.Milestones || !Array.isArray(result.Milestones)) return;
     
     result.Milestones.forEach((milestone, idx) => {
@@ -140,12 +137,6 @@ function calculateAverageMilestones(results) {
   
   // Convert to array with averages
   const avgMilestones = Array.from(milestoneMap.entries())
-    .filter(([name]) => {
-      // Filter out coverage-related milestones (those mentioning dropdown counts or "Coverage Added")
-      return !name.includes('dropdown(s)') && 
-             !name.includes('Coverage Added:') &&
-             !name.includes('additional Coverage Added');
-    })
     .map(([name, data]) => {
     const avgDuration = data.durations.length > 0
       ? (data.durations.reduce((a, b) => a + b, 0) / data.durations.length).toFixed(2)
@@ -682,13 +673,39 @@ function createExcelReport(results) {
 
 const excelFile = createExcelReport(resultsData);
 
+function createFallbackExcelReport(results) {
+  try {
+    const wb = XLSX.utils.book_new();
+    const fallbackRows = results.map((result, idx) => ({
+      'Iteration #': idx + 1,
+      'State': result.State || 'N/A',
+      'Status': result.Status || 'N/A',
+      'Duration (s)': result.Duration || 'N/A',
+      'Quote Number': result.QuoteNumber || 'N/A',
+      'Policy Number': result.PolicyNumber || 'N/A',
+      'Milestone Count': Array.isArray(result.Milestones) ? result.Milestones.length : 0
+    }));
+    const ws = XLSX.utils.json_to_sheet(fallbackRows.length ? fallbackRows : [{ Message: 'No result rows available' }]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Summary');
+    const fallbackPath = path.join(__dirname, `WB_Test_Report_Fallback_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, fallbackPath);
+    console.log('✅ Fallback Excel report created:', fallbackPath);
+    return fallbackPath;
+  } catch (e) {
+    console.error('⚠️ Failed to create fallback Excel report:', e.message);
+    return null;
+  }
+}
+
+const finalExcelFile = excelFile || createFallbackExcelReport(resultsData);
+
 // Send email
 const mailOptions = {
   from: process.env.FROM_EMAIL || 'automation@donegalgroup.com',
   to: process.env.TO_EMAIL || 'amitmishra@donegalgroup.com',
   subject: `WB Smoke Testing Report: ${testEnv} - ${aggregateStats.passedCount}/${aggregateStats.totalStates} Passed`,
   html: htmlContent,
-  attachments: excelFile ? [{ filename: path.basename(excelFile), path: excelFile }] : []
+  attachments: finalExcelFile ? [{ filename: path.basename(finalExcelFile), path: finalExcelFile }] : []
 };
 
 transporter.sendMail(mailOptions, (error, info) => {

@@ -3,207 +3,21 @@
   "stateName": "Delaware",
   "milestones": [
     {
-      "name": "Account Created",
+      "name": "Logged in to WB",
       "status": "PASSED",
-      "timestamp": "2026-06-20T12:17:07.083Z",
+      "timestamp": "2026-06-26T21:30:22.935Z",
       "details": "",
-      "duration": "56.84s"
-    },
-    {
-      "name": "Commercial Auto Product Eligibility Completed",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T12:17:35.883Z",
-      "details": "",
-      "duration": "20.70s"
-    },
-    {
-      "name": "Policy Details Entered",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T12:17:37.234Z",
-      "details": "",
-      "duration": "0.35s"
-    },
-    {
-      "name": "Commercial Auto Coverage Completed",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T12:17:51.083Z",
-      "details": "",
-      "duration": "12.25s"
-    },
-    {
-      "name": "Coverage Added: Abuse Or Molestation Exclusion For Covered Autos Liability Exposure (Added), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed), Blanket Lessor - Additional Insured And Loss Payee (Removed)",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T12:18:17.110Z",
-      "details": "",
-      "duration": "3.02s"
-    },
-    {
-      "name": "Commercial Auto additional Coverage Added",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T12:18:17.112Z",
-      "details": "",
-      "duration": "0.00s"
-    },
-    {
-      "name": "State specific info tab navigated",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T12:19:01.631Z",
-      "details": "",
-      "duration": "18.42s"
-    },
-    {
-      "name": "Private pessanger Vehicle Added",
-      "status": "PASSED",
-      "timestamp": "2026-06-20T12:20:06.299Z",
-      "details": "",
-      "duration": "47.12s"
-    },
-    {
-      "name": "Test Execution Failed",
-      "status": "FAILED",
-      "timestamp": "2026-06-20T12:20:25.956Z",
-      "details": "page.originalWaitForTimeout: Target page, context or browser has been closed",
-      "duration": "19.66s"
+      "duration": "6.48s"
     }
   ],
   "httpTimings": [],
-  "networkErrors": [
-    {
-      "url": "https://nautilustest.donegalgroup.com/ajinvoke.aspx?sid=87943492CE9B461792ACC2BB5EAA90D9",
-      "error": {
-        "errorText": "net::ERR_ABORTED"
-      },
-      "timestamp": "2026-06-20T12:20:04.844Z"
-    }
-  ],
+  "networkErrors": [],
+  "coverageChanges": [],
+  "coverageSectionStats": [],
+  "addCoverageTimings": [],
   "retryCount": 0,
-  "quoteNumber": "3002706534-1",
+  "quoteNumber": "3002694996",
   "policyNumber": "N/A",
-  "coverageChanges": [
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_CA7CovType22",
-      "coverageSection": "Uninsured Motorists Coverage",
-      "oldValue": "Combined Single Limit",
-      "newValue": "No Coverage",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_zithau0pbndqn7tnhp4od3926l9",
-      "coverageSection": "PIP Coverage",
-      "oldValue": "Single Limit",
-      "newValue": "Split Limits",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_zk3gmj6e4vmbb4mvjvqcck2al1a",
-      "coverageSection": "PIP Coverage",
-      "oldValue": "Full Coverage",
-      "newValue": "250",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_z29jchkugqp386p5mau99l3pgsa",
-      "coverageSection": "PIP Coverage",
-      "oldValue": "You",
-      "newValue": "You And Family Members",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_zpdh2kes89bbc68lgl8u5bejs69",
-      "coverageSection": "Added Personal Injury Protection",
-      "oldValue": "No Coverage",
-      "newValue": "Split Limits",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_z1vjg0ilhd7t02gf14q7bgran99",
-      "coverageSection": "Added Personal Injury Protection",
-      "oldValue": "Current",
-      "newValue": "10,000 Each Person/20,000 Each \"Accident\"",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_CA7CovType16",
-      "coverageSection": "Private Passenger Other Than Collision",
-      "oldValue": "ACV",
-      "newValue": "No Coverage",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_CA7CovType9",
-      "coverageSection": "Private Passenger Collision",
-      "oldValue": "ACV",
-      "newValue": "No Coverage",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_CA7Limit9",
-      "coverageSection": "Private Passenger Towing Labor",
-      "oldValue": "No Coverage",
-      "newValue": "50",
-      "status": "Updated"
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverage": "ddl_CA7RatingBasis6",
-      "coverageSection": "Private Passenger Personal Injury Protection",
-      "oldValue": "Principally Operated By Employees",
-      "newValue": "Not Principally Operated By Employees",
-      "status": "Updated"
-    }
-  ],
-  "coverageSectionStats": [
-    {
-      "quoteNumber": "3002706534-1",
-      "coverageSection": "Uninsured Motorists Coverage",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverageSection": "PIP Coverage",
-      "durationSeconds": "11.37",
-      "dropdownsUpdated": 3
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverageSection": "Added Personal Injury Protection",
-      "durationSeconds": "5.37",
-      "dropdownsUpdated": 2
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverageSection": "Private Passenger Other Than Collision",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverageSection": "Private Passenger Collision",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverageSection": "Private Passenger Towing Labor",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    },
-    {
-      "quoteNumber": "3002706534-1",
-      "coverageSection": "Private Passenger Personal Injury Protection",
-      "durationSeconds": "0.00",
-      "dropdownsUpdated": 1
-    }
-  ],
-  "addCoverageTimings": []
+  "status": "FAILED",
+  "error": "Producer \"CHRISTINA M. BOWER\" not found in dropdown"
 }

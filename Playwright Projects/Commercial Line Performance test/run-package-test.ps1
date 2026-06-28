@@ -1,8 +1,12 @@
 param(
     [string]$TestEnv = "qa",
     [string]$States = "",
-    [switch]$Headed
+    [switch]$Headed,
+    [Nullable[bool]]$SendEmail = $null,
+    [switch]$NoEmail
 )
+
+$emailEnabled = if ($null -ne $SendEmail) { [bool]$SendEmail } else { -not $NoEmail }
 
 $projectPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 Push-Location $projectPath
@@ -25,6 +29,7 @@ if ($Headed) {
 } else {
     Write-Host "Mode: HEADLESS" -ForegroundColor Gray
 }
+Write-Host "Email: $(if ($emailEnabled) { 'YES' } else { 'NO' })" -ForegroundColor Yellow
 Write-Host "`n"
 
 # Create batch marker to defer emails
@@ -38,10 +43,18 @@ Remove-Item -Force 'parallel-run-lock-package.json' -ErrorAction SilentlyContinu
 Remove-Item -Force 'test-data-*.json' -ErrorAction SilentlyContinue
 
 # Call parallel PowerShell runner with proper switch handling
-if ($Headed) {
-    & powershell.exe -ExecutionPolicy Bypass -File "$projectPath\run-parallel-package.ps1" -TestEnv $TestEnv -States $States -Project chromium -KillStrays -Headed
-} else {
-    & powershell.exe -ExecutionPolicy Bypass -File "$projectPath\run-parallel-package.ps1" -TestEnv $TestEnv -States $States -Project chromium -KillStrays
+$runnerArgs = @(
+    '-ExecutionPolicy', 'Bypass',
+    '-File', "$projectPath\run-parallel-package.ps1",
+    '-TestEnv', $TestEnv,
+    '-States', $States,
+    '-Project', 'chromium',
+    '-KillStrays'
+)
+if (-not $emailEnabled) {
+    $runnerArgs += '-NoEmail'
 }
+
+& powershell.exe @runnerArgs
 
 Pop-Location

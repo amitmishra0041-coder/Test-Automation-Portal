@@ -34,13 +34,20 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     return `717${randomDigits}`;
   }
 
+  const STATE_USERS = {
+  DE: { username: 'amitmish',  password: 'Bombay12$' },
+  PA: { username: 'ranjkuma-c', password: 'Herndon@99' },
+  MI: { username: 'amitmish', password: 'Bombay12$' },
+  WI: { username: 'ranjkuma-c', password: 'Herndon@99' },
+};
   // Navigate and login
   await page.goto(writeBizUrl);
-  await page.getByRole('textbox', { name: 'User ID:' }).fill('amitmish');
-  await page.getByRole('textbox', { name: 'Password:' }).fill('Bombay12$');
+const { username, password } = STATE_USERS[state] || STATE_USERS.DE;
+await page.getByRole('textbox', { name: 'User ID:' }).fill(username);
+await page.getByRole('textbox', { name: 'Password:' }).fill(password);
   await page.locator('#btnLogin').click({ timeout: 5000 });
   console.log('WB Login successful');
-
+trackMilestone('Logged in to WB');
   // =========================
   // ✅ ADDRESS HANDLING (ONLY ONCE)
   // =========================
@@ -242,6 +249,8 @@ const mailingZip    = helperAddress?.zip    || randZipForState(testState);
     await fallback.waitFor({ state: 'visible', timeout: 10000 });
     await fallback.click();
   }
+
+  
 
   async function fillLabeledTextbox(labelTextOrList, value, sectionText) {
     const labelList = Array.isArray(labelTextOrList) ? labelTextOrList : [labelTextOrList];
@@ -537,6 +546,7 @@ const mailingZip    = helperAddress?.zip    || randZipForState(testState);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
 
+  
   //accept as is logic
   //const acceptAsIsButton = page.locator('button:has-text("Accept As-Is")');
 
@@ -559,7 +569,7 @@ const mailingZip    = helperAddress?.zip    || randZipForState(testState);
   // Everything after this point runs ONCE after successfully exiting the retry loop
   // CRITICAL: Wait for any address validation dialogs to fully close before proceeding
   // In parallel runs, dialogs can linger and block subsequent interactions
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(800);
 
 
 
@@ -645,6 +655,8 @@ const mailingZip    = helperAddress?.zip    || randZipForState(testState);
   await page.getByRole('textbox', { name: 'Email' }).fill(randEmail());
   await page.waitForTimeout(1000);
   await page.getByRole('button', { name: 'Next' }).click();
+  
+
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
   console.log('Account creation completed');

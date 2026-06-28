@@ -3,7 +3,8 @@ param(
     [string]$TestEnv = "qa",
     [string[]]$States,
     [string]$Project = "chromium",
-    [switch]$KillStrays
+    [switch]$KillStrays,
+    [switch]$NoEmail
 )
 
 if ($States -and $States.Count -gt 0) {

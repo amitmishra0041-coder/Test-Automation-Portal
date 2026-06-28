@@ -1,3 +1,4 @@
+// emailReporter.js
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 const fs = require('fs');
@@ -11,7 +12,6 @@ class EmailReporter {
     this.runId = null;
   }
 
-  // Detect suite type from environment or test file
   _detectSuite() {
     const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
     if (suiteEnv === 'BOP') return 'BOP';
@@ -21,13 +21,10 @@ class EmailReporter {
   }
 
   _getSuiteLabel() {
-    if (!this.suiteLabel) {
-      this.suiteLabel = this._detectSuite();
-    }
+    if (!this.suiteLabel) this.suiteLabel = this._detectSuite();
     return this.suiteLabel;
   }
 
-  // Playwright lifecycle hooks
   onBegin() {
     const suiteLabel = this._getSuiteLabel();
     const batchMarker = path.join(__dirname, '.batch-run-in-progress');
@@ -35,16 +32,12 @@ class EmailReporter {
     const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLabel.toLowerCase()}.json`);
 
     if (!isBatchRun) {
-      // Single run: clear old data
       const iterFile = path.join(__dirname, `iterations-data-${suiteLabel.toLowerCase()}.json`);
       if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
       this.runId = new Date().toISOString();
     } else {
-      // Batch run: get or create shared runId
       let lockData = {};
-      if (fs.existsSync(lockFile)) {
-        lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
-      }
+      if (fs.existsSync(lockFile)) lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
       if (!lockData.runId) lockData.runId = new Date().toISOString();
       fs.writeFileSync(lockFile, JSON.stringify(lockData, null, 2));
       this.runId = lockData.runId;
@@ -57,42 +50,31 @@ class EmailReporter {
       const envState = (process.env.TEST_STATE || '').toUpperCase();
       const dataState = (global.testData && global.testData.state ? String(global.testData.state) : '').toUpperCase();
       const testState = envState || dataState;
-      
+
       console.log(`🔍 onTestEnd called: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
-      
-      // Read state-specific test data file; fallback to default if state is unavailable
-      const stateSpecificFile = testState
-        ? path.join(__dirname, `test-data-${testState}.json`)
-        : null;
+
+      const stateSpecificFile = testState ? path.join(__dirname, `test-data-${testState}.json`) : null;
       const fallbackFile = path.join(__dirname, 'test-data.json');
-      const testDataFile = stateSpecificFile && fs.existsSync(stateSpecificFile)
-        ? stateSpecificFile
-        : fallbackFile;
-      
+      const testDataFile = stateSpecificFile && fs.existsSync(stateSpecificFile) ? stateSpecificFile : fallbackFile;
+
       console.log(`🔍 Looking for test data: ${testDataFile}, exists: ${fs.existsSync(testDataFile)}`);
-      
       if (!fs.existsSync(testDataFile)) return;
+
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
-      
       const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
       let iterations = fs.existsSync(iterFile) ? JSON.parse(fs.readFileSync(iterFile, 'utf-8')) : [];
 
-      // Check for duplicate (same state+runId)
-      const isDuplicate = iterations.some(it => it.state === testData.state && it.runId === this.runId);
-      if (isDuplicate) {
-        console.log(`⚠️ Duplicate skipped: state=${testData.state}, runId=${this.runId}`);
-        return;
-      }
+      // FIX: allow retries to overwrite instead of silently dropping
+      const existingIndex = iterations.findIndex(it => it.state === testData.state && it.runId === this.runId);
 
-      // Determine status: override if has policy but no failed milestones
       let status = result.status.toUpperCase();
-      const hasFailedMilestones = Array.isArray(testData.milestones) && 
+      const hasFailedMilestones = Array.isArray(testData.milestones) &&
         testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED');
       const hasPolicyNumber = testData.policyNumber && testData.policyNumber !== 'N/A';
       if (!hasFailedMilestones && hasPolicyNumber) status = 'PASSED';
 
-      iterations.push({
-        iterationNumber: iterations.length + 1,
+      const iterationEntry = {
+        iterationNumber: existingIndex !== -1 ? iterations[existingIndex].iterationNumber : iterations.length + 1,
         status,
         state: testData.state || 'N/A',
         stateName: testData.stateName || 'N/A',
@@ -108,17 +90,23 @@ class EmailReporter {
           : '0',
         runId: this.runId,
         suite,
-      });
+      };
+
+      if (existingIndex !== -1) {
+        iterations[existingIndex] = iterationEntry;
+        console.log(`🔄 Updated existing iteration for state=${testData.state} (retry result)`);
+      } else {
+        iterations.push(iterationEntry);
+        console.log(`💾 Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}, quote=${testData.quoteNumber}`);
+      }
 
       fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2));
-      console.log(`💾 Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}, quote=${testData.quoteNumber}`);
     } catch (e) {
       console.log('⚠️ onTestEnd error:', e.message);
     }
   }
 
   async onEnd() {
-    // Skip if batch run (wrapper will send consolidated email)
     const suite = this._getSuiteLabel();
     const batchMarkers = [
       path.join(__dirname, '.batch-run-in-progress'),
@@ -131,11 +119,10 @@ class EmailReporter {
     }
 
     const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
-    
     console.log(`🔍 Looking for iterations file: ${iterFile}`);
     console.log(`🔍 File exists: ${fs.existsSync(iterFile)}`);
     console.log(`🔍 Current runId: ${this.runId}`);
-    
+
     if (!fs.existsSync(iterFile)) {
       console.log('⚠️ No iterations to email');
       return;
@@ -143,13 +130,12 @@ class EmailReporter {
 
     const allIterations = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
     console.log(`🔍 Total iterations in file: ${Array.isArray(allIterations) ? allIterations.length : 'not an array'}`);
-    
+
     const iterations = this.runId ? allIterations.filter(it => it.runId === this.runId) : allIterations;
     console.log(`🔍 Filtered iterations (runId filter): ${iterations.length}`);
 
     if (!iterations.length) {
       console.log('⚠️ No iterations for this runId, sending all available iterations instead');
-      // Fall back to sending all iterations if runId doesn't match
       await this._sendEmail(allIterations, 'WB Smoke Testing Report');
       return;
     }
@@ -157,13 +143,13 @@ class EmailReporter {
     await this._sendEmail(iterations, 'WB Smoke Testing Report');
   }
 
-  // Send email with iterations data
   async _sendEmail(iterations, subjectPrefix) {
     const passed = iterations.filter(it => it.status === 'PASSED').length;
     const failed = iterations.length - passed;
     const overallPassed = failed === 0;
+    const totalDuration = iterations.reduce((sum, it) => sum + parseFloat(it.duration || 0), 0).toFixed(2);
 
-    // Build passed iterations table
+    // ── Passed iterations table ──────────────────────────────────────────────
     const passedIterations = iterations.filter(it => it.status === 'PASSED');
     const passedTableHtml = passedIterations.length > 0 ? `
       <h3 style="color:#4CAF50;margin-top:20px;">✅ Passed Iterations (${passedIterations.length})</h3>
@@ -177,23 +163,19 @@ class EmailReporter {
           </tr>
         </thead>
         <tbody>
-          ${passedIterations.map((it, idx) => {
-            const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
-            const lobDisplay = `${it.suite || 'Package'} (${it.state || 'N/A'})`;
-            return `
-              <tr style="background:${bg};">
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${lobDisplay}</td>
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.policyNumber}</td>
-              </tr>
-            `;
-          }).join('')}
+          ${passedIterations.map((it, idx) => `
+            <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.suite || 'Package'} (${it.state || 'N/A'})</td>
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.policyNumber}</td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
     ` : '';
 
-    // Build failed iterations table
+    // ── Failed iterations table ──────────────────────────────────────────────
     const failedIterations = iterations.filter(it => it.status === 'FAILED');
     const failedTableHtml = failedIterations.length > 0 ? `
       <h3 style="color:#f44336;margin-top:20px;">❌ Failed Iterations (${failedIterations.length})</h3>
@@ -207,112 +189,60 @@ class EmailReporter {
           </tr>
         </thead>
         <tbody>
-          ${failedIterations.map((it, idx) => {
-            const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
-            const lobDisplay = `${it.suite || 'Package'} (${it.state || 'N/A'})`;
-            return `
-              <tr style="background:${bg};">
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${lobDisplay}</td>
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
-                <td style="padding:10px;border:1px solid #ddd;font-size:12px;color:#f44336;font-weight:bold;">FAILED</td>
-              </tr>
-            `;
-          }).join('')}
+          ${failedIterations.map((it, idx) => `
+            <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.suite || 'Package'} (${it.state || 'N/A'})</td>
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
+              <td style="padding:10px;border:1px solid #ddd;font-size:12px;color:#f44336;font-weight:bold;">FAILED</td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
     ` : '';
 
-    const totalDuration = iterations.reduce((sum, it) => sum + parseFloat(it.duration || 0), 0).toFixed(2);
+    // ── Milestone details — replaces coverage section, shown for ALL iterations ──
+    const milestoneDetailsHtml = iterations.map(it => {
+      const milestones = it.milestones || [];
+      if (milestones.length === 0) return '';
 
-    // Build combined coverage changes and add coverage table
-    const coverageDetailsHtml = iterations.map(it => {
-      if ((!it.coverageChanges || it.coverageChanges.length === 0) && (!it.addCoverageTimings || it.addCoverageTimings.length === 0)) return '';
-      
-      // Build section timing lookup from coverageSectionStats
-      const sectionTimings = {};
-      if (it.coverageSectionStats && it.coverageSectionStats.length > 0) {
-        it.coverageSectionStats.forEach(stat => {
-          const durSec = parseFloat(stat.durationSeconds || 0);
-          const durMs = durSec * 1000;
-          sectionTimings[stat.coverageSection] = {
-            duration: durSec,
-            durationFormatted: stat.durationFormatted || (durMs < 100 ? `${Math.round(durMs)}ms` : `${durSec.toFixed(2)}s`),
-            count: stat.dropdownsUpdated || 0
-          };
-        });
-      }
-      
-      // Aggregate coverage changes by section
-      const sectionMap = {};
-      if (it.coverageChanges && it.coverageChanges.length > 0) {
-        it.coverageChanges.forEach(change => {
-          if (!sectionMap[change.coverageSection]) {
-            sectionMap[change.coverageSection] = {
-              coverageSection: change.coverageSection,
-              changes: [],
-              totalDuration: sectionTimings[change.coverageSection]?.duration || 0,
-              totalDurationFormatted: sectionTimings[change.coverageSection]?.durationFormatted || '0ms',
-              totalCount: sectionTimings[change.coverageSection]?.count || 0
-            };
-          }
-          sectionMap[change.coverageSection].changes.push(change);
-        });
-      }
-      
-      // Create aggregated details (one entry per coverage section showing total time)
-      const allDetails = [];
-      Object.keys(sectionMap).forEach(sectionName => {
-        const section = sectionMap[sectionName];
-        allDetails.push({
-          type: 'coverage_section',
-          coverageSection: section.coverageSection,
-          detail: `${section.totalCount} dropdown(s) updated`,
-          status: 'Updated',
-          duration: section.totalDurationFormatted
-        });
-      });
-      
-      // Add coverage button timings (only add actions, not remove)
-      if (it.addCoverageTimings && it.addCoverageTimings.length > 0) {
-        it.addCoverageTimings.forEach(timing => {
-          if (timing.action === 'Add Coverage') {
-            allDetails.push({
-              type: 'add_coverage',
-              coverageSection: 'Commercial Auto',
-              detail: `${timing.coverage || `Coverage #${timing.index}`}`,
-              status: 'Added',
-              duration: `${timing.duration}s`
-            });
-          }
-        });
-      }
-      
-      if (allDetails.length === 0) return '';
-      
-      const rows = allDetails.map((detail, idx) => {
-        const bg = idx % 2 === 0 ? '#ffffff' : '#f5f5f5';
-        const statusColor = detail.status === 'Added' ? '#2196F3' : '#4CAF50';
+      const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
+      const statusIcon  = it.status === 'PASSED' ? '✅' : '❌';
+      const tabLabel    = `${it.suite || 'Package'}_${it.state || 'N/A'}_${it.iterationNumber}`;
+
+      const rows = milestones.map((m, idx) => {
+        const mStatus     = (m.status || 'N/A').toUpperCase();
+        const mColor      = mStatus === 'PASSED' ? '#4CAF50' : mStatus === 'FAILED' ? '#f44336' : '#FF9800';
+        const durationVal = m.duration ? m.duration : '-';
         return `
-          <tr style="background:${bg};">
-            <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${detail.coverageSection}</td>
-            <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${detail.detail}</td>
-            <td style="padding:10px;border:1px solid #ddd;font-size:12px;color:${statusColor};font-weight:bold;">${detail.status}</td>
-            <td style="padding:10px;border:1px solid #ddd;font-size:12px;text-align:center;">${detail.duration}</td>
+          <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${idx + 1}</td>
+            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${m.name || '-'}</td>
+            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;font-weight:bold;color:${mColor};">${mStatus}</td>
+            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;text-align:right;">${durationVal}</td>
+            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;color:#666;">${m.details || '-'}</td>
           </tr>
         `;
       }).join('');
-      
+
       return `
-        <div style="margin:20px 0;page-break-inside:avoid;">
-          <h3 style="color:#1976d2;margin-bottom:10px;">${it.suite} (${it.state}) - Coverage updates</h3>
+        <div style="margin:24px 0;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">
+          <div style="background:${statusColor};padding:10px 16px;display:flex;align-items:center;gap:8px;">
+            <span style="color:white;font-size:13px;font-weight:bold;">
+              ${statusIcon} ${tabLabel} — ${it.suite || 'Package'} | State: ${it.state || 'N/A'} | Iteration #${it.iterationNumber}
+            </span>
+            <span style="color:rgba(255,255,255,0.85);font-size:12px;margin-left:auto;">
+              Quote: ${it.quoteNumber} &nbsp;|&nbsp; Policy: ${it.policyNumber} &nbsp;|&nbsp; Total: ${it.duration}s
+            </span>
+          </div>
           <table style="width:100%;border-collapse:collapse;">
             <thead>
-              <tr style="background:#2196F3;color:white;">
-                <th style="padding:10px;text-align:left;border:1px solid #ddd;font-size:12px;">Coverage Section</th>
-                <th style="padding:10px;text-align:left;border:1px solid #ddd;font-size:12px;">Detail</th>
-                <th style="padding:10px;text-align:center;border:1px solid #ddd;font-size:12px;">Status</th>
-                <th style="padding:10px;text-align:center;border:1px solid #ddd;font-size:12px;">Time (s)</th>
+              <tr style="background:#f5f5f5;">
+                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">#</th>
+                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">Milestone</th>
+                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">Status</th>
+                <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;color:#555;">Duration</th>
+                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -323,56 +253,56 @@ class EmailReporter {
       `;
     }).join('');
 
+    // ── Assemble full email body ──────────────────────────────────────────────
     const html = `
-      <div style="font-family: Arial, sans-serif;">
+      <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;">
         <h1 style="color:#1976d2;">🎭 ${subjectPrefix}</h1>
+
         <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
           <h3 style="margin-top:0;">📊 Test Summary</h3>
           <p><b>Overall Status:</b> ${overallPassed ? '✅ PASSED' : '❌ FAILED'}</p>
           <p><b>Total Iterations:</b> ${iterations.length}</p>
-          <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span> &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
+          <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span>
+             &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
           <p><b>Test Duration:</b> ${totalDuration}s</p>
         </div>
-        <h2 style="color:#333;margin-top:30px;">Iteration Details</h2>
+
+        <h2 style="color:#333;margin-top:30px;">Iteration Results</h2>
         ${passedTableHtml}
         ${failedTableHtml}
-        ${coverageDetailsHtml ? `<h2 style="color:#333;margin-top:30px;">Coverage updates</h2>${coverageDetailsHtml}` : ''}
+
+        <h2 style="color:#333;margin-top:30px;">📋 Milestone Details (All Iterations)</h2>
+        <p style="color:#666;font-size:12px;margin-bottom:16px;">
+          Each section below corresponds to an Excel tab (e.g. Package_DE_1) in the attached report.
+        </p>
+        ${milestoneDetailsHtml || '<p style="color:#999;">No milestone data available.</p>'}
       </div>
     `;
 
     const excelFile = await this._createExcelReport(iterations);
     const attachments = excelFile ? [{ filename: path.basename(excelFile), path: excelFile }] : [];
 
-    // Check SMTP config
     if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
       console.log('⚠️ SMTP not configured; email skipped');
       if (excelFile) console.log('ℹ️ Excel generated at:', excelFile);
       return;
     }
 
-    // Send email
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 25,
       secure: false,
       tls: { rejectUnauthorized: false },
-      auth: process.env.SMTP_USER && process.env.SMTP_PASS ? {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      } : undefined
+      auth: process.env.SMTP_USER && process.env.SMTP_PASS
+        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        : undefined
     });
 
     const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
     const subjectLine = `${subjectPrefix}: ${todayDate} - ${passed} Passed, ${failed} Failed`;
 
     try {
-      await transporter.sendMail({
-        from: process.env.FROM_EMAIL,
-        to: process.env.TO_EMAIL,
-        subject: subjectLine,
-        html,
-        attachments
-      });
+      await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject: subjectLine, html, attachments });
       console.log('✔ Email sent successfully');
     } catch (err) {
       console.error('❌ Email send failed:', err.message);
@@ -380,15 +310,13 @@ class EmailReporter {
     }
   }
 
-  // Create Excel report
   async _createExcelReport(iterations) {
     try {
       const excelPath = path.join(__dirname, 'WB_Test_Report.xlsx');
-      
-      // Always start fresh to avoid sheet name collisions
-      let targetWb = XLSX.utils.book_new();
+      const targetWb = XLSX.utils.book_new();
+      const runTag = new Date().toISOString().replace(/[:]/g, '-').slice(0, 19);
 
-      // Summary sheet with timestamp
+      // ── Summary sheet ──────────────────────────────────────────────────────
       const summaryData = iterations.map(it => ({
         'Iteration #': it.iterationNumber,
         'Line of Business': `${it.suite || 'Package'} (${it.state || 'N/A'})`,
@@ -398,50 +326,34 @@ class EmailReporter {
         'Duration (s)': it.duration,
         'State': it.state
       }));
-      const runTag = new Date().toISOString().replace(/[:]/g, '-').slice(0, 19);
-      const summarySheetName = (`Summary_${runTag}`).substring(0, 31);
-      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(summaryData), summarySheetName);
+      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(summaryData), `Summary_${runTag}`.substring(0, 31));
 
-      // Milestones Analytics sheet - aggregate average times by milestone
-      // Use a Map to preserve the order milestones are first encountered (tracking order)
+      // ── Milestones Analytics sheet ────────────────────────────────────────
       const milestoneAggregates = new Map();
-      const passedIterations = iterations.filter(it => it.status === 'PASSED');
-      
-      passedIterations.forEach(it => {
+      iterations.filter(it => it.status === 'PASSED').forEach(it => {
         (it.milestones || []).forEach(m => {
           if (!m.name || m.status !== 'PASSED') return;
-          if (!milestoneAggregates.has(m.name)) {
-            milestoneAggregates.set(m.name, { totalDuration: 0, count: 0, runs: [] });
-          }
+          if (!milestoneAggregates.has(m.name)) milestoneAggregates.set(m.name, { totalDuration: 0, count: 0, runs: [] });
           const duration = parseFloat(m.duration) || 0;
           const existing = milestoneAggregates.get(m.name);
           existing.totalDuration += duration;
           existing.count += 1;
-          existing.runs.push({
-            suite: it.suite || 'Package',
-            state: it.state,
-            duration: duration
-          });
+          existing.runs.push({ suite: it.suite || 'Package', state: it.state, duration });
         });
       });
 
-      // Convert Map to analytics data, preserving the order milestones were tracked
-      const analyticsData = Array.from(milestoneAggregates.entries())
-        .map(([milestoneName, data]) => ({
-          'Milestone': milestoneName,
-          'Average Duration (s)': (data.totalDuration / data.count).toFixed(2),
-          'Min Duration (s)': Math.min(...data.runs.map(r => r.duration)).toFixed(2),
-          'Max Duration (s)': Math.max(...data.runs.map(r => r.duration)).toFixed(2),
-          'Total Runs': data.count,
-          'Suites': [...new Set(data.runs.map(r => r.suite))].join(', '),
-          'States': [...new Set(data.runs.map(r => r.state))].join(', ')
-        }));
-        // Removed .sort() to maintain tracking order
+      const analyticsData = Array.from(milestoneAggregates.entries()).map(([milestoneName, data]) => ({
+        'Milestone': milestoneName,
+        'Average Duration (s)': (data.totalDuration / data.count).toFixed(2),
+        'Min Duration (s)': Math.min(...data.runs.map(r => r.duration)).toFixed(2),
+        'Max Duration (s)': Math.max(...data.runs.map(r => r.duration)).toFixed(2),
+        'Total Runs': data.count,
+        'Suites': [...new Set(data.runs.map(r => r.suite))].join(', '),
+        'States': [...new Set(data.runs.map(r => r.state))].join(', ')
+      }));
+      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(analyticsData), 'Milestones_Analytics');
 
-      const analyticsSheetName = ('Milestones_Analytics').substring(0, 31);
-      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(analyticsData), analyticsSheetName);
-
-      // Coverage Changes Analytics sheet
+      // ── Coverage Changes sheet ────────────────────────────────────────────
       const coverageAnalyticsData = [];
       iterations.forEach(it => {
         (it.coverageChanges || []).forEach(change => {
@@ -458,13 +370,11 @@ class EmailReporter {
           });
         });
       });
-      
       if (coverageAnalyticsData.length > 0) {
-        const coverageSheetName = ('Coverage_Changes').substring(0, 31);
-        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageAnalyticsData), coverageSheetName);
+        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageAnalyticsData), 'Coverage_Changes');
       }
 
-      // Coverage section timings sheet
+      // ── Coverage Section Timings sheet ────────────────────────────────────
       const coverageSectionData = [];
       iterations.forEach(it => {
         (it.coverageSectionStats || []).forEach(row => {
@@ -480,11 +390,10 @@ class EmailReporter {
         });
       });
       if (coverageSectionData.length) {
-        const sheetName = ('Coverage_Section_Timings').substring(0, 31);
-        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageSectionData), sheetName);
+        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageSectionData), 'Coverage_Section_Timings');
       }
 
-      // Add Coverage button timings sheet
+      // ── Add Coverage Timings sheet ────────────────────────────────────────
       const addCoverageData = [];
       iterations.forEach(it => {
         (it.addCoverageTimings || []).forEach(row => {
@@ -501,26 +410,36 @@ class EmailReporter {
         });
       });
       if (addCoverageData.length) {
-        const sheetName = ('Add_Coverage_Timings').substring(0, 31);
-        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(addCoverageData), sheetName);
+        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(addCoverageData), 'Add_Coverage_Timings');
       }
 
-      // Individual iteration sheets with unique names
+      // ── Per-iteration milestone sheets (e.g. Package_DE_1) ───────────────
+      // FIX: dedup sheet names to prevent XLSX collision on parallel/retry runs
+      const usedSheetNames = new Set(targetWb.SheetNames);
+
       iterations.forEach(it => {
-        const milestoneData = (it.milestones || []).map(m => ({
-          'Milestone': m.name,
+        const milestoneData = (it.milestones || []).map((m, idx) => ({
+          '#': idx + 1,
+          'Milestone': m.name || '-',
           'Status': m.status || 'N/A',
           'Duration (s)': m.duration || '-',
+          'Details': m.details || '-',
           'Timestamp': m.timestamp || '-',
         }));
+
         const ws = XLSX.utils.json_to_sheet(milestoneData);
-        // Create unique sheet name: Suite_State_IterNum_Timestamp
+
+        // Match the label used in the email body: Suite_State_IterNum
         const sheetBase = `${(it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_')}_${it.state || 'N_A'}_${it.iterationNumber}`;
         let sheetName = sheetBase.substring(0, 31);
-        // If name is exactly 31 chars, append run tag to ensure uniqueness
-        if (sheetName.length === 31) {
-          sheetName = `${(it.suite || 'Suite').substring(0, 8)}_${(it.state || 'N_A').substring(0, 4)}_${it.iterationNumber}_${runTag.slice(0, 5)}`.substring(0, 31);
+
+        // Deduplicate if the same name already exists (retry / parallel collision)
+        let suffix = 2;
+        while (usedSheetNames.has(sheetName)) {
+          sheetName = `${sheetBase.substring(0, 28)}_${suffix++}`.substring(0, 31);
         }
+        usedSheetNames.add(sheetName);
+
         XLSX.utils.book_append_sheet(targetWb, ws, sheetName);
       });
 
@@ -532,7 +451,6 @@ class EmailReporter {
     }
   }
 
-  // Static method for batch email (called by wrapper scripts)
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
     console.log('📨 Sending consolidated batch email...');
     let iterations = [];
@@ -542,23 +460,16 @@ class EmailReporter {
     for (const file of iterationFiles) {
       const fp = path.join(__dirname, file);
       if (!fs.existsSync(fp)) continue;
-      
       const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];
       if (!allIterations.length) continue;
-      
-      // Get latest runId and filter
       const runIds = allIterations.map(it => it.runId).filter(Boolean);
       const latestRunId = runIds.length ? runIds.sort().slice(-1)[0] : null;
       const filtered = latestRunId ? allIterations.filter(it => it.runId === latestRunId) : allIterations;
-      
       console.log(`   ${file}: ${allIterations.length} total, using ${filtered.length} from runId ${latestRunId || 'N/A'}`);
       iterations = iterations.concat(filtered);
     }
 
-    if (!iterations.length) {
-      console.log('⚠️ No iterations found');
-      return;
-    }
+    if (!iterations.length) { console.log('⚠️ No iterations found'); return; }
 
     const reporter = new EmailReporter();
     await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report (Batch)');

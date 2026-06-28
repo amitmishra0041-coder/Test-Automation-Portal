@@ -14,7 +14,7 @@ async function processCoverageDropdowns(page) {
   const coverageChanges = [];
   const coverageSectionStats = [];
   const sectionStats = {}; // Track per-coverage-section timing and counts
-  const maxDropdownsPerSection = 2;
+  const maxDropdownsPerSection = 3;
 
   try {
     // Find all SELECT elements (we'll filter for visibility/enabled state in the loop)
