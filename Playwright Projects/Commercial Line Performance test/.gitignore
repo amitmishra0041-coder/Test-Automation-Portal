@@ -1,13 +1,37 @@
-@"
+# Dependencies
 node_modules/
+
+# Playwright runtime output
 test-results/
 playwright-report/
+playwright/.cache/
+
+# Logs
 *.log
-*.json.bak
-.batch-run-in-progress-ca
-.batch-email-sent-ca
-parallel-run-lock-ca.json
-iterations-data-ca.json
+
+# Generated test data (written at runtime - never commit)
 test-data-*.json
+iterations-data-*.json
 ca-email-temp.json
-"@ | Out-File -FilePath ".gitignore" -Encoding UTF8
+parallel-run-lock-*.json
+.batch-run-in-progress-*
+.batch-email-sent-*
+
+# Generated Excel reports
+WB_Test_Report*.xlsx
+results/
+
+# Environment / secrets
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+
+# Backup folders
+_BACKUP_*/
