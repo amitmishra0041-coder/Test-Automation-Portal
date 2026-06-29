@@ -1,22 +1,22 @@
-﻿// emailReporter.js
+// emailReporter.js
 require('dotenv').config();
 const nodemailer = require('nodemailer');
-const fs = require('fs');
-const path = require('path');
-const XLSX = require('xlsx');
+const fs         = require('fs');
+const path       = require('path');
+const XLSX       = require('xlsx');
 
 class EmailReporter {
   constructor(options) {
-    this.options = options || {};
+    this.options   = options || {};
     this.suiteLabel = null;
-    this.runId = null;
+    this.runId     = null;
   }
 
   _detectSuite() {
-    const suiteEnv = (process.env.TEST_TYPE || '').toUpperCase();
-    if (suiteEnv === 'BOP') return 'BOP';
-    if (suiteEnv === 'PACKAGE') return 'Package';
-    if (suiteEnv === 'CA') return 'CA';
+    const s = (process.env.TEST_TYPE || '').toUpperCase();
+    if (s === 'BOP')     return 'BOP';
+    if (s === 'PACKAGE') return 'Package';
+    if (s === 'CA')      return 'CA';
     return 'Package';
   }
 
@@ -26,453 +26,399 @@ class EmailReporter {
   }
 
   onBegin() {
-    const suiteLabel = this._getSuiteLabel();
-    const batchMarker = path.join(__dirname, '.batch-run-in-progress');
-    const isBatchRun = fs.existsSync(batchMarker);
-    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLabel.toLowerCase()}.json`);
+    const suite       = this._getSuiteLabel();
+    const suiteLC     = suite.toLowerCase();
+    const batchMarker = path.join(__dirname, `.batch-run-in-progress-${suiteLC}`);
+    const isBatch     = fs.existsSync(batchMarker) || fs.existsSync(path.join(__dirname, '.batch-run-in-progress'));
+    const lockFile    = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
 
-    if (!isBatchRun) {
-      const iterFile = path.join(__dirname, `iterations-data-${suiteLabel.toLowerCase()}.json`);
+    if (!isBatch) {
+      // Solo run - fresh iteration file
+      const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
       if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
       this.runId = new Date().toISOString();
     } else {
+      // Batch run - use shared runId from lock file written by runner
       let lockData = {};
-      if (fs.existsSync(lockFile)) lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
-      if (!lockData.runId) lockData.runId = new Date().toISOString();
-      fs.writeFileSync(lockFile, JSON.stringify(lockData, null, 2));
-      this.runId = lockData.runId;
+      if (fs.existsSync(lockFile)) {
+        try { lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8')); } catch (_) {}
+      }
+      this.runId = lockData.runId || new Date().toISOString();
     }
   }
 
   onTestEnd(test, result) {
     try {
-      const suite = this._getSuiteLabel();
-      const envState = (process.env.TEST_STATE || '').toUpperCase();
+      const suite     = this._getSuiteLabel();
+      const suiteLC   = suite.toLowerCase();
+      const envState  = (process.env.TEST_STATE || '').toUpperCase();
       const dataState = (global.testData && global.testData.state ? String(global.testData.state) : '').toUpperCase();
       const testState = envState || dataState;
 
-      console.log(`ðŸ” onTestEnd called: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
+      console.log(`onTestEnd: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
 
-      const stateSpecificFile = testState ? path.join(__dirname, `test-data-${testState}.json`) : null;
-      const fallbackFile = path.join(__dirname, 'test-data.json');
-      const testDataFile = stateSpecificFile && fs.existsSync(stateSpecificFile) ? stateSpecificFile : fallbackFile;
+      const stateFile   = testState ? path.join(__dirname, `test-data-${testState}.json`) : null;
+      const fallback    = path.join(__dirname, 'test-data.json');
+      const testDataFile = stateFile && fs.existsSync(stateFile) ? stateFile : fallback;
 
-      console.log(`ðŸ” Looking for test data: ${testDataFile}, exists: ${fs.existsSync(testDataFile)}`);
       if (!fs.existsSync(testDataFile)) return;
 
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
-      const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
-      let iterations = fs.existsSync(iterFile) ? JSON.parse(fs.readFileSync(iterFile, 'utf-8')) : [];
+      const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
 
-      // FIX: allow retries to overwrite instead of silently dropping
-      const existingIndex = iterations.findIndex(it => it.state === testData.state && it.runId === this.runId);
+      // File locking via retry - handles simultaneous writes from parallel states
+      let iterations = [];
+      let retries = 0;
+      while (retries < 10) {
+        try {
+          iterations = fs.existsSync(iterFile)
+            ? JSON.parse(fs.readFileSync(iterFile, 'utf-8'))
+            : [];
+          break;
+        } catch (_) {
+          retries++;
+          const wait = ms => new Promise(r => setTimeout(r, ms));
+          // Sync wait - crude but works for file contention
+          const start = Date.now();
+          while (Date.now() - start < 200) {}
+        }
+      }
 
-      let status = result.status.toUpperCase();
-      const hasFailedMilestones = Array.isArray(testData.milestones) &&
+      // Determine pass/fail — trust policyNumber over Playwright result
+      // (exit code from cmd.exe is unreliable)
+      const hasPolicyNumber    = testData.policyNumber && testData.policyNumber !== 'N/A';
+      const hasFailedMilestone = Array.isArray(testData.milestones) &&
         testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED');
-      const hasPolicyNumber = testData.policyNumber && testData.policyNumber !== 'N/A';
-      if (!hasFailedMilestones && hasPolicyNumber) status = 'PASSED';
+      let status = result.status.toUpperCase();
+      if (!hasFailedMilestone && hasPolicyNumber) status = 'PASSED';
 
-      const iterationEntry = {
-        iterationNumber: existingIndex !== -1 ? iterations[existingIndex].iterationNumber : iterations.length + 1,
+      const existingIdx = iterations.findIndex(
+        it => it.state === testData.state && it.runId === this.runId
+      );
+
+      const entry = {
+        iterationNumber : existingIdx !== -1 ? iterations[existingIdx].iterationNumber : iterations.length + 1,
         status,
-        state: testData.state || 'N/A',
-        stateName: testData.stateName || 'N/A',
-        quoteNumber: testData.quoteNumber || 'N/A',
-        policyNumber: testData.policyNumber || 'N/A',
-        milestones: testData.milestones || [],
-        coverageChanges: testData.coverageChanges || [],
+        state           : testData.state    || 'N/A',
+        stateName       : testData.stateName || 'N/A',
+        quoteNumber     : testData.quoteNumber  || 'N/A',
+        policyNumber    : testData.policyNumber || 'N/A',
+        milestones      : testData.milestones           || [],
+        coverageChanges : testData.coverageChanges      || [],
         coverageSectionStats: testData.coverageSectionStats || [],
-        addCoverageTimings: testData.addCoverageTimings || [],
-        timestamp: new Date().toISOString(),
-        duration: Array.isArray(testData.milestones)
-          ? testData.milestones.reduce((sum, m) => sum + parseFloat(m.duration || 0), 0).toFixed(2)
+        addCoverageTimings  : testData.addCoverageTimings   || [],
+        timestamp       : new Date().toISOString(),
+        duration        : Array.isArray(testData.milestones)
+          ? testData.milestones.reduce((s, m) => s + parseFloat(m.duration || 0), 0).toFixed(2)
           : '0',
-        runId: this.runId,
+        runId : this.runId,
         suite,
       };
 
-      if (existingIndex !== -1) {
-        iterations[existingIndex] = iterationEntry;
-        console.log(`ðŸ”„ Updated existing iteration for state=${testData.state} (retry result)`);
-      } else {
-        iterations.push(iterationEntry);
-        console.log(`ðŸ’¾ Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}, quote=${testData.quoteNumber}`);
+      if (existingIdx !== -1) iterations[existingIdx] = entry;
+      else iterations.push(entry);
+
+      // Write with retry
+      retries = 0;
+      while (retries < 10) {
+        try {
+          fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2));
+          break;
+        } catch (_) {
+          retries++;
+          const start = Date.now();
+          while (Date.now() - start < 300) {}
+        }
       }
 
-      fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2));
+      console.log(`Saved iteration: suite=${suite}, state=${testData.state}, status=${status}, quote=${testData.quoteNumber}`);
     } catch (e) {
-      console.log('âš ï¸ onTestEnd error:', e.message);
+      console.log('onTestEnd error:', e.message);
     }
   }
 
   async onEnd() {
-    const suite = this._getSuiteLabel();
-    const batchMarkers = [
+    const suite   = this._getSuiteLabel();
+    const suiteLC = suite.toLowerCase();
+    const markers = [
       path.join(__dirname, '.batch-run-in-progress'),
-      path.join(__dirname, `.batch-run-in-progress-${suite.toLowerCase()}`)
+      path.join(__dirname, `.batch-run-in-progress-${suiteLC}`),
     ];
-    const isBatchRun = batchMarkers.some(marker => fs.existsSync(marker));
-    if (isBatchRun) {
-      console.log('â¸ï¸ Batch run detected; skipping individual email');
+    if (markers.some(m => fs.existsSync(m))) {
+      console.log('Batch run detected; skipping individual email');
       return;
     }
 
-    const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
-    console.log(`ðŸ” Looking for iterations file: ${iterFile}`);
-    console.log(`ðŸ” File exists: ${fs.existsSync(iterFile)}`);
-    console.log(`ðŸ” Current runId: ${this.runId}`);
+    const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
+    if (!fs.existsSync(iterFile)) { console.log('No iterations to email'); return; }
 
-    if (!fs.existsSync(iterFile)) {
-      console.log('âš ï¸ No iterations to email');
-      return;
-    }
-
-    const allIterations = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
-    console.log(`ðŸ” Total iterations in file: ${Array.isArray(allIterations) ? allIterations.length : 'not an array'}`);
-
-    const iterations = this.runId ? allIterations.filter(it => it.runId === this.runId) : allIterations;
-    console.log(`ðŸ” Filtered iterations (runId filter): ${iterations.length}`);
-
-    if (!iterations.length) {
-      console.log('âš ï¸ No iterations for this runId, sending all available iterations instead');
-      await this._sendEmail(allIterations, 'WB Smoke Testing Report');
-      return;
-    }
-
+    const all        = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
+    const iterations = this.runId ? all.filter(it => it.runId === this.runId) : all;
+    if (!iterations.length) { await this._sendEmail(all, 'WB Smoke Testing Report'); return; }
     await this._sendEmail(iterations, 'WB Smoke Testing Report');
   }
 
-  async _sendEmail(iterations, subjectPrefix) {
-    const passed = iterations.filter(it => it.status === 'PASSED').length;
-    const failed = iterations.length - passed;
-    const overallPassed = failed === 0;
-    const totalDuration = iterations.reduce((sum, it) => sum + parseFloat(it.duration || 0), 0).toFixed(2);
+  // ── Build average milestone table ─────────────────────────────────────────
+  _buildAverageMilestoneTable(iterations) {
+    const map = new Map();
+    iterations.forEach(it => {
+      (it.milestones || []).forEach(m => {
+        if (!m.name) return;
+        if (!map.has(m.name)) map.set(m.name, { durations: [], statuses: [] });
+        const dur = parseFloat(m.duration) || 0;
+        map.get(m.name).durations.push(dur);
+        map.get(m.name).statuses.push((m.status || 'N/A').toUpperCase());
+      });
+    });
 
-    // â”€â”€ Passed iterations table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const passedIterations = iterations.filter(it => it.status === 'PASSED');
-    const passedTableHtml = passedIterations.length > 0 ? `
-      <h3 style="color:#4CAF50;margin-top:20px;">âœ… Passed Iterations (${passedIterations.length})</h3>
+    if (map.size === 0) return '';
+
+    const rows = Array.from(map.entries()).map(([name, data], idx) => {
+      const avg     = (data.durations.reduce((s, d) => s + d, 0) / data.durations.length).toFixed(2);
+      const minD    = Math.min(...data.durations).toFixed(2);
+      const maxD    = Math.max(...data.durations).toFixed(2);
+      const allPass = data.statuses.every(s => s === 'PASSED');
+      const color   = allPass ? '#4CAF50' : '#f44336';
+      const bg      = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
+      return `
+        <tr style="background:${bg};">
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${idx + 1}</td>
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${name}</td>
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;text-align:right;">${avg}s</td>
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;text-align:right;">${minD}s</td>
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;text-align:right;">${maxD}s</td>
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${data.durations.length}</td>
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;font-weight:bold;color:${color};">${allPass ? 'PASSED' : 'MIXED'}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <h2 style="color:#333;margin-top:30px;">⏱ Average Milestone Timings (All States)</h2>
+      <p style="color:#666;font-size:12px;">Averaged across all ${iterations.length} state run(s) in this batch.</p>
       <table style="width:100%;border-collapse:collapse;margin:10px 0;">
         <thead>
-          <tr style="background:#4CAF50;color:white;">
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Iteration</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Line of Business</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Quote Number</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Policy Number</th>
+          <tr style="background:#1976d2;color:white;">
+            <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">#</th>
+            <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">Milestone</th>
+            <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;">Avg Duration</th>
+            <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;">Min</th>
+            <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;">Max</th>
+            <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">States Run</th>
+            <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">Status</th>
           </tr>
         </thead>
-        <tbody>
-          ${passedIterations.map((it, idx) => `
-            <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.suite || 'Package'} (${it.state || 'N/A'})</td>
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.policyNumber}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    ` : '';
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
 
-    // â”€â”€ Failed iterations table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const failedIterations = iterations.filter(it => it.status === 'FAILED');
-    const failedTableHtml = failedIterations.length > 0 ? `
-      <h3 style="color:#f44336;margin-top:20px;">âŒ Failed Iterations (${failedIterations.length})</h3>
+  async _sendEmail(iterations, subjectPrefix) {
+    const passed       = iterations.filter(it => it.status === 'PASSED').length;
+    const failed       = iterations.length - passed;
+    const overallPass  = failed === 0;
+    const totalDur     = iterations.reduce((s, it) => s + parseFloat(it.duration || 0), 0).toFixed(2);
+
+    // State summary table
+    const stateRows = iterations.map((it, idx) => {
+      const color = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
+      const icon  = it.status === 'PASSED' ? '✅' : '❌';
+      return `
+        <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
+          <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.state}</td>
+          <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.stateName}</td>
+          <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
+          <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.policyNumber}</td>
+          <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.duration}s</td>
+          <td style="padding:10px;border:1px solid #ddd;font-size:12px;font-weight:bold;color:${color};">${icon} ${it.status}</td>
+        </tr>`;
+    }).join('');
+
+    const stateTableHtml = `
+      <h2 style="color:#333;margin-top:24px;">📋 Results by State</h2>
       <table style="width:100%;border-collapse:collapse;margin:10px 0;">
         <thead>
-          <tr style="background:#f44336;color:white;">
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Iteration</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Line of Business</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Quote Number</th>
+          <tr style="background:#1976d2;color:white;">
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">State</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">State Name</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Quote #</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Policy #</th>
+            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Duration</th>
             <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Status</th>
           </tr>
         </thead>
-        <tbody>
-          ${failedIterations.map((it, idx) => `
-            <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">#${it.iterationNumber}</td>
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.suite || 'Package'} (${it.state || 'N/A'})</td>
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.quoteNumber}</td>
-              <td style="padding:10px;border:1px solid #ddd;font-size:12px;color:#f44336;font-weight:bold;">FAILED</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    ` : '';
+        <tbody>${stateRows}</tbody>
+      </table>`;
 
-    // â”€â”€ Milestone details â€” replaces coverage section, shown for ALL iterations â”€â”€
-    const milestoneDetailsHtml = iterations.map(it => {
-      const milestones = it.milestones || [];
-      if (milestones.length === 0) return '';
+    // Average milestone table
+    const avgMilestoneHtml = this._buildAverageMilestoneTable(iterations);
 
-      const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-      const statusIcon  = it.status === 'PASSED' ? 'âœ…' : 'âŒ';
-      const tabLabel    = `${it.suite || 'Package'}_${it.state || 'N/A'}_${it.iterationNumber}`;
-
-      const rows = milestones.map((m, idx) => {
-        const mStatus     = (m.status || 'N/A').toUpperCase();
-        const mColor      = mStatus === 'PASSED' ? '#4CAF50' : mStatus === 'FAILED' ? '#f44336' : '#FF9800';
-        const durationVal = m.duration ? m.duration : '-';
+    // Per-state milestone detail (collapsed)
+    const detailHtml = iterations.map(it => {
+      const sc    = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
+      const icon  = it.status === 'PASSED' ? '✅' : '❌';
+      const label = `${it.suite || 'Package'}_${it.state}_${it.iterationNumber}`;
+      const rows  = (it.milestones || []).map((m, i) => {
+        const mc  = (m.status || '').toUpperCase() === 'PASSED' ? '#4CAF50' : '#f44336';
         return `
-          <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
-            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${idx + 1}</td>
-            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${m.name || '-'}</td>
-            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;font-weight:bold;color:${mColor};">${mStatus}</td>
-            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;text-align:right;">${durationVal}</td>
-            <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;color:#666;">${m.details || '-'}</td>
-          </tr>
-        `;
+          <tr style="background:${i % 2 === 0 ? '#fff' : '#f8f9fa'};">
+            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">${i+1}</td>
+            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">${m.name||'-'}</td>
+            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;color:${mc};font-weight:bold;">${m.status||'-'}</td>
+            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;text-align:right;">${m.duration||'-'}</td>
+            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;color:#666;">${m.details||'-'}</td>
+          </tr>`;
       }).join('');
-
       return `
-        <div style="margin:24px 0;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">
-          <div style="background:${statusColor};padding:10px 16px;display:flex;align-items:center;gap:8px;">
+        <div style="margin:16px 0;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">
+          <div style="background:${sc};padding:10px 16px;">
             <span style="color:white;font-size:13px;font-weight:bold;">
-              ${statusIcon} ${tabLabel} â€” ${it.suite || 'Package'} | State: ${it.state || 'N/A'} | Iteration #${it.iterationNumber}
-            </span>
-            <span style="color:rgba(255,255,255,0.85);font-size:12px;margin-left:auto;">
-              Quote: ${it.quoteNumber} &nbsp;|&nbsp; Policy: ${it.policyNumber} &nbsp;|&nbsp; Total: ${it.duration}s
+              ${icon} ${label} | State: ${it.state} | Quote: ${it.quoteNumber} | Policy: ${it.policyNumber} | ${it.duration}s
             </span>
           </div>
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="background:#f5f5f5;">
-                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">#</th>
-                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">Milestone</th>
-                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">Status</th>
-                <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;color:#555;">Duration</th>
-                <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;color:#555;">Details</th>
+                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">#</th>
+                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Milestone</th>
+                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Status</th>
+                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Duration</th>
+                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Details</th>
               </tr>
             </thead>
-            <tbody>
-              ${rows}
-            </tbody>
+            <tbody>${rows}</tbody>
           </table>
-        </div>
-      `;
+        </div>`;
     }).join('');
 
-    // â”€â”€ Assemble full email body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;">
-        <h1 style="color:#1976d2;">ðŸŽ­ ${subjectPrefix}</h1>
-
+        <h1 style="color:#1976d2;">🎭 ${subjectPrefix}</h1>
         <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
-          <h3 style="margin-top:0;">ðŸ“Š Test Summary</h3>
-          <p><b>Overall Status:</b> ${overallPassed ? 'âœ… PASSED' : 'âŒ FAILED'}</p>
-          <p><b>Total Iterations:</b> ${iterations.length}</p>
-          <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span>
-             &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
-          <p><b>Test Duration:</b> ${totalDuration}s</p>
+          <h3 style="margin-top:0;">📊 Test Summary</h3>
+          <p><b>Overall:</b> ${overallPass ? '✅ ALL PASSED' : '⚠️ SOME FAILED'}</p>
+          <p><b>States Run:</b> ${iterations.length} &nbsp;|&nbsp;
+             <b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span> &nbsp;|&nbsp;
+             <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
+          <p><b>Total Duration:</b> ${totalDur}s</p>
         </div>
+        ${stateTableHtml}
+        ${avgMilestoneHtml}
+        <h2 style="color:#333;margin-top:30px;">📋 Milestone Details (Per State)</h2>
+        ${detailHtml || '<p style="color:#999;">No milestone data.</p>'}
+      </div>`;
 
-        <h2 style="color:#333;margin-top:30px;">Iteration Results</h2>
-        ${passedTableHtml}
-        ${failedTableHtml}
-
-        <h2 style="color:#333;margin-top:30px;">ðŸ“‹ Milestone Details (All Iterations)</h2>
-        <p style="color:#666;font-size:12px;margin-bottom:16px;">
-          Each section below corresponds to an Excel tab (e.g. Package_DE_1) in the attached report.
-        </p>
-        ${milestoneDetailsHtml || '<p style="color:#999;">No milestone data available.</p>'}
-      </div>
-    `;
-
-    const excelFile = await this._createExcelReport(iterations);
+    const excelFile   = await this._createExcelReport(iterations);
     const attachments = excelFile ? [{ filename: path.basename(excelFile), path: excelFile }] : [];
 
     if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
-      console.log('âš ï¸ SMTP not configured; email skipped');
-      if (excelFile) console.log('â„¹ï¸ Excel generated at:', excelFile);
+      console.log('SMTP not configured; email skipped');
       return;
     }
 
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 25,
-      secure: false,
-      tls: { rejectUnauthorized: false },
-      auth: process.env.SMTP_USER && process.env.SMTP_PASS
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-        : undefined
+      host   : process.env.SMTP_HOST,
+      port   : Number(process.env.SMTP_PORT) || 25,
+      secure : false,
+      tls    : { rejectUnauthorized: false },
     });
 
-    const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    const subjectLine = `${subjectPrefix}: ${todayDate} - ${passed} Passed, ${failed} Failed`;
+    const today   = new Date().toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' });
+    const subject = `${subjectPrefix}: ${today} - ${passed} Passed, ${failed} Failed`;
 
     try {
-      await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject: subjectLine, html, attachments });
-      console.log('âœ” Email sent successfully');
+      await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject, html, attachments });
+      console.log('Email sent successfully');
     } catch (err) {
-      console.error('âŒ Email send failed:', err.message);
+      console.error('Email send failed:', err.message);
       throw err;
     }
   }
 
   async _createExcelReport(iterations) {
     try {
-      const excelPath = path.join(__dirname, 'WB_Test_Report.xlsx');
-      const targetWb = XLSX.utils.book_new();
-      const runTag = new Date().toISOString().replace(/[:]/g, '-').slice(0, 19);
+      const excelPath = path.join(__dirname, `WB_Test_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+      const wb        = XLSX.utils.book_new();
 
-      // â”€â”€ Summary sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Summary sheet
       const summaryData = iterations.map(it => ({
-        'Iteration #': it.iterationNumber,
-        'Line of Business': `${it.suite || 'Package'} (${it.state || 'N/A'})`,
-        'Quote Number': it.quoteNumber,
-        'Policy Number': it.policyNumber,
-        'Status': it.status,
-        'Duration (s)': it.duration,
-        'State': it.state
+        'State'         : it.state,
+        'State Name'    : it.stateName,
+        'Suite'         : it.suite,
+        'Status'        : it.status,
+        'Quote Number'  : it.quoteNumber,
+        'Policy Number' : it.policyNumber,
+        'Duration (s)'  : it.duration,
+        'Timestamp'     : it.timestamp,
       }));
-      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(summaryData), `Summary_${runTag}`.substring(0, 31));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Summary');
 
-      // â”€â”€ Milestones Analytics sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      const milestoneAggregates = new Map();
-      iterations.filter(it => it.status === 'PASSED').forEach(it => {
+      // Average milestones sheet
+      const map = new Map();
+      iterations.forEach(it => {
         (it.milestones || []).forEach(m => {
-          if (!m.name || m.status !== 'PASSED') return;
-          if (!milestoneAggregates.has(m.name)) milestoneAggregates.set(m.name, { totalDuration: 0, count: 0, runs: [] });
-          const duration = parseFloat(m.duration) || 0;
-          const existing = milestoneAggregates.get(m.name);
-          existing.totalDuration += duration;
-          existing.count += 1;
-          existing.runs.push({ suite: it.suite || 'Package', state: it.state, duration });
+          if (!m.name) return;
+          if (!map.has(m.name)) map.set(m.name, { durations: [], statuses: [] });
+          map.get(m.name).durations.push(parseFloat(m.duration) || 0);
+          map.get(m.name).statuses.push((m.status || '').toUpperCase());
         });
       });
-
-      const analyticsData = Array.from(milestoneAggregates.entries()).map(([milestoneName, data]) => ({
-        'Milestone': milestoneName,
-        'Average Duration (s)': (data.totalDuration / data.count).toFixed(2),
-        'Min Duration (s)': Math.min(...data.runs.map(r => r.duration)).toFixed(2),
-        'Max Duration (s)': Math.max(...data.runs.map(r => r.duration)).toFixed(2),
-        'Total Runs': data.count,
-        'Suites': [...new Set(data.runs.map(r => r.suite))].join(', '),
-        'States': [...new Set(data.runs.map(r => r.state))].join(', ')
+      const avgData = Array.from(map.entries()).map(([name, data]) => ({
+        'Milestone'       : name,
+        'Avg Duration (s)': (data.durations.reduce((s,d)=>s+d,0)/data.durations.length).toFixed(2),
+        'Min (s)'         : Math.min(...data.durations).toFixed(2),
+        'Max (s)'         : Math.max(...data.durations).toFixed(2),
+        'States Run'      : data.durations.length,
+        'Status'          : data.statuses.every(s=>s==='PASSED') ? 'PASSED' : 'MIXED',
       }));
-      XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(analyticsData), 'Milestones_Analytics');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(avgData), 'Avg_Milestones');
 
-      // â”€â”€ Coverage Changes sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      const coverageAnalyticsData = [];
+      // Per-state milestone sheets
+      const usedNames = new Set(wb.SheetNames);
       iterations.forEach(it => {
-        (it.coverageChanges || []).forEach(change => {
-          coverageAnalyticsData.push({
-            'Quote Number': change.quoteNumber || 'N/A',
-            'Coverage Section': change.coverageSection || 'N/A',
-            'Coverage': change.coverage || 'N/A',
-            'Old Value': change.oldValue || 'N/A',
-            'New Value': change.newValue || 'N/A',
-            'Status': change.status || 'N/A',
-            'Suite': it.suite || 'N/A',
-            'State': it.state || 'N/A',
-            'Iteration': it.iterationNumber
-          });
-        });
-      });
-      if (coverageAnalyticsData.length > 0) {
-        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageAnalyticsData), 'Coverage_Changes');
-      }
-
-      // â”€â”€ Coverage Section Timings sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      const coverageSectionData = [];
-      iterations.forEach(it => {
-        (it.coverageSectionStats || []).forEach(row => {
-          coverageSectionData.push({
-            'Quote Number': row.quoteNumber || 'N/A',
-            'Coverage Section': row.coverageSection || 'N/A',
-            'Dropdowns Updated': row.dropdownsUpdated || 0,
-            'Duration': row.durationFormatted || `${row.durationSeconds || '0'}s`,
-            'Suite': it.suite || 'N/A',
-            'State': it.state || 'N/A',
-            'Iteration': it.iterationNumber
-          });
-        });
-      });
-      if (coverageSectionData.length) {
-        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageSectionData), 'Coverage_Section_Timings');
-      }
-
-      // â”€â”€ Add Coverage Timings sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      const addCoverageData = [];
-      iterations.forEach(it => {
-        (it.addCoverageTimings || []).forEach(row => {
-          addCoverageData.push({
-            'Iteration': it.iterationNumber,
-            'Quote Number': it.quoteNumber || 'N/A',
-            'Action': row.action || 'Add',
-            'Step #': row.index,
-            'Coverage Name': row.coverage || 'Unknown',
-            'Duration (s)': row.duration || '0',
-            'Suite': it.suite || 'N/A',
-            'State': it.state || 'N/A'
-          });
-        });
-      });
-      if (addCoverageData.length) {
-        XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(addCoverageData), 'Add_Coverage_Timings');
-      }
-
-      // â”€â”€ Per-iteration milestone sheets (e.g. Package_DE_1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // FIX: dedup sheet names to prevent XLSX collision on parallel/retry runs
-      const usedSheetNames = new Set(targetWb.SheetNames);
-
-      iterations.forEach(it => {
-        const milestoneData = (it.milestones || []).map((m, idx) => ({
-          '#': idx + 1,
-          'Milestone': m.name || '-',
-          'Status': m.status || 'N/A',
-          'Duration (s)': m.duration || '-',
-          'Details': m.details || '-',
-          'Timestamp': m.timestamp || '-',
+        const data = (it.milestones || []).map((m, i) => ({
+          '#'           : i+1,
+          'Milestone'   : m.name    || '-',
+          'Status'      : m.status  || '-',
+          'Duration (s)': m.duration|| '-',
+          'Details'     : m.details || '-',
         }));
-
-        const ws = XLSX.utils.json_to_sheet(milestoneData);
-
-        // Match the label used in the email body: Suite_State_IterNum
-        const sheetBase = `${(it.suite || 'Suite').replace(/[^A-Za-z0-9]/g, '_')}_${it.state || 'N_A'}_${it.iterationNumber}`;
-        let sheetName = sheetBase.substring(0, 31);
-
-        // Deduplicate if the same name already exists (retry / parallel collision)
-        let suffix = 2;
-        while (usedSheetNames.has(sheetName)) {
-          sheetName = `${sheetBase.substring(0, 28)}_${suffix++}`.substring(0, 31);
-        }
-        usedSheetNames.add(sheetName);
-
-        XLSX.utils.book_append_sheet(targetWb, ws, sheetName);
+        const base = `${(it.suite||'Suite').replace(/[^A-Za-z0-9]/g,'_')}_${it.state}_${it.iterationNumber}`.substring(0,31);
+        let name = base; let suf = 2;
+        while (usedNames.has(name)) name = `${base.substring(0,28)}_${suf++}`.substring(0,31);
+        usedNames.add(name);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), name);
       });
 
-      XLSX.writeFile(targetWb, excelPath);
+      XLSX.writeFile(wb, excelPath);
       return excelPath;
     } catch (e) {
-      console.error('âš ï¸ Failed to create Excel:', e.message);
+      console.error('Excel creation failed:', e.message);
       return null;
     }
   }
 
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
-    console.log('ðŸ“¨ Sending consolidated batch email...');
+    console.log('Sending consolidated batch email...');
     let iterations = [];
 
-    const iterationFiles = iterationFilesOverride || ['iterations-data-bop.json', 'iterations-data-package.json'];
-
-    for (const file of iterationFiles) {
+    const files = iterationFilesOverride || ['iterations-data-package.json', 'iterations-data-ca.json', 'iterations-data-bop.json'];
+    for (const file of files) {
       const fp = path.join(__dirname, file);
       if (!fs.existsSync(fp)) continue;
-      const allIterations = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];
-      if (!allIterations.length) continue;
-      const runIds = allIterations.map(it => it.runId).filter(Boolean);
-      const latestRunId = runIds.length ? runIds.sort().slice(-1)[0] : null;
-      const filtered = latestRunId ? allIterations.filter(it => it.runId === latestRunId) : allIterations;
-      console.log(`   ${file}: ${allIterations.length} total, using ${filtered.length} from runId ${latestRunId || 'N/A'}`);
+      let all = [];
+      try { all = JSON.parse(fs.readFileSync(fp, 'utf-8')) || []; } catch (_) { continue; }
+      if (!all.length) continue;
+      // Get the most recent runId and use all iterations from that run
+      const runIds    = [...new Set(all.map(it => it.runId).filter(Boolean))].sort();
+      const latestRun = runIds.slice(-1)[0];
+      const filtered  = latestRun ? all.filter(it => it.runId === latestRun) : all;
+      console.log(`   ${file}: ${all.length} total, using ${filtered.length} from runId ${latestRun || 'N/A'}`);
       iterations = iterations.concat(filtered);
     }
 
-    if (!iterations.length) { console.log('âš ï¸ No iterations found'); return; }
+    if (!iterations.length) { console.log('No iterations found for batch email'); return; }
 
     const reporter = new EmailReporter();
-    await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report (Batch)');
+    await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report');
   }
 }
 
