@@ -26,7 +26,6 @@ test('BOP Submission', async ({ page }, testInfo) => {
   const stateConfig = getStateConfig(testState);
   console.log('Running BOP test for state: ' + testState + ' (' + stateConfig.name + ')');
 
-  // ── Initialize testData (same structure as Package/CA) ────────────────────
   global.testData = {
     state: testState,
     stateName: stateConfig.name,
@@ -44,7 +43,6 @@ test('BOP Submission', async ({ page }, testInfo) => {
   const testDataFile = path.join(__dirname, 'test-data-' + testState + '.json');
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
 
-  // ── HTTP tracking ─────────────────────────────────────────────────────────
   page.on('response', async (response) => {
     try {
       const url    = response.url();
@@ -84,14 +82,54 @@ test('BOP Submission', async ({ page }, testInfo) => {
       duration = (Math.max(elapsed, 0) / 1000).toFixed(2);
     }
     global.testData.milestones.push({ name, status, timestamp: now, details, duration: duration ? duration + 's' : null });
-    console.log((status === 'PASSED' ? '\u2705' : '\u274c') + ' ' + name + (duration ? ' (' + duration + 's)' : ''));
+    console.log((status === 'PASSED' ? 'OK' : 'FAIL') + ' ' + name + (duration ? ' (' + duration + 's)' : ''));
     saveTestData();
     currentStepStartTime = new Date();
     waitBudgetMs = 0;
   }
 
+  // ── Modal dismissal helpers ───────────────────────────────────────────────
+  async function dismissStatusModal() {
+    try {
+      const modal = page.locator('#dgic-status-message');
+      if (await modal.isVisible({ timeout: 1500 }).catch(() => false)) {
+        console.log('Status modal visible - dismissing...');
+        const btn = modal.locator('button').first();
+        if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
+        await modal.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+        await page.waitForTimeout(300);
+      }
+    } catch (e) {}
+  }
+
+  async function safeNextClick() {
+    await dismissStatusModal();
+    await page.waitForTimeout(300);
+    await dismissStatusModal();
+    const btn = page.getByRole('button', { name: 'Next' });
+    await btn.waitFor({ state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => {
+      const candidates = Array.from(document.querySelectorAll('button'));
+      const nextBtn = candidates.find(b => b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
+      return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
+    }, { timeout: 15000 }).catch(() => {});
+    await dismissStatusModal();
+    await btn.click();
+  }
+
+  async function safeContinueClick() {
+    await dismissStatusModal();
+    await page.waitForTimeout(300);
+    await dismissStatusModal();
+    const btn = page.getByRole('button', { name: 'Continue ' });
+    await btn.waitFor({ state: 'visible', timeout: 30000 });
+    await dismissStatusModal();
+    await btn.click();
+  }
+
   async function clickIfExists(buttonName) {
     try {
+      await dismissStatusModal();
       await page.getByRole('button', { name: buttonName }).click({ timeout: 5000 });
       console.log('"' + buttonName + '" clicked');
     } catch (_) {
@@ -103,25 +141,28 @@ test('BOP Submission', async ({ page }, testInfo) => {
   currentStepStartTime = new Date();
 
   try {
-    // ── Account creation (shared with Package/CA) ─────────────────────────
+    // ── Account creation ──────────────────────────────────────────────────
     await createAccountAndQualify(page, { writeBizUrl, testState, clickIfExists, trackMilestone });
 
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
+    await dismissStatusModal();
 
-    // ── Select Businessowners (BOP) ────────────────────────────────────────
+    // ── Select Businessowners (BOP) ───────────────────────────────────────
     const bopCheckbox = page.locator('#chk_businessowners, label[for="chk_businessowners"]').first();
     await bopCheckbox.waitFor({ state: 'visible', timeout: 15000 });
     await bopCheckbox.click({ force: true });
     console.log('Businessowners checkbox clicked');
     await page.waitForTimeout(1000);
+    await dismissStatusModal();
 
     await page.getByRole('button', { name: 'Next' }).click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
+    await dismissStatusModal();
     trackMilestone('BOP Product Selected');
 
-    // ── Prior carrier ──────────────────────────────────────────────────────
+    // ── Prior carrier ─────────────────────────────────────────────────────
     const priorCarrierSelect = page.locator('#ddlPriorCarrier');
     await priorCarrierSelect.waitFor({ state: 'visible', timeout: 15000 });
     const firstCarrier = await priorCarrierSelect.evaluate(el => {
@@ -130,16 +171,19 @@ test('BOP Submission', async ({ page }, testInfo) => {
     });
     if (!firstCarrier) throw new Error('No prior carrier options available');
     await priorCarrierSelect.selectOption(firstCarrier);
-    await page.getByRole('button', { name: 'Next ' }).click();
+    await dismissStatusModal();
+    await safeNextClick();
     await page.waitForLoadState('domcontentloaded');
+    await dismissStatusModal();
     trackMilestone('Policy Details Entered');
 
-    // ── BOP-specific coverage flow ─────────────────────────────────────────
+    // ── BOP coverage flow ─────────────────────────────────────────────────
     await runBopCoverageFlow(page, { testState, trackMilestone, clickIfExists });
 
-    // ── Quote rating loop ──────────────────────────────────────────────────
+    // ── Quote rating loop ─────────────────────────────────────────────────
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(4000);
+    await dismissStatusModal();
 
     const quoteNumberEl = page.locator('#tblQuotes tbody tr').first().locator('td').nth(3);
     await quoteNumberEl.waitFor({ state: 'visible', timeout: 30000 });
@@ -185,7 +229,6 @@ test('BOP Submission', async ({ page }, testInfo) => {
     global.testData.quoteNumber = quoteNumber;
     saveTestData();
 
-    // ── Policy submission ──────────────────────────────────────────────────
     const policyNumber = await submitPolicyForApproval(page, quoteNumber, { policyCenterUrl, trackMilestone });
     global.testData.policyNumber = policyNumber;
     global.testData.status = 'PASSED';

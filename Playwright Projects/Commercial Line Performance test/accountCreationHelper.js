@@ -2,6 +2,7 @@
  * accountCreationHelper.js
  * Creates a WB account and completes qualification.
  * Credentials from .env (WB_USER_* / WB_PASS_*) - never hardcoded.
+ * Added: dismissStatusModal before every Next click
  */
 
 require('dotenv').config();
@@ -9,7 +10,6 @@ const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/rand
 const { randCityForState, randZipForState }            = require('./stateConfig');
 const { stateToZips, zipToCityState }                  = require('./address-helper/dist/zipData');
 
-// ── Credentials from .env ─────────────────────────────────────────────────────
 const STATE_USERS = {
   DE: { username: process.env.WB_USER_DE, password: process.env.WB_PASS_DE },
   PA: { username: process.env.WB_USER_PA, password: process.env.WB_PASS_PA },
@@ -17,34 +17,25 @@ const STATE_USERS = {
   WI: { username: process.env.WB_USER_WI, password: process.env.WB_PASS_WI },
 };
 
-// ── Address helper ────────────────────────────────────────────────────────────
 function getRandomAddressByState(state) {
   const zips = stateToZips[state];
   if (!zips || zips.length === 0) throw new Error('No zips for state: ' + state);
   const zip = zips[Math.floor(Math.random() * zips.length)];
   const loc = zipToCityState[zip];
   if (!loc) throw new Error('No city/state for zip: ' + zip);
-  return {
-    street: Math.floor(Math.random() * 900 + 100) + ' Main St',
-    city: loc.city,
-    state: loc.state,
-    zip,
-  };
+  return { street: Math.floor(Math.random() * 900 + 100) + ' Main St', city: loc.city, state: loc.state, zip };
 }
 
-// ── Phone generator ───────────────────────────────────────────────────────────
 function randPhone717() {
   return '717' + Math.floor(1000000 + Math.random() * 9000000);
 }
 
-// ── Agency config per state ───────────────────────────────────────────────────
 function getAgencyConfig(testState) {
   if (['CO', 'IL', 'IN'].includes(testState)) return { agencyCode: '4501307', producerName: 'JEFFERY S. REYNOLDS' };
   if (testState === 'AZ') return { agencyCode: '9000325', producerName: 'CHRISTINA M. BOWER' };
   return { agencyCode: '0000988', producerName: 'CHRISTINA M. BOWER' };
 }
 
-// ── Field helper ──────────────────────────────────────────────────────────────
 async function fillLabeledTextbox(page, labelTextOrList, value, sectionText) {
   const labelList = Array.isArray(labelTextOrList) ? labelTextOrList : [labelTextOrList];
   const ctx = sectionText
@@ -63,20 +54,12 @@ async function fillLabeledTextbox(page, labelTextOrList, value, sectionText) {
   for (const lbl of labelList) {
     for (const sel of (direct[lbl] || [])) {
       const el = ctx.locator(sel).first();
-      if (await el.count() > 0 && await el.isVisible().catch(() => false)) {
-        await el.clear();
-        await el.fill(value);
-        return;
-      }
+      if (await el.count() > 0 && await el.isVisible().catch(() => false)) { await el.clear(); await el.fill(value); return; }
     }
     const ex = ctx.getByRole('textbox', { name: lbl }).first();
     if (await ex.count() > 0) { await ex.fill(value); return; }
-
-    const fb = ctx.locator(
-      'xpath=//*[normalize-space(.)=' + JSON.stringify(lbl) + ']/following::input[1]'
-    ).first();
+    const fb = ctx.locator('xpath=//*[normalize-space(.)=' + JSON.stringify(lbl) + ']/following::input[1]').first();
     if (await fb.count() > 0) { await fb.fill(value); return; }
-
     const gfb = ctx.locator(
       'xpath=//label[contains(normalize-space(.), ' + JSON.stringify(lbl) + ')]/following::input[1]' +
       ' | //input[contains(@id, ' + JSON.stringify(lbl) + ')]' +
@@ -87,7 +70,35 @@ async function fillLabeledTextbox(page, labelTextOrList, value, sectionText) {
   throw new Error('Cannot find textbox for: ' + JSON.stringify(labelTextOrList));
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Shared modal dismissal (used throughout account creation) ─────────────────
+async function dismissStatusModal(page) {
+  try {
+    const modal = page.locator('#dgic-status-message');
+    if (await modal.isVisible({ timeout: 1500 }).catch(() => false)) {
+      console.log('Status modal visible - dismissing...');
+      const btn = modal.locator('button').first();
+      if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
+      await modal.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(300);
+    }
+  } catch (e) {}
+}
+
+async function safeNextClick(page) {
+  await dismissStatusModal(page);
+  await page.waitForTimeout(300);
+  await dismissStatusModal(page);
+  const btn = page.getByRole('button', { name: 'Next' });
+  await btn.waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => {
+    const candidates = Array.from(document.querySelectorAll('button'));
+    const nextBtn = candidates.find(b => b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
+    return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
+  }, { timeout: 15000 }).catch(() => {});
+  await dismissStatusModal(page);
+  await btn.click();
+}
+
 async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfExists, trackMilestone }) {
   const state = testState;
   console.log('createAccountAndQualify: state=' + state);
@@ -96,7 +107,6 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   if (!creds.username || !creds.password)
     throw new Error('Missing credentials for ' + state + '. Set WB_USER_' + state + ' / WB_PASS_' + state + ' in .env');
 
-  // ── Resolve address ──────────────────────────────────────────────────────────
   let helperAddress = null;
   try { helperAddress = getRandomAddressByState(state); }
   catch (err) { console.log('Address helper failed: ' + err.message); }
@@ -112,6 +122,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.getByRole('textbox', { name: 'Password:' }).fill(creds.password);
   await page.locator('#btnLogin').click({ timeout: 30000 });
   await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await dismissStatusModal(page);
   console.log('WB Login successful');
   trackMilestone('Logged in to WB');
 
@@ -119,14 +130,10 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.locator('#btn_CreateClient').click();
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
+  await dismissStatusModal(page);
 
-  // Wait for agency search field (old + Kraken UI)
   await page.waitForFunction(() => {
-    const selectors = [
-      '#acg_agency_input', '#txtAgency_input', 'input.dgic-autocomplete-grid',
-      'input[data-toggle="dropdown"]', 'input[placeholder*="Enter Search Text"]',
-      'input[placeholder*="Search Text here"]'
-    ];
+    const selectors = ['#acg_agency_input','#txtAgency_input','input.dgic-autocomplete-grid','input[data-toggle="dropdown"]','input[placeholder*="Enter Search Text"]','input[placeholder*="Search Text here"]'];
     for (const s of selectors) {
       const el = document.querySelector(s);
       if (!el) continue;
@@ -140,11 +147,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   // ── Agency selection ─────────────────────────────────────────────────────────
   const { agencyCode, producerName } = getAgencyConfig(testState);
 
-  const agencySels = [
-    '#acg_agency_input', '#txtAgency_input', 'input.dgic-autocomplete-grid',
-    'input[data-toggle="dropdown"]', 'input[placeholder*="Enter Search Text"]',
-    'input[placeholder*="Search Text here"]'
-  ];
+  const agencySels = ['#acg_agency_input','#txtAgency_input','input.dgic-autocomplete-grid','input[data-toggle="dropdown"]','input[placeholder*="Enter Search Text"]','input[placeholder*="Search Text here"]'];
   let agencyInput = null;
   for (const sel of agencySels) {
     const c = page.locator(sel).first();
@@ -152,7 +155,6 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   if (!agencyInput) throw new Error('Agency search input not found');
 
-  // Click search field to open it
   const searchTextField = page.locator(agencySels.join(', '));
   if (await searchTextField.count() > 0) await searchTextField.first().click();
 
@@ -191,15 +193,14 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     await gridcellOption.waitFor({ state: 'visible', timeout: 15000 });
     await gridcellOption.click({ force: true });
   } else {
-    const agencyOption = page.locator(
-      '.ui-menu.ui-widget:visible, .dropdown-menu.show, .bs-select .dropdown-menu.show, [role="option"]:visible'
-    ).filter({ hasText: agencyCode }).first();
+    const agencyOption = page.locator('.ui-menu.ui-widget:visible, .dropdown-menu.show, .bs-select .dropdown-menu.show, [role="option"]:visible').filter({ hasText: agencyCode }).first();
     await agencyOption.waitFor({ state: 'visible', timeout: 15000 });
     await agencyOption.click({ force: true });
   }
 
   // ── Producer selection ───────────────────────────────────────────────────────
   await page.waitForTimeout(2000);
+  await dismissStatusModal(page);
 
   let producerItems = page.locator('.ui-menu.ui-widget:visible .ui-menu-item, .ui-menu.ui-widget:visible a');
   if (await producerItems.count() === 0) {
@@ -207,9 +208,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     await producerToggle.waitFor({ state: 'visible', timeout: 10000 });
     await producerToggle.click({ force: true });
     await page.waitForTimeout(500);
-    producerItems = page.locator(
-      'div.dropdown.bootstrap-select:has(button[data-id="ddlProducer"]) .dropdown-menu.show .dropdown-item'
-    );
+    producerItems = page.locator('div.dropdown.bootstrap-select:has(button[data-id="ddlProducer"]) .dropdown-menu.show .dropdown-item');
   }
 
   const allProducers = await producerItems.allTextContents();
@@ -221,19 +220,20 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await producerItem.waitFor({ state: 'visible', timeout: 15000 });
   await producerItem.click({ force: true });
 
-  // Also try native select fallback
   const producerSelect = page.locator('#ddlProducer');
   if (await producerSelect.count() > 0) {
     await producerSelect.selectOption({ label: producerName }).catch(() => {});
   }
 
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: 'Next' }).click();
+  await dismissStatusModal(page);
+  await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page.waitForTimeout(1000);
+  await dismissStatusModal(page);
 
   // ── Client info ──────────────────────────────────────────────────────────────
-  await fillLabeledTextbox(page, ['Business Name', 'Company/ Individual Name', 'Company Name'], randCompany(), 'Account Information');
+  await fillLabeledTextbox(page, ['Business Name','Company/ Individual Name','Company Name'], randCompany(), 'Account Information');
   await page.waitForTimeout(800);
   await fillLabeledTextbox(page, 'Street Line 1', mailingStreet, 'Account Mailing Address');
   await fillLabeledTextbox(page, 'City', mailingCity, 'Account Mailing Address');
@@ -244,11 +244,8 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   let stateSet = false;
   const stateSelect = page.locator('#ddlLocationState, select[name="ddlLocationState"], select[id*="LocationState"], select[name*="LocationState"]');
   if (await stateSelect.count() > 0 && await stateSelect.first().isVisible().catch(() => false)) {
-    try {
-      await stateSelect.first().selectOption({ value: testState });
-      console.log('State selected: ' + testState);
-      stateSet = true;
-    } catch (e) { console.log('Native state select failed: ' + e.message); }
+    try { await stateSelect.first().selectOption({ value: testState }); console.log('State selected: ' + testState); stateSet = true; }
+    catch (e) { console.log('Native state select failed: ' + e.message); }
   }
 
   if (!stateSet) {
@@ -275,7 +272,6 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     await mailingPhone.press('Delete');
     await mailingPhone.fill(phoneVal);
     await mailingPhone.blur();
-
     const expectedDigits = phoneVal.replace(/\D/g, '');
     let normalized = false;
     for (let attempt = 0; attempt < 20; attempt++) {
@@ -291,12 +287,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.waitForTimeout(1000);
 
   // ── Email ────────────────────────────────────────────────────────────────────
-  const emailSelectors = [
-    'input[name="txtClientInformationEmail"]:visible',
-    '#txtClientInformationEmail:visible',
-    'input[type="email"]:visible',
-    'input[name*="mail"]:visible',
-  ];
+  const emailSelectors = ['input[name="txtClientInformationEmail"]:visible','#txtClientInformationEmail:visible','input[type="email"]:visible','input[name*="mail"]:visible'];
   let emailField = null;
   for (const sel of emailSelectors) {
     const c = page.locator(sel).first();
@@ -313,14 +304,17 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.waitForTimeout(1000);
 
   // ── Submit client info ───────────────────────────────────────────────────────
-  await page.getByRole('button', { name: 'Next' }).click();
+  await dismissStatusModal(page);
+  await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
+  await dismissStatusModal(page);
 
   await clickIfExists('Accept As-Is'); await page.waitForTimeout(2000);
   await clickIfExists('Use Suggested'); await page.waitForTimeout(500);
   await clickIfExists('Account not listed'); await page.waitForTimeout(500);
   await clickIfExists('Continue'); await page.waitForTimeout(800);
+  await dismissStatusModal(page);
 
   // ── Business details ─────────────────────────────────────────────────────────
   const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
@@ -341,16 +335,13 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   // ── NAICS code ───────────────────────────────────────────────────────────────
   const naicsInput = page.locator('#txtNAICSCode_input').first();
   if (await naicsInput.count() > 0 && await naicsInput.isVisible().catch(() => false)) {
-    // Clear and type
     await naicsInput.click({ clickCount: 3 });
     await naicsInput.fill('');
     await page.waitForTimeout(200);
     await naicsInput.type('812210', { delay: 150 });
 
-    // Wait for suggestion dropdown to appear
     const suggestion = page.locator(
-      '.ui-menu.ui-widget .ui-menu-item, .ui-autocomplete .ui-menu-item, ' +
-      '[role="option"], .dgic-autocomplete-grid tr, .dropdown-menu.show .dropdown-item'
+      '.ui-menu.ui-widget .ui-menu-item, .ui-autocomplete .ui-menu-item, [role="option"], .dgic-autocomplete-grid tr, .dropdown-menu.show .dropdown-item'
     ).filter({ hasText: 'Director services, funeral' }).first();
 
     try {
@@ -358,13 +349,11 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
       await suggestion.click({ force: true });
       console.log('NAICS suggestion clicked');
     } catch (_) {
-      // Fallback 1: gridcell
       const gridCell = page.getByRole('gridcell', { name: /Director services, funeral/i }).first();
       if (await gridCell.count() > 0) {
         await gridCell.click({ force: true });
         console.log('NAICS clicked via gridcell');
       } else {
-        // Fallback 2: keyboard
         await naicsInput.press('ArrowDown');
         await page.waitForTimeout(500);
         await naicsInput.press('Enter');
@@ -404,26 +393,24 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.waitForTimeout(800);
   await page.getByRole('textbox', { name: 'Email' }).fill(randEmail());
   await page.waitForTimeout(1000);
-  await page.getByRole('button', { name: 'Next' }).click();
+  await dismissStatusModal(page);
+  await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
+  await dismissStatusModal(page);
   console.log('Account creation completed');
 
   // ── Qualification ────────────────────────────────────────────────────────────
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(3000);
+  await dismissStatusModal(page);
 
-  const coverageDropdown = page.locator(
-    '#xddl_Question_Form_CLAcctProdEligibility_Ext_0_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question'
-  );
+  const coverageDropdown = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question');
   await coverageDropdown.waitFor({ state: 'visible', timeout: 30000 });
   await coverageDropdown.selectOption('BOP');
   await page.waitForTimeout(1200);
 
-  // Power units - first non-empty option
-  const powerUnitsSelect = page.locator(
-    '#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question'
-  ).first();
+  const powerUnitsSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').first();
   if (await powerUnitsSelect.count() > 0 && await powerUnitsSelect.isVisible().catch(() => false)) {
     const pwrOpt = powerUnitsSelect.locator('option:not([value=""])').first();
     const pwrVal = await pwrOpt.getAttribute('value').catch(() => null);
@@ -431,23 +418,17 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(600);
 
-  // Vehicle type = Yes
-  const vehicleYesLabel = page.locator(
-    '#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1_Yes'
-  ).first();
+  const vehicleYesLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1_Yes').first();
   if (await vehicleYesLabel.count() > 0) {
     await vehicleYesLabel.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
     await vehicleYesLabel.click({ force: true }).catch(() => {});
     console.log('Vehicle type = Yes');
   } else {
-    const vehicleYesInput = page.locator(
-      'input[name="rdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1"][value$="_Yes"]'
-    ).first();
+    const vehicleYesInput = page.locator('input[name="rdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1"][value$="_Yes"]').first();
     if (await vehicleYesInput.count() > 0) await vehicleYesInput.check().catch(() => {});
   }
   await page.waitForTimeout(600);
 
-  // Building coverage = Yes
   const buildingYesSel = 'input[name="rdo_Question_Form_CLAcctProdEligibility_Ext_0_WillBuildingCoverageBeRequested_124"][value$="_Yes"]';
   const buildingYes = page.locator(buildingYesSel).first();
   await buildingYes.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
@@ -458,9 +439,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     console.log('Building coverage Yes checked');
   } catch (e) {
     console.log('check() failed: ' + e.message);
-    const labelFor = page.locator(
-      '#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_WillBuildingCoverageBeRequested_124_Yes'
-    ).first();
+    const labelFor = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_WillBuildingCoverageBeRequested_124_Yes').first();
     if (await labelFor.count() > 0) {
       try { await labelFor.click({ force: true }); buildingOk = true; } catch (_) {}
     }
@@ -476,10 +455,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     throw new Error('Unable to select Building Coverage = Yes');
   await page.waitForTimeout(1000);
 
-  // Employees - first non-empty option
-  const employeesSelect = page.locator(
-    '#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question'
-  ).first();
+  const employeesSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').first();
   if (await employeesSelect.count() > 0 && await employeesSelect.isVisible().catch(() => false)) {
     const empOpt = employeesSelect.locator('option:not([value=""])').first();
     const empVal = await empOpt.getAttribute('value').catch(() => null);
@@ -487,7 +463,6 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(1200);
 
-  // Annual Gross Sales
   const grossSalesSel = '#txt_Question_Form_CLAcctProdEligibility_Ext_0_AnnualGrossSales_All_008_Integer_Question_integerWithCommas';
   const grossSalesField = page.locator(grossSalesSel).first();
   if (await grossSalesField.count() > 0 && await grossSalesField.isVisible().catch(() => false)) {
@@ -505,27 +480,23 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(1200);
 
-  // OccupySquareFeet = No
-  const occupyLabel = page.locator(
-    '#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_OccupySquareFeetOneLocation_All_010_No'
-  ).first();
+  const occupyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_OccupySquareFeetOneLocation_All_010_No').first();
   await occupyLabel.waitFor({ state: 'visible', timeout: 15000 });
   await occupyLabel.click({ force: true });
   console.log('OccupySquareFeet = No');
   await page.waitForTimeout(800);
 
-  // CertifyQuestion = Yes
-  const certifyLabel = page.locator(
-    '#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_CertifyQuestion_101_Ext_Yes'
-  ).first();
+  const certifyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_CertifyQuestion_101_Ext_Yes').first();
   await certifyLabel.waitFor({ state: 'visible', timeout: 15000 });
   await certifyLabel.click({ force: true });
   console.log('CertifyQuestion = Yes');
   await page.waitForTimeout(800);
+  await dismissStatusModal(page);
 
   await page.waitForLoadState('domcontentloaded');
-  await page.getByRole('button', { name: 'Next' }).click();
+  await safeNextClick(page);
   await page.waitForTimeout(1000);
+  await dismissStatusModal(page);
   if (trackMilestone) trackMilestone('Account Created');
   console.log('Account qualification completed');
 }
