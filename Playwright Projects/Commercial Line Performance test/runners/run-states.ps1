@@ -37,24 +37,22 @@ $batchMarker = Join-Path $projectPath ".batch-run-in-progress-$suiteLabel"
 $iterFile    = Join-Path $projectPath "iterations-data-$suiteLabel.json"
 $lockFile    = Join-Path $projectPath "parallel-run-lock-$suiteLabel.json"
 $logsDir     = Join-Path $projectPath "logs"
+$tmpDir      = Join-Path $projectPath ".runners-tmp"
 
-# Create logs directory
 if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir | Out-Null }
+if (-not (Test-Path $tmpDir))  { New-Item -ItemType Directory -Path $tmpDir  | Out-Null }
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  $TestType | States: $($stateList -join ', ')" -ForegroundColor Cyan
 Write-Host "  Max Parallel: $MaxParallel | Stagger: ${StaggerSeconds}s | Headed: $(-not $Headless)" -ForegroundColor Cyan
-Write-Host "  Logs: $logsDir" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Clean up
 if (Test-Path $iterFile)    { Remove-Item $iterFile    -Force }
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 if (Test-Path $lockFile)    { Remove-Item $lockFile    -Force }
 
-# Write shared runId
 $sharedRunId = [DateTime]::UtcNow.ToString('o')
 $lockData    = @{ runId = $sharedRunId; suite = $TestType; states = $stateList; startTime = $sharedRunId }
 $lockData | ConvertTo-Json -Compress | Set-Content $lockFile -Encoding UTF8
@@ -68,6 +66,43 @@ $activeProcs = [System.Collections.ArrayList]@()
 $results     = @{}
 $lastStart   = $null
 $pendingStates = [System.Collections.ArrayList]@($stateList)
+
+# Pre-create .bat files for each state
+# .bat files handle spaces in paths and $ in passwords correctly
+foreach ($state in $stateList) {
+  $batPath = Join-Path $tmpDir "run-$suiteLabel-$state.bat"
+  $logPath = Join-Path $logsDir "$suiteLabel-$state.log"
+  $outDir  = Join-Path $projectPath "test-results\$suiteLabel-$state"
+
+  $batLines = @(
+    "@echo off",
+    "cd /d `"$projectPath`"",
+    "set TEST_STATE=$state",
+    "set TEST_ENV=$Env",
+    "set TEST_TYPE=$TestType",
+    "set WB_USER_DE=$env:WB_USER_DE",
+    "set WB_PASS_DE=$env:WB_PASS_DE",
+    "set WB_USER_PA=$env:WB_USER_PA",
+    "set WB_PASS_PA=$env:WB_PASS_PA",
+    "set WB_USER_MI=$env:WB_USER_MI",
+    "set WB_PASS_MI=$env:WB_PASS_MI",
+    "set WB_USER_WI=$env:WB_USER_WI",
+    "set WB_PASS_WI=$env:WB_PASS_WI",
+    "set SMTP_HOST=$env:SMTP_HOST",
+    "set SMTP_PORT=$env:SMTP_PORT",
+    "set FROM_EMAIL=$env:FROM_EMAIL",
+    "set TO_EMAIL=$env:TO_EMAIL",
+    "echo Starting $state ($TestType) >> `"$logPath`" 2>&1",
+    "echo Working dir: %CD% >> `"$logPath`" 2>&1",
+    "echo State: %TEST_STATE% Type: %TEST_TYPE% Env: %TEST_ENV% >> `"$logPath`" 2>&1",
+    "npx playwright test `"$testFile`" --project=chromium --workers=1 --output=`"$outDir`" $headedFlag >> `"$logPath`" 2>&1",
+    "echo EXIT_CODE:%ERRORLEVEL% >> `"$logPath`"",
+    "exit %ERRORLEVEL%"
+  )
+
+  [System.IO.File]::WriteAllLines($batPath, $batLines, [System.Text.Encoding]::ASCII)
+  Write-Host "  Created: $batPath" -ForegroundColor Gray
+}
 
 while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
 
@@ -89,15 +124,17 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
       $results[$entry.State] = $passed
       $icon  = if ($passed) { "PASS" } else { "FAIL" }
       $color = if ($passed) { 'Green' } else { 'Red' }
-      $logFile = Join-Path $logsDir "$suiteLabel-$($entry.State).log"
       Write-Host "  [$icon] $($entry.State) finished (exit=$($entry.Process.ExitCode))" -ForegroundColor $color
-      Write-Host "  Log: $logFile" -ForegroundColor Gray
 
-      # Show last 15 lines of log on failure
-      if (-not $passed -and (Test-Path $logFile)) {
-        Write-Host "  --- Last lines of $($entry.State) log ---" -ForegroundColor Yellow
-        Get-Content $logFile | Select-Object -Last 20 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
-        Write-Host "  --- End of log ---" -ForegroundColor Yellow
+      # Show last 25 lines of log on failure
+      $logPath = Join-Path $logsDir "$suiteLabel-$($entry.State).log"
+      if (-not $passed -and (Test-Path $logPath)) {
+        Write-Host "  --- $($entry.State) failure log (last 25 lines) ---" -ForegroundColor Yellow
+        Get-Content $logPath | Select-Object -Last 25 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+        Write-Host "  --- end ---" -ForegroundColor Yellow
+        Write-Host "  Full log: $logPath" -ForegroundColor Gray
+      } elseif ($passed) {
+        Write-Host "  Full log: $logPath" -ForegroundColor Gray
       }
     }
   }
@@ -114,43 +151,20 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
   }
 
   if ($canLaunch -and $staggerOk) {
-    $state = $pendingStates[0]
+    $state   = $pendingStates[0]
     $pendingStates.RemoveAt(0)
+    $batPath = Join-Path $tmpDir "run-$suiteLabel-$state.bat"
+    $logPath = Join-Path $logsDir "$suiteLabel-$state.log"
+
+    # Clear old log
+    if (Test-Path $logPath) { Remove-Item $logPath -Force }
+
     Write-Host "Starting $state ($TestType)..." -ForegroundColor Yellow
-
-    $outputDir = "test-results\$suiteLabel-$state"
-    $logFile   = Join-Path $logsDir "$suiteLabel-$state.log"
-
-    # Delete old log
-    if (Test-Path $logFile) { Remove-Item $logFile -Force }
-
-    # Build env vars
-    $envVars = @(
-      "TEST_STATE=$state",
-      "TEST_ENV=$Env",
-      "TEST_TYPE=$TestType",
-      "WB_USER_DE=$env:WB_USER_DE",
-      "WB_PASS_DE=$env:WB_PASS_DE",
-      "WB_USER_PA=$env:WB_USER_PA",
-      "WB_PASS_PA=$env:WB_PASS_PA",
-      "WB_USER_MI=$env:WB_USER_MI",
-      "WB_PASS_MI=$env:WB_PASS_MI",
-      "WB_USER_WI=$env:WB_USER_WI",
-      "WB_PASS_WI=$env:WB_PASS_WI",
-      "SMTP_HOST=$env:SMTP_HOST",
-      "SMTP_PORT=$env:SMTP_PORT",
-      "FROM_EMAIL=$env:FROM_EMAIL",
-      "TO_EMAIL=$env:TO_EMAIL",
-      "PLAYWRIGHT_BROWSERS_PATH=0"
-    )
-
-    $setCommands   = ($envVars | ForEach-Object { 'set "' + $_ + '"' }) -join ' && '
-    # Redirect ALL output (stdout + stderr) to log file AND show in window
-    $playwrightCmd = 'npx playwright test "' + $testFile + '" --project=chromium --workers=1 --output="' + $outputDir + '" ' + $headedFlag + ' > "' + $logFile + '" 2>&1'
-    $envCmd        = $setCommands + ' && ' + $playwrightCmd
+    Write-Host "  Log: $logPath" -ForegroundColor Gray
+    Write-Host "  Watch: Get-Content '$logPath' -Wait" -ForegroundColor Gray
 
     $proc = Start-Process -FilePath "cmd.exe" `
-      -ArgumentList @('/c', $envCmd) `
+      -ArgumentList @('/c', "`"$batPath`"") `
       -WorkingDirectory $projectPath `
       -WindowStyle Normal `
       -PassThru
@@ -158,18 +172,19 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
     $null = $activeProcs.Add([PSCustomObject]@{
       State   = $state
       Process = $proc
-      LogFile = $logFile
+      LogFile = $logPath
       Start   = [DateTime]::Now
     })
     $lastStart = [DateTime]::Now
-    Write-Host "  $state launched (PID $($proc.Id)) -> log: $logFile" -ForegroundColor Green
-    Write-Host "  Watch live: Get-Content '$logFile' -Wait" -ForegroundColor Gray
+    Write-Host "  $state launched (PID $($proc.Id))" -ForegroundColor Green
   }
 
   Start-Sleep -Seconds 5
 }
 
+# Cleanup
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
+if (Test-Path $tmpDir)      { Remove-Item $tmpDir -Recurse -Force }
 
 # Send consolidated email
 Write-Host ""
@@ -202,6 +217,5 @@ foreach ($state in $stateList) {
 Write-Host ""
 Write-Host "  Total: $($stateList.Count) | Passed: $pass | Failed: $fail" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  Logs saved to: $logsDir" -ForegroundColor Cyan
-Write-Host "  To view a log: Get-Content logs\$suiteLabel-DE.log" -ForegroundColor Gray
+Write-Host "  Logs: $logsDir" -ForegroundColor Cyan
 Write-Host ""
