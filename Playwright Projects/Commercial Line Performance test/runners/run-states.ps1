@@ -35,6 +35,7 @@ $suiteLabel  = $TestType.ToLower()
 $batchMarker = Join-Path $PWD ".batch-run-in-progress-$suiteLabel"
 $iterFile    = Join-Path $PWD "iterations-data-$suiteLabel.json"
 $lockFile    = Join-Path $PWD "parallel-run-lock-$suiteLabel.json"
+$tmpDir      = Join-Path $PWD ".runners-tmp"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -43,132 +44,123 @@ Write-Host "  Max Parallel: $MaxParallel | Stagger: ${StaggerSeconds}s | Headed:
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Clean up
 if (Test-Path $iterFile)    { Remove-Item $iterFile    -Force }
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 if (Test-Path $lockFile)    { Remove-Item $lockFile    -Force }
+if (Test-Path $tmpDir)      { Remove-Item $tmpDir -Recurse -Force }
+New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 
 "batch-in-progress" | Set-Content $batchMarker -Encoding UTF8
 Write-Host "Batch marker created - per-state emails suppressed" -ForegroundColor Gray
 
-# Build playwright args
-$pwArgs = @('playwright', 'test', $testFile, '--project=chromium')
-if (-not $Headless) { $pwArgs += '--headed' }
+# Build headed flag
+$headedFlag = if ($Headless) { "" } else { "--headed" }
 
-# Collect all env vars to pass into jobs
-$envVars = @{
+# Snapshot current env vars for injection into scripts
+$envSnapshot = @{
   TEST_ENV   = $Env
   TEST_TYPE  = $TestType
-  WB_USER_DE = $env:WB_USER_DE; WB_PASS_DE = $env:WB_PASS_DE
-  WB_USER_PA = $env:WB_USER_PA; WB_PASS_PA = $env:WB_PASS_PA
-  WB_USER_MI = $env:WB_USER_MI; WB_PASS_MI = $env:WB_PASS_MI
-  WB_USER_WI = $env:WB_USER_WI; WB_PASS_WI = $env:WB_PASS_WI
-  SMTP_HOST  = $env:SMTP_HOST;  SMTP_PORT  = $env:SMTP_PORT
-  FROM_EMAIL = $env:FROM_EMAIL; TO_EMAIL   = $env:TO_EMAIL
+  WB_USER_DE = "$env:WB_USER_DE"; WB_PASS_DE = "$env:WB_PASS_DE"
+  WB_USER_PA = "$env:WB_USER_PA"; WB_PASS_PA = "$env:WB_PASS_PA"
+  WB_USER_MI = "$env:WB_USER_MI"; WB_PASS_MI = "$env:WB_PASS_MI"
+  WB_USER_WI = "$env:WB_USER_WI"; WB_PASS_WI = "$env:WB_PASS_WI"
+  SMTP_HOST  = "$env:SMTP_HOST";  SMTP_PORT  = "$env:SMTP_PORT"
+  FROM_EMAIL = "$env:FROM_EMAIL"; TO_EMAIL   = "$env:TO_EMAIL"
 }
 
-$jobs = [System.Collections.ArrayList]@()
+# Track launched processes
+$procs = [System.Collections.ArrayList]@()
 
 foreach ($state in $stateList) {
 
   # Wait for a free slot
   while ($true) {
-    $running = ($jobs | Where-Object { $_.Job.State -eq 'Running' }).Count
-    if ($running -lt $MaxParallel) { break }
+    # Remove finished processes from tracking
+    $running = @($procs | Where-Object { -not $_.Process.HasExited })
+    if ($running.Count -lt $MaxParallel) { break }
     Write-Host "  Max parallel ($MaxParallel) reached - checking in 10s..." -ForegroundColor Gray
     Start-Sleep -Seconds 10
   }
 
+  # Write a dedicated launcher script for this state
+  # This avoids command-line length limits and quoting issues
+  $scriptPath = Join-Path $tmpDir "run-$state.ps1"
+  $scriptLines = @()
+  $scriptLines += "Set-Location '$PWD'"
+  $scriptLines += "`$env:TEST_STATE = '$state'"
+  foreach ($k in $envSnapshot.Keys) {
+    $v = $envSnapshot[$k]
+    if ($v) { $scriptLines += "`$env:$k = '$v'" }
+  }
+  $scriptLines += "Write-Host 'Starting $state ($TestType)...' -ForegroundColor Yellow"
+  $scriptLines += "Write-Host 'Working directory: ' (Get-Location)"
+  $scriptLines += "Write-Host 'Test file: $testFile'"
+  $scriptLines += "Write-Host 'Headed: $(-not $Headless)'"
+  $scriptLines += ""
+  if ($headedFlag) {
+    $scriptLines += "npx playwright test '$testFile' --project=chromium $headedFlag"
+  } else {
+    $scriptLines += "npx playwright test '$testFile' --project=chromium"
+  }
+  $scriptLines += "`$exitCode = `$LASTEXITCODE"
+  $scriptLines += "Write-Host ''"
+  $scriptLines += "Write-Host '$state completed with exit code: ' `$exitCode -ForegroundColor `$(if (`$exitCode -eq 0) { 'Green' } else { 'Red' })"
+  $scriptLines += "Write-Host 'Press any key to close...'"
+  $scriptLines += "pause"
+  $scriptLines | Set-Content $scriptPath -Encoding UTF8
+
   Write-Host "Starting $state ($TestType)..." -ForegroundColor Yellow
 
-  $job = Start-Job -ScriptBlock {
-    param($dir, $pwArgs, $state, $vars, $headed)
-    Set-Location $dir
+  # Launch in a new visible PowerShell window
+  $proc = Start-Process powershell.exe `
+    -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptPath `
+    -PassThru `
+    -WindowStyle Normal
 
-    foreach ($k in $vars.Keys) {
-      [System.Environment]::SetEnvironmentVariable($k, $vars[$k], 'Process')
-    }
-    $env:TEST_STATE = $state
-
-    # When headed, use Start-Process so a real visible window opens
-    if ($headed) {
-      # Write a small launcher script so the browser window gets its own console
-      $launchScript = "cd '$dir'; `$env:TEST_STATE='$state';"
-      foreach ($k in $vars.Keys) {
-        if ($vars[$k]) { $launchScript += "`$env:$k='$($vars[$k])';" }
-      }
-      $launchScript += "npx $($pwArgs -join ' '); exit `$LASTEXITCODE"
-
-      $proc = Start-Process powershell.exe `
-        -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"$launchScript`"" `
-        -PassThru `
-        -WindowStyle Normal
-
-      $proc.WaitForExit()
-      $exitCode = $proc.ExitCode
-      return @{ output = "State $state completed"; exitCode = $exitCode; state = $state }
-    } else {
-      $output   = & npx @pwArgs 2>&1
-      $exitCode = $LASTEXITCODE
-      return @{ output = ($output -join "`n"); exitCode = $exitCode; state = $state }
-    }
-  } -ArgumentList $PWD, $pwArgs, $state, $envVars, (-not $Headless)
-
-  $null = $jobs.Add([PSCustomObject]@{
+  $null = $procs.Add([PSCustomObject]@{
     State     = $state
-    Job       = $job
+    Process   = $proc
+    Script    = $scriptPath
     StartTime = Get-Date
   })
 
-  Write-Host "  $state launched (job $($job.Id))" -ForegroundColor Green
+  Write-Host "  $state launched (PID $($proc.Id))" -ForegroundColor Green
 
+  # Stagger before next launch
   if ($state -ne $stateList[-1]) {
     Write-Host "  Waiting ${StaggerSeconds}s before next launch..." -ForegroundColor Gray
     Start-Sleep -Seconds $StaggerSeconds
   }
 }
 
-# Wait for all jobs
+# Wait for all processes to finish
 Write-Host ""
 Write-Host "All states launched - waiting for completion..." -ForegroundColor Cyan
 Write-Host ""
 
 $results = @{}
 
-foreach ($entry in $jobs) {
-  Write-Host "Waiting for $($entry.State)..." -ForegroundColor Gray
-
-  $jobResult = $entry.Job | Wait-Job | Receive-Job
-
-  $exitCode = 0
-  $output   = ""
-
-  if ($jobResult -is [hashtable]) {
-    $exitCode = [int]($jobResult.exitCode)
-    $output   = $jobResult.output
-  } else {
-    $output = $jobResult | Out-String
-    if ($output -match '(\d+) failed' -and [int]$Matches[1] -gt 0) { $exitCode = 1 }
-    elseif ($output -match 'Error:|FAILED') { $exitCode = 1 }
-  }
-
-  $passed            = ($exitCode -eq 0)
+foreach ($entry in $procs) {
+  Write-Host "Waiting for $($entry.State) (PID $($entry.Process.Id))..." -ForegroundColor Gray
+  $entry.Process.WaitForExit()
+  $exitCode = $entry.Process.ExitCode
+  $passed   = ($exitCode -eq 0)
   $results[$entry.State] = $passed
 
   $icon  = if ($passed) { "PASS" } else { "FAIL" }
   $color = if ($passed) { 'Green' } else { 'Red' }
-  Write-Host "  [$icon] $($entry.State): exit=$exitCode" -ForegroundColor $color
-
-  if ($output) {
-    $lines = $output.Split("`n") | Where-Object { $_.Trim() }
-    $tail  = $lines | Select-Object -Last 6
-    foreach ($line in $tail) { Write-Host "    $line" -ForegroundColor Gray }
-  }
+  Write-Host "  [$icon] $($entry.State): exit code = $exitCode" -ForegroundColor $color
   Write-Host ""
 }
 
-# Remove batch marker and send email
+# Clean up tmp scripts
+if (Test-Path $tmpDir) { Remove-Item $tmpDir -Recurse -Force }
+
+# Remove batch marker
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 
+# Send consolidated email
 Write-Host "Sending consolidated email..." -ForegroundColor Cyan
 $sendScript = @"
 require('dotenv').config();
@@ -180,8 +172,8 @@ fn(['iterations-data-$suiteLabel.json'], 'WB $TestType Smoke Test Report')
   .catch(err => { console.error('Email failed:', err.message); process.exit(1); });
 "@
 $sendScript | node --input-type=commonjs
-if ($LASTEXITCODE -eq 0) { Write-Host "Email sent" -ForegroundColor Green }
-else { Write-Host "Email failed" -ForegroundColor Red }
+if ($LASTEXITCODE -eq 0) { Write-Host "Email sent successfully" -ForegroundColor Green }
+else { Write-Host "Email failed - check SMTP settings" -ForegroundColor Red }
 
 # Final summary
 Write-Host ""
@@ -199,5 +191,5 @@ foreach ($state in $stateList) {
 }
 Write-Host ""
 if ($allPassed) { Write-Host "  All states passed!" -ForegroundColor Green }
-else            { Write-Host "  Some states failed - check above" -ForegroundColor Red }
+else            { Write-Host "  Some states failed - check the browser windows above" -ForegroundColor Red }
 Write-Host ""
