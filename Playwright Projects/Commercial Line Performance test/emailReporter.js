@@ -1,4 +1,4 @@
-// emailReporter.js
+﻿// emailReporter.js
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 const fs = require('fs');
@@ -51,13 +51,13 @@ class EmailReporter {
       const dataState = (global.testData && global.testData.state ? String(global.testData.state) : '').toUpperCase();
       const testState = envState || dataState;
 
-      console.log(`🔍 onTestEnd called: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
+      console.log(`ðŸ” onTestEnd called: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
 
       const stateSpecificFile = testState ? path.join(__dirname, `test-data-${testState}.json`) : null;
       const fallbackFile = path.join(__dirname, 'test-data.json');
       const testDataFile = stateSpecificFile && fs.existsSync(stateSpecificFile) ? stateSpecificFile : fallbackFile;
 
-      console.log(`🔍 Looking for test data: ${testDataFile}, exists: ${fs.existsSync(testDataFile)}`);
+      console.log(`ðŸ” Looking for test data: ${testDataFile}, exists: ${fs.existsSync(testDataFile)}`);
       if (!fs.existsSync(testDataFile)) return;
 
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
@@ -94,15 +94,15 @@ class EmailReporter {
 
       if (existingIndex !== -1) {
         iterations[existingIndex] = iterationEntry;
-        console.log(`🔄 Updated existing iteration for state=${testData.state} (retry result)`);
+        console.log(`ðŸ”„ Updated existing iteration for state=${testData.state} (retry result)`);
       } else {
         iterations.push(iterationEntry);
-        console.log(`💾 Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}, quote=${testData.quoteNumber}`);
+        console.log(`ðŸ’¾ Saved iteration ${iterations.length}: suite=${suite}, state=${testData.state}, quote=${testData.quoteNumber}`);
       }
 
       fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2));
     } catch (e) {
-      console.log('⚠️ onTestEnd error:', e.message);
+      console.log('âš ï¸ onTestEnd error:', e.message);
     }
   }
 
@@ -114,28 +114,28 @@ class EmailReporter {
     ];
     const isBatchRun = batchMarkers.some(marker => fs.existsSync(marker));
     if (isBatchRun) {
-      console.log('⏸️ Batch run detected; skipping individual email');
+      console.log('â¸ï¸ Batch run detected; skipping individual email');
       return;
     }
 
     const iterFile = path.join(__dirname, `iterations-data-${suite.toLowerCase()}.json`);
-    console.log(`🔍 Looking for iterations file: ${iterFile}`);
-    console.log(`🔍 File exists: ${fs.existsSync(iterFile)}`);
-    console.log(`🔍 Current runId: ${this.runId}`);
+    console.log(`ðŸ” Looking for iterations file: ${iterFile}`);
+    console.log(`ðŸ” File exists: ${fs.existsSync(iterFile)}`);
+    console.log(`ðŸ” Current runId: ${this.runId}`);
 
     if (!fs.existsSync(iterFile)) {
-      console.log('⚠️ No iterations to email');
+      console.log('âš ï¸ No iterations to email');
       return;
     }
 
     const allIterations = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
-    console.log(`🔍 Total iterations in file: ${Array.isArray(allIterations) ? allIterations.length : 'not an array'}`);
+    console.log(`ðŸ” Total iterations in file: ${Array.isArray(allIterations) ? allIterations.length : 'not an array'}`);
 
     const iterations = this.runId ? allIterations.filter(it => it.runId === this.runId) : allIterations;
-    console.log(`🔍 Filtered iterations (runId filter): ${iterations.length}`);
+    console.log(`ðŸ” Filtered iterations (runId filter): ${iterations.length}`);
 
     if (!iterations.length) {
-      console.log('⚠️ No iterations for this runId, sending all available iterations instead');
+      console.log('âš ï¸ No iterations for this runId, sending all available iterations instead');
       await this._sendEmail(allIterations, 'WB Smoke Testing Report');
       return;
     }
@@ -149,10 +149,10 @@ class EmailReporter {
     const overallPassed = failed === 0;
     const totalDuration = iterations.reduce((sum, it) => sum + parseFloat(it.duration || 0), 0).toFixed(2);
 
-    // ── Passed iterations table ──────────────────────────────────────────────
+    // â”€â”€ Passed iterations table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const passedIterations = iterations.filter(it => it.status === 'PASSED');
     const passedTableHtml = passedIterations.length > 0 ? `
-      <h3 style="color:#4CAF50;margin-top:20px;">✅ Passed Iterations (${passedIterations.length})</h3>
+      <h3 style="color:#4CAF50;margin-top:20px;">âœ… Passed Iterations (${passedIterations.length})</h3>
       <table style="width:100%;border-collapse:collapse;margin:10px 0;">
         <thead>
           <tr style="background:#4CAF50;color:white;">
@@ -175,10 +175,10 @@ class EmailReporter {
       </table>
     ` : '';
 
-    // ── Failed iterations table ──────────────────────────────────────────────
+    // â”€â”€ Failed iterations table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const failedIterations = iterations.filter(it => it.status === 'FAILED');
     const failedTableHtml = failedIterations.length > 0 ? `
-      <h3 style="color:#f44336;margin-top:20px;">❌ Failed Iterations (${failedIterations.length})</h3>
+      <h3 style="color:#f44336;margin-top:20px;">âŒ Failed Iterations (${failedIterations.length})</h3>
       <table style="width:100%;border-collapse:collapse;margin:10px 0;">
         <thead>
           <tr style="background:#f44336;color:white;">
@@ -201,13 +201,13 @@ class EmailReporter {
       </table>
     ` : '';
 
-    // ── Milestone details — replaces coverage section, shown for ALL iterations ──
+    // â”€â”€ Milestone details â€” replaces coverage section, shown for ALL iterations â”€â”€
     const milestoneDetailsHtml = iterations.map(it => {
       const milestones = it.milestones || [];
       if (milestones.length === 0) return '';
 
       const statusColor = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-      const statusIcon  = it.status === 'PASSED' ? '✅' : '❌';
+      const statusIcon  = it.status === 'PASSED' ? 'âœ…' : 'âŒ';
       const tabLabel    = `${it.suite || 'Package'}_${it.state || 'N/A'}_${it.iterationNumber}`;
 
       const rows = milestones.map((m, idx) => {
@@ -229,7 +229,7 @@ class EmailReporter {
         <div style="margin:24px 0;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">
           <div style="background:${statusColor};padding:10px 16px;display:flex;align-items:center;gap:8px;">
             <span style="color:white;font-size:13px;font-weight:bold;">
-              ${statusIcon} ${tabLabel} — ${it.suite || 'Package'} | State: ${it.state || 'N/A'} | Iteration #${it.iterationNumber}
+              ${statusIcon} ${tabLabel} â€” ${it.suite || 'Package'} | State: ${it.state || 'N/A'} | Iteration #${it.iterationNumber}
             </span>
             <span style="color:rgba(255,255,255,0.85);font-size:12px;margin-left:auto;">
               Quote: ${it.quoteNumber} &nbsp;|&nbsp; Policy: ${it.policyNumber} &nbsp;|&nbsp; Total: ${it.duration}s
@@ -253,14 +253,14 @@ class EmailReporter {
       `;
     }).join('');
 
-    // ── Assemble full email body ──────────────────────────────────────────────
+    // â”€â”€ Assemble full email body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;">
-        <h1 style="color:#1976d2;">🎭 ${subjectPrefix}</h1>
+        <h1 style="color:#1976d2;">ðŸŽ­ ${subjectPrefix}</h1>
 
         <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
-          <h3 style="margin-top:0;">📊 Test Summary</h3>
-          <p><b>Overall Status:</b> ${overallPassed ? '✅ PASSED' : '❌ FAILED'}</p>
+          <h3 style="margin-top:0;">ðŸ“Š Test Summary</h3>
+          <p><b>Overall Status:</b> ${overallPassed ? 'âœ… PASSED' : 'âŒ FAILED'}</p>
           <p><b>Total Iterations:</b> ${iterations.length}</p>
           <p><b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span>
              &nbsp; <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
@@ -271,7 +271,7 @@ class EmailReporter {
         ${passedTableHtml}
         ${failedTableHtml}
 
-        <h2 style="color:#333;margin-top:30px;">📋 Milestone Details (All Iterations)</h2>
+        <h2 style="color:#333;margin-top:30px;">ðŸ“‹ Milestone Details (All Iterations)</h2>
         <p style="color:#666;font-size:12px;margin-bottom:16px;">
           Each section below corresponds to an Excel tab (e.g. Package_DE_1) in the attached report.
         </p>
@@ -283,8 +283,8 @@ class EmailReporter {
     const attachments = excelFile ? [{ filename: path.basename(excelFile), path: excelFile }] : [];
 
     if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL || !process.env.TO_EMAIL) {
-      console.log('⚠️ SMTP not configured; email skipped');
-      if (excelFile) console.log('ℹ️ Excel generated at:', excelFile);
+      console.log('âš ï¸ SMTP not configured; email skipped');
+      if (excelFile) console.log('â„¹ï¸ Excel generated at:', excelFile);
       return;
     }
 
@@ -303,9 +303,9 @@ class EmailReporter {
 
     try {
       await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject: subjectLine, html, attachments });
-      console.log('✔ Email sent successfully');
+      console.log('âœ” Email sent successfully');
     } catch (err) {
-      console.error('❌ Email send failed:', err.message);
+      console.error('âŒ Email send failed:', err.message);
       throw err;
     }
   }
@@ -316,7 +316,7 @@ class EmailReporter {
       const targetWb = XLSX.utils.book_new();
       const runTag = new Date().toISOString().replace(/[:]/g, '-').slice(0, 19);
 
-      // ── Summary sheet ──────────────────────────────────────────────────────
+      // â”€â”€ Summary sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const summaryData = iterations.map(it => ({
         'Iteration #': it.iterationNumber,
         'Line of Business': `${it.suite || 'Package'} (${it.state || 'N/A'})`,
@@ -328,7 +328,7 @@ class EmailReporter {
       }));
       XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(summaryData), `Summary_${runTag}`.substring(0, 31));
 
-      // ── Milestones Analytics sheet ────────────────────────────────────────
+      // â”€â”€ Milestones Analytics sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const milestoneAggregates = new Map();
       iterations.filter(it => it.status === 'PASSED').forEach(it => {
         (it.milestones || []).forEach(m => {
@@ -353,7 +353,7 @@ class EmailReporter {
       }));
       XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(analyticsData), 'Milestones_Analytics');
 
-      // ── Coverage Changes sheet ────────────────────────────────────────────
+      // â”€â”€ Coverage Changes sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const coverageAnalyticsData = [];
       iterations.forEach(it => {
         (it.coverageChanges || []).forEach(change => {
@@ -374,7 +374,7 @@ class EmailReporter {
         XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageAnalyticsData), 'Coverage_Changes');
       }
 
-      // ── Coverage Section Timings sheet ────────────────────────────────────
+      // â”€â”€ Coverage Section Timings sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const coverageSectionData = [];
       iterations.forEach(it => {
         (it.coverageSectionStats || []).forEach(row => {
@@ -393,7 +393,7 @@ class EmailReporter {
         XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(coverageSectionData), 'Coverage_Section_Timings');
       }
 
-      // ── Add Coverage Timings sheet ────────────────────────────────────────
+      // â”€â”€ Add Coverage Timings sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const addCoverageData = [];
       iterations.forEach(it => {
         (it.addCoverageTimings || []).forEach(row => {
@@ -413,7 +413,7 @@ class EmailReporter {
         XLSX.utils.book_append_sheet(targetWb, XLSX.utils.json_to_sheet(addCoverageData), 'Add_Coverage_Timings');
       }
 
-      // ── Per-iteration milestone sheets (e.g. Package_DE_1) ───────────────
+      // â”€â”€ Per-iteration milestone sheets (e.g. Package_DE_1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       // FIX: dedup sheet names to prevent XLSX collision on parallel/retry runs
       const usedSheetNames = new Set(targetWb.SheetNames);
 
@@ -446,13 +446,13 @@ class EmailReporter {
       XLSX.writeFile(targetWb, excelPath);
       return excelPath;
     } catch (e) {
-      console.error('⚠️ Failed to create Excel:', e.message);
+      console.error('âš ï¸ Failed to create Excel:', e.message);
       return null;
     }
   }
 
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
-    console.log('📨 Sending consolidated batch email...');
+    console.log('ðŸ“¨ Sending consolidated batch email...');
     let iterations = [];
 
     const iterationFiles = iterationFilesOverride || ['iterations-data-bop.json', 'iterations-data-package.json'];
@@ -469,7 +469,7 @@ class EmailReporter {
       iterations = iterations.concat(filtered);
     }
 
-    if (!iterations.length) { console.log('⚠️ No iterations found'); return; }
+    if (!iterations.length) { console.log('âš ï¸ No iterations found'); return; }
 
     const reporter = new EmailReporter();
     await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report (Batch)');
@@ -477,3 +477,4 @@ class EmailReporter {
 }
 
 module.exports = EmailReporter;
+module.exports.EmailReporter = EmailReporter;
