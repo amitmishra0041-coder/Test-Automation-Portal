@@ -36,11 +36,16 @@ $projectPath = $PWD.Path
 $batchMarker = Join-Path $projectPath ".batch-run-in-progress-$suiteLabel"
 $iterFile    = Join-Path $projectPath "iterations-data-$suiteLabel.json"
 $lockFile    = Join-Path $projectPath "parallel-run-lock-$suiteLabel.json"
+$logsDir     = Join-Path $projectPath "logs"
+
+# Create logs directory
+if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir | Out-Null }
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  $TestType | States: $($stateList -join ', ')" -ForegroundColor Cyan
 Write-Host "  Max Parallel: $MaxParallel | Stagger: ${StaggerSeconds}s | Headed: $(-not $Headless)" -ForegroundColor Cyan
+Write-Host "  Logs: $logsDir" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -49,7 +54,7 @@ if (Test-Path $iterFile)    { Remove-Item $iterFile    -Force }
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 if (Test-Path $lockFile)    { Remove-Item $lockFile    -Force }
 
-# Write shared runId BEFORE launching any state
+# Write shared runId
 $sharedRunId = [DateTime]::UtcNow.ToString('o')
 $lockData    = @{ runId = $sharedRunId; suite = $TestType; states = $stateList; startTime = $sharedRunId }
 $lockData | ConvertTo-Json -Compress | Set-Content $lockFile -Encoding UTF8
@@ -66,7 +71,6 @@ $pendingStates = [System.Collections.ArrayList]@($stateList)
 
 while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
 
-  # Check finished processes
   $stillRunning = [System.Collections.ArrayList]@()
   foreach ($entry in $activeProcs) {
     if (-not $entry.Process.HasExited) {
@@ -85,7 +89,16 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
       $results[$entry.State] = $passed
       $icon  = if ($passed) { "PASS" } else { "FAIL" }
       $color = if ($passed) { 'Green' } else { 'Red' }
+      $logFile = Join-Path $logsDir "$suiteLabel-$($entry.State).log"
       Write-Host "  [$icon] $($entry.State) finished (exit=$($entry.Process.ExitCode))" -ForegroundColor $color
+      Write-Host "  Log: $logFile" -ForegroundColor Gray
+
+      # Show last 15 lines of log on failure
+      if (-not $passed -and (Test-Path $logFile)) {
+        Write-Host "  --- Last lines of $($entry.State) log ---" -ForegroundColor Yellow
+        Get-Content $logFile | Select-Object -Last 20 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+        Write-Host "  --- End of log ---" -ForegroundColor Yellow
+      }
     }
   }
   $activeProcs = $stillRunning
@@ -105,11 +118,13 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
     $pendingStates.RemoveAt(0)
     Write-Host "Starting $state ($TestType)..." -ForegroundColor Yellow
 
-    # Unique output dir per state prevents test-results folder contention
     $outputDir = "test-results\$suiteLabel-$state"
+    $logFile   = Join-Path $logsDir "$suiteLabel-$state.log"
 
-    # Build env vars string for cmd.exe
-    # Using set "KEY=VALUE" pattern which handles $ correctly in cmd.exe
+    # Delete old log
+    if (Test-Path $logFile) { Remove-Item $logFile -Force }
+
+    # Build env vars
     $envVars = @(
       "TEST_STATE=$state",
       "TEST_ENV=$Env",
@@ -129,11 +144,10 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
       "PLAYWRIGHT_BROWSERS_PATH=0"
     )
 
-    # Build the cmd /c command string
-    $setCommands = ($envVars | ForEach-Object { 'set "' + $_ + '"' }) -join ' && '
-    $playwrightCmd = 'npx playwright test "' + $testFile + '" --project=chromium --workers=1 --output="' + $outputDir + '" ' + $headedFlag
-
-    $envCmd = $setCommands + ' && ' + $playwrightCmd
+    $setCommands   = ($envVars | ForEach-Object { 'set "' + $_ + '"' }) -join ' && '
+    # Redirect ALL output (stdout + stderr) to log file AND show in window
+    $playwrightCmd = 'npx playwright test "' + $testFile + '" --project=chromium --workers=1 --output="' + $outputDir + '" ' + $headedFlag + ' > "' + $logFile + '" 2>&1'
+    $envCmd        = $setCommands + ' && ' + $playwrightCmd
 
     $proc = Start-Process -FilePath "cmd.exe" `
       -ArgumentList @('/c', $envCmd) `
@@ -144,16 +158,17 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
     $null = $activeProcs.Add([PSCustomObject]@{
       State   = $state
       Process = $proc
+      LogFile = $logFile
       Start   = [DateTime]::Now
     })
     $lastStart = [DateTime]::Now
-    Write-Host "  $state launched (PID $($proc.Id))" -ForegroundColor Green
+    Write-Host "  $state launched (PID $($proc.Id)) -> log: $logFile" -ForegroundColor Green
+    Write-Host "  Watch live: Get-Content '$logFile' -Wait" -ForegroundColor Gray
   }
 
   Start-Sleep -Seconds 5
 }
 
-# Cleanup
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 
 # Send consolidated email
@@ -186,4 +201,7 @@ foreach ($state in $stateList) {
 }
 Write-Host ""
 Write-Host "  Total: $($stateList.Count) | Passed: $pass | Failed: $fail" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Logs saved to: $logsDir" -ForegroundColor Cyan
+Write-Host "  To view a log: Get-Content logs\$suiteLabel-DE.log" -ForegroundColor Gray
 Write-Host ""
