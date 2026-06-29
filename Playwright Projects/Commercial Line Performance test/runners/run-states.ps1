@@ -49,14 +49,12 @@ if (Test-Path $iterFile)    { Remove-Item $iterFile    -Force }
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 if (Test-Path $lockFile)    { Remove-Item $lockFile    -Force }
 
-# Write shared runId to lock file BEFORE launching any state
-# All states will read this same runId so they all land in the same email batch
+# Write shared runId BEFORE launching any state
 $sharedRunId = [DateTime]::UtcNow.ToString('o')
 $lockData    = @{ runId = $sharedRunId; suite = $TestType; states = $stateList; startTime = $sharedRunId }
 $lockData | ConvertTo-Json -Compress | Set-Content $lockFile -Encoding UTF8
 Write-Host "Shared runId: $sharedRunId" -ForegroundColor Gray
 
-# Create batch marker
 "batch-in-progress" | Set-Content $batchMarker -Encoding UTF8
 Write-Host "Batch marker created - per-state emails suppressed" -ForegroundColor Gray
 
@@ -68,13 +66,12 @@ $pendingStates = [System.Collections.ArrayList]@($stateList)
 
 while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
 
-  # Check finished processes - use iterations file for real pass/fail
+  # Check finished processes
   $stillRunning = [System.Collections.ArrayList]@()
   foreach ($entry in $activeProcs) {
     if (-not $entry.Process.HasExited) {
       $null = $stillRunning.Add($entry)
     } else {
-      # Read actual result from iterations file instead of trusting exit code
       $passed = $false
       try {
         if (Test-Path $iterFile) {
@@ -83,18 +80,16 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
           if ($stateIter) { $passed = ($stateIter.status -eq 'PASSED') }
           else { $passed = ($entry.Process.ExitCode -eq 0) }
         }
-      } catch {
-        $passed = ($entry.Process.ExitCode -eq 0)
-      }
+      } catch { $passed = ($entry.Process.ExitCode -eq 0) }
+
       $results[$entry.State] = $passed
       $icon  = if ($passed) { "PASS" } else { "FAIL" }
       $color = if ($passed) { 'Green' } else { 'Red' }
-      Write-Host "  [$icon] $($entry.State) finished (exit=$($entry.Process.ExitCode), result=$icon)" -ForegroundColor $color
+      Write-Host "  [$icon] $($entry.State) finished (exit=$($entry.Process.ExitCode))" -ForegroundColor $color
     }
   }
   $activeProcs = $stillRunning
 
-  # Launch next state if slot open and stagger elapsed
   $canLaunch = ($activeProcs.Count -lt $MaxParallel) -and ($pendingStates.Count -gt 0)
   $staggerOk = $true
   if ($lastStart -and $StaggerSeconds -gt 0) {
@@ -108,26 +103,37 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
   if ($canLaunch -and $staggerOk) {
     $state = $pendingStates[0]
     $pendingStates.RemoveAt(0)
-
     Write-Host "Starting $state ($TestType)..." -ForegroundColor Yellow
 
-    # Build cmd command - same approach as original working runner
-    $envCmd = 'set "TEST_STATE=' + $state + '" && ' +
-              'set "TEST_ENV=' + $Env + '" && ' +
-              'set "TEST_TYPE=' + $TestType + '" && ' +
-              'set "WB_USER_DE=' + $env:WB_USER_DE + '" && ' +
-              'set "WB_PASS_DE=' + $env:WB_PASS_DE + '" && ' +
-              'set "WB_USER_PA=' + $env:WB_USER_PA + '" && ' +
-              'set "WB_PASS_PA=' + $env:WB_PASS_PA + '" && ' +
-              'set "WB_USER_MI=' + $env:WB_USER_MI + '" && ' +
-              'set "WB_PASS_MI=' + $env:WB_PASS_MI + '" && ' +
-              'set "WB_USER_WI=' + $env:WB_USER_WI + '" && ' +
-              'set "WB_PASS_WI=' + $env:WB_PASS_WI + '" && ' +
-              'set "SMTP_HOST=' + $env:SMTP_HOST + '" && ' +
-              'set "SMTP_PORT=' + $env:SMTP_PORT + '" && ' +
-              'set "FROM_EMAIL=' + $env:FROM_EMAIL + '" && ' +
-              'set "TO_EMAIL=' + $env:TO_EMAIL + '" && ' +
-              'npx playwright test "' + $testFile + '" --project=chromium --workers=1 ' + $headedFlag
+    # Unique output dir per state prevents test-results folder contention
+    $outputDir = "test-results\$suiteLabel-$state"
+
+    # Build env vars string for cmd.exe
+    # Using set "KEY=VALUE" pattern which handles $ correctly in cmd.exe
+    $envVars = @(
+      "TEST_STATE=$state",
+      "TEST_ENV=$Env",
+      "TEST_TYPE=$TestType",
+      "WB_USER_DE=$env:WB_USER_DE",
+      "WB_PASS_DE=$env:WB_PASS_DE",
+      "WB_USER_PA=$env:WB_USER_PA",
+      "WB_PASS_PA=$env:WB_PASS_PA",
+      "WB_USER_MI=$env:WB_USER_MI",
+      "WB_PASS_MI=$env:WB_PASS_MI",
+      "WB_USER_WI=$env:WB_USER_WI",
+      "WB_PASS_WI=$env:WB_PASS_WI",
+      "SMTP_HOST=$env:SMTP_HOST",
+      "SMTP_PORT=$env:SMTP_PORT",
+      "FROM_EMAIL=$env:FROM_EMAIL",
+      "TO_EMAIL=$env:TO_EMAIL",
+      "PLAYWRIGHT_BROWSERS_PATH=0"
+    )
+
+    # Build the cmd /c command string
+    $setCommands = ($envVars | ForEach-Object { 'set "' + $_ + '"' }) -join ' && '
+    $playwrightCmd = 'npx playwright test "' + $testFile + '" --project=chromium --workers=1 --output="' + $outputDir + '" ' + $headedFlag
+
+    $envCmd = $setCommands + ' && ' + $playwrightCmd
 
     $proc = Start-Process -FilePath "cmd.exe" `
       -ArgumentList @('/c', $envCmd) `
@@ -166,7 +172,6 @@ $sendScript | node --input-type=commonjs
 if ($LASTEXITCODE -eq 0) { Write-Host "Email sent" -ForegroundColor Green }
 else { Write-Host "Email failed" -ForegroundColor Red }
 
-# Summary
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  FINAL SUMMARY" -ForegroundColor Cyan
