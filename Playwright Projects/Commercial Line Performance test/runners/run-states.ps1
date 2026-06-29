@@ -44,7 +44,6 @@ Write-Host "  Max Parallel: $MaxParallel | Stagger: ${StaggerSeconds}s | Headed:
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Clean up
 if (Test-Path $iterFile)    { Remove-Item $iterFile    -Force }
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 if (Test-Path $lockFile)    { Remove-Item $lockFile    -Force }
@@ -54,65 +53,83 @@ New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 "batch-in-progress" | Set-Content $batchMarker -Encoding UTF8
 Write-Host "Batch marker created - per-state emails suppressed" -ForegroundColor Gray
 
-# Build headed flag
 $headedFlag = if ($Headless) { "" } else { "--headed" }
 
-# Snapshot current env vars for injection into scripts
+# Snapshot env vars NOW (before jobs start)
+# Use literal string values — no interpolation issues
 $envSnapshot = @{
-  TEST_ENV   = $Env
-  TEST_TYPE  = $TestType
-  WB_USER_DE = "$env:WB_USER_DE"; WB_PASS_DE = "$env:WB_PASS_DE"
-  WB_USER_PA = "$env:WB_USER_PA"; WB_PASS_PA = "$env:WB_PASS_PA"
-  WB_USER_MI = "$env:WB_USER_MI"; WB_PASS_MI = "$env:WB_PASS_MI"
-  WB_USER_WI = "$env:WB_USER_WI"; WB_PASS_WI = "$env:WB_PASS_WI"
-  SMTP_HOST  = "$env:SMTP_HOST";  SMTP_PORT  = "$env:SMTP_PORT"
-  FROM_EMAIL = "$env:FROM_EMAIL"; TO_EMAIL   = "$env:TO_EMAIL"
+  TEST_ENV   = [string]$Env
+  TEST_TYPE  = [string]$TestType
+  WB_USER_DE = [string]$env:WB_USER_DE
+  WB_PASS_DE = [string]$env:WB_PASS_DE
+  WB_USER_PA = [string]$env:WB_USER_PA
+  WB_PASS_PA = [string]$env:WB_PASS_PA
+  WB_USER_MI = [string]$env:WB_USER_MI
+  WB_PASS_MI = [string]$env:WB_PASS_MI
+  WB_USER_WI = [string]$env:WB_USER_WI
+  WB_PASS_WI = [string]$env:WB_PASS_WI
+  SMTP_HOST  = [string]$env:SMTP_HOST
+  SMTP_PORT  = [string]$env:SMTP_PORT
+  FROM_EMAIL = [string]$env:FROM_EMAIL
+  TO_EMAIL   = [string]$env:TO_EMAIL
 }
 
-# Track launched processes
 $procs = [System.Collections.ArrayList]@()
 
 foreach ($state in $stateList) {
 
   # Wait for a free slot
   while ($true) {
-    # Remove finished processes from tracking
-    $running = @($procs | Where-Object { -not $_.Process.HasExited })
-    if ($running.Count -lt $MaxParallel) { break }
+    $running = @($procs | Where-Object { -not $_.Process.HasExited }).Count
+    if ($running -lt $MaxParallel) { break }
     Write-Host "  Max parallel ($MaxParallel) reached - checking in 10s..." -ForegroundColor Gray
     Start-Sleep -Seconds 10
   }
 
-  # Write a dedicated launcher script for this state
-  # This avoids command-line length limits and quoting issues
-  $scriptPath = Join-Path $tmpDir "run-$state.ps1"
-  $scriptLines = @()
-  $scriptLines += "Set-Location '$PWD'"
-  $scriptLines += "`$env:TEST_STATE = '$state'"
-  foreach ($k in $envSnapshot.Keys) {
-    $v = $envSnapshot[$k]
-    if ($v) { $scriptLines += "`$env:$k = '$v'" }
-  }
-  $scriptLines += "Write-Host 'Starting $state ($TestType)...' -ForegroundColor Yellow"
-  $scriptLines += "Write-Host 'Working directory: ' (Get-Location)"
-  $scriptLines += "Write-Host 'Test file: $testFile'"
-  $scriptLines += "Write-Host 'Headed: $(-not $Headless)'"
-  $scriptLines += ""
-  if ($headedFlag) {
-    $scriptLines += "npx playwright test '$testFile' --project=chromium $headedFlag"
-  } else {
-    $scriptLines += "npx playwright test '$testFile' --project=chromium"
-  }
-  $scriptLines += "`$exitCode = `$LASTEXITCODE"
-  $scriptLines += "Write-Host ''"
-  $scriptLines += "Write-Host '$state completed with exit code: ' `$exitCode -ForegroundColor `$(if (`$exitCode -eq 0) { 'Green' } else { 'Red' })"
-  $scriptLines += "Write-Host 'Press any key to close...'"
-  $scriptLines += "pause"
-  $scriptLines | Set-Content $scriptPath -Encoding UTF8
-
   Write-Host "Starting $state ($TestType)..." -ForegroundColor Yellow
 
-  # Launch in a new visible PowerShell window
+  # Write temp .env file for this state - avoids ALL escaping issues
+  # Each state gets its own .env file with its credentials
+  $stateEnvFile = Join-Path $tmpDir "env-$state.env"
+  $stateEnvContent = @()
+  $stateEnvContent += "TEST_STATE=$state"
+  foreach ($k in $envSnapshot.Keys) {
+    if ($envSnapshot[$k]) {
+      $stateEnvContent += "$k=$($envSnapshot[$k])"
+    }
+  }
+  $stateEnvContent | Set-Content $stateEnvFile -Encoding UTF8
+
+  # Write launcher script that loads env from file - no variable expansion issues
+  $scriptPath = Join-Path $tmpDir "run-$state.ps1"
+  $pwdEscaped = $PWD.Path.Replace("'", "''")
+  $testFileEscaped = $testFile.Replace("'", "''")
+  $envFileEscaped = $stateEnvFile.Replace("'", "''")
+
+  $scriptContent = @"
+Set-Location '$pwdEscaped'
+Write-Host 'Starting $state ($TestType)...' -ForegroundColor Yellow
+Write-Host 'Working directory: ' (Get-Location)
+Write-Host 'Test file: $testFileEscaped'
+
+# Load env vars from state-specific env file (avoids dollar sign escaping issues)
+Get-Content '$envFileEscaped' | Where-Object { `$_ -match '^\s*[^#].*=.*' } | ForEach-Object {
+  `$p = `$_ -split '=', 2
+  [System.Environment]::SetEnvironmentVariable(`$p[0].Trim(), `$p[1].Trim(), 'Process')
+}
+
+Write-Host "TEST_STATE=`$env:TEST_STATE TEST_ENV=`$env:TEST_ENV TEST_TYPE=`$env:TEST_TYPE"
+
+npx playwright test '$testFileEscaped' --project=chromium $headedFlag
+`$exitCode = `$LASTEXITCODE
+Write-Host ''
+Write-Host '$state completed - exit code: ' `$exitCode -ForegroundColor `$(if (`$exitCode -eq 0) { 'Green' } else { 'Red' })
+Write-Host 'Press any key to close this window...'
+pause
+"@
+
+  $scriptContent | Set-Content $scriptPath -Encoding UTF8
+
   $proc = Start-Process powershell.exe `
     -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptPath `
     -PassThru `
@@ -127,14 +144,13 @@ foreach ($state in $stateList) {
 
   Write-Host "  $state launched (PID $($proc.Id))" -ForegroundColor Green
 
-  # Stagger before next launch
   if ($state -ne $stateList[-1]) {
     Write-Host "  Waiting ${StaggerSeconds}s before next launch..." -ForegroundColor Gray
     Start-Sleep -Seconds $StaggerSeconds
   }
 }
 
-# Wait for all processes to finish
+# Wait for all processes
 Write-Host ""
 Write-Host "All states launched - waiting for completion..." -ForegroundColor Cyan
 Write-Host ""
@@ -154,13 +170,11 @@ foreach ($entry in $procs) {
   Write-Host ""
 }
 
-# Clean up tmp scripts
+# Cleanup
 if (Test-Path $tmpDir) { Remove-Item $tmpDir -Recurse -Force }
-
-# Remove batch marker
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 
-# Send consolidated email
+# Consolidated email
 Write-Host "Sending consolidated email..." -ForegroundColor Cyan
 $sendScript = @"
 require('dotenv').config();
@@ -172,10 +186,10 @@ fn(['iterations-data-$suiteLabel.json'], 'WB $TestType Smoke Test Report')
   .catch(err => { console.error('Email failed:', err.message); process.exit(1); });
 "@
 $sendScript | node --input-type=commonjs
-if ($LASTEXITCODE -eq 0) { Write-Host "Email sent successfully" -ForegroundColor Green }
-else { Write-Host "Email failed - check SMTP settings" -ForegroundColor Red }
+if ($LASTEXITCODE -eq 0) { Write-Host "Email sent" -ForegroundColor Green }
+else { Write-Host "Email failed" -ForegroundColor Red }
 
-# Final summary
+# Summary
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  FINAL SUMMARY" -ForegroundColor Cyan
@@ -191,5 +205,5 @@ foreach ($state in $stateList) {
 }
 Write-Host ""
 if ($allPassed) { Write-Host "  All states passed!" -ForegroundColor Green }
-else            { Write-Host "  Some states failed - check the browser windows above" -ForegroundColor Red }
+else            { Write-Host "  Some states failed" -ForegroundColor Red }
 Write-Host ""
