@@ -90,8 +90,8 @@ test('Package Submission', async ({ page }, testInfo) => {
     }
 
     function trackMilestone(name, status = 'PASSED', details = '') {
-        const now       = new Date();
-        let duration    = null;
+        const now = new Date();
+        let duration = null;
         if (currentStepStartTime) {
             const elapsed = now - currentStepStartTime - waitBudgetMs;
             duration = (Math.max(elapsed, 0) / 1000).toFixed(2);
@@ -100,7 +100,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         console.log(`${status === 'PASSED' ? 'OK' : 'FAIL'} ${name}${duration ? ` (${duration}s)` : ''}`);
         saveTestData();
         currentStepStartTime = new Date();
-        waitBudgetMs         = 0;
+        waitBudgetMs = 0;
     }
 
     async function clickTextItem(text) {
@@ -114,34 +114,90 @@ test('Package Submission', async ({ page }, testInfo) => {
     global.testData.retryCount = testInfo.retry || 0;
     currentStepStartTime       = new Date();
 
-    async function waitForModalsToClose(timeout = 5000) {
+    // ── Modal / status dismissal ───────────────────────────────────────────────
+    async function dismissStatusModal() {
         try {
-            const modalSelectors = [
-                '.modal.show', '#dgic-status-message', '.ui-widget-overlay',
-                '#gw-click-overlay.gw-disable-click', '.gw-click-overlay',
+            const statusModal = page.locator('#dgic-status-message');
+            if (await statusModal.isVisible({ timeout: 1500 }).catch(() => false)) {
+                console.log('Status modal visible - dismissing...');
+                const btn = statusModal.locator('button').first();
+                if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
+                await statusModal.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+                await page.waitForTimeout(300);
+                console.log('Status modal dismissed');
+            }
+        } catch (e) {}
+    }
+
+    async function waitForModalsToClose(timeout = 8000) {
+        // Always dismiss status message first - this is the main click blocker
+        await dismissStatusModal();
+        try {
+            const otherModals = [
+                '.ui-widget-overlay',
+                '#gw-click-overlay.gw-disable-click',
+                '.gw-click-overlay',
                 '#dgic-modal-clpropertyaddlcoveragesscheduledialog'
             ];
-            for (const selector of modalSelectors) {
+            for (const selector of otherModals) {
                 const modal = page.locator(selector).first();
-                if (await modal.count() > 0)
+                if (await modal.count() > 0 && await modal.isVisible({ timeout: 500 }).catch(() => false))
                     await modal.waitFor({ state: 'hidden', timeout }).catch(() => {});
             }
             await page.waitForLoadState('domcontentloaded').catch(() => {});
         } catch (e) {}
     }
 
+    // ── Safe click helpers ────────────────────────────────────────────────────
     async function safeClick(locator, options = {}) {
         await waitForModalsToClose();
         await locator.waitFor({ state: 'visible', timeout: 30000 });
+        await waitForModalsToClose();
         await locator.click(options);
+    }
+
+    // safeNextClick: waits for modal, waits for button enabled, then clicks
+    async function safeNextClick() {
+        await waitForModalsToClose();
+        await page.waitForTimeout(300);
+        await waitForModalsToClose();
+        const btn = page.getByRole('button', { name: 'Next ' });
+        await btn.waitFor({ state: 'visible', timeout: 30000 });
+        // Wait for button to be enabled (not disabled by WB validation)
+        await page.waitForFunction(() => {
+            const candidates = Array.from(document.querySelectorAll('button'));
+            const nextBtn = candidates.find(b =>
+                b.textContent.trim() === 'Next' || b.textContent.includes('Next') &&
+                b.classList.contains('btn-primary')
+            );
+            return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
+        }, { timeout: 15000 }).catch(() => {});
+        await waitForModalsToClose();
+        await btn.click();
+    }
+
+    async function safeContinueClick() {
+        await waitForModalsToClose();
+        await page.waitForTimeout(300);
+        await waitForModalsToClose();
+        const btn = page.getByRole('button', { name: 'Continue ' });
+        await btn.waitFor({ state: 'visible', timeout: 30000 });
+        await waitForModalsToClose();
+        await btn.click();
+    }
+
+    async function safeSaveClick(buttonName = 'Save') {
+        await waitForModalsToClose();
+        await page.waitForTimeout(300);
+        await waitForModalsToClose();
+        const btn = page.getByRole('button', { name: buttonName });
+        await btn.waitFor({ state: 'visible', timeout: 30000 });
+        await waitForModalsToClose();
+        await btn.click();
     }
 
     async function waitForVisible(locator, timeout = 5000) {
         return locator.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
-    }
-
-    async function exists(locator) {
-        return (await locator.count()) > 0;
     }
 
     async function waitForEnabled(locator, timeout = 8000) {
@@ -159,7 +215,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         } catch { return false; }
     }
 
-    // ── Robust integer/comma field fill ──────────────────────────────────────────
+    // ── Integer field fill ────────────────────────────────────────────────────
     async function fillIntegerField(locator, value) {
         const numericValue = String(value).replace(/,/g, '').trim();
         let fillSuccess = false;
@@ -185,7 +241,6 @@ test('Package Submission', async ({ page }, testInfo) => {
                     break;
                 }
 
-                // evaluate() fallback
                 const selector = await locator.evaluate(el => el.id ? `#${el.id}` : null);
                 if (selector) {
                     await page.evaluate((sel, val) => {
@@ -205,7 +260,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                         break;
                     }
                 }
-                console.log(`Fill attempt ${attempt} gave "${(await locator.inputValue())}"`);
+                console.log(`Fill attempt ${attempt} gave "${await locator.inputValue()}"`);
             } catch (err) {
                 console.log(`Fill attempt ${attempt} error: ${err.message}`);
             }
@@ -227,20 +282,17 @@ test('Package Submission', async ({ page }, testInfo) => {
         }
     }
 
-    // ── Robust estimator click ────────────────────────────────────────────────────
+    // ── Estimator click ───────────────────────────────────────────────────────
     async function clickEstimatorAndWait() {
-        // Wait for Structure Building section to fully render
         await page.waitForLoadState('domcontentloaded');
         await page.waitForLoadState('networkidle').catch(() => {});
         await page.waitForTimeout(3000);
 
-        // Confirm the Structure Building section header is present
         await page.locator('text=Structure Building').first()
             .waitFor({ state: 'visible', timeout: 30000 })
             .catch(() => console.log('Structure Building header not found, continuing...'));
         console.log('Structure Building section loaded');
 
-        // Wait for estimator link to appear
         const estimatorLocator = page.locator([
             'a:has-text("Create Estimator")',
             'a:has-text("Edit Estimator")',
@@ -250,13 +302,9 @@ test('Package Submission', async ({ page }, testInfo) => {
         ].join(', ')).first();
 
         const estimatorVisible = await waitForVisible(estimatorLocator, 30000);
-        if (!estimatorVisible) {
-            console.log('WARNING: Estimator link not visible after 30s');
-        } else {
-            console.log('Estimator link is visible');
-        }
+        if (!estimatorVisible) console.log('WARNING: Estimator link not visible after 30s');
+        else console.log('Estimator link is visible');
 
-        // Scroll into view and bring window to front
         await estimatorLocator.scrollIntoViewIfNeeded().catch(() => {});
         await page.bringToFront();
         await page.waitForTimeout(1000);
@@ -284,7 +332,6 @@ test('Package Submission', async ({ page }, testInfo) => {
                     await strategy();
                     await page.waitForTimeout(3000);
 
-                    // Verify estimator opened - square footage field appears
                     const sqFtField = page.locator([
                         '#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL',
                         '[id*="SQUARE_FEET"]',
@@ -292,8 +339,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                     ].join(', ')).first();
 
                     const propertyNotFound = page.locator('text=Property Information Not Found').first();
-
-                    const isOpen         = await sqFtField.isVisible({ timeout: 3000 }).catch(() => false);
+                    const isOpen          = await sqFtField.isVisible({ timeout: 3000 }).catch(() => false);
                     const stillShowsError = await propertyNotFound.isVisible({ timeout: 1000 }).catch(() => false);
 
                     if (isOpen || !stillShowsError) {
@@ -320,6 +366,7 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         async function clickIfExists(buttonName) {
             try {
+                await dismissStatusModal();
                 await page.getByRole('button', { name: buttonName }).click({ timeout: 5000 });
                 console.log(`"${buttonName}" button clicked`);
             } catch {
@@ -331,8 +378,9 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         await page.waitForTimeout(3000);
         await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
+        await dismissStatusModal();
 
-        // ── Commercial Package checkbox ────────────────────────────────────────────
+        // ── Commercial Package checkbox ────────────────────────────────────────
         async function clickCommercialPackage() {
             const input = page.locator('#chk_commercialpackage').first();
             const label = page.locator('#for_chk_commercialpackage').first();
@@ -384,14 +432,17 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         await clickCommercialPackage();
         await page.waitForTimeout(1500);
+        await dismissStatusModal();
 
         await page.getByRole('button', { name: 'Next' }).click();
         await page.waitForTimeout(1500);
+        await dismissStatusModal();
 
         await page.locator('label[for="xrdo_Question_Form_CPPPreQual_0_ApplicantCPPLiabilityLossesInd_Ext_No"]').click();
         await page.locator('label[for="xrdo_Question_Form_CPPPreQual_0_CPPCertificateQuestion_Ext_Yes"]').click();
         await page.getByRole('button', { name: 'Finish' }).click();
         await page.waitForTimeout(1500);
+        await dismissStatusModal();
 
         const priorCarrierSelect = page.locator('#ddlPriorCarrier');
         await priorCarrierSelect.waitFor({ state: 'visible', timeout: 15000 });
@@ -404,11 +455,12 @@ test('Package Submission', async ({ page }, testInfo) => {
         await priorCarrierSelect.selectOption(firstCarrierValue);
         console.log(`Selected prior carrier: ${firstCarrierValue}`);
 
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await safeNextClick();
         trackMilestone('Policy Details Entered');
 
         await page.waitForLoadState('domcontentloaded');
         await page.locator('#cbInlandMarine').waitFor({ state: 'visible', timeout: 30000 });
+        await dismissStatusModal();
 
         await page.locator('#cbInlandMarine').scrollIntoViewIfNeeded();
         if (!await page.locator('#cbInlandMarine').isChecked()) {
@@ -427,16 +479,19 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(200);
         await page.locator('#btnConfirmSelections').click();
         await page.waitForTimeout(1500);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         trackMilestone('Line Selections Tab Navigation Completed');
 
         await page.getByTitle('Edit Location').click();
+        await dismissStatusModal();
         await clickIfExists('Yes');
         await page.locator('#txtLocationStreet2').fill('Apt 101');
         await page.keyboard.press('Tab');
         await page.waitForTimeout(200);
         await page.locator('#btnVerifyAddress').click();
         await page.waitForTimeout(200);
+        await dismissStatusModal();
         await clickIfExists('Ok');
         await clickIfExists('Use Suggested');
         await clickIfExists('Accept As-Is');
@@ -444,35 +499,42 @@ test('Package Submission', async ({ page }, testInfo) => {
         await clickIfExists('Save');
 
         await page.waitForTimeout(200);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await safeNextClick();
         trackMilestone('Locations tab Navigation Completed');
 
         await page.waitForTimeout(1500);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await safeNextClick();
+        await dismissStatusModal();
 
         await page.waitForLoadState('domcontentloaded');
         await page.waitForLoadState('networkidle').catch(() => {});
         await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
+        await dismissStatusModal();
 
         await processCoverageDropdowns(page);
         await page.waitForTimeout(300);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await processAllAddCoverageButtons(page);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         trackMilestone('CP - Commercial Property tab navigation Completed');
 
         await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(3000);
+        await dismissStatusModal();
 
         await page.getByTitle('Edit Location').click();
         await page.waitForTimeout(200);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
-        await safeClick(page.getByRole('button', { name: 'Save Location' }));
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
+        await safeSaveClick('Save Location');
+        await safeNextClick();
         trackMilestone('CP - Locations tab navigation Completed');
 
         await processAllAddCoverageButtons(page);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
 
         await page.locator('button').filter({ hasText: 'Add Building' }).click();
         await page.locator('a.dropdown-item').filter({ hasText: 'Location 1:' }).nth(1).click();
@@ -492,19 +554,18 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(200);
         await page.locator('#txtYearOfConstruction').fill('2015');
         await page.waitForTimeout(1500);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
 
-        // ── Estimator (robust - parallel-safe) ───────────────────────────────────
+        // ── Estimator ─────────────────────────────────────────────────────────
         const estimatorOpened = await clickEstimatorAndWait();
 
-        // ── Copy estimator value → Limit field ───────────────────────────────────
-        const sourceInput = page.locator('#xtxt_EstimatedReplacementCost');
+        const sourceInput  = page.locator('#xtxt_EstimatedReplacementCost');
         const limit52Input = page.locator('#txt_CP7Limit52_integerWithCommas');
         await limit52Input.waitFor({ state: 'visible', timeout: 10000 });
 
         let numericValue = '1000000';
         if (estimatorOpened) {
-            // Run the estimator if it opened
             const sqFt = page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL');
             if (await waitForVisible(sqFt, 5000)) {
                 await sqFt.click({ clickCount: 3 });
@@ -537,14 +598,16 @@ test('Package Submission', async ({ page }, testInfo) => {
         await fillIntegerField(limit52Input, numericValue);
         console.log(`Building Limit set: ${numericValue}`);
 
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await page.waitForTimeout(200);
         await processAllAddCoverageButtons(page);
+        await dismissStatusModal();
 
         await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(200);
 
-        // ── Close lingering modal ─────────────────────────────────────────────────
+        // ── Close lingering modal ─────────────────────────────────────────────
         try {
             const modal = page.locator('#dgic-modal-clpropertyaddlcoveragesscheduledialog');
             if (await modal.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -583,8 +646,9 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.getByRole('button', { name: 'Save Building & Add Business' }).click();
         await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(2500);
+        await dismissStatusModal();
 
-        // ── Business Income ───────────────────────────────────────────────────────
+        // ── Business Income ───────────────────────────────────────────────────
         await page.locator('#txtBusinessIncomeDescription').fill('test desc');
         await page.waitForTimeout(1200);
         await page.locator('#xrgn_Coverage_Form_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
@@ -595,47 +659,57 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(1200);
         await page.locator('#bs-select-6-0').click();
         await page.waitForTimeout(1500);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
 
         const limit53Input = page.locator('#txt_CP7Limit53_integerWithCommas');
         await limit53Input.waitFor({ state: 'visible', timeout: 10000 });
         await fillIntegerField(limit53Input, '155666');
 
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await processCoverageDropdowns(page);
+        await dismissStatusModal();
+        await safeNextClick();
         await processAllAddCoverageButtons(page);
+        await dismissStatusModal();
 
         const saveBusinessIncomeBtn = page.locator('#btnNext_CLPropertyBuildingBusinessIncomeAdditionalCoverages');
         await saveBusinessIncomeBtn.waitFor({ state: 'visible', timeout: 30000 });
         await saveBusinessIncomeBtn.click();
+        await dismissStatusModal();
 
-        // ── Occupancy ─────────────────────────────────────────────────────────────
+        // ── Occupancy ─────────────────────────────────────────────────────────
         await page.getByTitle('Add Occupancy Building').click();
         await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(2500);
+        await dismissStatusModal();
         await page.locator('#txtOccupancyDescription').waitFor({ state: 'visible', timeout: 15000 });
         await page.locator('#txtOccupancyDescription').fill('occupancy desc');
         await page.locator('#txtSquareFootage').fill('15656');
         await page.getByText('Occupancy Details Location').click();
         await page.locator('button[data-id="ddlSprinkler"]').click();
         await page.locator('.dropdown-menu').getByText('Sprinklered Building, but Not Rated as Sprinklered').click();
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await page.locator('button[data-id="ddlOccupancyCategory"]').click();
         await page.locator('.dropdown-menu.show').getByText('Residential Apartments and Condominiums', { exact: true }).click();
         await processAllAddCoverageButtons(page);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await page.waitForTimeout(500);
 
         const saveOccBtn = page.locator('#btnNext_CLPropertyBuildingOccupancyCoverages');
         await expect(saveOccBtn).toBeVisible();
         await expect(saveOccBtn).toBeEnabled();
         await saveOccBtn.click();
+        await dismissStatusModal();
 
-        // ── Personal Property ─────────────────────────────────────────────────────
+        // ── Personal Property ─────────────────────────────────────────────────
         await page.waitForTimeout(200);
         await page.getByTitle('Add Personal Property').click();
         await page.waitForTimeout(500);
         await page.locator('#txtPersonalPropertyDescription').fill('Personal property description');
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
 
         const limit54Input = page.locator('#txt_CP7Limit54_integerWithCommas');
         await limit54Input.waitFor({ state: 'visible', timeout: 10000 });
@@ -644,12 +718,15 @@ test('Package Submission', async ({ page }, testInfo) => {
         await processCoverageDropdowns(page);
         await page.waitForTimeout(300);
         await processAllAddCoverageButtons(page);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await page.locator('#btnNext_CLPropertyBuildingPersonalPropertyAdditionalCoverages').click();
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await processAllAddCoverageButtons(page);
+        await dismissStatusModal();
 
-        // ── Attention dialog ──────────────────────────────────────────────────────
+        // ── Attention dialog ──────────────────────────────────────────────────
         const attentionHeading = page.getByRole('heading', { name: 'Attention' });
         try {
             await attentionHeading.waitFor({ state: 'visible', timeout: 5000 });
@@ -675,13 +752,13 @@ test('Package Submission', async ({ page }, testInfo) => {
                 await page.locator('#btnNext_CLPropertyBuildingDetails').click();
                 await page.waitForLoadState('domcontentloaded');
                 await page.waitForTimeout(3000);
-                await safeClick(page.getByRole('button', { name: 'Next ' }));
+                await safeNextClick();
                 await page.waitForLoadState('domcontentloaded');
                 await page.waitForTimeout(200);
                 await page.locator('#btnNext_CLPackageBuildingAdditionalCoverages').click();
                 await page.waitForLoadState('domcontentloaded');
                 await page.waitForTimeout(200);
-                await safeClick(page.getByRole('button', { name: 'Next ' }));
+                await safeNextClick();
                 await page.waitForLoadState('domcontentloaded');
                 await page.waitForLoadState('networkidle').catch(() => {});
                 console.log('Recovery complete, URL:', page.url());
@@ -690,7 +767,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             console.log('Attention dialog not found, skipping');
         }
 
-        // ── Special Classes ───────────────────────────────────────────────────────
+        // ── Special Classes ───────────────────────────────────────────────────
         const addSpecialClassOption = page.locator('div.filter-option-inner-inner')
             .filter({ hasText: /Special Class|Add Special/ }).first();
         const dropdownVisible = await waitForVisible(addSpecialClassOption, 10000);
@@ -724,9 +801,9 @@ test('Package Submission', async ({ page }, testInfo) => {
                     console.log('Basic Symbol Number stayed disabled, skipping');
                 } else {
                     await basicSymbolDropdown.click();
-                    const menuId = await basicSymbolDropdown.getAttribute('aria-owns');
+                    const menuId   = await basicSymbolDropdown.getAttribute('aria-owns');
                     const optionSel = menuId ? `#${menuId} [role="option"]` : '#bs-select-8 [role="option"]';
-                    const firstOpt = page.locator(optionSel).first();
+                    const firstOpt  = page.locator(optionSel).first();
                     await firstOpt.waitFor({ state: 'visible', timeout: 5000 });
                     await firstOpt.click();
                     console.log('Basic Symbol Number selected');
@@ -735,11 +812,12 @@ test('Package Submission', async ({ page }, testInfo) => {
             await page.waitForLoadState('networkidle').catch(() => {});
         }
 
-        // ── Special Class Coverages ───────────────────────────────────────────────
+        // ── Special Class Coverages ───────────────────────────────────────────
         await page.getByRole('button', { name: 'Next ' }).click();
         await page.waitForLoadState('domcontentloaded');
         await page.waitForLoadState('networkidle').catch(() => {});
         await page.waitForTimeout(200);
+        await dismissStatusModal();
 
         const limit19Input = page.locator('#txt_CP7Limit19_integerWithCommas');
         await limit19Input.waitFor({ state: 'visible', timeout: 20000 });
@@ -747,22 +825,24 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         await processCoverageDropdowns(page);
         await page.waitForTimeout(300);
+        await dismissStatusModal();
         await page.getByRole('button', { name: 'Next ' }).click();
         await page.waitForTimeout(200);
         await page.locator('#btnNext_CLPackageSpecialClassAdditionalCoverages').click();
         await page.waitForTimeout(200);
         await page.getByRole('button', { name: 'Next ' }).click();
         await page.waitForTimeout(200);
-        await page.getByRole('button', { name: 'Continue ' }).click();
+        await dismissStatusModal();
+        await safeContinueClick();
 
         console.log('Commercial property package data entered successfully.');
         trackMilestone('Commercial Property Package Completed');
 
-        // ── General Liability ─────────────────────────────────────────────────────
+        // ── General Liability ─────────────────────────────────────────────────
         console.log('General Liability data entry started.');
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await safeNextClick();
+        await safeNextClick();
+        await safeNextClick();
         await clickIfExists('Close');
 
         await page.getByRole('row')
@@ -771,9 +851,18 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         const limit51Input = page.locator('#txtzh4h8eu1sdr3q3h40nqv6fdk65a_integerWithCommas');
         await limit51Input.waitFor({ state: 'visible', timeout: 10000 });
-        await fillIntegerField(limit51Input, '150');
+        await limit51Input.waitFor({ state: 'attached', timeout: 10000 });
+        await page.waitForTimeout(200);
+        await limit51Input.click({ clickCount: 3 });
+        await page.waitForTimeout(500);
+        await page.keyboard.press('Backspace');
+        await page.waitForTimeout(500);
+        await page.keyboard.type('150');
+        await page.waitForTimeout(200);
+        await limit51Input.blur();
+        await page.waitForTimeout(1500);
 
-        const today = new Date();
+        const today               = new Date();
         const currentMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
         const twoMonthsLater      = new Date(today.getFullYear(), today.getMonth() + 2, 0);
         const twoMonthsLastDay    = twoMonthsLater.getDate();
@@ -784,16 +873,18 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.getByRole('cell', { name: String(twoMonthsLastDay) }).last().click();
         await page.locator('#CLGLAdditionalCoveragesScheduleDialog_dialog_btn_0').click();
         await page.waitForTimeout(200);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
 
         if (page.url().includes('CLGLAdditionalCoverages.aspx')) {
             console.log('Additional Coverages page detected');
-            await safeClick(page.getByRole('button', { name: 'Next ' }));
+            await safeNextClick();
             await page.waitForLoadState('domcontentloaded');
         }
 
         await page.waitForTimeout(500);
         await clickIfExists('Close');
+        await dismissStatusModal();
 
         try {
             const locationDropdown = page.locator('button[data-id="ddlAddLocation"]');
@@ -803,7 +894,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             await menu.waitFor({ state: 'visible', timeout: 5000 });
             await menu.locator('li').filter({ hasText: /^1:/ }).first().click();
             console.log('GL location added');
-            await safeClick(page.getByRole('button', { name: 'Next ' }));
+            await safeNextClick();
         } catch { console.log('GL Locations section not present, skipping'); }
 
         await page.locator('#btnAddExposure').click();
@@ -812,25 +903,18 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.getByRole('combobox', { name: 'Select Class Code' }).click();
         await page.locator('#bs-select-2-1').click();
         await page.locator('#txtExposure_Prem').fill('166');
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
+        await safeNextClick();
         await page.getByRole('button', { name: 'Save Exposure ' }).click();
 
         await page.waitForTimeout(200);
-
-        try {
-            const statusModalGL = page.locator('#dgic-status-message');
-            await statusModalGL.waitFor({ state: 'visible', timeout: 2000 });
-            const closeBtnGL = statusModalGL.getByRole('button', { name: /close|ok|done/i }).first();
-            await closeBtnGL.click().catch(() => {});
-            await page.waitForTimeout(500);
-        } catch (e) {}
-
-        await page.getByRole('button', { name: 'Continue ' }).click();
+        await dismissStatusModal();
+        await safeContinueClick();
         console.log('General Liability data entered successfully.');
         trackMilestone('General Liability Completed');
 
-        // ── Inland Marine ─────────────────────────────────────────────────────────
+        // ── Inland Marine ─────────────────────────────────────────────────────
         console.log('Inland Marine data entry started.');
         await page.getByRole('combobox', { name: 'Add New Form' }).click();
         await page.locator('#bs-select-1-1').click();
@@ -841,7 +925,8 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.getByRole('combobox', { name: 'None' }).click();
         await page.locator('#bs-select-2-1').click();
         await page.waitForTimeout(5000);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await page.waitForTimeout(200);
 
         const imLimit1 = page.locator('#txt_z5mh4r37u1gomc1gru4e21al9ha_integerWithCommas');
@@ -862,22 +947,25 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         await processCoverageDropdowns(page);
         await page.waitForTimeout(300);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await page.waitForTimeout(200);
         await page.getByRole('button', { name: 'Save Form' }).click();
         await page.waitForTimeout(200);
         await clickIfExists('Close');
         await page.waitForTimeout(500);
-        await safeClick(page.getByRole('button', { name: 'Next ' }));
+        await dismissStatusModal();
+        await safeNextClick();
         await page.waitForTimeout(200);
-        await page.getByRole('button', { name: 'Continue ' }).click();
+        await safeContinueClick();
         await page.waitForTimeout(3000);
         console.log('Inland Marine data entered successfully.');
         trackMilestone('Inland Marine Completed');
 
-        // ── Crime ─────────────────────────────────────────────────────────────────
+        // ── Crime ─────────────────────────────────────────────────────────────
         console.log('Crime data entry started.');
         await page.waitForTimeout(200);
+        await dismissStatusModal();
         await page.getByRole('combobox', { name: new RegExp(`: .* ${testState}$`) }).click();
         await page.locator('ul.dropdown-menu.inner.show').waitFor({ state: 'visible', timeout: 10000 });
         await page.locator('ul.dropdown-menu.inner.show li').filter({ hasText: /^1:/ }).first().click();
@@ -906,13 +994,15 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.getByRole('button', { name: 'Next ' }).click();
         await page.waitForTimeout(200);
         await page.getByRole('button', { name: 'Next ' }).click();
-        await page.getByRole('button', { name: 'Continue ' }).click();
+        await dismissStatusModal();
+        await safeContinueClick();
         await page.waitForTimeout(200);
         await page.locator('#for_xrdo_Question_Form_CPPUnderwritingQuestion_Ext_0_CPPBestInfoByApplicant_Ext_Yes').click();
         console.log('Crime data entered successfully.');
         trackMilestone('Crime Completed');
 
-        await page.getByRole('button', { name: 'Continue ' }).click();
+        await dismissStatusModal();
+        await safeContinueClick();
         await page.waitForTimeout(4000);
 
         const closeButton = page.getByRole('button', { name: 'Close' });
@@ -920,7 +1010,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         await closeButton.click({ force: true });
         await page.waitForTimeout(5000);
 
-        // ── Quote polling ─────────────────────────────────────────────────────────
+        // ── Quote polling ─────────────────────────────────────────────────────
         const quoteNumber = (await page.locator('#tblQuotes tbody tr').first()
             .locator('td').nth(3).innerText()).trim();
         console.log('Captured Quote Number:', quoteNumber);
@@ -986,7 +1076,7 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         try {
             const pageText = await page.locator('body').textContent({ timeout: 2000 }).catch(() => '');
-            const match = pageText.match(/\b(\d{10})\b/);
+            const match    = pageText.match(/\b(\d{10})\b/);
             if (match) {
                 global.testData.quoteNumber = match[1];
                 console.log(`Extracted number from page: ${match[1]}`);
