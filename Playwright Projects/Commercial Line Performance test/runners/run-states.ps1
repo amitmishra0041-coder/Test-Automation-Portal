@@ -4,7 +4,8 @@ param(
   [string]$States      = 'DE',
   [int]$MaxParallel    = 2,
   [int]$StaggerSeconds = 60,
-  [string]$Env         = 'qa'
+  [string]$Env         = 'qa',
+  [switch]$Headless    = $false
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -39,7 +40,7 @@ $tmpDir      = Join-Path $PWD ".runners-tmp"
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  $TestType | States: $($stateList -join ', ')" -ForegroundColor Cyan
-Write-Host "  Max Parallel: $MaxParallel | Stagger: ${StaggerSeconds}s" -ForegroundColor Cyan
+Write-Host "  Max Parallel: $MaxParallel | Stagger: ${StaggerSeconds}s | Headed: $(-not $Headless)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -52,37 +53,66 @@ New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 "batch-in-progress" | Set-Content $batchMarker -Encoding UTF8
 Write-Host "Batch marker created - per-state emails suppressed" -ForegroundColor Gray
 
-# Write a .env file per state into tmp dir
-# This is the ONLY reliable way to pass credentials with special chars ($, @, !)
+$headedFlag = if ($Headless) { "" } else { "--headed" }
+
+# Write one .env file per state using WriteAllLines (no $ interpretation)
 foreach ($state in $stateList) {
-  $stateEnvPath = Join-Path $tmpDir "env-$state.env"
-  $lines = @()
-  $lines += "TEST_STATE=$state"
-  $lines += "TEST_ENV=$Env"
-  $lines += "TEST_TYPE=$TestType"
-  $lines += "WB_USER_DE=$env:WB_USER_DE"
-  $lines += "WB_PASS_DE=$env:WB_PASS_DE"
-  $lines += "WB_USER_PA=$env:WB_USER_PA"
-  $lines += "WB_PASS_PA=$env:WB_PASS_PA"
-  $lines += "WB_USER_MI=$env:WB_USER_MI"
-  $lines += "WB_PASS_MI=$env:WB_PASS_MI"
-  $lines += "WB_USER_WI=$env:WB_USER_WI"
-  $lines += "WB_PASS_WI=$env:WB_PASS_WI"
-  $lines += "SMTP_HOST=$env:SMTP_HOST"
-  $lines += "SMTP_PORT=$env:SMTP_PORT"
-  $lines += "FROM_EMAIL=$env:FROM_EMAIL"
-  $lines += "TO_EMAIL=$env:TO_EMAIL"
-  [System.IO.File]::WriteAllLines($stateEnvPath, $lines)
-  Write-Host "  Wrote env file for $state" -ForegroundColor Gray
+  $lines = [System.Collections.Generic.List[string]]@()
+  $lines.Add("TEST_STATE=$state")
+  $lines.Add("TEST_ENV=$Env")
+  $lines.Add("TEST_TYPE=$TestType")
+  $lines.Add("WB_USER_DE=$env:WB_USER_DE")
+  $lines.Add("WB_PASS_DE=$env:WB_PASS_DE")
+  $lines.Add("WB_USER_PA=$env:WB_USER_PA")
+  $lines.Add("WB_PASS_PA=$env:WB_PASS_PA")
+  $lines.Add("WB_USER_MI=$env:WB_USER_MI")
+  $lines.Add("WB_PASS_MI=$env:WB_PASS_MI")
+  $lines.Add("WB_USER_WI=$env:WB_USER_WI")
+  $lines.Add("WB_PASS_WI=$env:WB_PASS_WI")
+  $lines.Add("SMTP_HOST=$env:SMTP_HOST")
+  $lines.Add("SMTP_PORT=$env:SMTP_PORT")
+  $lines.Add("FROM_EMAIL=$env:FROM_EMAIL")
+  $lines.Add("TO_EMAIL=$env:TO_EMAIL")
+  [System.IO.File]::WriteAllLines((Join-Path $tmpDir "env-$state.env"), $lines)
 }
 
-$jobs = [System.Collections.ArrayList]@()
+# Write one launcher .ps1 per state
+# KEY FIX: script reads its own env file — no inline variable expansion
+foreach ($state in $stateList) {
+  $envFile  = Join-Path $tmpDir "env-$state.env"
+  $lines    = [System.Collections.Generic.List[string]]@()
+  $lines.Add('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8')
+  $lines.Add("Set-Location '" + $PWD.Path.Replace("'","''") + "'")
+  $lines.Add('Get-Content "' + $envFile.Replace('"','""') + '" | Where-Object { $_ -match "^\s*[^#].*=.*" } | ForEach-Object {')
+  $lines.Add('  $p = $_ -split "=", 2')
+  $lines.Add('  if ($p.Count -eq 2) { [System.Environment]::SetEnvironmentVariable($p[0].Trim(), $p[1].Trim(), "Process") }')
+  $lines.Add('}')
+  $lines.Add('Write-Host "=== ' + $state + ' ($TypeType) ===" -ForegroundColor Cyan')
+  $lines.Add('Write-Host "Dir: $(Get-Location)"')
+  $lines.Add('Write-Host "State: $env:TEST_STATE | Type: $env:TEST_TYPE | Env: $env:TEST_ENV"')
+  $lines.Add('Write-Host ""')
+  if ($headedFlag) {
+    $lines.Add('npx playwright test "' + $testFile + '" --project=chromium ' + $headedFlag)
+  } else {
+    $lines.Add('npx playwright test "' + $testFile + '" --project=chromium')
+  }
+  $lines.Add('$exitCode = $LASTEXITCODE')
+  $lines.Add('Write-Host ""')
+  $lines.Add('if ($exitCode -eq 0) { Write-Host "' + $state + ' PASSED" -ForegroundColor Green }')
+  $lines.Add('else { Write-Host "' + $state + ' FAILED (exit $exitCode)" -ForegroundColor Red }')
+  $lines.Add('Write-Host "Press any key to close..."')
+  $lines.Add('pause')
+  $scriptPath = Join-Path $tmpDir "run-$state.ps1"
+  [System.IO.File]::WriteAllLines($scriptPath, $lines)
+}
+
+$procs = [System.Collections.ArrayList]@()
 
 foreach ($state in $stateList) {
 
   # Wait for a free slot
   while ($true) {
-    $running = @($jobs | Where-Object { $_.Job.State -eq 'Running' }).Count
+    $running = @($procs | Where-Object { -not $_.Process.HasExited }).Count
     if ($running -lt $MaxParallel) { break }
     Write-Host "  Max parallel ($MaxParallel) reached - checking in 10s..." -ForegroundColor Gray
     Start-Sleep -Seconds 10
@@ -90,43 +120,27 @@ foreach ($state in $stateList) {
 
   Write-Host "Starting $state ($TestType)..." -ForegroundColor Yellow
 
-  # Use Start-Job with -ArgumentList to pass everything safely
-  # The job loads credentials from the env file - no escaping issues
-  $job = Start-Job -ScriptBlock {
-    param($workDir, $envFilePath, $testFileName, $state)
+  $scriptPath = Join-Path $tmpDir "run-$state.ps1"
 
-    Set-Location $workDir
+  # Launch with Start-Process using -File and quoting via array args
+  # This correctly handles spaces in the path
+  $proc = Start-Process -FilePath "powershell.exe" `
+    -ArgumentList @(
+      "-NoProfile",
+      "-ExecutionPolicy", "Bypass",
+      "-File", $scriptPath
+    ) `
+    -PassThru `
+    -WindowStyle Normal
 
-    # Load env vars from file - handles $, @, ! in passwords safely
-    if (Test-Path $envFilePath) {
-      Get-Content $envFilePath | Where-Object { $_ -match '^\s*[^#].*=.*' } | ForEach-Object {
-        $p = $_ -split '=', 2
-        if ($p.Count -eq 2) {
-          [System.Environment]::SetEnvironmentVariable($p[0].Trim(), $p[1].Trim(), 'Process')
-        }
-      }
-    }
-
-    Write-Output "Starting $state - workdir: $workDir"
-    Write-Output "TEST_STATE=$env:TEST_STATE TEST_TYPE=$env:TEST_TYPE TEST_ENV=$env:TEST_ENV"
-
-    # Run playwright - captures all output
-    $output = & cmd /c "npx playwright test `"$testFileName`" --project=chromium 2>&1"
-    $exitCode = $LASTEXITCODE
-
-    Write-Output $output
-    Write-Output "EXIT_CODE:$exitCode"
-    return $exitCode
-
-  } -ArgumentList $PWD.Path, (Join-Path $tmpDir "env-$state.env"), $testFile, $state
-
-  $null = $jobs.Add([PSCustomObject]@{
+  $null = $procs.Add([PSCustomObject]@{
     State     = $state
-    Job       = $job
+    Process   = $proc
+    Script    = $scriptPath
     StartTime = Get-Date
   })
 
-  Write-Host "  $state launched (job $($job.Id))" -ForegroundColor Green
+  Write-Host "  $state launched (PID $($proc.Id))" -ForegroundColor Green
 
   if ($state -ne $stateList[-1]) {
     Write-Host "  Waiting ${StaggerSeconds}s before next launch..." -ForegroundColor Gray
@@ -134,46 +148,27 @@ foreach ($state in $stateList) {
   }
 }
 
-# Wait for all jobs
+# Wait for all
 Write-Host ""
 Write-Host "All states launched - waiting for completion..." -ForegroundColor Cyan
 Write-Host ""
 
 $results = @{}
 
-foreach ($entry in $jobs) {
-  Write-Host "Waiting for $($entry.State)..." -ForegroundColor Gray
-
-  $output = $entry.Job | Wait-Job | Receive-Job
-
-  # Extract exit code from output
-  $exitCode = 1  # default to fail
-  $outputText = $output | Out-String
-
-  # Look for our EXIT_CODE marker
-  if ($outputText -match 'EXIT_CODE:(\d+)') {
-    $exitCode = [int]$Matches[1]
-  } elseif ($outputText -match '(\d+) passed' -and $outputText -notmatch '\d+ failed') {
-    $exitCode = 0
-  } elseif ($outputText -match '0 failed') {
-    $exitCode = 0
-  }
-
-  $passed = ($exitCode -eq 0)
+foreach ($entry in $procs) {
+  Write-Host "Waiting for $($entry.State) (PID $($entry.Process.Id))..." -ForegroundColor Gray
+  $entry.Process.WaitForExit()
+  $exitCode          = $entry.Process.ExitCode
+  $passed            = ($exitCode -eq 0)
   $results[$entry.State] = $passed
-
   $icon  = if ($passed) { "PASS" } else { "FAIL" }
   $color = if ($passed) { 'Green' } else { 'Red' }
   Write-Host "  [$icon] $($entry.State): exit=$exitCode" -ForegroundColor $color
-
-  # Show last 10 lines of output
-  $lines = ($outputText -split "`n") | Where-Object { $_.Trim() } | Select-Object -Last 10
-  foreach ($line in $lines) { Write-Host "    $line" -ForegroundColor Gray }
   Write-Host ""
 }
 
-# Cleanup
-if (Test-Path $tmpDir)      { Remove-Item $tmpDir -Recurse -Force }
+# Cleanup tmp dir
+if (Test-Path $tmpDir) { Remove-Item $tmpDir -Recurse -Force }
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 
 # Send consolidated email
@@ -196,7 +191,6 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  FINAL SUMMARY" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-
 $allPassed = $true
 foreach ($state in $stateList) {
   $passed = $results[$state]
