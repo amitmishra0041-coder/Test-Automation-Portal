@@ -9,7 +9,7 @@ const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const { createAccountAndQualify } = require('./accountCreationHelper');
 const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./helpers/coverageHelpers');
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 test('Package Submission', async ({ page }, testInfo) => {
@@ -48,17 +48,17 @@ test('Package Submission', async ({ page }, testInfo) => {
 
     page.on('response', async (response) => {
         try {
-            const url    = response.url();
+            const url = response.url();
             const status = response.status();
             const timing = response.timing();
             let duration = null;
             if (timing && timing.startTime && timing.responseEnd)
                 duration = (timing.responseEnd - timing.startTime) / 1000;
-            if (['xhr','fetch'].includes(response.request().resourceType()) || /api|service|rest|json/i.test(url))
+            if (['xhr', 'fetch'].includes(response.request().resourceType()) || /api|service|rest|json/i.test(url))
                 global.testData.httpTimings.push({ url, status, duration, timestamp: new Date().toISOString() });
             if (status >= 400)
                 global.testData.networkErrors.push({ url, status, timestamp: new Date().toISOString() });
-        } catch (e) {}
+        } catch (e) { }
     });
 
     page.on('requestfailed', request => {
@@ -66,8 +66,8 @@ test('Package Submission', async ({ page }, testInfo) => {
     });
 
     let currentStepStartTime = null;
-    let waitBudgetMs         = 0;
-    let testFailed           = false;
+    let waitBudgetMs = 0;
+    let testFailed = false;
 
     const originalWaitForTimeout = page.waitForTimeout.bind(page);
     page.waitForTimeout = async (ms) => {
@@ -112,74 +112,69 @@ test('Package Submission', async ({ page }, testInfo) => {
     }
 
     global.testData.retryCount = testInfo.retry || 0;
-    currentStepStartTime       = new Date();
-
-    // ── Modal / status dismissal ───────────────────────────────────────────────
+    currentStepStartTime = new Date();
+// ── Modal / status dismissal (fast path when nothing visible) ──────────────
     async function dismissStatusModal() {
-        try {
-            const statusModal = page.locator('#dgic-status-message');
-            if (await statusModal.isVisible({ timeout: 1500 }).catch(() => false)) {
-                console.log('Status modal visible - dismissing...');
-                const btn = statusModal.locator('button').first();
-                if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
-                await statusModal.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
-                await page.waitForTimeout(300);
-                console.log('Status modal dismissed');
-            }
-        } catch (e) {}
+        const statusModal = page.locator('#dgic-status-message');
+        // Quick check with near-zero timeout - don't wait 1500ms if it's simply not there
+        const isVisible = await statusModal.isVisible().catch(() => false);
+        if (!isVisible) return;
+
+        console.log('Status modal visible - dismissing...');
+        const btn = statusModal.locator('button').first();
+        if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
+        await statusModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     }
 
-    async function waitForModalsToClose(timeout = 8000) {
-        // Always dismiss status message first - this is the main click blocker
+    async function waitForModalsToClose() {
         await dismissStatusModal();
-        try {
-            const otherModals = [
-                '.ui-widget-overlay',
-                '#gw-click-overlay.gw-disable-click',
-                '.gw-click-overlay',
-                '#dgic-modal-clpropertyaddlcoveragesscheduledialog'
-            ];
-            for (const selector of otherModals) {
-                const modal = page.locator(selector).first();
-                if (await modal.count() > 0 && await modal.isVisible({ timeout: 500 }).catch(() => false))
-                    await modal.waitFor({ state: 'hidden', timeout }).catch(() => {});
-            }
-            await page.waitForLoadState('domcontentloaded').catch(() => {});
-        } catch (e) {}
+        // Only check other modals if they're actually present in DOM (count > 0 is instant)
+        const otherModals = [
+            '.ui-widget-overlay',
+            '#gw-click-overlay.gw-disable-click',
+            '.gw-click-overlay',
+            '#dgic-modal-clpropertyaddlcoveragesscheduledialog'
+        ];
+        for (const selector of otherModals) {
+            const modal = page.locator(selector).first();
+            const count = await modal.count().catch(() => 0);
+            if (count === 0) continue; // skip instantly, no visibility check needed
+            const isVisible = await modal.isVisible().catch(() => false);
+            if (isVisible) await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+        }
     }
 
-    // ── Safe click helpers ────────────────────────────────────────────────────
+    // ── Safe click helpers (single pass, fast when clear) ──────────────────────
     async function safeClick(locator, options = {}) {
-        await waitForModalsToClose();
         await locator.waitFor({ state: 'visible', timeout: 30000 });
         await waitForModalsToClose();
         await locator.click(options);
     }
 
-    // safeNextClick: waits for modal, waits for button enabled, then clicks
     async function safeNextClick() {
-        await waitForModalsToClose();
-        await page.waitForTimeout(300);
-        await waitForModalsToClose();
         const btn = page.getByRole('button', { name: 'Next ' });
         await btn.waitFor({ state: 'visible', timeout: 30000 });
-        // Wait for button to be enabled (not disabled by WB validation)
-        await page.waitForFunction(() => {
-            const candidates = Array.from(document.querySelectorAll('button'));
-            const nextBtn = candidates.find(b =>
-                b.textContent.trim() === 'Next' || b.textContent.includes('Next') &&
-                b.classList.contains('btn-primary')
-            );
-            return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
-        }, { timeout: 15000 }).catch(() => {});
+
+        // Single modal check, not three
         await waitForModalsToClose();
+
+        // Only poll for enabled if it's currently disabled - skip the wait entirely otherwise
+        const isDisabled = await btn.evaluate(el => el.disabled || el.classList.contains('disabled')).catch(() => false);
+        if (isDisabled) {
+            await page.waitForFunction(() => {
+                const candidates = Array.from(document.querySelectorAll('button'));
+                const nextBtn = candidates.find(b =>
+                    b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary')
+                );
+                return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
+            }, { timeout: 15000 }).catch(() => {});
+            await waitForModalsToClose();
+        }
+
         await btn.click();
     }
 
     async function safeContinueClick() {
-        await waitForModalsToClose();
-        await page.waitForTimeout(300);
-        await waitForModalsToClose();
         const btn = page.getByRole('button', { name: 'Continue ' });
         await btn.waitFor({ state: 'visible', timeout: 30000 });
         await waitForModalsToClose();
@@ -187,32 +182,10 @@ test('Package Submission', async ({ page }, testInfo) => {
     }
 
     async function safeSaveClick(buttonName = 'Save') {
-        await waitForModalsToClose();
-        await page.waitForTimeout(300);
-        await waitForModalsToClose();
         const btn = page.getByRole('button', { name: buttonName });
         await btn.waitFor({ state: 'visible', timeout: 30000 });
         await waitForModalsToClose();
         await btn.click();
-    }
-
-    async function waitForVisible(locator, timeout = 5000) {
-        return locator.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
-    }
-
-    async function waitForEnabled(locator, timeout = 8000) {
-        try {
-            await locator.waitFor({ state: 'visible', timeout });
-            const deadline = Date.now() + timeout;
-            while (Date.now() < deadline) {
-                const isDisabled = await locator.evaluate(el =>
-                    el.classList.contains('disabled') || el.getAttribute('aria-disabled') === 'true'
-                );
-                if (!isDisabled) return true;
-                await new Promise(r => setTimeout(r, 200));
-            }
-            return false;
-        } catch { return false; }
     }
 
     // ── Integer field fill ────────────────────────────────────────────────────
@@ -248,9 +221,9 @@ test('Package Submission', async ({ page }, testInfo) => {
                         if (!el) return;
                         const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
                         setter.call(el, val);
-                        el.dispatchEvent(new Event('input',  { bubbles: true }));
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
                         el.dispatchEvent(new Event('change', { bubbles: true }));
-                        el.dispatchEvent(new Event('blur',   { bubbles: true }));
+                        el.dispatchEvent(new Event('blur', { bubbles: true }));
                     }, selector, numericValue);
                     await page.waitForTimeout(800);
                     const evalFilled = (await locator.inputValue()).replace(/,/g, '').trim();
@@ -278,34 +251,48 @@ test('Package Submission', async ({ page }, testInfo) => {
             await page.waitForTimeout(300);
             await locator.blur();
             await page.waitForTimeout(1500);
-            console.log(`Field filled via slow type(): ${numericValue}`);
+    console.log(`Field filled via slow type(): ${numericValue}`);
         }
     }
 
+    async function waitForVisible(locator, timeout = 5000) {
+        return locator.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
+    }
+
+    async function waitForEnabled(locator, timeout = 8000) {
+        try {
+            await locator.waitFor({ state: 'visible', timeout });
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+                const isDisabled = await locator.evaluate(el =>
+                    el.classList.contains('disabled') || el.getAttribute('aria-disabled') === 'true'
+                );
+                if (!isDisabled) return true;
+                await new Promise(r => setTimeout(r, 200));
+            }
+            return false;
+        } catch { return false; }
+    }
+
+    
     // ── Estimator click ───────────────────────────────────────────────────────
     async function clickEstimatorAndWait() {
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForLoadState('networkidle').catch(() => {});
+        await page.waitForLoadState('networkidle').catch(() => { });
         await page.waitForTimeout(3000);
 
         await page.locator('text=Structure Building').first()
             .waitFor({ state: 'visible', timeout: 30000 })
             .catch(() => console.log('Structure Building header not found, continuing...'));
         console.log('Structure Building section loaded');
+        const estimatorLocator = page.locator('a:has-text("Create Estimator"), a:has-text("Edit Estimator"), [id*="Estimator"] a').first();
 
-        const estimatorLocator = page.locator([
-            'a:has-text("Create Estimator")',
-            'a:has-text("Edit Estimator")',
-            'text=Create Estimator',
-            'text=Edit Estimator',
-            '[id*="Estimator"] a',
-        ].join(', ')).first();
 
         const estimatorVisible = await waitForVisible(estimatorLocator, 30000);
         if (!estimatorVisible) console.log('WARNING: Estimator link not visible after 30s');
         else console.log('Estimator link is visible');
 
-        await estimatorLocator.scrollIntoViewIfNeeded().catch(() => {});
+        await estimatorLocator.scrollIntoViewIfNeeded().catch(() => { });
         await page.bringToFront();
         await page.waitForTimeout(1000);
 
@@ -339,7 +326,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                     ].join(', ')).first();
 
                     const propertyNotFound = page.locator('text=Property Information Not Found').first();
-                    const isOpen          = await sqFtField.isVisible({ timeout: 3000 }).catch(() => false);
+                    const isOpen = await sqFtField.isVisible({ timeout: 3000 }).catch(() => false);
                     const stillShowsError = await propertyNotFound.isVisible({ timeout: 1000 }).catch(() => false);
 
                     if (isOpen || !stillShowsError) {
@@ -354,7 +341,7 @@ test('Package Submission', async ({ page }, testInfo) => {
 
             if (estimatorOpened) break;
 
-            await estimatorLocator.scrollIntoViewIfNeeded().catch(() => {});
+            await estimatorLocator.scrollIntoViewIfNeeded().catch(() => { });
             await page.bringToFront();
             await page.waitForTimeout(2000);
         }
@@ -377,7 +364,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         await createAccountAndQualify(page, { writeBizUrl, testState, clickIfExists, trackMilestone });
 
         await page.waitForTimeout(3000);
-        await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => { });
         await dismissStatusModal();
 
         // ── Commercial Package checkbox ────────────────────────────────────────
@@ -410,7 +397,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                 console.log('Commercial package click fallback:', e.message);
                 try {
                     if (await label.count() > 0) {
-                        await label.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
+                        await label.waitFor({ state: 'attached', timeout: 10000 }).catch(() => { });
                         await label.click({ force: true });
                         console.log('Commercial Package clicked (force)');
                         return;
@@ -420,7 +407,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                         const el = document.querySelector('#chk_commercialpackage');
                         if (el) {
                             el.checked = true;
-                            el.dispatchEvent(new Event('input',  { bubbles: true }));
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
                             el.dispatchEvent(new Event('change', { bubbles: true }));
                         }
                     });
@@ -507,8 +494,8 @@ test('Package Submission', async ({ page }, testInfo) => {
         await dismissStatusModal();
 
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForLoadState('networkidle').catch(() => {});
-        await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
+        await page.waitForLoadState('networkidle').catch(() => { });
+        await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => { });
         await dismissStatusModal();
 
         await processCoverageDropdowns(page);
@@ -542,15 +529,31 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.locator('#txtBuildingDescription').fill('test desc');
         await page.locator('#txtClassDescription_displayAll > .input-group-text > .fas').click();
         await clickTextItem('Airports - Hangars with repairing or servicing');
-        await page.locator('#xrgn_CLPropertyBuildingDetails_ConstructionTypeToUseValue')
-            .getByRole('combobox', { name: 'Nothing selected' }).click();
-        await page.locator('#bs-select-6-0').click();
+        //await page.waitForLoadState('networkidle').catch(() => {});
+        await page.waitForTimeout(1000);
+
+        // 1. Select the Parent dropdown first
+        // Change by exact text
+        await page.locator('#ddlConstructionTypeToUse').selectOption({ label: 'Joisted Masonry' });
+
+        // OR change by index (e.g., select the 3rd option in the list)
+        await page.locator('#ddlConstructionTypeToUse').selectOption({ index: 2 });
+        // Looks specifically inside the Building Code Class section
+        // 1. Click the combobox to open the menu
+        //await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(200);
+        // 1. Target this exact button using its unique data-id and click it
+        await page.locator('button[data-id="ddlBuildingCodeClass"]').click();
+
+        // 2. Select the first real option from the open list, skipping the placeholder
+        await page.getByRole('listbox')
+            .getByRole('option')
+            .filter({ hasNotText: 'Nothing selected' })
+            .first()
+            .click();
         await page.waitForTimeout(200);
         await page.locator('#txtNumberOfStories').fill('15');
-        await page.waitForTimeout(200);
-        await page.getByRole('combobox', { name: 'Nothing selected' }).click();
-        await page.waitForTimeout(1200);
-        await page.locator('#bs-select-19-0').click();
+
         await page.waitForTimeout(200);
         await page.locator('#txtYearOfConstruction').fill('2015');
         await page.waitForTimeout(1500);
@@ -560,7 +563,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         // ── Estimator ─────────────────────────────────────────────────────────
         const estimatorOpened = await clickEstimatorAndWait();
 
-        const sourceInput  = page.locator('#xtxt_EstimatedReplacementCost');
+        const sourceInput = page.locator('#xtxt_EstimatedReplacementCost');
         const limit52Input = page.locator('#txt_CP7Limit52_integerWithCommas');
         await limit52Input.waitFor({ state: 'visible', timeout: 10000 });
 
@@ -586,7 +589,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             const sourceVisible = await waitForVisible(sourceInput, 5000);
             if (sourceVisible) {
                 const rawValue = await sourceInput.inputValue();
-                numericValue   = rawValue.replace(/,/g, '').trim();
+                numericValue = rawValue.replace(/,/g, '').trim();
                 console.log(`Estimated Replacement Cost: ${rawValue} -> ${numericValue}`);
             } else {
                 console.log('Estimated Replacement Cost field not visible, using fallback 1000000');
@@ -608,47 +611,67 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(200);
 
         // ── Close lingering modal ─────────────────────────────────────────────
+        // ── Close lingering modal ─────────────────────────────────────────────────
         try {
             const modal = page.locator('#dgic-modal-clpropertyaddlcoveragesscheduledialog');
             if (await modal.isVisible({ timeout: 2000 }).catch(() => false)) {
-                console.log('Closing lingering modal...');
-                const modalBtns = [
-                    '#CLPropertyAddlCoveragesScheduleDialog_dialog_btn_0',
-                    'button[id*="ScheduleDialog"]',
-                    'button:has-text("Save")', 'button:has-text("OK")', 'button:has-text("Close")'
-                ];
-                let clicked = false;
-                for (const sel of modalBtns) {
+                console.log('Closing lingering schedule dialog modal...');
+
+                // Strategy 1: click first button inside the modal
+                const modalBtns = modal.locator('button');
+                const btnCount = await modalBtns.count();
+                let closed = false;
+                for (let i = 0; i < btnCount && !closed; i++) {
                     try {
-                        const btn = page.locator(sel).first();
-                        if (await btn.count() > 0) {
-                            await btn.click({ timeout: 3000, force: true });
-                            await page.waitForTimeout(800);
-                            clicked = true;
-                            break;
+                        await modalBtns.nth(i).click({ force: true, timeout: 3000 });
+                        await page.waitForTimeout(800);
+                        if (!await modal.isVisible({ timeout: 1000 }).catch(() => false)) {
+                            console.log('Modal closed via button click');
+                            closed = true;
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                 }
-                if (!clicked) {
+
+                // Strategy 2: Escape key
+                if (!closed) {
                     for (let i = 0; i < 3; i++) {
                         await page.keyboard.press('Escape');
                         await page.waitForTimeout(300);
                     }
+                    if (!await modal.isVisible({ timeout: 1000 }).catch(() => false)) {
+                        console.log('Modal closed via Escape');
+                        closed = true;
+                    }
+                }
+
+                // Strategy 3: Force remove from DOM (nuclear option)
+                if (!closed) {
+                    console.log('Modal still open - force removing from DOM...');
                     await page.evaluate(() => {
+                        // Remove the modal
                         const m = document.getElementById('dgic-modal-clpropertyaddlcoveragesscheduledialog');
-                        if (m && m.parentNode) m.parentNode.removeChild(m);
+                        if (m) m.remove();
+                        // Remove any backdrops
                         document.querySelectorAll('.modal-backdrop, .ui-widget-overlay').forEach(el => el.remove());
+                        // Remove modal-open class from body so scrolling works
+                        document.body.classList.remove('modal-open');
+                        document.body.style.removeProperty('overflow');
+                        document.body.style.removeProperty('padding-right');
                     });
+                    await page.waitForTimeout(500);
+                    console.log('Modal force-removed from DOM');
                 }
             }
-        } catch (e) { console.log('Modal close: ' + e.message); }
+        } catch (e) { console.log('Modal close attempt: ' + e.message); }
 
+        // Double-check modal is gone before clicking Save Building
+        await dismissStatusModal();
+        await page.waitForTimeout(300);
+
+        // ── Business Income ───────────────────────────────────────────────────
         await page.getByRole('button', { name: 'Save Building & Add Business' }).click();
         await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(2500);
-        await dismissStatusModal();
-
-        // ── Business Income ───────────────────────────────────────────────────
         await page.locator('#txtBusinessIncomeDescription').fill('test desc');
         await page.waitForTimeout(1200);
         await page.locator('#xrgn_Coverage_Form_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
@@ -667,6 +690,14 @@ test('Package Submission', async ({ page }, testInfo) => {
         await fillIntegerField(limit53Input, '155666');
 
         await processCoverageDropdowns(page);
+        // 1. Click the button to expand the dropdown menu
+        await page.locator('button[data-id="ddl_CP7Coinsurance7"]').click();
+
+        // 2. Click the first available option in the expanded listbox.
+        // Bootstrap-select links the listbox via the aria-owns attribute ("bs-select-7")
+        // We use nth(0) if the first option is the target, or nth(1) if the first is the "Nothing selected" placeholder.
+        await page.locator('#bs-select-7 [role="option"]').nth(1).click();
+        await page.waitForTimeout(1500);
         await dismissStatusModal();
         await safeNextClick();
         await processAllAddCoverageButtons(page);
@@ -735,18 +766,26 @@ test('Package Submission', async ({ page }, testInfo) => {
             await page.getByTitle('Edit Building').click();
 
             const urlBefore = page.url();
-            await page.getByRole('button', { name: 'Next ' }).click({ timeout: 5000 }).catch(() => {});
+            await page.getByRole('button', { name: 'Next ' }).click({ timeout: 5000 }).catch(() => { });
             await page.waitForTimeout(200);
 
             if (page.url() !== urlBefore) {
                 console.log('Next button successful after Attention dialog');
                 await page.waitForLoadState('domcontentloaded');
-                await page.waitForLoadState('networkidle').catch(() => {});
+                await page.waitForLoadState('networkidle').catch(() => { });
             } else {
                 console.log('Next failed, running recovery');
+                // 1. Click specifically inside the Construction Type wrapper
                 await page.locator('#xrgn_CLPropertyBuildingDetails_ConstructionTypeToUseValue')
-                    .getByRole('combobox', { name: 'Nothing selected' }).click();
-                await page.locator('#bs-select-6-0').click();
+                    .getByRole('combobox', { name: 'Nothing selected' })
+                    .click();
+
+                // 2. Click the first actual option in the dropdown list
+                await page.getByRole('listbox')
+                    .getByRole('option')
+                    .filter({ hasNotText: 'Nothing selected' })
+                    .first()
+                    .click();
                 await page.waitForLoadState('domcontentloaded');
                 await page.waitForTimeout(3000);
                 await page.locator('#btnNext_CLPropertyBuildingDetails').click();
@@ -760,7 +799,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                 await page.waitForTimeout(200);
                 await safeNextClick();
                 await page.waitForLoadState('domcontentloaded');
-                await page.waitForLoadState('networkidle').catch(() => {});
+                await page.waitForLoadState('networkidle').catch(() => { });
                 console.log('Recovery complete, URL:', page.url());
             }
         } catch {
@@ -801,21 +840,21 @@ test('Package Submission', async ({ page }, testInfo) => {
                     console.log('Basic Symbol Number stayed disabled, skipping');
                 } else {
                     await basicSymbolDropdown.click();
-                    const menuId   = await basicSymbolDropdown.getAttribute('aria-owns');
+                    const menuId = await basicSymbolDropdown.getAttribute('aria-owns');
                     const optionSel = menuId ? `#${menuId} [role="option"]` : '#bs-select-8 [role="option"]';
-                    const firstOpt  = page.locator(optionSel).first();
+                    const firstOpt = page.locator(optionSel).first();
                     await firstOpt.waitFor({ state: 'visible', timeout: 5000 });
                     await firstOpt.click();
                     console.log('Basic Symbol Number selected');
                 }
             }
-            await page.waitForLoadState('networkidle').catch(() => {});
+            await page.waitForLoadState('networkidle').catch(() => { });
         }
 
         // ── Special Class Coverages ───────────────────────────────────────────
         await page.getByRole('button', { name: 'Next ' }).click();
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForLoadState('networkidle').catch(() => {});
+        await page.waitForLoadState('networkidle').catch(() => { });
         await page.waitForTimeout(200);
         await dismissStatusModal();
 
@@ -862,10 +901,10 @@ test('Package Submission', async ({ page }, testInfo) => {
         await limit51Input.blur();
         await page.waitForTimeout(1500);
 
-        const today               = new Date();
+        const today = new Date();
         const currentMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-        const twoMonthsLater      = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-        const twoMonthsLastDay    = twoMonthsLater.getDate();
+        const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        const twoMonthsLastDay = twoMonthsLater.getDate();
         await page.locator('.input-group-text').first().click();
         await page.getByRole('cell', { name: String(currentMonthLastDay) }).last().click();
         await page.locator('#xrgn_zgni6as6fl4tt7q4qkleqpts9jaValue > .ui-xcontrols > .input-group-append > .input-group-text > .fas').click();
@@ -1022,7 +1061,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                     await btn.click();
                     await btn.waitFor({ state: 'hidden', timeout: 3000 });
                 }
-            } catch {}
+            } catch { }
         }
 
         async function getStatus() {
@@ -1037,7 +1076,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             }
         }
 
-        let status   = await getStatus();
+        let status = await getStatus();
         let attempts = 0;
         console.log('Initial Status:', status);
 
@@ -1046,7 +1085,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             console.log(`Attempt ${attempts}/50: waiting 10s...`);
             await page.waitForTimeout(10000);
             await page.reload();
-            await page.waitForLoadState('networkidle').catch(() => {});
+            await page.waitForLoadState('networkidle').catch(() => { });
             await dismissNotification();
             status = await getStatus();
             console.log(`Attempt ${attempts} status: "${status}"`);
@@ -1065,7 +1104,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         const policyNumber = await submitPolicyForApproval(page, quoteNumber, { policyCenterUrl, trackMilestone });
 
         global.testData.policyNumber = policyNumber;
-        global.testData.status       = 'PASSED';
+        global.testData.status = 'PASSED';
         saveTestData();
         console.log('Test completed successfully. Policy:', policyNumber);
 
@@ -1076,15 +1115,15 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         try {
             const pageText = await page.locator('body').textContent({ timeout: 2000 }).catch(() => '');
-            const match    = pageText.match(/\b(\d{10})\b/);
+            const match = pageText.match(/\b(\d{10})\b/);
             if (match) {
                 global.testData.quoteNumber = match[1];
                 console.log(`Extracted number from page: ${match[1]}`);
             }
-        } catch {}
+        } catch { }
 
         global.testData.status = 'FAILED';
-        global.testData.error  = error.message;
+        global.testData.error = error.message;
         saveTestData();
         console.log(`Test data written with failure info`);
         throw error;
