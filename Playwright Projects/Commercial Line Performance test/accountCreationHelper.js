@@ -2,7 +2,11 @@
  * accountCreationHelper.js
  * Creates a WB account and completes qualification.
  * Credentials from .env (WB_USER_* / WB_PASS_*) - never hardcoded.
- * Added: dismissStatusModal before every Next click
+ *
+ * Fixes:
+ * - Fast-path modal dismissal (no blind 1500ms waits)
+ * - Inspection Contact Information "Add Later" handling (MI-specific field)
+ * - Diagnostic + recovery if qualification page doesn't load after Next
  */
 
 require('dotenv').config();
@@ -70,32 +74,33 @@ async function fillLabeledTextbox(page, labelTextOrList, value, sectionText) {
   throw new Error('Cannot find textbox for: ' + JSON.stringify(labelTextOrList));
 }
 
-// ── Shared modal dismissal (used throughout account creation) ─────────────────
+// ── Fast-path modal dismissal ───────────────────────────────────────────────
 async function dismissStatusModal(page) {
-  try {
-    const modal = page.locator('#dgic-status-message');
-    if (await modal.isVisible({ timeout: 1500 }).catch(() => false)) {
-      console.log('Status modal visible - dismissing...');
-      const btn = modal.locator('button').first();
-      if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
-      await modal.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
-      await page.waitForTimeout(300);
-    }
-  } catch (e) {}
+  const modal = page.locator('#dgic-status-message');
+  const isVisible = await modal.isVisible().catch(() => false);
+  if (!isVisible) return;
+
+  console.log('Status modal visible - dismissing...');
+  const btn = modal.locator('button').first();
+  if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
+  await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
 }
 
 async function safeNextClick(page) {
-  await dismissStatusModal(page);
-  await page.waitForTimeout(300);
-  await dismissStatusModal(page);
   const btn = page.getByRole('button', { name: 'Next' });
   await btn.waitFor({ state: 'visible', timeout: 30000 });
-  await page.waitForFunction(() => {
-    const candidates = Array.from(document.querySelectorAll('button'));
-    const nextBtn = candidates.find(b => b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
-    return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
-  }, { timeout: 15000 }).catch(() => {});
   await dismissStatusModal(page);
+
+  const isDisabled = await btn.evaluate(el => el.disabled || el.classList.contains('disabled')).catch(() => false);
+  if (isDisabled) {
+    await page.waitForFunction(() => {
+      const candidates = Array.from(document.querySelectorAll('button'));
+      const nextBtn = candidates.find(b => b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
+      return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
+    }, { timeout: 15000 }).catch(() => {});
+    await dismissStatusModal(page);
+  }
+
   await btn.click();
 }
 
@@ -226,7 +231,6 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
 
   await page.waitForTimeout(500);
-  await dismissStatusModal(page);
   await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page.waitForTimeout(1000);
@@ -304,7 +308,6 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.waitForTimeout(1000);
 
   // ── Submit client info ───────────────────────────────────────────────────────
-  await dismissStatusModal(page);
   await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
@@ -331,6 +334,15 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
 
   await page.locator('#txtYearBusinessStarted').fill('2014');
   await page.getByRole('textbox', { name: 'Federal ID Number' }).fill(randSSN());
+
+  // ── Inspection Contact Information (MI-specific - not present in all states) ──
+  // If "Add Now" / "Add Later" toggle is present, click "Add Later" to skip it
+  const addLaterBtn = page.getByRole('button', { name: 'Add Later' });
+  if (await addLaterBtn.count() > 0 && await addLaterBtn.isVisible().catch(() => false)) {
+      await addLaterBtn.click();
+      console.log('Inspection Contact Information: clicked Add Later');
+      await page.waitForTimeout(500);
+  }
 
   // ── NAICS code ───────────────────────────────────────────────────────────────
   const naicsInput = page.locator('#txtNAICSCode_input').first();
@@ -393,7 +405,15 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await page.waitForTimeout(800);
   await page.getByRole('textbox', { name: 'Email' }).fill(randEmail());
   await page.waitForTimeout(1000);
-  await dismissStatusModal(page);
+
+  // Final check for Inspection Contact toggle right before Next (in case it appeared late)
+  const addLaterBtn2 = page.getByRole('button', { name: 'Add Later' });
+  if (await addLaterBtn2.isVisible().catch(() => false)) {
+      await addLaterBtn2.click();
+      console.log('Inspection Contact Information: clicked Add Later (pre-Next check)');
+      await page.waitForTimeout(500);
+  }
+
   await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
@@ -406,10 +426,42 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await dismissStatusModal(page);
 
   const coverageDropdown = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question');
-  await coverageDropdown.waitFor({ state: 'visible', timeout: 30000 });
+
+  const dropdownVisible = await coverageDropdown.waitFor({ state: 'visible', timeout: 30000 })
+      .then(() => true)
+      .catch(() => false);
+
+  if (!dropdownVisible) {
+      console.log('Coverage dropdown not visible after 30s - diagnosing page state');
+      console.log('Current URL: ' + page.url());
+      const bodyText = await page.locator('body').innerText().catch(() => '');
+      console.log('Page text snippet: ' + bodyText.substring(0, 500).replace(/\s+/g, ' '));
+
+      // Recovery: Account Details modal may still be open (Inspection Contact blocking Next)
+      const addLaterBtn3 = page.getByRole('button', { name: 'Add Later' });
+      if (await addLaterBtn3.isVisible().catch(() => false)) {
+          console.log('Account Details modal still open - clicking Add Later and retrying Next');
+          await addLaterBtn3.click();
+          await page.waitForTimeout(500);
+          await safeNextClick(page);
+          await page.waitForLoadState('domcontentloaded');
+          await page.waitForTimeout(2000);
+          await coverageDropdown.waitFor({ state: 'visible', timeout: 20000 });
+      } else {
+          // Check for validation errors blocking navigation
+          const errorVisible = await page.locator('.alert-danger, .validation-error, .field-error').first().isVisible().catch(() => false);
+          if (errorVisible) {
+              const errorText = await page.locator('.alert-danger, .validation-error, .field-error').first().innerText().catch(() => '');
+              console.log('Validation error found: ' + errorText);
+          }
+          throw new Error('Coverage dropdown not visible and no recovery path found. URL: ' + page.url());
+      }
+  }
+
   await coverageDropdown.selectOption('BOP');
   await page.waitForTimeout(1200);
 
+  // Power units - first non-empty option
   const powerUnitsSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').first();
   if (await powerUnitsSelect.count() > 0 && await powerUnitsSelect.isVisible().catch(() => false)) {
     const pwrOpt = powerUnitsSelect.locator('option:not([value=""])').first();
@@ -418,6 +470,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(600);
 
+  // Vehicle type = Yes
   const vehicleYesLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1_Yes').first();
   if (await vehicleYesLabel.count() > 0) {
     await vehicleYesLabel.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
@@ -429,6 +482,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(600);
 
+  // Building coverage = Yes
   const buildingYesSel = 'input[name="rdo_Question_Form_CLAcctProdEligibility_Ext_0_WillBuildingCoverageBeRequested_124"][value$="_Yes"]';
   const buildingYes = page.locator(buildingYesSel).first();
   await buildingYes.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
@@ -455,6 +509,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     throw new Error('Unable to select Building Coverage = Yes');
   await page.waitForTimeout(1000);
 
+  // Employees - first non-empty option
   const employeesSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').first();
   if (await employeesSelect.count() > 0 && await employeesSelect.isVisible().catch(() => false)) {
     const empOpt = employeesSelect.locator('option:not([value=""])').first();
@@ -463,6 +518,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(1200);
 
+  // Annual Gross Sales
   const grossSalesSel = '#txt_Question_Form_CLAcctProdEligibility_Ext_0_AnnualGrossSales_All_008_Integer_Question_integerWithCommas';
   const grossSalesField = page.locator(grossSalesSel).first();
   if (await grossSalesField.count() > 0 && await grossSalesField.isVisible().catch(() => false)) {
@@ -480,12 +536,14 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(1200);
 
+  // OccupySquareFeet = No
   const occupyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_OccupySquareFeetOneLocation_All_010_No').first();
   await occupyLabel.waitFor({ state: 'visible', timeout: 15000 });
   await occupyLabel.click({ force: true });
   console.log('OccupySquareFeet = No');
   await page.waitForTimeout(800);
 
+  // CertifyQuestion = Yes
   const certifyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_CertifyQuestion_101_Ext_Yes').first();
   await certifyLabel.waitFor({ state: 'visible', timeout: 15000 });
   await certifyLabel.click({ force: true });
