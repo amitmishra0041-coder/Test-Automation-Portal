@@ -448,7 +448,12 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
 
   await coverageDropdown.selectOption('BOP');
 
-  // Power units - first non-empty option
+  // ── Q1-Q4: BOP/CPP, Building Coverage, Power Units, Employees ────────────────
+  // Each of these triggers conditional WB re-rendering. Wait for networkidle
+  // after each one so the next field's visibility check doesn't poll/stall
+  // against a still-settling DOM.
+
+  // Q3: Power units - first non-empty option
   const powerUnitsSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').first();
   if (await powerUnitsSelect.count() > 0 && await powerUnitsSelect.isVisible().catch(() => false)) {
     const pwrVal = await powerUnitsSelect.locator('option:not([value=""])').first().getAttribute('value').catch(() => null);
@@ -459,19 +464,26 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     }
   }
 
-  // Vehicle type = Yes
+  // Vehicle type = Yes (conditional field shown when power units selected)
   const vehicleYesLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1_Yes').first();
-  await vehicleYesLabel.click({ force: true, timeout: 5000 }).catch(async () => {
-    const vehicleYesInput = page.locator('input[name="rdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1"][value$="_Yes"]').first();
-    await vehicleYesInput.check().catch(() => {});
-  });
-  console.log('Vehicle type = Yes');
+  const vehicleVisible = await vehicleYesLabel.isVisible({ timeout: 3000 }).catch(() => false);
+  if (vehicleVisible) {
+    await vehicleYesLabel.click({ force: true, timeout: 5000 }).catch(async () => {
+      const vehicleYesInput = page.locator('input[name="rdo_Question_Form_CLAcctProdEligibility_Ext_0_IsTheVehiclePrivatePassengerOrLightTruck_121_1"][value$="_Yes"]').first();
+      await vehicleYesInput.check().catch(() => {});
+    });
+    console.log('Vehicle type = Yes');
+    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {});
+  } else {
+    console.log('Vehicle type question not shown (no power units / N-A selected)');
+  }
 
-  // Building coverage = Yes
+  // Q2: Building coverage = Yes
   const buildingYesSel = 'input[name="rdo_Question_Form_CLAcctProdEligibility_Ext_0_WillBuildingCoverageBeRequested_124"][value$="_Yes"]';
   const buildingYes    = page.locator(buildingYesSel).first();
   const buildingLabel  = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_WillBuildingCoverageBeRequested_124_Yes').first();
 
+  await buildingLabel.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   let buildingOk = await buildingLabel.click({ force: true, timeout: 5000 })
       .then(() => true)
       .catch(() => false);
@@ -489,16 +501,36 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   if (!await buildingYes.isChecked().catch(() => false))
     throw new Error('Unable to select Building Coverage = Yes');
 
-  // Employees - first non-empty option
+  // Building coverage triggers a conditional re-render (may reveal/hide
+  // BPP Coverage Limit row per the onchange handler) - wait for it to settle
+  // before touching Employees, which is what was stalling previously
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => {
+    const el = document.querySelector(
+      '#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question'
+    );
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const st = window.getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && st.display !== 'none' && st.visibility !== 'hidden';
+  }, { timeout: 10000 }).catch(() => {
+    console.log('Employees dropdown visibility wait timed out, proceeding anyway');
+  });
+
+  // Q4: Employees - first non-empty option
   const employeesSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').first();
   if (await employeesSelect.count() > 0 && await employeesSelect.isVisible().catch(() => false)) {
     const empVal = await employeesSelect.locator('option:not([value=""])').first().getAttribute('value').catch(() => null);
-    if (empVal) { await employeesSelect.selectOption(empVal); console.log('Employees: ' + empVal); }
+    if (empVal) {
+      await employeesSelect.selectOption(empVal);
+      console.log('Employees: ' + empVal);
+      await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => {});
+    }
+  } else {
+    console.log('Employees dropdown not visible - skipping');
   }
 
-  // ── Generic helper for the remaining Yes/No questions ─────────────────────────
-  // Searches for a question by text snippet, then clicks the Yes/No label
-  // that appears after it in document order.
+  // ── Generic helper for remaining Yes/No questions ─────────────────────────────
   async function clickYesNoByQuestionText(questionSnippet, desiredAnswer) {
     const directLabel = page.locator(
       'xpath=//*[contains(normalize-space(.), ' + JSON.stringify(questionSnippet) + ')]' +
@@ -514,30 +546,25 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     return false;
   }
 
-  // "This quote is based on the representation that the applicant is requesting
-  //  coverage for an active business operation." = Yes
+  // Q5: active business operation = Yes
   await clickYesNoByQuestionText('active business operation', 'Yes');
 
-  // "During the last five (5) years, has the applicant been indicted for or
-  //  convicted of any degree of crime of Fraud, Bribery, Arson..." = No
+  // Q6: Fraud, Bribery, Arson indicted/convicted = No
   await clickYesNoByQuestionText('Fraud, Bribery, Arson', 'No');
 
-  // "Any bankruptcies, tax or credit liens against the applicant in the past
-  //  five (5) years?" = No
+  // Q7: bankruptcies, tax or credit liens = No
   await clickYesNoByQuestionText('bankruptcies, tax or credit liens', 'No');
 
-  // "Any foreign operations or foreign products distributed in the USA?" = No
+  // Q8: foreign operations or foreign products = No
   await clickYesNoByQuestionText('foreign operations or foreign products', 'No');
 
-  // "Has the applicant always carried insurance coverage while conducting
-  //  business operations?" = Yes
+  // Q9: always carried insurance coverage = Yes
   await clickYesNoByQuestionText('always carried insurance coverage', 'Yes');
 
-  // "Any policy or coverage declined, cancelled, or non-renewed during the
-  //  prior three (3) years..." = No
+  // Q10: policy declined, cancelled, or non-renewed = No
   await clickYesNoByQuestionText('declined, cancelled, or non-renewed', 'No');
 
-  // ── Annual Gross Sales (original working keyboard.type pattern) ──────────────
+  // Q11: Annual Gross Sales (original working keyboard.type pattern)
   const grossSalesSel = '#txt_Question_Form_CLAcctProdEligibility_Ext_0_AnnualGrossSales_All_008_Integer_Question_integerWithCommas';
   const grossSalesField = page.locator(grossSalesSel).first();
   if (await grossSalesField.count() > 0 && await grossSalesField.isVisible().catch(() => false)) {
@@ -555,12 +582,12 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }
   await page.waitForTimeout(1200);
 
-  // OccupySquareFeet = No
+  // Q12: OccupySquareFeet = No
   const occupyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_OccupySquareFeetOneLocation_All_010_No').first();
   await occupyLabel.click({ force: true, timeout: 10000 });
   console.log('OccupySquareFeet = No');
 
-  // CertifyQuestion = Yes
+  // Q13: CertifyQuestion = Yes
   const certifyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_CertifyQuestion_101_Ext_Yes').first();
   await certifyLabel.click({ force: true, timeout: 10000 });
   console.log('CertifyQuestion = Yes');
