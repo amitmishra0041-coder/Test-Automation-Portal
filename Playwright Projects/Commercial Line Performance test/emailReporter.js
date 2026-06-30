@@ -7,9 +7,9 @@ const XLSX       = require('xlsx');
 
 class EmailReporter {
   constructor(options) {
-    this.options   = options || {};
+    this.options    = options || {};
     this.suiteLabel = null;
-    this.runId     = null;
+    this.runId      = null;
   }
 
   _detectSuite() {
@@ -25,25 +25,31 @@ class EmailReporter {
     return this.suiteLabel;
   }
 
-  onBegin() {
-    const suite       = this._getSuiteLabel();
-    const suiteLC     = suite.toLowerCase();
-    const batchMarker = path.join(__dirname, `.batch-run-in-progress-${suiteLC}`);
-    const isBatch     = fs.existsSync(batchMarker) || fs.existsSync(path.join(__dirname, '.batch-run-in-progress'));
-    const lockFile    = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
+  _isBatchRun(suiteLC) {
+    // Check both possible batch marker filenames
+    return fs.existsSync(path.join(__dirname, `.batch-run-in-progress-${suiteLC}`)) ||
+           fs.existsSync(path.join(__dirname, '.batch-run-in-progress'));
+  }
 
-    if (!isBatch) {
-      // Solo run - fresh iteration file
-      const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
-      if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
-      this.runId = new Date().toISOString();
-    } else {
-      // Batch run - use shared runId from lock file written by runner
+  onBegin() {
+    const suite   = this._getSuiteLabel();
+    const suiteLC = suite.toLowerCase();
+    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
+
+    if (this._isBatchRun(suiteLC)) {
+      // Batch run - use shared runId from lock file written by runner BEFORE any state launched
       let lockData = {};
       if (fs.existsSync(lockFile)) {
         try { lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8')); } catch (_) {}
       }
       this.runId = lockData.runId || new Date().toISOString();
+      console.log(`[EmailReporter] Batch run detected, using shared runId: ${this.runId}`);
+    } else {
+      // Solo run - fresh iteration file
+      const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
+      if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
+      this.runId = new Date().toISOString();
+      console.log(`[EmailReporter] Solo run, new runId: ${this.runId}`);
     }
   }
 
@@ -51,41 +57,38 @@ class EmailReporter {
     try {
       const suite     = this._getSuiteLabel();
       const suiteLC   = suite.toLowerCase();
-      const envState  = (process.env.TEST_STATE || '').toUpperCase();
-      const dataState = (global.testData && global.testData.state ? String(global.testData.state) : '').toUpperCase();
-      const testState = envState || dataState;
+      const testState = (process.env.TEST_STATE || '').toUpperCase();
 
       console.log(`onTestEnd: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
 
-      const stateFile   = testState ? path.join(__dirname, `test-data-${testState}.json`) : null;
-      const fallback    = path.join(__dirname, 'test-data.json');
+      const stateFile    = testState ? path.join(__dirname, `test-data-${testState}.json`) : null;
+      const fallback     = path.join(__dirname, 'test-data.json');
       const testDataFile = stateFile && fs.existsSync(stateFile) ? stateFile : fallback;
 
-      if (!fs.existsSync(testDataFile)) return;
+      if (!fs.existsSync(testDataFile)) {
+        console.log(`[EmailReporter] No test data file found at ${testDataFile}`);
+        return;
+      }
 
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
       const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
 
       // File locking via retry - handles simultaneous writes from parallel states
       let iterations = [];
-      let retries = 0;
-      while (retries < 10) {
+      for (let i = 0; i < 10; i++) {
         try {
           iterations = fs.existsSync(iterFile)
             ? JSON.parse(fs.readFileSync(iterFile, 'utf-8'))
             : [];
           break;
         } catch (_) {
-          retries++;
-          const wait = ms => new Promise(r => setTimeout(r, ms));
-          // Sync wait - crude but works for file contention
           const start = Date.now();
           while (Date.now() - start < 200) {}
         }
       }
 
-      // Determine pass/fail — trust policyNumber over Playwright result
-      // (exit code from cmd.exe is unreliable)
+      // Trust policyNumber over Playwright result status for pass/fail
+      // cmd.exe exit codes are unreliable; having a policy number means the test passed
       const hasPolicyNumber    = testData.policyNumber && testData.policyNumber !== 'N/A';
       const hasFailedMilestone = Array.isArray(testData.milestones) &&
         testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED');
@@ -118,20 +121,12 @@ class EmailReporter {
       if (existingIdx !== -1) iterations[existingIdx] = entry;
       else iterations.push(entry);
 
-      // Write with retry
-      retries = 0;
-      while (retries < 10) {
-        try {
-          fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2));
-          break;
-        } catch (_) {
-          retries++;
-          const start = Date.now();
-          while (Date.now() - start < 300) {}
-        }
+      for (let i = 0; i < 10; i++) {
+        try { fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2)); break; }
+        catch (_) { const start = Date.now(); while (Date.now() - start < 300) {} }
       }
 
-      console.log(`Saved iteration: suite=${suite}, state=${testData.state}, status=${status}, quote=${testData.quoteNumber}`);
+      console.log(`Saved iteration: suite=${suite}, state=${testData.state}, status=${status}, policy=${testData.policyNumber}`);
     } catch (e) {
       console.log('onTestEnd error:', e.message);
     }
@@ -140,25 +135,27 @@ class EmailReporter {
   async onEnd() {
     const suite   = this._getSuiteLabel();
     const suiteLC = suite.toLowerCase();
-    const markers = [
-      path.join(__dirname, '.batch-run-in-progress'),
-      path.join(__dirname, `.batch-run-in-progress-${suiteLC}`),
-    ];
-    if (markers.some(m => fs.existsSync(m))) {
-      console.log('Batch run detected; skipping individual email');
+
+    // If batch marker still exists, skip - runner will send consolidated email
+    // If marker is gone, this might be a solo run OR the last state finishing
+    // after the runner cleaned up - check the iterations file to decide
+    if (this._isBatchRun(suiteLC)) {
+      console.log('[EmailReporter] Batch marker present - skipping individual state email');
       return;
     }
 
+    // Solo run - send email for this single run
     const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
-    if (!fs.existsSync(iterFile)) { console.log('No iterations to email'); return; }
+    if (!fs.existsSync(iterFile)) { console.log('No iterations file to email'); return; }
 
     const all        = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
     const iterations = this.runId ? all.filter(it => it.runId === this.runId) : all;
-    if (!iterations.length) { await this._sendEmail(all, 'WB Smoke Testing Report'); return; }
-    await this._sendEmail(iterations, 'WB Smoke Testing Report');
+    if (!iterations.length) { console.log('No iterations for this runId'); return; }
+
+    await this._sendEmail(iterations, `WB ${suite} Smoke Test Report`);
   }
 
-  // ── Build average milestone table ─────────────────────────────────────────
+  // ── Average milestone table ───────────────────────────────────────────────
   _buildAverageMilestoneTable(iterations) {
     const map = new Map();
     iterations.forEach(it => {
@@ -171,18 +168,18 @@ class EmailReporter {
       });
     });
 
-    if (map.size === 0) return '';
+    if (map.size === 0) return '<p style="color:#999;">No milestone data available.</p>';
 
     const rows = Array.from(map.entries()).map(([name, data], idx) => {
-      const avg     = (data.durations.reduce((s, d) => s + d, 0) / data.durations.length).toFixed(2);
-      const minD    = Math.min(...data.durations).toFixed(2);
-      const maxD    = Math.max(...data.durations).toFixed(2);
+      const avg    = (data.durations.reduce((s,d) => s+d, 0) / data.durations.length).toFixed(2);
+      const minD   = Math.min(...data.durations).toFixed(2);
+      const maxD   = Math.max(...data.durations).toFixed(2);
       const allPass = data.statuses.every(s => s === 'PASSED');
-      const color   = allPass ? '#4CAF50' : '#f44336';
-      const bg      = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
+      const color  = allPass ? '#4CAF50' : '#f44336';
+      const bg     = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
       return `
         <tr style="background:${bg};">
-          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${idx + 1}</td>
+          <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${idx+1}</td>
           <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${name}</td>
           <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;text-align:right;">${avg}s</td>
           <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;text-align:right;">${minD}s</td>
@@ -193,17 +190,15 @@ class EmailReporter {
     }).join('');
 
     return `
-      <h2 style="color:#333;margin-top:30px;">⏱ Average Milestone Timings (All States)</h2>
-      <p style="color:#666;font-size:12px;">Averaged across all ${iterations.length} state run(s) in this batch.</p>
       <table style="width:100%;border-collapse:collapse;margin:10px 0;">
         <thead>
           <tr style="background:#1976d2;color:white;">
             <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">#</th>
             <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">Milestone</th>
-            <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;">Avg Duration</th>
+            <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;">Avg</th>
             <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;">Min</th>
             <th style="padding:9px 12px;text-align:right;border:1px solid #ddd;font-size:11px;">Max</th>
-            <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">States Run</th>
+            <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">States</th>
             <th style="padding:9px 12px;text-align:left;border:1px solid #ddd;font-size:11px;">Status</th>
           </tr>
         </thead>
@@ -212,10 +207,10 @@ class EmailReporter {
   }
 
   async _sendEmail(iterations, subjectPrefix) {
-    const passed       = iterations.filter(it => it.status === 'PASSED').length;
-    const failed       = iterations.length - passed;
-    const overallPass  = failed === 0;
-    const totalDur     = iterations.reduce((s, it) => s + parseFloat(it.duration || 0), 0).toFixed(2);
+    const passed      = iterations.filter(it => it.status === 'PASSED').length;
+    const failed      = iterations.length - passed;
+    const overallPass = failed === 0;
+    const totalDur    = iterations.reduce((s, it) => s + parseFloat(it.duration || 0), 0).toFixed(2);
 
     // State summary table
     const stateRows = iterations.map((it, idx) => {
@@ -232,34 +227,14 @@ class EmailReporter {
         </tr>`;
     }).join('');
 
-    const stateTableHtml = `
-      <h2 style="color:#333;margin-top:24px;">📋 Results by State</h2>
-      <table style="width:100%;border-collapse:collapse;margin:10px 0;">
-        <thead>
-          <tr style="background:#1976d2;color:white;">
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">State</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">State Name</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Quote #</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Policy #</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Duration</th>
-            <th style="padding:12px;text-align:left;border:1px solid #ddd;font-size:12px;">Status</th>
-          </tr>
-        </thead>
-        <tbody>${stateRows}</tbody>
-      </table>`;
-
-    // Average milestone table
-    const avgMilestoneHtml = this._buildAverageMilestoneTable(iterations);
-
-    // Per-state milestone detail (collapsed)
+    // Per-state milestone detail
     const detailHtml = iterations.map(it => {
-      const sc    = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-      const icon  = it.status === 'PASSED' ? '✅' : '❌';
-      const label = `${it.suite || 'Package'}_${it.state}_${it.iterationNumber}`;
-      const rows  = (it.milestones || []).map((m, i) => {
-        const mc  = (m.status || '').toUpperCase() === 'PASSED' ? '#4CAF50' : '#f44336';
+      const sc   = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
+      const icon = it.status === 'PASSED' ? '✅' : '❌';
+      const rows = (it.milestones || []).map((m, i) => {
+        const mc = (m.status || '').toUpperCase() === 'PASSED' ? '#4CAF50' : '#f44336';
         return `
-          <tr style="background:${i % 2 === 0 ? '#fff' : '#f8f9fa'};">
+          <tr style="background:${i%2===0?'#fff':'#f8f9fa'};">
             <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">${i+1}</td>
             <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">${m.name||'-'}</td>
             <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;color:${mc};font-weight:bold;">${m.status||'-'}</td>
@@ -271,7 +246,7 @@ class EmailReporter {
         <div style="margin:16px 0;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">
           <div style="background:${sc};padding:10px 16px;">
             <span style="color:white;font-size:13px;font-weight:bold;">
-              ${icon} ${label} | State: ${it.state} | Quote: ${it.quoteNumber} | Policy: ${it.policyNumber} | ${it.duration}s
+              ${icon} ${it.suite||'Test'} | ${it.state} (${it.stateName}) | Quote: ${it.quoteNumber} | Policy: ${it.policyNumber} | ${it.duration}s
             </span>
           </div>
           <table style="width:100%;border-collapse:collapse;">
@@ -300,8 +275,26 @@ class EmailReporter {
              <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
           <p><b>Total Duration:</b> ${totalDur}s</p>
         </div>
-        ${stateTableHtml}
-        ${avgMilestoneHtml}
+
+        <h2 style="color:#333;margin-top:24px;">📋 Results by State</h2>
+        <table style="width:100%;border-collapse:collapse;margin:10px 0;">
+          <thead>
+            <tr style="background:#1976d2;color:white;">
+              <th style="padding:12px;text-align:left;border:1px solid #ddd;">State</th>
+              <th style="padding:12px;text-align:left;border:1px solid #ddd;">State Name</th>
+              <th style="padding:12px;text-align:left;border:1px solid #ddd;">Quote #</th>
+              <th style="padding:12px;text-align:left;border:1px solid #ddd;">Policy #</th>
+              <th style="padding:12px;text-align:left;border:1px solid #ddd;">Duration</th>
+              <th style="padding:12px;text-align:left;border:1px solid #ddd;">Status</th>
+            </tr>
+          </thead>
+          <tbody>${stateRows}</tbody>
+        </table>
+
+        <h2 style="color:#333;margin-top:30px;">⏱ Average Milestone Timings (All States)</h2>
+        <p style="color:#666;font-size:12px;">Averaged across all ${iterations.length} state run(s) in this batch.</p>
+        ${this._buildAverageMilestoneTable(iterations)}
+
         <h2 style="color:#333;margin-top:30px;">📋 Milestone Details (Per State)</h2>
         ${detailHtml || '<p style="color:#999;">No milestone data.</p>'}
       </div>`;
@@ -324,13 +317,8 @@ class EmailReporter {
     const today   = new Date().toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' });
     const subject = `${subjectPrefix}: ${today} - ${passed} Passed, ${failed} Failed`;
 
-    try {
-      await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject, html, attachments });
-      console.log('Email sent successfully');
-    } catch (err) {
-      console.error('Email send failed:', err.message);
-      throw err;
-    }
+    await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject, html, attachments });
+    console.log('Email sent successfully');
   }
 
   async _createExcelReport(iterations) {
@@ -340,14 +328,14 @@ class EmailReporter {
 
       // Summary sheet
       const summaryData = iterations.map(it => ({
-        'State'         : it.state,
-        'State Name'    : it.stateName,
-        'Suite'         : it.suite,
-        'Status'        : it.status,
-        'Quote Number'  : it.quoteNumber,
-        'Policy Number' : it.policyNumber,
-        'Duration (s)'  : it.duration,
-        'Timestamp'     : it.timestamp,
+        'State'        : it.state,
+        'State Name'   : it.stateName,
+        'Suite'        : it.suite,
+        'Status'       : it.status,
+        'Quote Number' : it.quoteNumber,
+        'Policy Number': it.policyNumber,
+        'Duration (s)' : it.duration,
+        'Timestamp'    : it.timestamp,
       }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Summary');
 
@@ -362,16 +350,16 @@ class EmailReporter {
         });
       });
       const avgData = Array.from(map.entries()).map(([name, data]) => ({
-        'Milestone'       : name,
-        'Avg Duration (s)': (data.durations.reduce((s,d)=>s+d,0)/data.durations.length).toFixed(2),
-        'Min (s)'         : Math.min(...data.durations).toFixed(2),
-        'Max (s)'         : Math.max(...data.durations).toFixed(2),
-        'States Run'      : data.durations.length,
-        'Status'          : data.statuses.every(s=>s==='PASSED') ? 'PASSED' : 'MIXED',
+        'Milestone'        : name,
+        'Avg Duration (s)' : (data.durations.reduce((s,d)=>s+d,0)/data.durations.length).toFixed(2),
+        'Min (s)'          : Math.min(...data.durations).toFixed(2),
+        'Max (s)'          : Math.max(...data.durations).toFixed(2),
+        'States Run'       : data.durations.length,
+        'Status'           : data.statuses.every(s=>s==='PASSED') ? 'PASSED' : 'MIXED',
       }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(avgData), 'Avg_Milestones');
 
-      // Per-state milestone sheets
+      // Per-state sheets
       const usedNames = new Set(wb.SheetNames);
       iterations.forEach(it => {
         const data = (it.milestones || []).map((m, i) => ({
@@ -381,7 +369,7 @@ class EmailReporter {
           'Duration (s)': m.duration|| '-',
           'Details'     : m.details || '-',
         }));
-        const base = `${(it.suite||'Suite').replace(/[^A-Za-z0-9]/g,'_')}_${it.state}_${it.iterationNumber}`.substring(0,31);
+        const base = `${(it.suite||'Suite').replace(/[^A-Za-z0-9]/g,'_')}_${it.state}`.substring(0,31);
         let name = base; let suf = 2;
         while (usedNames.has(name)) name = `${base.substring(0,28)}_${suf++}`.substring(0,31);
         usedNames.add(name);
@@ -396,27 +384,30 @@ class EmailReporter {
     }
   }
 
+  // Called by runner after all states finish
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
     console.log('Sending consolidated batch email...');
     let iterations = [];
 
-    const files = iterationFilesOverride || ['iterations-data-package.json', 'iterations-data-ca.json', 'iterations-data-bop.json'];
+    const files = iterationFilesOverride || ['iterations-data-package.json','iterations-data-ca.json','iterations-data-bop.json'];
     for (const file of files) {
       const fp = path.join(__dirname, file);
-      if (!fs.existsSync(fp)) continue;
+      if (!fs.existsSync(fp)) { console.log(`  ${file}: not found, skipping`); continue; }
       let all = [];
       try { all = JSON.parse(fs.readFileSync(fp, 'utf-8')) || []; } catch (_) { continue; }
-      if (!all.length) continue;
+      if (!all.length) { console.log(`  ${file}: empty`); continue; }
+
       // Get the most recent runId and use all iterations from that run
       const runIds    = [...new Set(all.map(it => it.runId).filter(Boolean))].sort();
       const latestRun = runIds.slice(-1)[0];
       const filtered  = latestRun ? all.filter(it => it.runId === latestRun) : all;
-      console.log(`   ${file}: ${all.length} total, using ${filtered.length} from runId ${latestRun || 'N/A'}`);
+      console.log(`  ${file}: ${all.length} total, using ${filtered.length} from runId ${latestRun || 'N/A'}`);
       iterations = iterations.concat(filtered);
     }
 
     if (!iterations.length) { console.log('No iterations found for batch email'); return; }
 
+    console.log(`Sending consolidated email for ${iterations.length} state(s)...`);
     const reporter = new EmailReporter();
     await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report');
   }
