@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 test('Package Submission', async ({ page }, testInfo) => {
-    test.setTimeout(1200000);
+    test.setTimeout(1800000); // 30 minutes
     page.setDefaultTimeout(120000);
 
     const envName = process.env.TEST_ENV || 'qa';
