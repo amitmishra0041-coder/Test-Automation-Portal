@@ -1,7 +1,9 @@
 /**
  * helpers/coverageHelpers.js
- * Multi-pass dropdown processor with proper wait for WB's conditional-enable AJAX.
- * Detects newly-enabled or newly-injected dropdowns between passes.
+ * Multi-pass dropdown processor.
+ * Waits for WB's conditional-render AJAX to actually settle between passes
+ * (networkidle + DOM-stability check) instead of a fixed sleep, falling
+ * back to a fixed wait only if the settle signal never resolves.
  */
 
 async function processCoverageDropdowns(page) {
@@ -13,8 +15,40 @@ async function processCoverageDropdowns(page) {
   const processedIds         = new Set();
   const MAX_PASSES           = 6;
 
+  // Wait until the page has genuinely stopped changing:
+  // 1. networkidle (no more than 2 connections for 500ms) - catches AJAX calls
+  // 2. DOM mutation quiet period - catches client-side re-renders with no network call
+  async function waitForPageSettle(maxWaitMs = 8000) {
+    await page.waitForLoadState('networkidle', { timeout: maxWaitMs }).catch(() => {});
+
+    // DOM stability: poll the count of select[id*="ddl"] elements + their disabled
+    // states until they stop changing for 2 consecutive checks (400ms apart)
+    let lastSnapshot = null;
+    let stableCount   = 0;
+    const deadline    = Date.now() + maxWaitMs;
+
+    while (Date.now() < deadline) {
+      const snapshot = await page.evaluate(() => {
+        const selects = Array.from(document.querySelectorAll('select[id*="ddl"]'));
+        return selects.map(s => s.id + ':' + s.disabled).join('|');
+      }).catch(() => null);
+
+      if (snapshot === null) break;
+
+      if (snapshot === lastSnapshot) {
+        stableCount++;
+        if (stableCount >= 2) return; // stable for 2 consecutive checks - done
+      } else {
+        stableCount = 0;
+      }
+      lastSnapshot = snapshot;
+      await page.waitForTimeout(400);
+    }
+    // Timed out waiting for stability - proceed anyway, the pass logic
+    // will simply find fewer changes and stop naturally
+  }
+
   try {
-    // Track disabled select IDs seen each pass - if one becomes enabled, force another pass
     let previousDisabledIds = new Set();
 
     for (let pass = 1; pass <= MAX_PASSES; pass++) {
@@ -39,7 +73,6 @@ async function processCoverageDropdowns(page) {
             continue;
           }
 
-          // Section name (best-effort)
           let sectionName = 'Unknown Section';
           try {
             const container = select.locator('xpath=ancestor::*[contains(@class,"panel") or contains(@class,"card") or contains(@class,"section") or contains(@class,"container")][1]');
@@ -87,9 +120,8 @@ async function processCoverageDropdowns(page) {
             el.dispatchEvent(new Event('change', { bubbles: true }));
           }, targetValue);
 
-          // Wait longer for WB's conditional-enable AJAX to fire and complete
-          await page.waitForTimeout(1200);
-          await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+          // Wait for THIS specific change to settle before reading back the value
+          await waitForPageSettle(6000);
 
           let newValue = await select.evaluate(el => {
             const s = el.querySelector('option:checked');
@@ -99,7 +131,7 @@ async function processCoverageDropdowns(page) {
           if (newValue !== targetText) {
             try {
               await select.selectOption(targetValue);
-              await page.waitForTimeout(1000);
+              await waitForPageSettle(4000);
               newValue = await select.evaluate(el => {
                 const s = el.querySelector('option:checked');
                 return s ? s.textContent.trim() : '';
@@ -124,8 +156,6 @@ async function processCoverageDropdowns(page) {
             console.log(`  FAILED: ${selectId} still shows "${newValue}" (wanted "${targetText}")`);
           }
 
-          await page.waitForTimeout(400).catch(() => {});
-
         } catch (e) {
           console.log(`  Error on SELECT: ${e.message.split('\n')[0]}`);
         }
@@ -133,15 +163,11 @@ async function processCoverageDropdowns(page) {
 
       console.log(`Pass ${pass} complete: changed ${changedThisPass} dropdown(s), total processed: ${processedIds.size}`);
 
-      // Check if any select that was disabled in this pass is no longer disabled
-      // compared to last pass - if so, force another pass even if changedThisPass is 0
-      // (newly enabled fields need to be picked up)
       let newlyEnabledDetected = false;
       for (const id of previousDisabledIds) {
         if (!currentDisabledIds.has(id)) { newlyEnabledDetected = true; break; }
       }
 
-      // Also check if the total SELECT count increased (new dropdown injected into DOM)
       const selectCountChanged = allSelects.length !== (await page.locator('select[id*="ddl"]').all()).length;
 
       previousDisabledIds = currentDisabledIds;
@@ -155,8 +181,15 @@ async function processCoverageDropdowns(page) {
         console.log('No changes this pass but newly-enabled/injected dropdowns detected - continuing');
       }
 
-      // Wait between passes - give WB's framework time to finish conditional rendering
-      await page.waitForTimeout(1500).catch(() => {});
+      // Before starting the NEXT pass, explicitly wait for the page to fully
+      // settle from whatever the last change in THIS pass triggered.
+      // This is the wait that was missing - it runs once per pass, after all
+      // dropdowns in the pass are processed, before Pass N+1 begins.
+      if (changedThisPass > 0 || newlyEnabledDetected || selectCountChanged) {
+        console.log(`Waiting for application to finish rendering before Pass ${pass + 1}...`);
+        await waitForPageSettle(8000);
+        console.log('Application settled, proceeding to next pass');
+      }
     }
 
   } catch (e) {
@@ -179,7 +212,7 @@ async function processCoverageDropdowns(page) {
     global.testData.coverageSectionStats.push(...coverageSectionStats);
   }
 
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(300);
   return coverageChanges;
 }
 
