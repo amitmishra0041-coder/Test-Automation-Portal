@@ -1,7 +1,7 @@
 /**
  * helpers/coverageHelpers.js
- * Fixed: re-queries dropdowns after each change to handle WB page re-renders.
- * Processes ALL dropdowns including required "Nothing selected" fields.
+ * Multi-pass dropdown processor with proper wait for WB's conditional-enable AJAX.
+ * Detects newly-enabled or newly-injected dropdowns between passes.
  */
 
 async function processCoverageDropdowns(page) {
@@ -10,30 +10,31 @@ async function processCoverageDropdowns(page) {
   const coverageChanges      = [];
   const coverageSectionStats = [];
   const sectionStats         = {};
-  const processedIds         = new Set(); // track already-changed dropdowns
-  const MAX_PASSES           = 5;        // re-query up to 5 times to catch newly revealed dropdowns
+  const processedIds         = new Set();
+  const MAX_PASSES           = 6;
 
   try {
+    // Track disabled select IDs seen each pass - if one becomes enabled, force another pass
+    let previousDisabledIds = new Set();
+
     for (let pass = 1; pass <= MAX_PASSES; pass++) {
-      // Re-query every pass to get fresh DOM references
       const allSelects = await page.locator('select[id*="ddl"]').all();
       console.log(`Pass ${pass}: found ${allSelects.length} SELECT element(s)`);
 
-      let changedThisPass = 0;
+      let changedThisPass     = 0;
+      const currentDisabledIds = new Set();
 
       for (let i = 0; i < allSelects.length; i++) {
         try {
           const select   = allSelects[i];
           const selectId = await select.getAttribute('id').catch(() => `select_${i}`);
 
-          // Skip already processed
           if (processedIds.has(selectId)) continue;
-
-          // Skip non-visible
           if (!await select.isVisible().catch(() => false)) continue;
 
-          // Skip disabled / readonly
-          if (await select.evaluate(el => el.disabled || el.readOnly).catch(() => true)) {
+          const isDisabled = await select.evaluate(el => el.disabled || el.readOnly).catch(() => true);
+          if (isDisabled) {
+            currentDisabledIds.add(selectId);
             console.log(`  Skipping ${selectId}: disabled or readonly`);
             continue;
           }
@@ -47,17 +48,14 @@ async function processCoverageDropdowns(page) {
             if (h?.trim()) sectionName = h.trim().replace(/\n+/g,' ').substring(0,100).replace(/\s+(Save|Edit|Close|Add|Remove|Cancel|Next|Back|Finish|Submit)\s*$/i,'').trim();
           } catch (_) {}
 
-          // Skip Structure Building (handled by Package test separately)
           if (/structure\s*building/i.test(sectionName)) {
             console.log(`  Skipping ${selectId}: Structure Building section`);
             continue;
           }
 
-          // Get options
           const options = await select.locator('option').all();
           if (options.length < 1) continue;
 
-          // Current value
           const oldValue = await select.evaluate(el => {
             const s = el.querySelector('option:checked');
             return s ? s.textContent.trim() : '';
@@ -65,58 +63,43 @@ async function processCoverageDropdowns(page) {
 
           const isEmpty = !oldValue || /^(nothing selected|current|select\.\.\.)$/i.test(oldValue.trim());
 
-          // Pick target
-          let targetOption = null;
-          let targetValue  = null;
-          let targetText   = null;
+          let targetOption = null, targetValue = null, targetText = null;
 
           for (const opt of options) {
             const txt = (await opt.textContent())?.trim() || '';
             if (!txt || /^(nothing selected|select\.\.\.)$/i.test(txt)) continue;
             if (isEmpty) {
-              // Required field — pick first real option
-              targetOption = opt;
-              targetValue  = await opt.getAttribute('value');
-              targetText   = txt;
+              targetOption = opt; targetValue = await opt.getAttribute('value'); targetText = txt;
               break;
-            } else {
-              // Optional — pick any different value
-              if (txt !== oldValue) {
-                targetOption = opt;
-                targetValue  = await opt.getAttribute('value');
-                targetText   = txt;
-                break;
-              }
+            } else if (txt !== oldValue) {
+              targetOption = opt; targetValue = await opt.getAttribute('value'); targetText = txt;
+              break;
             }
           }
 
-          if (!targetOption) {
-            // Nothing to change - mark as done so we don't retry
-            processedIds.add(selectId);
-            continue;
-          }
+          if (!targetOption) { processedIds.add(selectId); continue; }
 
           console.log(`  ${selectId}: "${oldValue}" -> "${targetText}" ${isEmpty ? '[REQUIRED]' : ''}`);
 
-          // Strategy 1: evaluate + dispatchEvent
           await select.evaluate((el, val) => {
             el.value = val;
             el.dispatchEvent(new Event('input',  { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
           }, targetValue);
-          await page.waitForTimeout(800);
 
-          // Verify
+          // Wait longer for WB's conditional-enable AJAX to fire and complete
+          await page.waitForTimeout(1200);
+          await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+
           let newValue = await select.evaluate(el => {
             const s = el.querySelector('option:checked');
             return s ? s.textContent.trim() : '';
           }).catch(() => '');
 
-          // Strategy 2: native selectOption if evaluate didn't stick
           if (newValue !== targetText) {
             try {
               await select.selectOption(targetValue);
-              await page.waitForTimeout(800);
+              await page.waitForTimeout(1000);
               newValue = await select.evaluate(el => {
                 const s = el.querySelector('option:checked');
                 return s ? s.textContent.trim() : '';
@@ -139,11 +122,9 @@ async function processCoverageDropdowns(page) {
             sectionStats[sectionName].lastTime = now;
           } else {
             console.log(`  FAILED: ${selectId} still shows "${newValue}" (wanted "${targetText}")`);
-            // Don't add to processedIds — retry next pass
           }
 
-          // Small pause before next dropdown to let WB settle
-          await page.waitForTimeout(300).catch(() => {});
+          await page.waitForTimeout(400).catch(() => {});
 
         } catch (e) {
           console.log(`  Error on SELECT: ${e.message.split('\n')[0]}`);
@@ -152,14 +133,30 @@ async function processCoverageDropdowns(page) {
 
       console.log(`Pass ${pass} complete: changed ${changedThisPass} dropdown(s), total processed: ${processedIds.size}`);
 
-      // If nothing changed this pass, no point doing another pass
-      if (changedThisPass === 0) {
-        console.log('No changes in this pass - stopping early');
+      // Check if any select that was disabled in this pass is no longer disabled
+      // compared to last pass - if so, force another pass even if changedThisPass is 0
+      // (newly enabled fields need to be picked up)
+      let newlyEnabledDetected = false;
+      for (const id of previousDisabledIds) {
+        if (!currentDisabledIds.has(id)) { newlyEnabledDetected = true; break; }
+      }
+
+      // Also check if the total SELECT count increased (new dropdown injected into DOM)
+      const selectCountChanged = allSelects.length !== (await page.locator('select[id*="ddl"]').all()).length;
+
+      previousDisabledIds = currentDisabledIds;
+
+      if (changedThisPass === 0 && !newlyEnabledDetected && !selectCountChanged) {
+        console.log('No changes, no newly-enabled fields, no new dropdowns - stopping early');
         break;
       }
 
-      // Brief pause between passes to let WB re-render
-      await page.waitForTimeout(1000).catch(() => {});
+      if (changedThisPass === 0 && (newlyEnabledDetected || selectCountChanged)) {
+        console.log('No changes this pass but newly-enabled/injected dropdowns detected - continuing');
+      }
+
+      // Wait between passes - give WB's framework time to finish conditional rendering
+      await page.waitForTimeout(1500).catch(() => {});
     }
 
   } catch (e) {
@@ -200,7 +197,6 @@ async function processAllAddCoverageButtons(page) {
       const iterationStart = Date.now();
       if (processedCount >= MAX_ITERATIONS) { console.log(`Reached max iterations (${MAX_ITERATIONS})`); break; }
 
-      // Fresh query each loop
       let addButtons = page.locator('button[data-action="Add"]');
       let buttonCount = await addButtons.count();
       if (buttonCount === 0) {
@@ -232,7 +228,6 @@ async function processAllAddCoverageButtons(page) {
           await button.click({ timeout: 5000, force: true });
           await page.waitForTimeout(500);
 
-          // Add Scheduled Item → Remove Coverage
           if (await page.locator('button:has-text("Add Scheduled Item")').count() > 0) {
             const removeBtn = page.locator('button:has-text("Remove Coverage")');
             if (await removeBtn.count() > 0) {
@@ -244,7 +239,6 @@ async function processAllAddCoverageButtons(page) {
             }
           }
 
-          // Handle modal
           const modal       = page.locator('.modal.show, [role="dialog"]').first();
           const modalVisible = await modal.isVisible({ timeout: 2000 }).catch(() => false);
           if (modalVisible) {
