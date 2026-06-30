@@ -452,7 +452,11 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   const powerUnitsSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').first();
   if (await powerUnitsSelect.count() > 0 && await powerUnitsSelect.isVisible().catch(() => false)) {
     const pwrVal = await powerUnitsSelect.locator('option:not([value=""])').first().getAttribute('value').catch(() => null);
-    if (pwrVal) { await powerUnitsSelect.selectOption(pwrVal); console.log('Power units: ' + pwrVal); }
+    if (pwrVal) {
+      await powerUnitsSelect.selectOption(pwrVal);
+      console.log('Power units: ' + pwrVal);
+      await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => {});
+    }
   }
 
   // Vehicle type = Yes
@@ -492,15 +496,64 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     if (empVal) { await employeesSelect.selectOption(empVal); console.log('Employees: ' + empVal); }
   }
 
-  // Annual Gross Sales
-  const grossSalesSel   = '#txt_Question_Form_CLAcctProdEligibility_Ext_0_AnnualGrossSales_All_008_Integer_Question_integerWithCommas';
+  // ── Generic helper for the remaining Yes/No questions ─────────────────────────
+  // Searches for a question by text snippet, then clicks the Yes/No label
+  // that appears after it in document order.
+  async function clickYesNoByQuestionText(questionSnippet, desiredAnswer) {
+    const directLabel = page.locator(
+      'xpath=//*[contains(normalize-space(.), ' + JSON.stringify(questionSnippet) + ')]' +
+      '/following::label[contains(@class,"btn") and normalize-space(text())=' + JSON.stringify(desiredAnswer) + '][1]'
+    ).first();
+
+    if (await directLabel.count() > 0 && await directLabel.isVisible().catch(() => false)) {
+      await directLabel.click({ force: true, timeout: 5000 }).catch(() => {});
+      console.log('"' + questionSnippet.substring(0, 40) + '..." = ' + desiredAnswer);
+      return true;
+    }
+    console.log('WARNING: could not find Yes/No toggle for: "' + questionSnippet.substring(0, 50) + '"');
+    return false;
+  }
+
+  // "This quote is based on the representation that the applicant is requesting
+  //  coverage for an active business operation." = Yes
+  await clickYesNoByQuestionText('active business operation', 'Yes');
+
+  // "During the last five (5) years, has the applicant been indicted for or
+  //  convicted of any degree of crime of Fraud, Bribery, Arson..." = No
+  await clickYesNoByQuestionText('Fraud, Bribery, Arson', 'No');
+
+  // "Any bankruptcies, tax or credit liens against the applicant in the past
+  //  five (5) years?" = No
+  await clickYesNoByQuestionText('bankruptcies, tax or credit liens', 'No');
+
+  // "Any foreign operations or foreign products distributed in the USA?" = No
+  await clickYesNoByQuestionText('foreign operations or foreign products', 'No');
+
+  // "Has the applicant always carried insurance coverage while conducting
+  //  business operations?" = Yes
+  await clickYesNoByQuestionText('always carried insurance coverage', 'Yes');
+
+  // "Any policy or coverage declined, cancelled, or non-renewed during the
+  //  prior three (3) years..." = No
+  await clickYesNoByQuestionText('declined, cancelled, or non-renewed', 'No');
+
+  // ── Annual Gross Sales (original working keyboard.type pattern) ──────────────
+  const grossSalesSel = '#txt_Question_Form_CLAcctProdEligibility_Ext_0_AnnualGrossSales_All_008_Integer_Question_integerWithCommas';
   const grossSalesField = page.locator(grossSalesSel).first();
   if (await grossSalesField.count() > 0 && await grossSalesField.isVisible().catch(() => false)) {
-    await grossSalesField.fill('45555');
-    await grossSalesField.blur();
-    const gsVal = await grossSalesField.inputValue().catch(() => '');
-    console.log('Gross sales: ' + gsVal);
+    await grossSalesField.click({ clickCount: 3 }).catch(() => {});
+    await grossSalesField.press('Control+A').catch(() => {});
+    await grossSalesField.press('Delete').catch(() => {});
+    await page.keyboard.type('45555', { delay: 120 });
+    await grossSalesField.blur().catch(() => {});
+    for (let i = 0; i < 10; i++) {
+      const cur = await grossSalesField.inputValue().catch(() => '');
+      if (cur.replace(/\D/g, '') === '45555') break;
+      await page.waitForTimeout(200);
+    }
+    console.log('Gross sales: ' + await grossSalesField.inputValue().catch(() => ''));
   }
+  await page.waitForTimeout(1200);
 
   // OccupySquareFeet = No
   const occupyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_OccupySquareFeetOneLocation_All_010_No').first();
