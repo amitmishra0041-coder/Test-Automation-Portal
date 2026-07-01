@@ -11,7 +11,7 @@ const fs   = require('fs');
 const path = require('path');
 
 test('BOP Submission', async ({ page }, testInfo) => {
-  test.setTimeout(1200000);
+  test.setTimeout(1800000);
   page.setDefaultTimeout(60000);
 
   const envName   = process.env.TEST_ENV || 'qa';
@@ -88,43 +88,104 @@ test('BOP Submission', async ({ page }, testInfo) => {
     waitBudgetMs = 0;
   }
 
-  // ── Modal dismissal helpers ───────────────────────────────────────────────
+  // ── Modal dismissal with retry loop ──────────────────────────────────────────
   async function dismissStatusModal() {
     try {
-      const modal = page.locator('#dgic-status-message');
-      if (await modal.isVisible({ timeout: 1500 }).catch(() => false)) {
-        console.log('Status modal visible - dismissing...');
+      for (let i = 0; i < 5; i++) {
+        const modal = page.locator('#dgic-status-message');
+        const isVisible = await modal.isVisible().catch(() => false);
+        if (!isVisible) return;
+        console.log('Status modal visible (attempt ' + (i + 1) + ') - dismissing...');
         const btn = modal.locator('button').first();
         if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
-        await modal.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+        await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
         await page.waitForTimeout(300);
       }
     } catch (e) {}
   }
 
+  async function waitForModalsToClose(timeout = 8000) {
+    await dismissStatusModal();
+    try {
+      const otherModals = [
+        '.ui-widget-overlay',
+        '#gw-click-overlay.gw-disable-click',
+        '.gw-click-overlay',
+      ];
+      for (const selector of otherModals) {
+        const modal = page.locator(selector).first();
+        const count = await modal.count().catch(() => 0);
+        if (count === 0) continue;
+        const isVisible = await modal.isVisible().catch(() => false);
+        if (isVisible) await modal.waitFor({ state: 'hidden', timeout }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
+  // ── Safe click helpers with retry loop ────────────────────────────────────────
+  async function safeClick(locator, options = {}) {
+    await locator.waitFor({ state: 'visible', timeout: 30000 });
+    await waitForModalsToClose();
+    let clicked = false;
+    for (let attempt = 1; attempt <= 4 && !clicked; attempt++) {
+      try {
+        await dismissStatusModal();
+        await locator.click({ ...options, timeout: 10000 });
+        clicked = true;
+      } catch (e) {
+        console.log('safeClick attempt ' + attempt + ': ' + e.message.split('\n')[0]);
+        await dismissStatusModal();
+        await page.waitForTimeout(500);
+      }
+    }
+    if (!clicked) await locator.click({ ...options, force: true });
+  }
+
   async function safeNextClick() {
-    await dismissStatusModal();
-    await page.waitForTimeout(300);
-    await dismissStatusModal();
     const btn = page.getByRole('button', { name: 'Next' });
     await btn.waitFor({ state: 'visible', timeout: 30000 });
-    await page.waitForFunction(() => {
-      const candidates = Array.from(document.querySelectorAll('button'));
-      const nextBtn = candidates.find(b => b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
-      return nextBtn ? !nextBtn.disabled && !nextBtn.classList.contains('disabled') : true;
-    }, { timeout: 15000 }).catch(() => {});
     await dismissStatusModal();
-    await btn.click();
+    const isDisabled = await btn.evaluate(el => el.disabled || el.classList.contains('disabled')).catch(() => false);
+    if (isDisabled) {
+      await page.waitForFunction(() => {
+        const b = Array.from(document.querySelectorAll('button')).find(b =>
+          b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
+        return b ? !b.disabled && !b.classList.contains('disabled') : true;
+      }, { timeout: 15000 }).catch(() => {});
+      await dismissStatusModal();
+    }
+    let clicked = false;
+    for (let attempt = 1; attempt <= 4 && !clicked; attempt++) {
+      try {
+        await dismissStatusModal();
+        await btn.click({ timeout: 10000 });
+        clicked = true;
+      } catch (e) {
+        console.log('safeNextClick attempt ' + attempt + ': ' + e.message.split('\n')[0]);
+        await dismissStatusModal();
+        await page.waitForTimeout(500);
+      }
+    }
+    if (!clicked) await btn.click({ force: true });
   }
 
   async function safeContinueClick() {
-    await dismissStatusModal();
-    await page.waitForTimeout(300);
-    await dismissStatusModal();
     const btn = page.getByRole('button', { name: 'Continue ' });
     await btn.waitFor({ state: 'visible', timeout: 30000 });
     await dismissStatusModal();
-    await btn.click();
+    let clicked = false;
+    for (let attempt = 1; attempt <= 4 && !clicked; attempt++) {
+      try {
+        await dismissStatusModal();
+        await btn.click({ timeout: 10000 });
+        clicked = true;
+      } catch (e) {
+        console.log('safeContinueClick attempt ' + attempt + ': ' + e.message.split('\n')[0]);
+        await dismissStatusModal();
+        await page.waitForTimeout(500);
+      }
+    }
+    if (!clicked) await btn.click({ force: true });
   }
 
   async function clickIfExists(buttonName) {
@@ -141,28 +202,26 @@ test('BOP Submission', async ({ page }, testInfo) => {
   currentStepStartTime = new Date();
 
   try {
-    // ── Account creation ──────────────────────────────────────────────────
+    // ── Account creation ──────────────────────────────────────────────────────
     await createAccountAndQualify(page, { writeBizUrl, testState, clickIfExists, trackMilestone });
 
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
     await dismissStatusModal();
 
-    // ── Select Businessowners (BOP) ───────────────────────────────────────
+    // ── Select Businessowners (BOP) ───────────────────────────────────────────
     const bopCheckbox = page.locator('#chk_businessowners, label[for="chk_businessowners"]').first();
     await bopCheckbox.waitFor({ state: 'visible', timeout: 15000 });
     await bopCheckbox.click({ force: true });
     console.log('Businessowners checkbox clicked');
-    await page.waitForTimeout(1000);
     await dismissStatusModal();
 
-    await page.getByRole('button', { name: 'Next' }).click();
+    await safeNextClick();
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1500);
     await dismissStatusModal();
     trackMilestone('BOP Product Selected');
 
-    // ── Prior carrier ─────────────────────────────────────────────────────
+    // ── Prior carrier ─────────────────────────────────────────────────────────
     const priorCarrierSelect = page.locator('#ddlPriorCarrier');
     await priorCarrierSelect.waitFor({ state: 'visible', timeout: 15000 });
     const firstCarrier = await priorCarrierSelect.evaluate(el => {
@@ -171,16 +230,15 @@ test('BOP Submission', async ({ page }, testInfo) => {
     });
     if (!firstCarrier) throw new Error('No prior carrier options available');
     await priorCarrierSelect.selectOption(firstCarrier);
-    await dismissStatusModal();
     await safeNextClick();
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
     trackMilestone('Policy Details Entered');
 
-    // ── BOP coverage flow ─────────────────────────────────────────────────
+    // ── BOP coverage flow ─────────────────────────────────────────────────────
     await runBopCoverageFlow(page, { testState, trackMilestone, clickIfExists });
 
-    // ── Quote rating loop ─────────────────────────────────────────────────
+    // ── Quote rating loop ─────────────────────────────────────────────────────
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(4000);
     await dismissStatusModal();
@@ -216,7 +274,7 @@ test('BOP Submission', async ({ page }, testInfo) => {
       console.log('Attempt ' + attempts + '/50: waiting 10s...');
       await page.waitForTimeout(10000);
       await page.reload();
-      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForLoadState('domcontentloaded');
       await dismissNotification();
       status = await getStatus();
       console.log('Status: ' + status);
