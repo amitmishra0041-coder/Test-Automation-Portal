@@ -43,7 +43,6 @@ class EmailReporter {
       this.runId = lockData.runId || new Date().toISOString();
       console.log(`[EmailReporter] Batch run, shared runId: ${this.runId}`);
     } else {
-      // Solo run - clear shared iter file
       const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
       if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
       this.runId = new Date().toISOString();
@@ -70,7 +69,6 @@ class EmailReporter {
 
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
 
-      // Trust policyNumber over Playwright result status
       const hasPolicyNumber    = testData.policyNumber && testData.policyNumber !== 'N/A';
       const hasFailedMilestone = Array.isArray(testData.milestones) &&
         testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED');
@@ -78,27 +76,25 @@ class EmailReporter {
       if (!hasFailedMilestone && hasPolicyNumber) status = 'PASSED';
 
       const entry = {
-        iterationNumber : 1,
+        iterationNumber     : 1,
         status,
-        state           : testData.state    || testState || 'N/A',
-        stateName       : testData.stateName || 'N/A',
-        quoteNumber     : testData.quoteNumber  || 'N/A',
-        policyNumber    : testData.policyNumber || 'N/A',
-        milestones      : testData.milestones           || [],
-        coverageChanges : testData.coverageChanges      || [],
+        state               : testData.state    || testState || 'N/A',
+        stateName           : testData.stateName || 'N/A',
+        quoteNumber         : testData.quoteNumber  || 'N/A',
+        policyNumber        : testData.policyNumber || 'N/A',
+        milestones          : testData.milestones           || [],
+        coverageChanges     : testData.coverageChanges      || [],
         coverageSectionStats: testData.coverageSectionStats || [],
         addCoverageTimings  : testData.addCoverageTimings   || [],
-        timestamp       : new Date().toISOString(),
-        duration        : Array.isArray(testData.milestones)
+        timestamp           : new Date().toISOString(),
+        duration            : Array.isArray(testData.milestones)
           ? testData.milestones.reduce((s, m) => s + parseFloat(m.duration || 0), 0).toFixed(2)
           : '0',
         runId : this.runId,
         suite,
       };
 
-      // KEY FIX: write to a per-state file, NOT the shared iterations file
-      // This eliminates all parallel write conflicts between states
-      const stateKey     = (testData.state || testState || 'UNKNOWN').toUpperCase();
+      const stateKey      = (testData.state || testState || 'UNKNOWN').toUpperCase();
       const stateIterFile = path.join(__dirname, `iterations-data-${suiteLC}-${stateKey}.json`);
       fs.writeFileSync(stateIterFile, JSON.stringify([entry], null, 2));
       console.log(`Saved state iteration: ${stateIterFile} (${status})`);
@@ -117,14 +113,12 @@ class EmailReporter {
       return;
     }
 
-    // Solo run - merge state files and send
     await this._mergeAndSend(suiteLC, `WB ${suite} Smoke Test Report`);
   }
 
-  // Merge per-state files into the shared iterations file and return all iterations
   static _mergeStateFiles(suiteLC, runId) {
-    const dir = __dirname;
-    const pattern = new RegExp(`^iterations-data-${suiteLC}-([A-Z]+)\\.json$`);
+    const dir      = __dirname;
+    const pattern  = new RegExp(`^iterations-data-${suiteLC}-([A-Z]+)\\.json$`);
     const stateFiles = fs.readdirSync(dir).filter(f => pattern.test(f));
 
     console.log(`Merging ${stateFiles.length} state file(s) for suite: ${suiteLC}`);
@@ -132,7 +126,7 @@ class EmailReporter {
     let iterations = [];
     for (const file of stateFiles) {
       try {
-        const data = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf-8'));
+        const data     = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf-8'));
         const matching = runId ? data.filter(it => it.runId === runId) : data;
         if (matching.length) {
           iterations = iterations.concat(matching);
@@ -145,10 +139,8 @@ class EmailReporter {
       }
     }
 
-    // Sort by state name for consistent ordering
     iterations.sort((a, b) => (a.state || '').localeCompare(b.state || ''));
 
-    // Write merged file for reference/debugging
     const mergedFile = path.join(dir, `iterations-data-${suiteLC}.json`);
     fs.writeFileSync(mergedFile, JSON.stringify(iterations, null, 2));
     console.log(`Merged ${iterations.length} total iteration(s) into ${mergedFile}`);
@@ -169,7 +161,6 @@ class EmailReporter {
     await this._sendEmail(iterations, subjectPrefix);
   }
 
-  // ── Average milestone table ───────────────────────────────────────────────
   _buildAverageMilestoneTable(iterations) {
     const map = new Map();
     iterations.forEach(it => {
@@ -240,42 +231,6 @@ class EmailReporter {
         </tr>`;
     }).join('');
 
-    const detailHtml = iterations.map(it => {
-      const sc   = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-      const icon = it.status === 'PASSED' ? '&#10003;' : '&#10007;';
-      const rows = (it.milestones || []).map((m, i) => {
-        const mc = (m.status || '').toUpperCase() === 'PASSED' ? '#4CAF50' : '#f44336';
-        return `
-          <tr style="background:${i%2===0?'#fff':'#f8f9fa'};">
-            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">${i+1}</td>
-            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">${m.name||'-'}</td>
-            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;color:${mc};font-weight:bold;">${m.status||'-'}</td>
-            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;text-align:right;">${m.duration||'-'}</td>
-            <td style="padding:8px 12px;border:1px solid #ddd;font-size:11px;color:#666;">${m.details||'-'}</td>
-          </tr>`;
-      }).join('');
-      return `
-        <div style="margin:16px 0;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">
-          <div style="background:${sc};padding:10px 16px;">
-            <span style="color:white;font-size:13px;font-weight:bold;">
-              ${icon} ${it.suite||'Test'} | ${it.state} (${it.stateName}) | Quote: ${it.quoteNumber} | Policy: ${it.policyNumber} | ${it.duration}s
-            </span>
-          </div>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f5f5f5;">
-                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">#</th>
-                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Milestone</th>
-                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Status</th>
-                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Duration</th>
-                <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Details</th>
-              </tr>
-            </thead>
-            <tbody>${rows || '<tr><td colspan="5" style="padding:8px;color:#999;">No milestone data</td></tr>'}</tbody>
-          </table>
-        </div>`;
-    }).join('');
-
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;">
         <h1 style="color:#1976d2;">WB ${subjectPrefix}</h1>
@@ -302,10 +257,8 @@ class EmailReporter {
           <tbody>${stateRows}</tbody>
         </table>
         <h2 style="color:#333;margin-top:30px;">Average Milestone Timings (All States)</h2>
-        <p style="color:#666;font-size:12px;">Averaged across all ${iterations.length} state run(s).</p>
+        <p style="color:#666;font-size:12px;">Averaged across all ${iterations.length} state run(s). Full per-state breakdown in Excel attachment.</p>
         ${this._buildAverageMilestoneTable(iterations)}
-        <h2 style="color:#333;margin-top:30px;">Milestone Details (Per State)</h2>
-        ${detailHtml || '<p style="color:#999;">No milestone data.</p>'}
       </div>`;
 
     const excelFile   = await this._createExcelReport(iterations);
@@ -390,16 +343,13 @@ class EmailReporter {
     }
   }
 
-  // Called by runner after all states finish
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
     console.log('Sending consolidated batch email...');
 
-    // Determine suite from the iteration files list
-    const files = iterationFilesOverride || ['iterations-data-package.json'];
+    const files   = iterationFilesOverride || ['iterations-data-package.json'];
     const suiteLC = (files[0] || 'iterations-data-package.json')
       .replace('iterations-data-', '').replace('.json', '');
 
-    // Read the lock file to get the shared runId
     const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
     let runId = null;
     if (fs.existsSync(lockFile)) {
@@ -408,12 +358,10 @@ class EmailReporter {
 
     console.log(`Suite: ${suiteLC}, runId: ${runId}`);
 
-    // Merge per-state files - this is the source of truth
     const iterations = EmailReporter._mergeStateFiles(suiteLC, runId);
 
     if (!iterations.length) {
       console.log('No iterations found - checking shared iter file as fallback...');
-      // Fallback: try reading the shared file directly
       for (const file of files) {
         const fp = path.join(__dirname, file);
         if (!fs.existsSync(fp)) continue;
