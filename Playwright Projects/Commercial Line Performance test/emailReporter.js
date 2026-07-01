@@ -26,30 +26,28 @@ class EmailReporter {
   }
 
   _isBatchRun(suiteLC) {
-    // Check both possible batch marker filenames
     return fs.existsSync(path.join(__dirname, `.batch-run-in-progress-${suiteLC}`)) ||
            fs.existsSync(path.join(__dirname, '.batch-run-in-progress'));
   }
 
   onBegin() {
-    const suite   = this._getSuiteLabel();
-    const suiteLC = suite.toLowerCase();
+    const suite    = this._getSuiteLabel();
+    const suiteLC  = suite.toLowerCase();
     const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
 
     if (this._isBatchRun(suiteLC)) {
-      // Batch run - use shared runId from lock file written by runner BEFORE any state launched
       let lockData = {};
       if (fs.existsSync(lockFile)) {
         try { lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8')); } catch (_) {}
       }
       this.runId = lockData.runId || new Date().toISOString();
-      console.log(`[EmailReporter] Batch run detected, using shared runId: ${this.runId}`);
+      console.log(`[EmailReporter] Batch run, shared runId: ${this.runId}`);
     } else {
-      // Solo run - fresh iteration file
+      // Solo run - clear shared iter file
       const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
       if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
       this.runId = new Date().toISOString();
-      console.log(`[EmailReporter] Solo run, new runId: ${this.runId}`);
+      console.log(`[EmailReporter] Solo run, runId: ${this.runId}`);
     }
   }
 
@@ -66,43 +64,23 @@ class EmailReporter {
       const testDataFile = stateFile && fs.existsSync(stateFile) ? stateFile : fallback;
 
       if (!fs.existsSync(testDataFile)) {
-        console.log(`[EmailReporter] No test data file found at ${testDataFile}`);
+        console.log(`[EmailReporter] No test data file: ${testDataFile}`);
         return;
       }
 
       const testData = JSON.parse(fs.readFileSync(testDataFile, 'utf-8'));
-      const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
 
-      // File locking via retry - handles simultaneous writes from parallel states
-      let iterations = [];
-      for (let i = 0; i < 10; i++) {
-        try {
-          iterations = fs.existsSync(iterFile)
-            ? JSON.parse(fs.readFileSync(iterFile, 'utf-8'))
-            : [];
-          break;
-        } catch (_) {
-          const start = Date.now();
-          while (Date.now() - start < 200) {}
-        }
-      }
-
-      // Trust policyNumber over Playwright result status for pass/fail
-      // cmd.exe exit codes are unreliable; having a policy number means the test passed
+      // Trust policyNumber over Playwright result status
       const hasPolicyNumber    = testData.policyNumber && testData.policyNumber !== 'N/A';
       const hasFailedMilestone = Array.isArray(testData.milestones) &&
         testData.milestones.some(m => (m.status || '').toUpperCase() === 'FAILED');
       let status = result.status.toUpperCase();
       if (!hasFailedMilestone && hasPolicyNumber) status = 'PASSED';
 
-      const existingIdx = iterations.findIndex(
-        it => it.state === testData.state && it.runId === this.runId
-      );
-
       const entry = {
-        iterationNumber : existingIdx !== -1 ? iterations[existingIdx].iterationNumber : iterations.length + 1,
+        iterationNumber : 1,
         status,
-        state           : testData.state    || 'N/A',
+        state           : testData.state    || testState || 'N/A',
         stateName       : testData.stateName || 'N/A',
         quoteNumber     : testData.quoteNumber  || 'N/A',
         policyNumber    : testData.policyNumber || 'N/A',
@@ -118,15 +96,13 @@ class EmailReporter {
         suite,
       };
 
-      if (existingIdx !== -1) iterations[existingIdx] = entry;
-      else iterations.push(entry);
+      // KEY FIX: write to a per-state file, NOT the shared iterations file
+      // This eliminates all parallel write conflicts between states
+      const stateKey     = (testData.state || testState || 'UNKNOWN').toUpperCase();
+      const stateIterFile = path.join(__dirname, `iterations-data-${suiteLC}-${stateKey}.json`);
+      fs.writeFileSync(stateIterFile, JSON.stringify([entry], null, 2));
+      console.log(`Saved state iteration: ${stateIterFile} (${status})`);
 
-      for (let i = 0; i < 10; i++) {
-        try { fs.writeFileSync(iterFile, JSON.stringify(iterations, null, 2)); break; }
-        catch (_) { const start = Date.now(); while (Date.now() - start < 300) {} }
-      }
-
-      console.log(`Saved iteration: suite=${suite}, state=${testData.state}, status=${status}, policy=${testData.policyNumber}`);
     } catch (e) {
       console.log('onTestEnd error:', e.message);
     }
@@ -136,23 +112,61 @@ class EmailReporter {
     const suite   = this._getSuiteLabel();
     const suiteLC = suite.toLowerCase();
 
-    // If batch marker still exists, skip - runner will send consolidated email
-    // If marker is gone, this might be a solo run OR the last state finishing
-    // after the runner cleaned up - check the iterations file to decide
     if (this._isBatchRun(suiteLC)) {
       console.log('[EmailReporter] Batch marker present - skipping individual state email');
       return;
     }
 
-    // Solo run - send email for this single run
-    const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
-    if (!fs.existsSync(iterFile)) { console.log('No iterations file to email'); return; }
+    // Solo run - merge state files and send
+    await this._mergeAndSend(suiteLC, `WB ${suite} Smoke Test Report`);
+  }
 
-    const all        = JSON.parse(fs.readFileSync(iterFile, 'utf-8'));
-    const iterations = this.runId ? all.filter(it => it.runId === this.runId) : all;
-    if (!iterations.length) { console.log('No iterations for this runId'); return; }
+  // Merge per-state files into the shared iterations file and return all iterations
+  static _mergeStateFiles(suiteLC, runId) {
+    const dir = __dirname;
+    const pattern = new RegExp(`^iterations-data-${suiteLC}-([A-Z]+)\\.json$`);
+    const stateFiles = fs.readdirSync(dir).filter(f => pattern.test(f));
 
-    await this._sendEmail(iterations, `WB ${suite} Smoke Test Report`);
+    console.log(`Merging ${stateFiles.length} state file(s) for suite: ${suiteLC}`);
+
+    let iterations = [];
+    for (const file of stateFiles) {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf-8'));
+        const matching = runId ? data.filter(it => it.runId === runId) : data;
+        if (matching.length) {
+          iterations = iterations.concat(matching);
+          console.log(`  ${file}: ${matching.length} iteration(s) (state: ${matching[0].state})`);
+        } else {
+          console.log(`  ${file}: no iterations matching runId ${runId}`);
+        }
+      } catch (e) {
+        console.log(`  ${file}: read error - ${e.message}`);
+      }
+    }
+
+    // Sort by state name for consistent ordering
+    iterations.sort((a, b) => (a.state || '').localeCompare(b.state || ''));
+
+    // Write merged file for reference/debugging
+    const mergedFile = path.join(dir, `iterations-data-${suiteLC}.json`);
+    fs.writeFileSync(mergedFile, JSON.stringify(iterations, null, 2));
+    console.log(`Merged ${iterations.length} total iteration(s) into ${mergedFile}`);
+
+    return iterations;
+  }
+
+  async _mergeAndSend(suiteLC, subjectPrefix) {
+    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
+    let runId = this.runId;
+    if (!runId && fs.existsSync(lockFile)) {
+      try { runId = JSON.parse(fs.readFileSync(lockFile, 'utf-8')).runId; } catch (_) {}
+    }
+
+    const iterations = EmailReporter._mergeStateFiles(suiteLC, runId);
+    if (!iterations.length) { console.log('No iterations to email'); return; }
+
+    await this._sendEmail(iterations, subjectPrefix);
   }
 
   // ── Average milestone table ───────────────────────────────────────────────
@@ -171,12 +185,12 @@ class EmailReporter {
     if (map.size === 0) return '<p style="color:#999;">No milestone data available.</p>';
 
     const rows = Array.from(map.entries()).map(([name, data], idx) => {
-      const avg    = (data.durations.reduce((s,d) => s+d, 0) / data.durations.length).toFixed(2);
-      const minD   = Math.min(...data.durations).toFixed(2);
-      const maxD   = Math.max(...data.durations).toFixed(2);
+      const avg     = (data.durations.reduce((s,d) => s+d, 0) / data.durations.length).toFixed(2);
+      const minD    = Math.min(...data.durations).toFixed(2);
+      const maxD    = Math.max(...data.durations).toFixed(2);
       const allPass = data.statuses.every(s => s === 'PASSED');
-      const color  = allPass ? '#4CAF50' : '#f44336';
-      const bg     = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
+      const color   = allPass ? '#4CAF50' : '#f44336';
+      const bg      = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
       return `
         <tr style="background:${bg};">
           <td style="padding:9px 12px;border:1px solid #ddd;font-size:12px;">${idx+1}</td>
@@ -212,10 +226,9 @@ class EmailReporter {
     const overallPass = failed === 0;
     const totalDur    = iterations.reduce((s, it) => s + parseFloat(it.duration || 0), 0).toFixed(2);
 
-    // State summary table
     const stateRows = iterations.map((it, idx) => {
       const color = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-      const icon  = it.status === 'PASSED' ? '✅' : '❌';
+      const icon  = it.status === 'PASSED' ? '&#10003;' : '&#10007;';
       return `
         <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
           <td style="padding:10px;border:1px solid #ddd;font-size:12px;">${it.state}</td>
@@ -227,10 +240,9 @@ class EmailReporter {
         </tr>`;
     }).join('');
 
-    // Per-state milestone detail
     const detailHtml = iterations.map(it => {
       const sc   = it.status === 'PASSED' ? '#4CAF50' : '#f44336';
-      const icon = it.status === 'PASSED' ? '✅' : '❌';
+      const icon = it.status === 'PASSED' ? '&#10003;' : '&#10007;';
       const rows = (it.milestones || []).map((m, i) => {
         const mc = (m.status || '').toUpperCase() === 'PASSED' ? '#4CAF50' : '#f44336';
         return `
@@ -259,24 +271,23 @@ class EmailReporter {
                 <th style="padding:8px 12px;border:1px solid #ddd;font-size:11px;">Details</th>
               </tr>
             </thead>
-            <tbody>${rows}</tbody>
+            <tbody>${rows || '<tr><td colspan="5" style="padding:8px;color:#999;">No milestone data</td></tr>'}</tbody>
           </table>
         </div>`;
     }).join('');
 
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;">
-        <h1 style="color:#1976d2;">🎭 ${subjectPrefix}</h1>
+        <h1 style="color:#1976d2;">WB ${subjectPrefix}</h1>
         <div style="background:#f5f5f5;padding:15px;margin:15px 0;border-radius:5px;border-left:4px solid #1976d2;">
-          <h3 style="margin-top:0;">📊 Test Summary</h3>
-          <p><b>Overall:</b> ${overallPass ? '✅ ALL PASSED' : '⚠️ SOME FAILED'}</p>
+          <h3 style="margin-top:0;">Test Summary</h3>
+          <p><b>Overall:</b> ${overallPass ? 'ALL PASSED' : 'SOME FAILED'}</p>
           <p><b>States Run:</b> ${iterations.length} &nbsp;|&nbsp;
              <b>Passed:</b> <span style="color:green;font-weight:bold;">${passed}</span> &nbsp;|&nbsp;
              <b>Failed:</b> <span style="color:red;font-weight:bold;">${failed}</span></p>
           <p><b>Total Duration:</b> ${totalDur}s</p>
         </div>
-
-        <h2 style="color:#333;margin-top:24px;">📋 Results by State</h2>
+        <h2 style="color:#333;margin-top:24px;">Results by State</h2>
         <table style="width:100%;border-collapse:collapse;margin:10px 0;">
           <thead>
             <tr style="background:#1976d2;color:white;">
@@ -290,12 +301,10 @@ class EmailReporter {
           </thead>
           <tbody>${stateRows}</tbody>
         </table>
-
-        <h2 style="color:#333;margin-top:30px;">⏱ Average Milestone Timings (All States)</h2>
-        <p style="color:#666;font-size:12px;">Averaged across all ${iterations.length} state run(s) in this batch.</p>
+        <h2 style="color:#333;margin-top:30px;">Average Milestone Timings (All States)</h2>
+        <p style="color:#666;font-size:12px;">Averaged across all ${iterations.length} state run(s).</p>
         ${this._buildAverageMilestoneTable(iterations)}
-
-        <h2 style="color:#333;margin-top:30px;">📋 Milestone Details (Per State)</h2>
+        <h2 style="color:#333;margin-top:30px;">Milestone Details (Per State)</h2>
         ${detailHtml || '<p style="color:#999;">No milestone data.</p>'}
       </div>`;
 
@@ -308,17 +317,17 @@ class EmailReporter {
     }
 
     const transporter = nodemailer.createTransport({
-      host   : process.env.SMTP_HOST,
-      port   : Number(process.env.SMTP_PORT) || 25,
-      secure : false,
-      tls    : { rejectUnauthorized: false },
+      host  : process.env.SMTP_HOST,
+      port  : Number(process.env.SMTP_PORT) || 25,
+      secure: false,
+      tls   : { rejectUnauthorized: false },
     });
 
     const today   = new Date().toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' });
-    const subject = `${subjectPrefix}: ${today} - ${passed} Passed, ${failed} Failed`;
+    const subject = `WB ${subjectPrefix}: ${today} - ${passed} Passed, ${failed} Failed`;
 
     await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject, html, attachments });
-    console.log('Email sent successfully');
+    console.log(`Email sent: ${subject}`);
   }
 
   async _createExcelReport(iterations) {
@@ -326,7 +335,6 @@ class EmailReporter {
       const excelPath = path.join(__dirname, `WB_Test_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
       const wb        = XLSX.utils.book_new();
 
-      // Summary sheet
       const summaryData = iterations.map(it => ({
         'State'        : it.state,
         'State Name'   : it.stateName,
@@ -339,7 +347,6 @@ class EmailReporter {
       }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Summary');
 
-      // Average milestones sheet
       const map = new Map();
       iterations.forEach(it => {
         (it.milestones || []).forEach(m => {
@@ -359,7 +366,6 @@ class EmailReporter {
       }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(avgData), 'Avg_Milestones');
 
-      // Per-state sheets
       const usedNames = new Set(wb.SheetNames);
       iterations.forEach(it => {
         const data = (it.milestones || []).map((m, i) => ({
@@ -387,27 +393,48 @@ class EmailReporter {
   // Called by runner after all states finish
   static async sendBatchEmailReport(iterationFilesOverride, subjectPrefixOverride) {
     console.log('Sending consolidated batch email...');
-    let iterations = [];
 
-    const files = iterationFilesOverride || ['iterations-data-package.json','iterations-data-ca.json','iterations-data-bop.json'];
-    for (const file of files) {
-      const fp = path.join(__dirname, file);
-      if (!fs.existsSync(fp)) { console.log(`  ${file}: not found, skipping`); continue; }
-      let all = [];
-      try { all = JSON.parse(fs.readFileSync(fp, 'utf-8')) || []; } catch (_) { continue; }
-      if (!all.length) { console.log(`  ${file}: empty`); continue; }
+    // Determine suite from the iteration files list
+    const files = iterationFilesOverride || ['iterations-data-package.json'];
+    const suiteLC = (files[0] || 'iterations-data-package.json')
+      .replace('iterations-data-', '').replace('.json', '');
 
-      // Get the most recent runId and use all iterations from that run
-      const runIds    = [...new Set(all.map(it => it.runId).filter(Boolean))].sort();
-      const latestRun = runIds.slice(-1)[0];
-      const filtered  = latestRun ? all.filter(it => it.runId === latestRun) : all;
-      console.log(`  ${file}: ${all.length} total, using ${filtered.length} from runId ${latestRun || 'N/A'}`);
-      iterations = iterations.concat(filtered);
+    // Read the lock file to get the shared runId
+    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
+    let runId = null;
+    if (fs.existsSync(lockFile)) {
+      try { runId = JSON.parse(fs.readFileSync(lockFile, 'utf-8')).runId; } catch (_) {}
     }
 
-    if (!iterations.length) { console.log('No iterations found for batch email'); return; }
+    console.log(`Suite: ${suiteLC}, runId: ${runId}`);
 
-    console.log(`Sending consolidated email for ${iterations.length} state(s)...`);
+    // Merge per-state files - this is the source of truth
+    const iterations = EmailReporter._mergeStateFiles(suiteLC, runId);
+
+    if (!iterations.length) {
+      console.log('No iterations found - checking shared iter file as fallback...');
+      // Fallback: try reading the shared file directly
+      for (const file of files) {
+        const fp = path.join(__dirname, file);
+        if (!fs.existsSync(fp)) continue;
+        try {
+          const all      = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];
+          const runIds   = [...new Set(all.map(it => it.runId).filter(Boolean))].sort();
+          const latest   = runIds.slice(-1)[0];
+          const filtered = latest ? all.filter(it => it.runId === latest) : all;
+          if (filtered.length) {
+            console.log(`Fallback: using ${filtered.length} iterations from ${file}`);
+            const reporter = new EmailReporter();
+            await reporter._sendEmail(filtered, subjectPrefixOverride || 'WB Smoke Test Report');
+            return;
+          }
+        } catch (_) {}
+      }
+      console.log('No iterations found for batch email');
+      return;
+    }
+
+    console.log(`Sending email for ${iterations.length} state(s)...`);
     const reporter = new EmailReporter();
     await reporter._sendEmail(iterations, subjectPrefixOverride || 'WB Smoke Test Report');
   }
