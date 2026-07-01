@@ -1,9 +1,6 @@
 /**
  * helpers/coverageHelpers.js
- * Multi-pass dropdown processor.
- * Waits for WB's conditional-render AJAX to actually settle between passes
- * (networkidle + DOM-stability check) instead of a fixed sleep, falling
- * back to a fixed wait only if the settle signal never resolves.
+ * Multi-pass dropdown processor with event-driven settle waits.
  */
 
 async function processCoverageDropdowns(page) {
@@ -15,47 +12,60 @@ async function processCoverageDropdowns(page) {
   const processedIds         = new Set();
   const MAX_PASSES           = 6;
 
-  // Wait until the page has genuinely stopped changing:
-  // 1. networkidle (no more than 2 connections for 500ms) - catches AJAX calls
-  // 2. DOM mutation quiet period - catches client-side re-renders with no network call
-  async function waitForPageSettle(maxWaitMs = 8000) {
-    await page.waitForLoadState('networkidle', { timeout: maxWaitMs }).catch(() => {});
-
-    // DOM stability: poll the count of select[id*="ddl"] elements + their disabled
-    // states until they stop changing for 2 consecutive checks (400ms apart)
+  // Wait for DOM to stop mutating around select[id*="ddl"] elements.
+  // Uses short polling intervals - exits as soon as stable, not after a fixed delay.
+  // maxWaitMs is a safety ceiling only, not a target wait time.
+  async function waitForDomSettle(maxWaitMs = 6000) {
+    const deadline = Date.now() + maxWaitMs;
     let lastSnapshot = null;
-    let stableCount   = 0;
-    const deadline    = Date.now() + maxWaitMs;
+    let stableCount  = 0;
 
     while (Date.now() < deadline) {
       const snapshot = await page.evaluate(() => {
         const selects = Array.from(document.querySelectorAll('select[id*="ddl"]'));
-        return selects.map(s => s.id + ':' + s.disabled).join('|');
+        return selects.map(s => `${s.id}:${s.disabled}:${s.options.length}`).join('|');
       }).catch(() => null);
 
       if (snapshot === null) break;
 
       if (snapshot === lastSnapshot) {
         stableCount++;
-        if (stableCount >= 2) return; // stable for 2 consecutive checks - done
+        if (stableCount >= 2) {
+          // Stable for 2 checks (800ms) — done, don't wait any longer
+          return;
+        }
       } else {
         stableCount = 0;
       }
       lastSnapshot = snapshot;
       await page.waitForTimeout(400);
     }
-    // Timed out waiting for stability - proceed anyway, the pass logic
-    // will simply find fewer changes and stop naturally
+  }
+
+  // Wait specifically for a dropdown to be set to expected value after firing change event.
+  // Exits as soon as the value is confirmed, no unnecessary waiting.
+  async function waitForValueConfirm(select, expectedText, maxWaitMs = 3000) {
+    const deadline = Date.now() + maxWaitMs;
+    while (Date.now() < deadline) {
+      const current = await select.evaluate(el => {
+        const s = el.querySelector('option:checked');
+        return s ? s.textContent.trim() : '';
+      }).catch(() => '');
+      if (current === expectedText) return true;
+      await page.waitForTimeout(200);
+    }
+    return false;
   }
 
   try {
-    let previousDisabledIds = new Set();
+    let previousDisabledIds  = new Set();
+    let previousSelectCount  = 0;
 
     for (let pass = 1; pass <= MAX_PASSES; pass++) {
       const allSelects = await page.locator('select[id*="ddl"]').all();
       console.log(`Pass ${pass}: found ${allSelects.length} SELECT element(s)`);
 
-      let changedThisPass     = 0;
+      let changedThisPass      = 0;
       const currentDisabledIds = new Set();
 
       for (let i = 0; i < allSelects.length; i++) {
@@ -114,30 +124,28 @@ async function processCoverageDropdowns(page) {
 
           console.log(`  ${selectId}: "${oldValue}" -> "${targetText}" ${isEmpty ? '[REQUIRED]' : ''}`);
 
+          // Fire the change event
           await select.evaluate((el, val) => {
             el.value = val;
             el.dispatchEvent(new Event('input',  { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
           }, targetValue);
 
-          // Wait for THIS specific change to settle before reading back the value
-          await waitForPageSettle(6000);
+          // Confirm the value was accepted — exit as soon as confirmed, no fixed sleep
+          const confirmed = await waitForValueConfirm(select, targetText, 3000);
 
-          let newValue = await select.evaluate(el => {
+          if (!confirmed) {
+            // Fallback: use native selectOption which triggers all browser events
+            try {
+              await select.selectOption(targetValue);
+              await waitForValueConfirm(select, targetText, 2000);
+            } catch (_) {}
+          }
+
+          const newValue = await select.evaluate(el => {
             const s = el.querySelector('option:checked');
             return s ? s.textContent.trim() : '';
           }).catch(() => '');
-
-          if (newValue !== targetText) {
-            try {
-              await select.selectOption(targetValue);
-              await waitForPageSettle(4000);
-              newValue = await select.evaluate(el => {
-                const s = el.querySelector('option:checked');
-                return s ? s.textContent.trim() : '';
-              }).catch(() => '');
-            } catch (_) {}
-          }
 
           if (newValue === targetText) {
             console.log(`  SUCCESS: ${selectId} = "${newValue}"`);
@@ -152,6 +160,10 @@ async function processCoverageDropdowns(page) {
             if (!sectionStats[sectionName]) sectionStats[sectionName] = { startTime: now, lastTime: now, dropdownsUpdated: 0 };
             sectionStats[sectionName].dropdownsUpdated++;
             sectionStats[sectionName].lastTime = now;
+
+            // After a successful change, wait for DOM to settle before processing
+            // the NEXT dropdown in this same pass — handles conditional show/hide
+            await waitForDomSettle(4000);
           } else {
             console.log(`  FAILED: ${selectId} still shows "${newValue}" (wanted "${targetText}")`);
           }
@@ -163,32 +175,26 @@ async function processCoverageDropdowns(page) {
 
       console.log(`Pass ${pass} complete: changed ${changedThisPass} dropdown(s), total processed: ${processedIds.size}`);
 
+      // Check if anything changed between passes that needs another pass
       let newlyEnabledDetected = false;
       for (const id of previousDisabledIds) {
         if (!currentDisabledIds.has(id)) { newlyEnabledDetected = true; break; }
       }
-
-      const selectCountChanged = allSelects.length !== (await page.locator('select[id*="ddl"]').all()).length;
-
-      previousDisabledIds = currentDisabledIds;
+      const currentCount      = (await page.locator('select[id*="ddl"]').all()).length;
+      const selectCountChanged = currentCount !== previousSelectCount && previousSelectCount > 0;
+      previousSelectCount     = currentCount;
+      previousDisabledIds     = currentDisabledIds;
 
       if (changedThisPass === 0 && !newlyEnabledDetected && !selectCountChanged) {
         console.log('No changes, no newly-enabled fields, no new dropdowns - stopping early');
         break;
       }
 
-      if (changedThisPass === 0 && (newlyEnabledDetected || selectCountChanged)) {
-        console.log('No changes this pass but newly-enabled/injected dropdowns detected - continuing');
-      }
-
-      // Before starting the NEXT pass, explicitly wait for the page to fully
-      // settle from whatever the last change in THIS pass triggered.
-      // This is the wait that was missing - it runs once per pass, after all
-      // dropdowns in the pass are processed, before Pass N+1 begins.
-      if (changedThisPass > 0 || newlyEnabledDetected || selectCountChanged) {
-        console.log(`Waiting for application to finish rendering before Pass ${pass + 1}...`);
-        await waitForPageSettle(8000);
-        console.log('Application settled, proceeding to next pass');
+      if (newlyEnabledDetected || selectCountChanged) {
+        console.log(`Pass ${pass + 1} needed: newly-enabled=${newlyEnabledDetected}, count changed=${selectCountChanged}`);
+        // Brief settle before next pass — DOM already settled per-dropdown above,
+        // this just gives WB a moment to finish any final rendering
+        await waitForDomSettle(3000);
       }
     }
 
@@ -212,7 +218,6 @@ async function processCoverageDropdowns(page) {
     global.testData.coverageSectionStats.push(...coverageSectionStats);
   }
 
-  await page.waitForTimeout(300);
   return coverageChanges;
 }
 
@@ -272,7 +277,7 @@ async function processAllAddCoverageButtons(page) {
             }
           }
 
-          const modal       = page.locator('.modal.show, [role="dialog"]').first();
+          const modal        = page.locator('.modal.show, [role="dialog"]').first();
           const modalVisible = await modal.isVisible({ timeout: 2000 }).catch(() => false);
           if (modalVisible) {
             console.log('  Modal opened');
