@@ -49,10 +49,25 @@ Write-Host "  Max Parallel: $MaxParallel | Stagger: ${StaggerSeconds}s | Headed:
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# ── Clean up ALL artefacts from previous run BEFORE launching any state ────────
+Write-Host "Cleaning up previous run artefacts..." -ForegroundColor Gray
+
+# Shared iteration/lock/marker files
 if (Test-Path $iterFile)    { Remove-Item $iterFile    -Force }
 if (Test-Path $batchMarker) { Remove-Item $batchMarker -Force }
 if (Test-Path $lockFile)    { Remove-Item $lockFile    -Force }
 
+# Per-state iteration files (e.g. iterations-data-package-DE.json)
+# These are the source of the "stale state from previous run in email" bug
+Get-ChildItem -Path $projectPath -Filter "iterations-data-$suiteLabel-*.json" -ErrorAction SilentlyContinue |
+  ForEach-Object {
+    Remove-Item $_.FullName -Force
+    Write-Host "  Cleared: $($_.Name)" -ForegroundColor Gray
+  }
+
+Write-Host "Cleanup done." -ForegroundColor Gray
+
+# Write shared runId BEFORE launching any state
 $sharedRunId = [DateTime]::UtcNow.ToString('o')
 $lockData    = @{ runId = $sharedRunId; suite = $TestType; states = $stateList; startTime = $sharedRunId }
 $lockData | ConvertTo-Json -Compress | Set-Content $lockFile -Encoding UTF8
@@ -68,7 +83,6 @@ $lastStart   = $null
 $pendingStates = [System.Collections.ArrayList]@($stateList)
 
 # Pre-create .bat files for each state
-# .bat files handle spaces in paths and $ in passwords correctly
 foreach ($state in $stateList) {
   $batPath = Join-Path $tmpDir "run-$suiteLabel-$state.bat"
   $logPath = Join-Path $logsDir "$suiteLabel-$state.log"
@@ -113,7 +127,14 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
     } else {
       $passed = $false
       try {
-        if (Test-Path $iterFile) {
+        # Check per-state file first (most reliable)
+        $stateIterFile = Join-Path $projectPath "iterations-data-$suiteLabel-$($entry.State).json"
+        if (Test-Path $stateIterFile) {
+          $stateData = Get-Content $stateIterFile -Raw | ConvertFrom-Json
+          $stateIter = $stateData | Where-Object { $_.runId -eq $sharedRunId } | Select-Object -Last 1
+          if ($stateIter) { $passed = ($stateIter.status -eq 'PASSED') }
+          else { $passed = ($entry.Process.ExitCode -eq 0) }
+        } elseif (Test-Path $iterFile) {
           $iters     = Get-Content $iterFile -Raw | ConvertFrom-Json
           $stateIter = $iters | Where-Object { $_.state -eq $entry.State -and $_.runId -eq $sharedRunId } | Select-Object -Last 1
           if ($stateIter) { $passed = ($stateIter.status -eq 'PASSED') }
@@ -126,7 +147,6 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
       $color = if ($passed) { 'Green' } else { 'Red' }
       Write-Host "  [$icon] $($entry.State) finished (exit=$($entry.Process.ExitCode))" -ForegroundColor $color
 
-      # Show last 25 lines of log on failure
       $logPath = Join-Path $logsDir "$suiteLabel-$($entry.State).log"
       if (-not $passed -and (Test-Path $logPath)) {
         Write-Host "  --- $($entry.State) failure log (last 25 lines) ---" -ForegroundColor Yellow
@@ -156,7 +176,6 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
     $batPath = Join-Path $tmpDir "run-$suiteLabel-$state.bat"
     $logPath = Join-Path $logsDir "$suiteLabel-$state.log"
 
-    # Clear old log
     if (Test-Path $logPath) { Remove-Item $logPath -Force }
 
     Write-Host "Starting $state ($TestType)..." -ForegroundColor Yellow
@@ -166,7 +185,7 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
     $proc = Start-Process -FilePath "cmd.exe" `
       -ArgumentList @('/c', "`"$batPath`"") `
       -WorkingDirectory $projectPath `
-      -WindowStyle Normal `
+      -WindowStyle Hidden `
       -PassThru
 
     $null = $activeProcs.Add([PSCustomObject]@{
