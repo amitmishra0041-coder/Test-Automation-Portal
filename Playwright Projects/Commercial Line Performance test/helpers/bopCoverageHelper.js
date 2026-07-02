@@ -11,15 +11,12 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       'xpath=//*[contains(normalize-space(.), ' + JSON.stringify(questionSnippet) + ')]' +
       '/following::label[contains(@class,"btn") and normalize-space(.)=' + JSON.stringify(answer) + '][1]'
     ).first();
-
     let clicked = false;
-
     if (!clicked && await byXpath.isVisible({ timeout: 2000 }).catch(() => false)) {
       await byXpath.click({ force: true, timeout: 5000 }).catch(() => {});
       clicked = true;
       console.log('"' + questionSnippet.substring(0, 40) + '..." = ' + answer + ' (xpath)');
     }
-
     if (!clicked) {
       try {
         const questionEl = page.locator('*').filter({ hasText: questionSnippet }).last();
@@ -32,7 +29,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         }
       } catch (_) {}
     }
-
     if (!clicked) {
       console.log('WARNING: could not find Yes/No toggle for: "' + questionSnippet.substring(0, 40) + '"');
     }
@@ -90,7 +86,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         await page.waitForTimeout(800);
         const filled = (await input.inputValue()).replace(/,/g, '').trim();
         if (filled === strVal) { console.log(selector + ' filled: ' + strVal + ' (attempt ' + attempt + ')'); success = true; break; }
-        // evaluate fallback
         await page.evaluate((sel, val) => {
           const el = document.querySelector(sel);
           if (!el) return;
@@ -142,7 +137,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
 
-  // Edit Location is optional — sometimes page lands directly on Location Details
   const editLocationBtn = page.locator('button[title="Edit Location"]');
   if (await editLocationBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
     await editLocationBtn.click();
@@ -153,7 +147,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     console.log('Already on Location Details - skipping Edit Location');
   }
 
-  // Verify Address
   const verifyAddressBtn = page.locator('#btnVerifyAddress');
   await verifyAddressBtn.waitFor({ state: 'visible', timeout: 15000 });
   await verifyAddressBtn.click();
@@ -167,10 +160,10 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     await page.waitForTimeout(1000);
   }
 
-  const continueBtn = page.getByRole('button', { name: 'Continue' });
-  if (await continueBtn.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false)) {
+  const referralContinueBtn = page.getByRole('button', { name: 'Continue' });
+  if (await referralContinueBtn.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false)) {
     console.log('Referral Required dialog - clicking Continue...');
-    await continueBtn.click();
+    await referralContinueBtn.click();
   }
 
   const noAddrModal = page.locator('#dgic-modal-validateaddress_noaddressfound');
@@ -180,7 +173,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   }
   await dismissStatusModal();
 
-  // Territory Code — select first non-empty if blank
+  // Territory Code
   const territoryCode = page.locator('#ddlTerritoryCode, select[id*="Territory"]').first();
   if (await territoryCode.count() > 0 && await territoryCode.isVisible().catch(() => false)) {
     const val = await territoryCode.inputValue().catch(() => '');
@@ -190,7 +183,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     } else { console.log('Territory Code: ' + val); }
   }
 
-  // Protection Class — select first non-empty if blank
+  // Protection Class
   const protectionClass = page.locator('#ddlProtectionClass, select[id*="ProtectionClass"]').first();
   if (await protectionClass.count() > 0 && await protectionClass.isVisible().catch(() => false)) {
     const val = await protectionClass.inputValue().catch(() => '');
@@ -221,24 +214,20 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
 
-  // Navigate through State Specific Info sub-tabs until Buildings/Classifications
   for (let i = 0; i < 4; i++) {
     const url = page.url();
     const pageName = url.split('p=')[1]?.split('&')[0] || url;
     console.log('State Specific Info step ' + (i + 1) + ' - URL: ' + pageName);
-
     if (url.includes('CLBOPBuildingsClassifications') || url.includes('CLBOPBuilding')) {
       console.log('Already reached Buildings tab, stopping');
       break;
     }
-
     await safeNextClick();
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
     await page.waitForTimeout(300);
   }
 
-  // Confirm on Buildings/Classifications
   const onBuildingsTab = await page.locator('button[data-id="ddlAddBuilding"]')
     .isVisible({ timeout: 5000 }).catch(() => false);
   console.log('On Buildings/Classifications tab: ' + onBuildingsTab);
@@ -260,14 +249,12 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
 
-  // Click Add Building dropdown — confirmed data-id from debug output
   const addBuildingBtn = page.locator('button[data-id="ddlAddBuilding"]');
   await addBuildingBtn.waitFor({ state: 'visible', timeout: 15000 });
   await addBuildingBtn.click();
   await page.waitForTimeout(800);
   console.log('Add Building dropdown opened');
 
-  // Click first location — use sibling locator with force
   const locationLink = page.locator('button[data-id="ddlAddBuilding"]')
     .locator('xpath=following-sibling::div[contains(@class,"dropdown-menu")]//a').first();
 
@@ -289,7 +276,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     console.log('Location clicked via JS dispatchEvent');
   }
 
-  // Wait for Building Details — throw if not found so we know immediately
   console.log('Waiting for Building Details page...');
   try {
     await page.waitForFunction(() => {
@@ -300,7 +286,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     console.log('Building Details confirmed - URL: ' + page.url().split('p=')[1]?.split('&')[0]);
   } catch (e) {
     console.log('Building Details not found. URL: ' + page.url());
-    // Retry: go back and click again
     await page.goBack().catch(() => {});
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
@@ -333,10 +318,8 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     console.log('Building description: Main building');
   }
 
-  // Construction Type — scoped to bs-select-6
   await selectBootstrapFirst('ddlConstructionType', 'bs-select-6');
 
-  // Year of Construction
   const yearField = page.locator('#txtYearOfConstruction');
   if (await yearField.isVisible({ timeout: 3000 }).catch(() => false)) {
     await yearField.fill('2015');
@@ -345,7 +328,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     await page.waitForTimeout(300);
   }
 
-  // Roof Type — scoped to bs-select-7
   await selectBootstrapFirst('ddlRoofType', 'bs-select-7');
 
   await dismissStatusModal();
@@ -361,7 +343,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
 
-    // Rating Basis — pre-selected as Replacement Cost, only set if blank
     await selectBootstrapFirst('ddlBP7RatingBasis', 'bs-select-1');
 
     // Estimator
@@ -377,30 +358,84 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
 
       if (isVerisk360) {
         console.log('Verisk360 Valuation modal detected');
+
+        // Screen 1 — Total Sq. Ft.
         const totalSqFt = verisk360Modal.locator('input').first();
         if (await totalSqFt.isVisible({ timeout: 3000 }).catch(() => false)) {
           await totalSqFt.click({ clickCount: 3 });
           await page.keyboard.press('Delete');
           await page.keyboard.type('999');
           await totalSqFt.blur();
-          await page.waitForTimeout(500);
+          await page.waitForTimeout(300);
           console.log('Verisk360 Total Sq. Ft.: 999');
         }
+
+        // Use field — type "Apartment" and select suggestion
+        const useInput = verisk360Modal.locator('input').nth(1);
+        if (await useInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await useInput.click({ clickCount: 3 });
+          await page.keyboard.press('Delete');
+          await page.keyboard.type('Apartment', { delay: 100 });
+          await page.waitForTimeout(1000);
+          const suggestion = page.locator(
+            '.dropdown-menu.show li:has-text("Apartment / Condominium"), ' +
+            '[role="option"]:has-text("Apartment / Condominium"), ' +
+            'li:has-text("Apartment / Condominium")'
+          ).first();
+          if (await suggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await suggestion.click({ force: true });
+            console.log('Verisk360 Use: Apartment / Condominium (suggestion)');
+          } else {
+            await page.keyboard.press('ArrowDown');
+            await page.waitForTimeout(300);
+            await page.keyboard.press('Enter');
+            console.log('Verisk360 Use: Apartment / Condominium (keyboard)');
+          }
+          await page.waitForTimeout(500);
+        }
+
+        // Primary Building Sq. Ft.*
         const primarySqFt = verisk360Modal.locator('input[type="text"]').last();
         if (await primarySqFt.isVisible({ timeout: 3000 }).catch(() => false)) {
           await primarySqFt.click({ clickCount: 3 });
           await page.keyboard.press('Delete');
           await page.keyboard.type('999');
           await primarySqFt.blur();
-          await page.waitForTimeout(500);
+          await page.waitForTimeout(300);
           console.log('Verisk360 Primary Sq. Ft.: 999');
         }
-        const cancelBtn = verisk360Modal.locator('button:has-text("Cancel")').first();
-        if (await cancelBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await cancelBtn.click();
-          await verisk360Modal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
-          console.log('Verisk360 modal cancelled');
-        }
+
+        // CONTINUE (screen 1 → 2)
+        const continueVerisk = verisk360Modal.locator('button:has-text("CONTINUE"), button:has-text("Continue")').first();
+        await continueVerisk.waitFor({ state: 'visible', timeout: 10000 });
+        await continueVerisk.click();
+        await page.waitForTimeout(1500);
+        console.log('Verisk360 CONTINUE clicked');
+
+        // CALCULATE NOW (screen 2)
+        const calculateBtn = verisk360Modal.locator('button:has-text("CALCULATE NOW"), button:has-text("Calculate Now")').first();
+        await calculateBtn.waitFor({ state: 'visible', timeout: 10000 });
+        await calculateBtn.click();
+        await page.waitForTimeout(2000);
+        console.log('Verisk360 CALCULATE NOW clicked');
+
+        // FINISH (screen 3)
+        const finishBtn = verisk360Modal.locator('button:has-text("FINISH"), button:has-text("Finish")').first();
+        await finishBtn.waitFor({ state: 'visible', timeout: 15000 });
+        await finishBtn.click();
+        await page.waitForTimeout(1500);
+        console.log('Verisk360 FINISH clicked');
+
+        // Import Data (screen 4)
+        const importBtn = page.locator('button:has-text("Import Data")').first();
+        await importBtn.waitFor({ state: 'visible', timeout: 10000 });
+        await importBtn.click();
+        await page.waitForTimeout(1500);
+        console.log('Verisk360 Import Data clicked');
+
+        await verisk360Modal.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+        await dismissStatusModal();
+        console.log('Verisk360 flow completed');
 
       } else if (isOldEstimator) {
         console.log('Old estimator detected');
@@ -424,11 +459,12 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       }
 
       await dismissStatusModal();
-    }
+    } // end estimator
 
-    // % Owner Occupied — scoped to bs-select-3
+    // % Owner Occupied
     await selectBootstrapFirst('ddlpctOwnerOccupied', 'bs-select-3');
-  }
+
+  } // end structureSection
 
   await dismissStatusModal();
   await safeNextClick(); // Bldg Cov → Bldg Add'l Cov
@@ -450,7 +486,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     console.log('Classification selected');
   }
 
-  // Square footage with robust fill
   await fillIntegerField('#txtClassificationSquareFootage_integerWithCommas', '999');
 
   await dismissStatusModal();
