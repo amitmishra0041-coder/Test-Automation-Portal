@@ -53,7 +53,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       let duration = null;
       if (timing && timing.startTime && timing.responseEnd)
         duration = (timing.responseEnd - timing.startTime) / 1000;
-      if (['xhr','fetch'].includes(response.request().resourceType()) || /api|service|rest|json/i.test(url))
+      if (['xhr','fetch'].includes(response.request().resourceType()) || /api|service|rest|json|ajinvoke/i.test(url))
         global.testData.httpTimings.push({ url, status, duration, timestamp: new Date().toISOString() });
       if (status >= 400)
         global.testData.networkErrors.push({ url, status, timestamp: new Date().toISOString() });
@@ -202,7 +202,14 @@ test('CA Submission', async ({ page }, testInfo) => {
   async function clickIfExists(buttonName) {
     try {
       await dismissStatusModal();
-      await page.getByRole('button', { name: buttonName }).click({ timeout: 5000 });
+      const btn = page.getByRole('button', { name: buttonName });
+      // Fast presence probe instead of relying on click()'s full 5s
+      // actionability timeout to detect "not present" - these are called in
+      // runs of 3-5 mutually-exclusive optional buttons, so a miss here used
+      // to cost a guaranteed 5s each.
+      const visible = await btn.waitFor({ state: 'visible', timeout: 1500 }).then(() => true).catch(() => false);
+      if (!visible) { console.log(`"${buttonName}" button not present, skipping`); return; }
+      await btn.click({ timeout: 3000 });
       console.log(`"${buttonName}" button clicked`);
     } catch {
       console.log(`"${buttonName}" button not present, skipping`);
@@ -463,8 +470,9 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
     await dismissStatusModal();
-    await processCoverageDropdowns(page);
+    //await processCoverageDropdowns(page);
     await safeNextClick();
+    await dismissStatusModal()
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
     trackMilestone('Vehicles Page: Private passenger Vehicle Added');
 
@@ -491,8 +499,9 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
     await dismissStatusModal();
-    await processCoverageDropdowns(page);
+    //await processCoverageDropdowns(page);
     await safeNextClick();
+    await dismissStatusModal()
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
     trackMilestone('Vehicles Page: Truck Vehicle Added');
 

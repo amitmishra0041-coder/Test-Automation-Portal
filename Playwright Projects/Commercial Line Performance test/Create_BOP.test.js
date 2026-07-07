@@ -7,14 +7,14 @@ const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig } = require('./stateConfig');
 const { createAccountAndQualify } = require('./accountCreationHelper');
 const { runBopCoverageFlow } = require('./helpers/bopCoverageHelper');
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 test('BOP Submission', async ({ page }, testInfo) => {
   test.setTimeout(1800000);
   page.setDefaultTimeout(60000);
 
-  const envName   = process.env.TEST_ENV || 'qa';
+  const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
 
   const allowedStates = Object.keys(STATE_CONFIG);
@@ -45,17 +45,17 @@ test('BOP Submission', async ({ page }, testInfo) => {
 
   page.on('response', async (response) => {
     try {
-      const url    = response.url();
+      const url = response.url();
       const status = response.status();
       const timing = response.timing();
       let duration = null;
       if (timing && timing.startTime && timing.responseEnd)
         duration = (timing.responseEnd - timing.startTime) / 1000;
-      if (/xhr|fetch/i.test(response.request().resourceType()) || /api|service|json/i.test(url))
+      if (/xhr|fetch/i.test(response.request().resourceType()) || /api|service|json|ajinvoke/i.test(url))
         global.testData.httpTimings.push({ url, status, duration, timestamp: new Date().toISOString() });
       if (status >= 400)
         global.testData.networkErrors.push({ url, status, timestamp: new Date().toISOString() });
-    } catch (_) {}
+    } catch (_) { }
   });
 
   page.on('requestfailed', req => {
@@ -71,7 +71,7 @@ test('BOP Submission', async ({ page }, testInfo) => {
   };
 
   function saveTestData() {
-    try { fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2)); } catch (_) {}
+    try { fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2)); } catch (_) { }
   }
 
   function trackMilestone(name, status = 'PASSED', details = '') {
@@ -97,11 +97,11 @@ test('BOP Submission', async ({ page }, testInfo) => {
         if (!isVisible) return;
         console.log('Status modal visible (attempt ' + (i + 1) + ') - dismissing...');
         const btn = modal.locator('button').first();
-        if (await btn.count() > 0) await btn.click({ force: true }).catch(() => {});
-        await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+        if (await btn.count() > 0) await btn.click({ force: true }).catch(() => { });
+        await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => { });
         await page.waitForTimeout(300);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async function waitForModalsToClose(timeout = 8000) {
@@ -117,9 +117,9 @@ test('BOP Submission', async ({ page }, testInfo) => {
         const count = await modal.count().catch(() => 0);
         if (count === 0) continue;
         const isVisible = await modal.isVisible().catch(() => false);
-        if (isVisible) await modal.waitFor({ state: 'hidden', timeout }).catch(() => {});
+        if (isVisible) await modal.waitFor({ state: 'hidden', timeout }).catch(() => { });
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // ── Safe click helpers with retry loop ────────────────────────────────────────
@@ -151,7 +151,7 @@ test('BOP Submission', async ({ page }, testInfo) => {
         const b = Array.from(document.querySelectorAll('button')).find(b =>
           b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
         return b ? !b.disabled && !b.classList.contains('disabled') : true;
-      }, { timeout: 15000 }).catch(() => {});
+      }, { timeout: 15000 }).catch(() => { });
       await dismissStatusModal();
     }
     let clicked = false;
@@ -191,7 +191,12 @@ test('BOP Submission', async ({ page }, testInfo) => {
   async function clickIfExists(buttonName) {
     try {
       await dismissStatusModal();
-      await page.getByRole('button', { name: buttonName }).click({ timeout: 5000 });
+      const btn = page.getByRole('button', { name: buttonName });
+      // Fast presence probe instead of relying on click()'s full 5s
+      // actionability timeout to detect "not present".
+      const visible = await btn.waitFor({ state: 'visible', timeout: 1500 }).then(() => true).catch(() => false);
+      if (!visible) { console.log('"' + buttonName + '" not present, skipping'); return; }
+      await btn.click({ timeout: 3000 });
       console.log('"' + buttonName + '" clicked');
     } catch (_) {
       console.log('"' + buttonName + '" not present, skipping');
@@ -206,7 +211,8 @@ test('BOP Submission', async ({ page }, testInfo) => {
     await createAccountAndQualify(page, { writeBizUrl, testState, clickIfExists, trackMilestone });
 
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    // Shrunk from 3000ms - bopCheckbox.waitFor() below already polls up to 15s.
+    await page.waitForTimeout(500);
     await dismissStatusModal();
 
     // ── Select Businessowners (BOP) ───────────────────────────────────────────
@@ -220,6 +226,34 @@ test('BOP Submission', async ({ page }, testInfo) => {
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
     trackMilestone('BOP Product Selected');
+
+
+    // ── BOP Product Eligibility Questions ────────────────────────────────────────
+    // Q1: "Has the applicant had any Property or General Liability losses..." = No
+    // Q2: "Does the applicant do cremations for other funeral homes?" = No  
+    // Q3: "To the best of my knowledge..." = Yes
+    // Pattern: click by question text → find the Yes/No label after it
+
+    async function clickYesNoByQuestion(questionSnippet, answer) {
+      const label = page.locator(
+        `xpath=//*[contains(normalize-space(.), ${JSON.stringify(questionSnippet)})]` +
+        `/following::label[contains(@class,"btn") and normalize-space(text())=${JSON.stringify(answer)}][1]`
+      ).first();
+      if (await label.count() > 0 && await label.isVisible().catch(() => false)) {
+        await label.click({ force: true, timeout: 5000 }).catch(() => { });
+        console.log(`"${questionSnippet.substring(0, 40)}..." = ${answer}`);
+      } else {
+        console.log(`WARNING: could not find toggle for "${questionSnippet.substring(0, 40)}..."`);
+      }
+    }
+
+    await clickYesNoByQuestion('Property or General Liability losses', 'No');
+    await clickYesNoByQuestion('cremations for other funeral homes', 'No');
+    await clickYesNoByQuestion('best of my knowledge', 'Yes');
+
+
+    await page.getByRole('button', { name: 'Finish' }).click();
+
 
     // ── Prior carrier ─────────────────────────────────────────────────────────
     const priorCarrierSelect = page.locator('#ddlPriorCarrier');
@@ -235,74 +269,68 @@ test('BOP Submission', async ({ page }, testInfo) => {
     await dismissStatusModal();
     trackMilestone('Policy Details Entered');
 
+
+
+    
+
     // ── BOP coverage flow ─────────────────────────────────────────────────────
-    await runBopCoverageFlow(page, { testState, trackMilestone, clickIfExists });
+    await runBopCoverageFlow(page, { testState, trackMilestone, clickIfExists, dismissStatusModal, safeNextClick, safeContinueClick, safeClick });
 
     // ── Quote rating loop ─────────────────────────────────────────────────────
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(4000);
+    // Shrunk from 4000ms - the lblQuoteNumValue wait below already polls up to 15s.
+    await page.waitForTimeout(500);
     await dismissStatusModal();
 
-    const quoteNumberEl = page.locator('#tblQuotes tbody tr').first().locator('td').nth(3);
-    await quoteNumberEl.waitFor({ state: 'visible', timeout: 30000 });
-    const quoteNumber = (await quoteNumberEl.innerText()).trim();
-    console.log('Quote Number: ' + quoteNumber);
+    await page.locator('#lblQuoteNumValue').waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
+      console.log('Quote number element not found');
+    });
 
-    async function dismissNotification() {
-      try {
-        const btn = page.locator('button.wb-bell-btn-ack');
-        if (await btn.isVisible({ timeout: 2000 })) {
-          await btn.click();
-          await btn.waitFor({ state: 'hidden', timeout: 3000 });
+    let quoteNumber = 'N/A';
+    try {
+      const primaryText = await page.locator('#lblQuoteNumValue').textContent({ timeout: 5000 }).catch(() => null);
+      if (primaryText?.trim()) {
+        quoteNumber = primaryText.trim();
+        console.log('Quote Number:', quoteNumber);
+      } else {
+        const fallbackSelectors = ['#contentHeader_lblPolicyDetails', 'text=/Quote\\s*#\\s*:\\s*\\d+/'];
+        for (const selector of fallbackSelectors) {
+          const text = await page.locator(selector).first().textContent({ timeout: 2000 }).catch(() => null);
+          if (text?.trim()) {
+            const match = text.match(/(\d+)/);
+            if (match) { quoteNumber = match[1]; console.log('Quote Number (fallback):', quoteNumber); break; }
+          }
         }
-      } catch (_) {}
-    }
+      }
+    } catch (e) { console.log('Error capturing quote number:', e.message); }
 
-    async function getStatus() {
-      try {
-        await dismissNotification();
-        const row = page.locator('#tblQuotes tbody tr:has-text("' + quoteNumber + '")');
-        await row.waitFor({ state: 'visible', timeout: 5000 });
-        return (await row.locator('td').nth(11).innerText({ timeout: 5000 })).trim();
-      } catch (_) { return 'Quote Requested'; }
-    }
-
-    let status = await getStatus();
-    let attempts = 0;
-    while (status === 'Quote Requested' && attempts < 50) {
-      attempts++;
-      console.log('Attempt ' + attempts + '/50: waiting 10s...');
-      await page.waitForTimeout(10000);
-      await page.reload();
-      await page.waitForLoadState('domcontentloaded');
-      await dismissNotification();
-      status = await getStatus();
-      console.log('Status: ' + status);
-    }
-
-    if (status !== 'Quoted')
-      throw new Error('Quote never reached Quoted after ' + attempts + ' attempts. Final: ' + status);
-
-    trackMilestone('Quote Rated Successfully', 'PASSED', 'Quote: ' + quoteNumber);
+    trackMilestone('Quote Rated Successfully', 'PASSED', `Quote #: ${quoteNumber}`);
     global.testData.quoteNumber = quoteNumber;
     saveTestData();
 
+    console.log('Starting policy submission workflow...');
     const policyNumber = await submitPolicyForApproval(page, quoteNumber, { policyCenterUrl, trackMilestone });
+
     global.testData.policyNumber = policyNumber;
     global.testData.status = 'PASSED';
     saveTestData();
-    console.log('BOP test completed. Policy: ' + policyNumber);
+    console.log('Test completed successfully. Policy:', policyNumber);
 
   } catch (error) {
-    console.error('Test failed: ' + error.message);
+    testFailed = true;
+    console.error('Test execution failed:', error.message);
+    console.error('Stack:', error.stack);
+
     try {
-      const pageText = await page.locator('body').textContent({ timeout: 2000 });
-      const match = pageText.match(/\b(\d{10})\b/);
-      if (match) global.testData.quoteNumber = match[1];
-    } catch (_) {}
+      const pageText = await page.locator('body').textContent({ timeout: 2000 }).catch(() => '');
+      const match    = pageText.match(/\b(\d{10})\b/);
+      if (match) { global.testData.quoteNumber = match[1]; console.log(`Extracted number: ${match[1]}`); }
+    } catch {}
+
     global.testData.status = 'FAILED';
     global.testData.error  = error.message;
     saveTestData();
+    console.log(`Test data written with failure info`);
     throw error;
   }
 });

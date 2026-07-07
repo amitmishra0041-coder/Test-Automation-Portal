@@ -79,14 +79,23 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     await page.waitForTimeout(1500);
     await dismissStatusModal();
 
-    const rowCheckbox = page.locator('#tblSubmitForApproval tbody tr td input[type="checkbox"]');
+    // Scoped to the submission we're actually processing - an account can have
+    // multiple entries in the cart (e.g. a separate Commercial Umbrella
+    // submission), and the unscoped selector hit a strict-mode violation
+    // when more than one row was present.
+    const rowCheckbox = page.locator('#tblSubmitForApproval tbody tr')
+        .filter({ hasText: submissionNumber.toString() })
+        .locator('input[type="checkbox"]')
+        .first();
     await rowCheckbox.check();
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    // Shrunk from 2000ms - safeClickBtn() below already waits up to 30s for its target.
+    await page.waitForTimeout(400);
     await dismissStatusModal();
 
     await safeClickBtn(page.getByRole('button', { name: 'Request Purchase Approval' }), 'Request Purchase Approval');
-    await page.waitForTimeout(1000);
+    // Shrunk from 1000ms - safeClickBtn() below already waits up to 30s for its target.
+    await page.waitForTimeout(300);
     await dismissStatusModal();
     await safeClickBtn(page.getByRole('button', { name: 'Send' }), 'Send');
     await page.waitForLoadState('domcontentloaded');
@@ -128,11 +137,23 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     await page1.waitForTimeout(2000);
 
     console.log('Expanding Policy Tab...');
-    await page1.locator('#TabBar-PolicyTab > .gw-action--expand-button > .gw-icon').click();
-    await page1.waitForTimeout(2000);
+    // This is a toggle, not a one-way "expand" - all states log in as the
+    // same hardcoded PolicyCenter user, so if this panel was left expanded
+    // by a previous or concurrent run, blindly clicking it here would
+    // collapse it instead, permanently hiding the search box (the PA
+    // failure: fill() retried for the full 60s against a hidden input that
+    // was never going to reappear). Check the actual current state first.
+    const submissionSearchInput = page1.locator('input[name="TabBar-PolicyTab-PolicyTab_SubmissionNumberSearchItem"]');
+    const alreadyExpanded = await submissionSearchInput.isVisible().catch(() => false);
+    if (!alreadyExpanded) {
+        await page1.locator('#TabBar-PolicyTab > .gw-action--expand-button > .gw-icon').click();
+        await submissionSearchInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    } else {
+        console.log('Policy Tab already expanded, skipping toggle click');
+    }
 
     console.log(`Searching for submission: ${submissionNumber}...`);
-    await page1.locator('input[name="TabBar-PolicyTab-PolicyTab_SubmissionNumberSearchItem"]').fill(submissionNumber);
+    await submissionSearchInput.fill(submissionNumber);
     await page1.getByLabel('Sub #').getByRole('button', { name: 'gw-search-icon' }).click();
     await page1.waitForLoadState('networkidle').catch(() => {});
     await page1.waitForTimeout(3000);
@@ -167,7 +188,14 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     } catch { }
 
     await page1.waitForLoadState('networkidle').catch(() => {});
-    await page1.waitForTimeout(10000);
+    // Wait for a Special Approve row (or confirmation there are none) instead of
+    // a blind 10s sleep - exits as soon as the risk analysis grid has rendered.
+    await page1.waitForFunction(() => {
+        const spinner = document.querySelector('.loading, .spinner, [aria-busy="true"]');
+        if (spinner && getComputedStyle(spinner).display !== 'none') return false;
+        return document.querySelector('[id*="RiskEvaluationPanelSet"]') !== null
+            || document.querySelector('[id$="-UWIssueRowSet-SpecialApprove"]') !== null;
+    }, { timeout: 10000 }).catch(() => {});
 
     const specialApproveSelectors = [
         '#SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-1-UWIssueRowSet-SpecialApprove',
@@ -249,33 +277,70 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
     await page1.close();
     await page.bringToFront();
-    await page.waitForTimeout(5000);
     await page.waitForLoadState('load').catch(() => {});
-    await page.waitForTimeout(8000);
+    // Poll for the WB tab to actually be ready (was idle during PC approval)
+    // instead of a blind 5s + 8s sleep - same 13s ceiling, exits as soon as ready.
+    await page.waitForFunction(() => {
+        const spinner = document.querySelector('.loading, .spinner, [aria-busy="true"]');
+        return document.readyState === 'complete' && (!spinner || getComputedStyle(spinner).display === 'none');
+    }, { timeout: 13000 }).catch(() => {});
 
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.waitForLoadState('networkidle').catch(() => {});
-    await page.waitForTimeout(5000);
-    await dismissStatusModal();
-
+    // The backend can take a few seconds after UW approval to actually register
+    // the submission as ready for issuance, so the row may not be present on the
+    // first reload even though the table itself has rendered. Retry with fresh
+    // reloads (bounded) instead of assuming one reload is enough.
     const row = page.locator('#tblSubmitForIssuance tbody tr')
         .filter({ hasText: submissionNumber.toString() });
+
+    let rowReady = false;
+    for (let attempt = 1; attempt <= 6 && !rowReady; attempt++) {
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.waitForLoadState('networkidle').catch(() => {});
+        await page.waitForSelector('#tblSubmitForIssuance', { timeout: 5000 }).catch(() => {});
+        await dismissStatusModal();
+        rowReady = await row.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+        if (!rowReady) {
+            console.log(`Issuance row for ${submissionNumber} not visible yet (attempt ${attempt}) - retrying...`);
+            await page.waitForTimeout(3000);
+        }
+    }
+
     await row.locator('input[type="checkbox"]').check();
     console.log('Submission row clicked for issuance');
 
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    // Shrunk from 2000ms - safeClickBtn() below already waits up to 30s for its target.
+    await page.waitForTimeout(400);
     await dismissStatusModal();
 
     await safeClickBtn(page.locator('button:has-text("Buy Now")'), 'Buy Now');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
     console.log('Buy Now clicked');
+
+    // Optional "Confirm" dialog - only appears when the account has other
+    // submissions still pending UW approval ("...proceed with issuance of
+    // the selected submissions only"). Fast presence probe, not a blind
+    // sleep, since most runs won't hit this at all.
+    const confirmPendingApprovalYes = page.locator('.modal.show')
+        .filter({ hasText: 'pending approval from the Underwriter' })
+        .getByRole('button', { name: 'Yes' });
+    const pendingApprovalVisible = await confirmPendingApprovalYes
+        .waitFor({ state: 'visible', timeout: 1500 })
+        .then(() => true)
+        .catch(() => false);
+    if (pendingApprovalVisible) {
+        await confirmPendingApprovalYes.click();
+        console.log('Confirmed issuance of selected submission only (pending-UW-approval dialog)');
+    }
+
+    await page.waitForTimeout(3000);
     await dismissStatusModal();
 
     await page.locator('#ddlBillingMethodAll').selectOption('insured');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    // Shrunk from 2000ms - the waitForFunction() below already polls up to 10s
+    // for the payment plan dropdown to populate.
+    await page.waitForTimeout(400);
     console.log('Billing method selected');
 
     await page.waitForFunction(() => {
@@ -330,7 +395,17 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     }
 
     // ===== PART 4: Poll for policy number ====================================
-    const POLL_INTERVAL_MS = 20000; // reduced from 30s to 20s
+    // Graduated backoff: check quickly at first (issuance often finishes fast
+    // right after Bind and Issue), then back off to avoid hammering the
+    // server while waiting on a slow issuance. Previously a flat 10s between
+    // every attempt, so a policy that was ready 1s after a check still took
+    // up to 10s to be noticed.
+    function nextPollDelayMs(attemptNum) {
+        if (attemptNum <= 3) return 3000;
+        if (attemptNum <= 6) return 5000;
+        if (attemptNum <= 10) return 7000;
+        return 10000;
+    }
     const MAX_POLL_MS = 10 * 60 * 1000;
     const pollDeadline = Date.now() + MAX_POLL_MS;
 
@@ -368,7 +443,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         const remainingMs = pollDeadline - Date.now();
         if (remainingMs <= 0) break;
 
-        const sleepMs = Math.min(POLL_INTERVAL_MS, remainingMs);
+        const sleepMs = Math.min(nextPollDelayMs(attempt), remainingMs);
         console.log(`Policy not yet issued, waiting ${sleepMs / 1000}s before next reload...`);
         await page.waitForTimeout(sleepMs).catch(() => {});
     }

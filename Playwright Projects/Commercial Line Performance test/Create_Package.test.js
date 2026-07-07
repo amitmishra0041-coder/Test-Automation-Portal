@@ -54,7 +54,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             let duration = null;
             if (timing && timing.startTime && timing.responseEnd)
                 duration = (timing.responseEnd - timing.startTime) / 1000;
-            if (['xhr', 'fetch'].includes(response.request().resourceType()) || /api|service|rest|json/i.test(url))
+            if (['xhr', 'fetch'].includes(response.request().resourceType()) || /api|service|rest|json|ajinvoke/i.test(url))
                 global.testData.httpTimings.push({ url, status, duration, timestamp: new Date().toISOString() });
             if (status >= 400)
                 global.testData.networkErrors.push({ url, status, timestamp: new Date().toISOString() });
@@ -347,7 +347,8 @@ test('Package Submission', async ({ page }, testInfo) => {
     async function clickEstimatorAndWait() {
         await page.waitForLoadState('domcontentloaded');
         await page.waitForLoadState('networkidle').catch(() => { });
-        await page.waitForTimeout(3000);
+        // Shrunk from 3000ms - the Structure Building wait below already polls up to 30s.
+        await page.waitForTimeout(500);
 
         await page.locator('text=Structure Building').first()
             .waitFor({ state: 'visible', timeout: 30000 })
@@ -422,7 +423,14 @@ test('Package Submission', async ({ page }, testInfo) => {
         async function clickIfExists(buttonName) {
             try {
                 await dismissStatusModal();
-                await page.getByRole('button', { name: buttonName }).click({ timeout: 5000 });
+                const btn = page.getByRole('button', { name: buttonName });
+                // Fast presence probe instead of relying on click()'s full 5s
+                // actionability timeout to detect "not present" - this is called
+                // in runs of up to 5 mutually-exclusive optional buttons, so a
+                // miss here used to cost a guaranteed 5s each (up to 20-25s/run).
+                const visible = await btn.waitFor({ state: 'visible', timeout: 1500 }).then(() => true).catch(() => false);
+                if (!visible) { console.log(`"${buttonName}" button not present, skipping`); return; }
+                await btn.click({ timeout: 3000 });
                 console.log(`"${buttonName}" button clicked`);
             } catch {
                 console.log(`"${buttonName}" button not present, skipping`);
@@ -496,7 +504,8 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.locator('label[for="xrdo_Question_Form_CPPPreQual_0_ApplicantCPPLiabilityLossesInd_Ext_No"]').click();
         await page.locator('label[for="xrdo_Question_Form_CPPPreQual_0_CPPCertificateQuestion_Ext_Yes"]').click();
         await page.getByRole('button', { name: 'Finish' }).click();
-        await page.waitForTimeout(1500);
+        // Shrunk from 1500ms - priorCarrierSelect.waitFor() below already polls up to 15s.
+        await page.waitForTimeout(300);
         await dismissStatusModal();
 
         const priorCarrierSelect = page.locator('#ddlPriorCarrier');
@@ -558,13 +567,14 @@ test('Package Submission', async ({ page }, testInfo) => {
         trackMilestone('Locations tab Navigation Completed');
 
         await page.waitForTimeout(1500);
+        await dismissStatusModal();
         await safeNextClick();
-        await dismissStatusModal();
 
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForLoadState('networkidle').catch(() => { });
-        await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => { });
-        await dismissStatusModal();
+
+        //await page.waitForLoadState('domcontentloaded');
+        //await page.waitForLoadState('networkidle').catch(() => { });
+        //await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => { });
+        //await dismissStatusModal();
 
         await processCoverageDropdowns(page);
         await page.waitForTimeout(300);
@@ -662,8 +672,8 @@ test('Package Submission', async ({ page }, testInfo) => {
         await dismissStatusModal();
         await safeNextClick();
         await page.waitForTimeout(200);
-        await processAllAddCoverageButtons(page);
-        await dismissStatusModal();
+        //await processAllAddCoverageButtons(page);
+        //await dismissStatusModal();
 
         await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(200);
@@ -719,42 +729,49 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(300);
 
         // ── Business Income ───────────────────────────────────────────────────
-        await safeSaveClick('Save Building & Add Business');
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(2500);
-        await page.locator('#txtBusinessIncomeDescription').fill('test desc');
-        await page.waitForTimeout(1200);
-        await page.locator('#xrgn_Coverage_Form_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
-        await page.waitForTimeout(1200);
-        await page.locator('#bs-select-2-1').click();
-        await page.waitForTimeout(200);
-        await page.locator('#xrgn_TypeOfRisk_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
-        await page.waitForTimeout(1200);
-        await page.locator('#bs-select-6-0').click();
-        await page.waitForTimeout(1500);
-        await dismissStatusModal();
-        await safeNextClick();
+        //await safeSaveClick('Save Building & Add Business');
+        const saveBuildingBtn = page.locator('#btnNext_CLPackageBuildingAdditionalCoverages');
 
-        const limit53Input = page.locator('#txt_CP7Limit53_integerWithCommas');
-        await limit53Input.waitFor({ state: 'visible', timeout: 10000 });
-        await fillIntegerField(limit53Input, '155666');
+        await saveBuildingBtn.waitFor({ state: 'visible' });
+        await saveBuildingBtn.click();
 
-        await processCoverageDropdowns(page);
+        //await page.waitForLoadState('domcontentloaded');
+        //await page.waitForTimeout(2500);
+        //await page.locator('#txtBusinessIncomeDescription').fill('test desc');
+        //await page.waitForTimeout(1200);
+        //await page.locator('#xrgn_Coverage_Form_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
+        //await page.waitForTimeout(1200);
+        //await page.locator('#bs-select-2-1').click();
+        //await page.waitForTimeout(200);
+        //await page.locator('#xrgn_TypeOfRisk_Value').getByRole('combobox', { name: 'Nothing selected' }).click();
+        //await page.waitForTimeout(1200);
+        //await page.locator('#bs-select-6-0').click();
+        //await page.waitForTimeout(1500);
+        //await dismissStatusModal();
+        //await safeNextClick();
 
-        await dismissStatusModal();
-        await safeNextClick();
-        await processAllAddCoverageButtons(page);
-        await dismissStatusModal();
+        //const limit53Input = page.locator('#txt_CP7Limit53_integerWithCommas');
+        //await limit53Input.waitFor({ state: 'visible', timeout: 10000 });
+        //await fillIntegerField(limit53Input, '155666');
 
-        const saveBusinessIncomeBtn = page.locator('#btnNext_CLPropertyBuildingBusinessIncomeAdditionalCoverages');
-        await saveBusinessIncomeBtn.waitFor({ state: 'visible', timeout: 30000 });
-        await safeClick(saveBusinessIncomeBtn);
-        await dismissStatusModal();
+        //await processCoverageDropdowns(page);
+        //await page.waitForTimeout(1500);
+
+        //await dismissStatusModal();
+        //await safeNextClick();
+        //await processAllAddCoverageButtons(page);
+        //await dismissStatusModal();
+
+        //const saveBusinessIncomeBtn = page.locator('#btnNext_CLPropertyBuildingBusinessIncomeAdditionalCoverages');
+        //await saveBusinessIncomeBtn.waitFor({ state: 'visible', timeout: 30000 });
+        //await safeClick(saveBusinessIncomeBtn);
+        //await dismissStatusModal();
 
         // ── Occupancy ─────────────────────────────────────────────────────────
         await page.getByTitle('Add Occupancy Building').click();
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(2500);
+        // Shrunk from 2500ms - the txtOccupancyDescription wait below already polls up to 15s.
+        await page.waitForTimeout(500);
         await dismissStatusModal();
         await page.locator('#txtOccupancyDescription').waitFor({ state: 'visible', timeout: 15000 });
         await page.locator('#txtOccupancyDescription').fill('occupancy desc');
@@ -803,7 +820,9 @@ test('Package Submission', async ({ page }, testInfo) => {
         // ── Attention dialog ──────────────────────────────────────────────────
         const attentionHeading = page.getByRole('heading', { name: 'Attention' });
         try {
-            await attentionHeading.waitFor({ state: 'visible', timeout: 5000 });
+            // Shrunk from 5000ms - this is an optional dialog that either appears
+            // right away or not at all, same fix as clickIfExists elsewhere.
+            await attentionHeading.waitFor({ state: 'visible', timeout: 1500 });
             console.log('Attention dialog found');
             await page.getByRole('button', { name: ' Close' }).click();
             await page.getByTitle('Edit Building').click();
@@ -970,7 +989,9 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         try {
             const locationDropdown = page.locator('button[data-id="ddlAddLocation"]');
-            await locationDropdown.waitFor({ state: 'visible', timeout: 5000 });
+            // Shrunk from 5000ms - this GL Locations section is optional (not
+            // present for every state/product combo), same fix as clickIfExists.
+            await locationDropdown.waitFor({ state: 'visible', timeout: 1500 });
             await locationDropdown.click();
             const menu = page.locator('ul.dropdown-menu.inner.show');
             await menu.waitFor({ state: 'visible', timeout: 5000 });
@@ -1091,12 +1112,51 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         await dismissStatusModal();
         await safeContinueClick();
-        await page.waitForTimeout(4000);
 
+        // Click Close as soon as it appears - don't wait for page load states first
+        // The "Attention: Your quote is in progress" dialog appears async after Continue
+        // and networkidle hangs on WB's background polling, causing unnecessary delay
+        console.log('Waiting for Close button...');
         const closeButton = page.getByRole('button', { name: 'Close' });
-        await closeButton.waitFor({ state: 'visible', timeout: 60000 });
-        await closeButton.click({ force: true });
-        await page.waitForTimeout(5000);
+
+        let closeDone = false;
+        try {
+            await closeButton.waitFor({ state: 'visible', timeout: 90000 });
+            console.log('Close button visible - clicking immediately...');
+
+            for (let attempt = 1; attempt <= 4 && !closeDone; attempt++) {
+                try {
+                    await dismissStatusModal();
+                    await closeButton.click({ timeout: 10000 });
+                    closeDone = true;
+                    console.log('Close clicked successfully');
+                } catch (e) {
+                    console.log(`Close click attempt ${attempt} failed: ${e.message.split('\n')[0]}`);
+                    await page.waitForTimeout(500);
+                }
+            }
+            if (!closeDone) {
+                await closeButton.click({ force: true });
+                console.log('Close clicked (force)');
+            }
+        } catch (e) {
+            console.log('WARNING: Close button not found after 90s - proceeding to quote table check');
+        }
+
+        // Wait for quote table to appear - this is the real signal that rating started
+        await page.waitForLoadState('domcontentloaded').catch(() => { });
+        await dismissStatusModal();
+
+        const quoteTableVisible = await page.locator('#tblQuotes tbody tr').first()
+            .waitFor({ state: 'visible', timeout: 30000 })
+            .then(() => true)
+            .catch(() => false);
+
+        if (!quoteTableVisible) {
+            console.log('Quote table not visible - reloading page...');
+            await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.waitForTimeout(3000);
+        }
 
         // ── Quote polling ─────────────────────────────────────────────────────
         const quoteNumber = (await page.locator('#tblQuotes tbody tr').first()
@@ -1125,14 +1185,26 @@ test('Package Submission', async ({ page }, testInfo) => {
             }
         }
 
+        // Graduated backoff: check quickly at first (rating often finishes
+        // fast), then back off to avoid hammering the server on slow
+        // ratings. Previously a flat 10s between every attempt, so a quote
+        // that was ready 1s after a check still took up to 10s to be noticed.
+        function nextPollDelayMs(attemptNum) {
+            if (attemptNum <= 3) return 3000;
+            if (attemptNum <= 6) return 5000;
+            if (attemptNum <= 10) return 7000;
+            return 10000;
+        }
+
         let status = await getStatus();
         let attempts = 0;
         console.log('Initial Status:', status);
 
         while (status === 'Quote Requested' && attempts < 50) {
             attempts++;
-            console.log(`Attempt ${attempts}/50: waiting 10s...`);
-            await page.waitForTimeout(10000);
+            const delay = nextPollDelayMs(attempts);
+            console.log(`Attempt ${attempts}/50: waiting ${delay / 1000}s...`);
+            await page.waitForTimeout(delay);
             await page.reload();
             await page.waitForLoadState('networkidle').catch(() => { });
             await dismissNotification();

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * accountCreationHelper.js
  * Creates a WB account and completes qualification.
  * Credentials from .env (WB_USER_* / WB_PASS_*) - never hardcoded.
@@ -129,7 +129,10 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   // ── Create new client ────────────────────────────────────────────────────────
   await page.locator('#btn_CreateClient').click();
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
+  // Shrunk from a blind 2000ms - the waitForFunction() below already polls
+  // for the agency input to appear (up to 25s), so this only needs to cover
+  // the status modal's typical appearance delay.
+  await page.waitForTimeout(600);
   await dismissStatusModal(page);
 
   await page.waitForFunction(() => {
@@ -305,7 +308,9 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   // ── Submit client info ───────────────────────────────────────────────────────
   await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
+  // Shrunk from 2000ms - clickIfExists()'s own click() call below already
+  // auto-waits up to 5000ms for its target to become actionable.
+  await page.waitForTimeout(600);
   await dismissStatusModal(page);
 
   await clickIfExists('Accept As-Is'); await page.waitForTimeout(2000);
@@ -410,13 +415,16 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
 
   await safeNextClick(page);
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
+  // Shrunk from 2000ms - just enough to cover the status modal's appearance delay.
+  await page.waitForTimeout(600);
   await dismissStatusModal(page);
   console.log('Account creation completed');
 
   // ── Qualification ────────────────────────────────────────────────────────────
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(3000);
+  // Shrunk from a blind 3000ms - coverageDropdown.waitFor() below already
+  // polls for up to 20s, so this only needs to cover the modal appearance delay.
+  await page.waitForTimeout(800);
   await dismissStatusModal(page);
 
   const coverageDropdown = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_IfCpLiabAndOrBusinessInterruptionCovWillBeRequested_123_Multiple_Choice_Question');

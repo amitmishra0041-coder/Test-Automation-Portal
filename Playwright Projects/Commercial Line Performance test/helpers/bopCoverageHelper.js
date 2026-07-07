@@ -1,6 +1,20 @@
 // helpers/bopCoverageHelper.js
 const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./coverageHelpers');
 
+async function clickIfVisible(locator, timeout = 3000) {
+    const visible = await locator
+        .waitFor({ state: 'visible', timeout })
+        .then(() => true)
+        .catch(() => false);
+
+    if (visible) {
+        await locator.click();
+        return true;
+    }
+
+    return false;
+}
+
 async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStatusModal, safeNextClick, safeContinueClick, safeClick }) {
 
   await dismissStatusModal();
@@ -117,6 +131,78 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     }
   }
 
+  // ── Helper: verify-and-retry for Verisk360 numeric fields ──────────────────
+  // Types the value, reads it back after blur, and re-types if empty/wrong.
+  // Returns true only when the field is confirmed to hold the value.
+  async function setNumericVerified(locator, value, label, attempts = 3) {
+    const strVal = String(value);
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        await locator.click({ clickCount: 3 });
+        await page.keyboard.press('Delete');
+        await page.keyboard.type(strVal, { delay: 50 });
+        await locator.blur();
+        await page.waitForTimeout(300);
+
+        const current = (await locator.inputValue().catch(() => '')).replace(/,/g, '').trim();
+        if (current === strVal || current.startsWith(strVal)) {
+          console.log(label + ': ' + current + ' (attempt ' + i + ')');
+          return true;
+        }
+        console.log(label + ' not set (got "' + current + '"), retry ' + i + '/' + attempts);
+      } catch (e) {
+        console.log(label + ' attempt ' + i + ' error: ' + e.message.split('\n')[0]);
+      }
+      await page.waitForTimeout(300);
+    }
+    console.warn(label + ': FAILED after ' + attempts + ' attempts');
+    return false;
+  }
+
+  // ── Helper: verify-and-retry for Verisk360 type-ahead "Use" field ──────────
+  // Types the text, picks the matching suggestion (or keyboard fallback),
+  // then confirms the input actually committed the value. Retries the whole
+  // type-and-select if the dropdown never rendered.
+  async function selectUseVerified(input, typeText, optionText, label, attempts = 3) {
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        await input.click({ clickCount: 3 });
+        await page.keyboard.press('Delete');
+        await page.keyboard.type(typeText, { delay: 100 });
+        await page.waitForTimeout(1000);
+
+        const suggestion = page.locator(
+          '.dropdown-menu.show li:has-text("' + optionText + '"), ' +
+          '[role="option"]:has-text("' + optionText + '"), ' +
+          'li:has-text("' + optionText + '")'
+        ).first();
+
+        if (await suggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await suggestion.click({ force: true });
+          console.log(label + ': selected via suggestion (attempt ' + i + ')');
+        } else {
+          await page.keyboard.press('ArrowDown');
+          await page.waitForTimeout(300);
+          await page.keyboard.press('Enter');
+          console.log(label + ': selected via keyboard (attempt ' + i + ')');
+        }
+        await page.waitForTimeout(500);
+
+        const current = (await input.inputValue().catch(() => '')).trim();
+        if (current.toLowerCase().includes(typeText.toLowerCase())) {
+          console.log(label + ': "' + current + '" confirmed (attempt ' + i + ')');
+          return true;
+        }
+        console.log(label + ' not committed (got "' + current + '"), retry ' + i + '/' + attempts);
+      } catch (e) {
+        console.log(label + ' attempt ' + i + ' error: ' + e.message.split('\n')[0]);
+      }
+      await page.waitForTimeout(300);
+    }
+    console.warn(label + ': FAILED after ' + attempts + ' attempts');
+    return false;
+  }
+
   // ── Businessowners details tab ─────────────────────────────────────────────
   console.log('BOP - Details tab...');
   const bizTypeSelect = page.locator('#ddlBusinessType');
@@ -150,14 +236,16 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   const verifyAddressBtn = page.locator('#btnVerifyAddress');
   await verifyAddressBtn.waitFor({ state: 'visible', timeout: 15000 });
   await verifyAddressBtn.click();
-  await page.waitForTimeout(2000);
+  // Shrunk from 2000ms - dismissStatusModal() already polls/retries for the modal.
+  await page.waitForTimeout(400);
   await dismissStatusModal();
 
   const useSuggestedBtn = page.locator('#ValidateAddress_SuggestedAddress_dialog_btn_1');
   if (await useSuggestedBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
     await useSuggestedBtn.click();
     console.log('Used suggested address');
-    await page.waitForTimeout(1000);
+    // Shrunk from 1000ms - referralContinueBtn.waitFor() below already polls up to 3s.
+    await page.waitForTimeout(300);
   }
 
   const referralContinueBtn = page.getByRole('button', { name: 'Continue' });
@@ -252,7 +340,8 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   const addBuildingBtn = page.locator('button[data-id="ddlAddBuilding"]');
   await addBuildingBtn.waitFor({ state: 'visible', timeout: 15000 });
   await addBuildingBtn.click();
-  await page.waitForTimeout(800);
+  // Shrunk from 800ms - locationLink.isVisible({timeout}) below already polls.
+  await page.waitForTimeout(300);
   console.log('Add Building dropdown opened');
 
   const locationLink = page.locator('button[data-id="ddlAddBuilding"]')
@@ -292,7 +381,8 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     const addBtnRetry = page.locator('button[data-id="ddlAddBuilding"]');
     if (await addBtnRetry.isVisible({ timeout: 5000 }).catch(() => false)) {
       await addBtnRetry.click();
-      await page.waitForTimeout(800);
+      // Shrunk from 800ms - the locationLink click below has its own actionability wait.
+      await page.waitForTimeout(300);
       await locationLink.click({ force: true }).catch(async () => {
         await page.evaluate(() => {
           const links = document.querySelectorAll('.dropdown-menu.show a, .dropdown-menu.show li a');
@@ -349,7 +439,9 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     const estimatorLink = page.locator('a:has-text("Create Estimator"), a:has-text("Edit Estimator")').first();
     if (await estimatorLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       await estimatorLink.click();
-      await page.waitForTimeout(2000);
+      // Shrunk from 2000ms - the isVisible({timeout}) checks just below already
+      // poll for the modal/old-estimator field to appear.
+      await page.waitForTimeout(400);
 
       const verisk360Modal  = page.locator('#dgic-modal-editverisk360valuation');
       const oldEstimatorFld = page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL');
@@ -359,78 +451,87 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       if (isVerisk360) {
         console.log('Verisk360 Valuation modal detected');
 
-        // Screen 1 — Total Sq. Ft.
+        // Screen 1 — Total Sq. Ft. (verify-and-retry)
         const totalSqFt = verisk360Modal.locator('input').first();
-        if (await totalSqFt.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await totalSqFt.click({ clickCount: 3 });
-          await page.keyboard.press('Delete');
-          await page.keyboard.type('999');
-          await totalSqFt.blur();
-          await page.waitForTimeout(300);
-          console.log('Verisk360 Total Sq. Ft.: 999');
-        }
+        await totalSqFt.waitFor({ state: 'visible', timeout: 5000 });
+        const okTotal = await setNumericVerified(totalSqFt, '999', 'Verisk360 Total Sq. Ft.');
 
-        // Use field — type "Apartment" and select suggestion
+        // Use field — type-ahead select (verify-and-retry)
         const useInput = verisk360Modal.locator('input').nth(1);
-        if (await useInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await useInput.click({ clickCount: 3 });
-          await page.keyboard.press('Delete');
-          await page.keyboard.type('Apartment', { delay: 100 });
-          await page.waitForTimeout(1000);
-          const suggestion = page.locator(
-            '.dropdown-menu.show li:has-text("Apartment / Condominium"), ' +
-            '[role="option"]:has-text("Apartment / Condominium"), ' +
-            'li:has-text("Apartment / Condominium")'
-          ).first();
-          if (await suggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await suggestion.click({ force: true });
-            console.log('Verisk360 Use: Apartment / Condominium (suggestion)');
-          } else {
-            await page.keyboard.press('ArrowDown');
-            await page.waitForTimeout(300);
-            await page.keyboard.press('Enter');
-            console.log('Verisk360 Use: Apartment / Condominium (keyboard)');
-          }
-          await page.waitForTimeout(500);
+        await useInput.waitFor({ state: 'visible', timeout: 5000 });
+        const okUse = await selectUseVerified(
+          useInput, 'Apartment', 'Apartment / Condominium', 'Verisk360 Use'
+        );
+
+        // Close any lingering type-ahead dropdown and let the modal reflow,
+        // otherwise the dropdown's hidden filter input pollutes .last()
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.waitForTimeout(600);
+
+        // Diagnostic: how many text inputs the modal reports now
+        const inputCount = await verisk360Modal.locator('input[type="text"]').count().catch(() => -1);
+        console.log('Verisk360 modal text inputs after Use select: ' + inputCount);
+
+        // Primary Building Sq. Ft.* — target by attribute, NOT positional .last()
+        let primarySqFt = verisk360Modal.locator(
+          'input[placeholder*="Primary" i], ' +
+          'input[aria-label*="Primary" i], ' +
+          'input[id*="Primary" i], ' +
+          'input[name*="Primary" i]'
+        ).first();
+
+        // Fallback: last VISIBLE text input in the modal (dropdown input is hidden by now)
+        if (!(await primarySqFt.isVisible({ timeout: 2000 }).catch(() => false))) {
+          primarySqFt = verisk360Modal.locator('input[type="text"]:visible').last();
+          console.log('Verisk360 Primary Sq. Ft.: using visible-input fallback');
         }
 
-        // Primary Building Sq. Ft.*
-        const primarySqFt = verisk360Modal.locator('input[type="text"]').last();
-        if (await primarySqFt.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await primarySqFt.click({ clickCount: 3 });
-          await page.keyboard.press('Delete');
-          await page.keyboard.type('999');
-          await primarySqFt.blur();
-          await page.waitForTimeout(300);
-          console.log('Verisk360 Primary Sq. Ft.: 999');
+        let okPrimary = false;
+        if (await primarySqFt.isVisible({ timeout: 5000 }).catch(() => false)) {
+          okPrimary = await setNumericVerified(primarySqFt, '999', 'Verisk360 Primary Sq. Ft.');
+        } else {
+          console.warn('Verisk360 Primary Sq. Ft. field not found — may not be required for this Use type');
+          okPrimary = true; // don't hard-crash; let CONTINUE surface a real validation error if needed
         }
+
+        // Gate: Total and Use must be confirmed; Primary handled above
+        if (!okTotal || !okUse) {
+          throw new Error(
+            'Verisk360 screen-1 fields incomplete — Total:' + okTotal + ' Use:' + okUse
+          );
+        }
+        console.log('Verisk360 screen-1 ready (Primary:' + okPrimary + '), proceeding to CONTINUE');
 
         // CONTINUE (screen 1 → 2)
         const continueVerisk = verisk360Modal.locator('button:has-text("CONTINUE"), button:has-text("Continue")').first();
         await continueVerisk.waitFor({ state: 'visible', timeout: 10000 });
         await continueVerisk.click();
-        await page.waitForTimeout(1500);
+        // Shrunk from 1500ms - calculateBtn.waitFor() below already polls up to 10s.
+        await page.waitForTimeout(300);
         console.log('Verisk360 CONTINUE clicked');
 
         // CALCULATE NOW (screen 2)
         const calculateBtn = verisk360Modal.locator('button:has-text("CALCULATE NOW"), button:has-text("Calculate Now")').first();
         await calculateBtn.waitFor({ state: 'visible', timeout: 10000 });
         await calculateBtn.click();
-        await page.waitForTimeout(2000);
+        // Shrunk from 2000ms - finishBtn.waitFor() below already polls up to 15s.
+        await page.waitForTimeout(300);
         console.log('Verisk360 CALCULATE NOW clicked');
 
         // FINISH (screen 3)
         const finishBtn = verisk360Modal.locator('button:has-text("FINISH"), button:has-text("Finish")').first();
         await finishBtn.waitFor({ state: 'visible', timeout: 15000 });
         await finishBtn.click();
-        await page.waitForTimeout(1500);
+        // Shrunk from 1500ms - importBtn.waitFor() below already polls up to 10s.
+        await page.waitForTimeout(300);
         console.log('Verisk360 FINISH clicked');
 
         // Import Data (screen 4)
         const importBtn = page.locator('button:has-text("Import Data")').first();
         await importBtn.waitFor({ state: 'visible', timeout: 10000 });
         await importBtn.click();
-        await page.waitForTimeout(1500);
+        // Shrunk from 1500ms - verisk360Modal.waitFor('hidden') below already polls up to 15s.
+        await page.waitForTimeout(300);
         console.log('Verisk360 Import Data clicked');
 
         await verisk360Modal.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
@@ -476,22 +577,137 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
 
-  // ── Class Details tab ──────────────────────────────────────────────────────
-  const classLookup = page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll > .input-group-text > .fas');
-  if (await classLookup.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await classLookup.click();
-    await page.getByRole('gridcell', { name: 'Carpentry - Interior - Office' }).click().catch(async () => {
-      await page.locator('#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr').first().click().catch(() => {});
-    });
-    console.log('Classification selected');
+// ── Class Details tab ──────────────────────────────────────────────────────
+  const classInput = page.locator('#txtClassificationDescriptionValueAutoComplete_input, #txtClassificationDescriptionValueAutoComplete').first();
+  const classLookupIcon = page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll > .input-group-text > .fas');
+
+  if (await classInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+    // Type to filter — much faster than opening full lookup grid
+    await classInput.click({ clickCount: 3 });
+    await classInput.type('Over 4 families with no office occupancy', { delay: 80 });
+    // Shrunk from 800ms - firstSuggestion.isVisible({timeout}) below already polls.
+    await page.waitForTimeout(300);
+
+    // Pick first result from autocomplete dropdown
+    const firstSuggestion = page.locator(
+      '#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr, ' +
+      '.ui-autocomplete .ui-menu-item, ' +
+      '[role="option"]:has-text("Over 4 families with no office occupancy")'
+    ).first();
+
+    if (await firstSuggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await firstSuggestion.click({ force: true });
+      console.log('Classification selected via type-ahead');
+    } else {
+      // Fallback: open full lookup grid
+      if (await classLookupIcon.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await classLookupIcon.click();
+        await page.getByRole('gridcell', { name: 'Over 4 families with no office occupancy' }).click().catch(async () => {
+          await page.locator('#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr').first().click().catch(() => {});
+        });
+        console.log('Classification selected via grid lookup');
+      }
+    }
+  } else if (await classLookupIcon.isVisible({ timeout: 3000 }).catch(() => false)) {
+    // Input not found — fall back to icon click
+    await classLookupIcon.click();
+    await page.locator('#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr').first()
+      .click({ timeout: 10000 }).catch(() => {});
+    console.log('Classification selected via icon fallback');
   }
 
-  await fillIntegerField('#txtClassificationSquareFootage_integerWithCommas', '999');
 
-  await dismissStatusModal();
+// Classification Square Footage — dgic-integerwithcommas field
+  const sqFtClassInput = page.locator('#txtClassificationSquareFootage_integerWithCommas');
+  if (await sqFtClassInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await sqFtClassInput.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+
+    // Use native setter to bypass dgic-integerwithcommas formatter restrictions
+    await page.evaluate(() => {
+      const el = document.querySelector('#txtClassificationSquareFootage_integerWithCommas');
+      if (!el) return;
+      el.focus();
+      // Native value setter bypasses React/custom input handlers
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      nativeSetter.call(el, '1999');
+      el.dispatchEvent(new Event('focus',  { bubbles: true }));
+      el.dispatchEvent(new Event('input',  { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+      el.dispatchEvent(new Event('blur',   { bubbles: true }));
+    });
+    await page.waitForTimeout(500);
+
+    // Verify
+    let val = await sqFtClassInput.inputValue().catch(() => '');
+    console.log('Classification sq ft after evaluate: ' + val);
+
+    // If still blank — click field and type slowly as last resort
+    if (!val || val.replace(/,/g, '').trim() === '') {
+      await sqFtClassInput.click({ force: true });
+      await page.waitForTimeout(300);
+      await page.keyboard.press('Control+A');
+      await page.keyboard.press('Backspace');
+      await page.waitForTimeout(200);
+      for (const ch of '1999') {
+        await page.keyboard.press(ch);
+        await page.waitForTimeout(100);
+      }
+      await page.keyboard.press('Tab');
+      await page.waitForTimeout(500);
+      val = await sqFtClassInput.inputValue().catch(() => '');
+      console.log('Classification sq ft after char-by-char: ' + val);
+    }
+  }
+  await page.waitForTimeout(1000);
   await safeNextClick(); // Class Details → Class Cov
   await page.waitForLoadState('domcontentloaded');
+  
+
+  // Handle any dialog/modal that appears after Next (e.g. attention/info dialog)
+  // Try multiple close button patterns
+  const closeDialogSelectors = [
+    'button[data-dismiss="modal"]',
+    'button.close',
+    'button:has-text("Close")',
+    'button:has-text("OK")',
+    'button:has-text("Ok")',
+    '#dgic-status-message button',
+    '.modal.show .modal-footer button',
+    '.modal.show button[aria-label="Close"]',
+  ];
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    // Check if any modal is blocking
+    const anyModal = page.locator('.modal.show, #dgic-status-message:visible').first();
+    if (!await anyModal.isVisible({ timeout: 2000 }).catch(() => false)) break;
+
+    console.log('Dialog detected after Class Details Next (attempt ' + (attempt + 1) + ')');
+
+    let closed = false;
+    for (const sel of closeDialogSelectors) {
+      const btn = page.locator(sel).first();
+      if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await btn.click({ force: true }).catch(() => {});
+        // Shrunk from 800ms - the loop's next-iteration isVisible({timeout:2000}) already re-polls.
+        await page.waitForTimeout(300);
+        console.log('Dialog closed via: ' + sel);
+        closed = true;
+        break;
+      }
+    }
+
+    if (!closed) {
+      // Try pressing Escape
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+      console.log('Dialog closed via Escape');
+    }
+  }
+
   await dismissStatusModal();
+  await page.waitForLoadState('domcontentloaded');
 
   // ── Class Cov tab — Business Personal Property ─────────────────────────────
   const bppEditBtn = page.getByTitle('Edit Coverage').first();
@@ -502,12 +718,12 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     await fillIntegerField('#txtexposure_integerWithCommas', '25300');
   }
 
-  // Handle optional Attention dialog
+  // Handle optional Attention dialog before next click
   await dismissStatusModal();
   const attentionHeading = page.getByRole('heading', { name: 'Attention' });
   if (await attentionHeading.isVisible({ timeout: 2000 }).catch(() => false)) {
-    console.log('Attention dialog detected - clicking Close...');
-    await page.getByRole('button', { name: 'Close' }).click();
+    console.log('Attention dialog - clicking Close...');
+    await page.getByRole('button', { name: 'Close' }).click({ force: true });
     await attentionHeading.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
@@ -526,11 +742,12 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
   console.log('Building and classification saved');
+  await safeNextClick(); 
   trackMilestone('BOP Buildings/Classifications Completed');
 
   // ── Blankets tab ───────────────────────────────────────────────────────────
   console.log('BOP - Blankets tab...');
-  await safeNextClick();
+  await safeContinueClick();
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
   trackMilestone('BOP Blankets Tab Completed');
@@ -538,13 +755,14 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   // ── Mortgagees tab ─────────────────────────────────────────────────────────
   console.log('BOP - Mortgagees tab...');
   await dismissStatusModal();
-  await safeNextClick();
+  await safeContinueClick();
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
   trackMilestone('BOP Mortgagees Tab Completed');
 
   // ── UW Questions tab ───────────────────────────────────────────────────────
   console.log('BOP - UW Questions tab...');
+  
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
 

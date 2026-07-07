@@ -80,6 +80,29 @@ async function processCoverageDropdowns(page) {
           if (isDisabled) {
             currentDisabledIds.add(selectId);
             console.log(`  Skipping ${selectId}: disabled or readonly`);
+
+            // TEMP DIAGNOSTIC (remove after MI Excess PIP investigation):
+            // dump the surrounding panel + sibling controls for the known
+            // required-but-disabled field so we can see what would enable it.
+            if (/zctjar5j4sla6ctdtthmbtq8em8|excess.?pip/i.test(selectId)) {
+              try {
+                const diag = await select.evaluate(el => {
+                  const panel = el.closest('[class*="panel"], [class*="card"], [class*="section"], [class*="container"]') || el.parentElement;
+                  const siblingControls = panel ? Array.from(panel.querySelectorAll('input[type="checkbox"], input[type="radio"], select')).map(c => ({
+                    tag: c.tagName, id: c.id, type: c.type || null, checked: c.checked ?? null,
+                    value: c.value, disabled: c.disabled,
+                  })) : [];
+                  return {
+                    selectId: el.id,
+                    selectDisabled: el.disabled,
+                    selectReadOnly: el.readOnly,
+                    panelText: panel ? panel.textContent.replace(/\s+/g, ' ').trim().substring(0, 400) : null,
+                    siblingControls,
+                  };
+                }).catch(() => null);
+                if (diag) console.log('  DIAG (Excess PIP candidate): ' + JSON.stringify(diag));
+              } catch (_) {}
+            }
             continue;
           }
 
@@ -230,6 +253,36 @@ async function processAllAddCoverageButtons(page) {
   let previousButtonCount  = -1;
   let sameCountIterations  = 0;
 
+  // Poll a cheap DOM fingerprint until stable instead of sleeping a fixed
+  // duration. Same behavior as waitForDomSettle() in processCoverageDropdowns
+  // above, applied here so each Add/Remove step exits as soon as the modal/
+  // row has settled rather than always waiting the full ceiling.
+  async function waitForSettle(maxWaitMs) {
+    const deadline = Date.now() + maxWaitMs;
+    let lastSnapshot = null;
+    let stableCount  = 0;
+    while (Date.now() < deadline) {
+      const snapshot = await page.evaluate(() => {
+        const modal = document.querySelector('.modal.show, [role="dialog"]');
+        return [
+          document.querySelectorAll('button[data-action="Add"], button:has(i.fa-plus-circle)').length,
+          modal ? modal.innerHTML.length : 0,
+          document.body.innerHTML.length,
+        ].join(':');
+      }).catch(() => null);
+
+      if (snapshot === null) return;
+      if (snapshot === lastSnapshot) {
+        stableCount++;
+        if (stableCount >= 2) return; // stable for 2 checks - done early
+      } else {
+        stableCount = 0;
+      }
+      lastSnapshot = snapshot;
+      await page.waitForTimeout(150);
+    }
+  }
+
   while (true) {
     try {
       const iterationStart = Date.now();
@@ -264,14 +317,14 @@ async function processAllAddCoverageButtons(page) {
           console.log(`  Clicking: "${label}"`);
 
           await button.click({ timeout: 5000, force: true });
-          await page.waitForTimeout(500);
+          await waitForSettle(500);
 
           if (await page.locator('button:has-text("Add Scheduled Item")').count() > 0) {
             const removeBtn = page.locator('button:has-text("Remove Coverage")');
             if (await removeBtn.count() > 0) {
               await removeBtn.first().click();
               console.log('  Clicked Remove Coverage');
-              await page.waitForTimeout(2000);
+              await waitForSettle(2000);
               addCoverageDetails.push({ coverage: label, action: 'Removed', duration: ((Date.now()-iterationStart)/1000).toFixed(2) });
               buttonClicked = true; processedCount++; break;
             }
@@ -291,18 +344,18 @@ async function processAllAddCoverageButtons(page) {
               else if (tag === 'li') { await opts[0].click(); }
             }
             const saveBtn = modal.locator('button:has-text("Save"), button:has-text("Add")').first();
-            if (await saveBtn.count() > 0) { await saveBtn.click({ timeout: 5000 }); await page.waitForTimeout(1000); }
+            if (await saveBtn.count() > 0) { await saveBtn.click({ timeout: 5000 }); await waitForSettle(1000); }
             if (await modal.isVisible({ timeout: 1000 }).catch(() => false)) {
               const closeBtn = modal.locator('button:has-text("Close"), button[data-dismiss="modal"]').first();
-              if (await closeBtn.count() > 0) { await closeBtn.click({ timeout: 5000 }); await page.waitForTimeout(500); }
+              if (await closeBtn.count() > 0) { await closeBtn.click({ timeout: 5000 }); await waitForSettle(500); }
             }
           } else {
-            await page.waitForTimeout(3000);
+            await waitForSettle(3000);
             const saveBtn = page.locator('button:has-text("Save"), button[title*="Save"]');
-            if (await saveBtn.count() > 0) { await saveBtn.first().click(); await page.waitForTimeout(1000); }
+            if (await saveBtn.count() > 0) { await saveBtn.first().click(); await waitForSettle(1000); }
             else {
               const closeBtn = page.locator('button:has-text("Close"), button:has-text("Cancel"), button.close');
-              if (await closeBtn.count() > 0) { await closeBtn.first().click(); await page.waitForTimeout(1000); }
+              if (await closeBtn.count() > 0) { await closeBtn.first().click(); await waitForSettle(1000); }
             }
           }
 
@@ -313,7 +366,7 @@ async function processAllAddCoverageButtons(page) {
       }
 
       if (!buttonClicked) { console.log('Could not click any Add button. Stopping.'); break; }
-      await page.waitForTimeout(1000);
+      await waitForSettle(1000);
 
     } catch (e) { console.log(`Iteration error: ${e.message.split('\n')[0]}`); break; }
   }
