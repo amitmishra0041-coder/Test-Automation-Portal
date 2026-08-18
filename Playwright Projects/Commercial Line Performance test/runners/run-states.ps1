@@ -33,12 +33,16 @@ $testFile = switch ($TestType) {
 
 $suiteLabel  = $TestType.ToLower()
 $projectPath = $PWD.Path
+# Runtime-generated JSON state lives in its own subfolder to keep the project root
+# uncluttered (matches emailReporter.js's RUNTIME_DIR).
+$runtimeDir  = Join-Path $projectPath "runtime-data"
 $batchMarker = Join-Path $projectPath ".batch-run-in-progress-$suiteLabel"
-$iterFile    = Join-Path $projectPath "iterations-data-$suiteLabel.json"
-$lockFile    = Join-Path $projectPath "parallel-run-lock-$suiteLabel.json"
+$iterFile    = Join-Path $runtimeDir "iterations-data-$suiteLabel.json"
+$lockFile    = Join-Path $runtimeDir "parallel-run-lock-$suiteLabel.json"
 $logsDir     = Join-Path $projectPath "logs"
 $tmpDir      = Join-Path $projectPath ".runners-tmp"
 
+if (-not (Test-Path $runtimeDir)) { New-Item -ItemType Directory -Path $runtimeDir | Out-Null }
 if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir | Out-Null }
 if (-not (Test-Path $tmpDir))  { New-Item -ItemType Directory -Path $tmpDir  | Out-Null }
 
@@ -59,7 +63,7 @@ if (Test-Path $lockFile)    { Remove-Item $lockFile    -Force }
 
 # Per-state iteration files (e.g. iterations-data-package-DE.json)
 # These are the source of the "stale state from previous run in email" bug
-Get-ChildItem -Path $projectPath -Filter "iterations-data-$suiteLabel-*.json" -ErrorAction SilentlyContinue |
+Get-ChildItem -Path $runtimeDir -Filter "iterations-data-$suiteLabel-*.json" -ErrorAction SilentlyContinue |
   ForEach-Object {
     Remove-Item $_.FullName -Force
     Write-Host "  Cleared: $($_.Name)" -ForegroundColor Gray
@@ -128,7 +132,7 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
       $passed = $false
       try {
         # Check per-state file first (most reliable)
-        $stateIterFile = Join-Path $projectPath "iterations-data-$suiteLabel-$($entry.State).json"
+        $stateIterFile = Join-Path $runtimeDir "iterations-data-$suiteLabel-$($entry.State).json"
         if (Test-Path $stateIterFile) {
           $stateData = Get-Content $stateIterFile -Raw | ConvertFrom-Json
           $stateIter = $stateData | Where-Object { $_.runId -eq $sharedRunId } | Select-Object -Last 1

@@ -321,7 +321,23 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
 
   // ── Business details ─────────────────────────────────────────────────────────
   const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
-  await businessDescField.waitFor({ state: 'visible', timeout: 30000 });
+  const bizDescVisible = await businessDescField.waitFor({ state: 'visible', timeout: 30000 })
+    .then(() => true).catch(() => false);
+  if (!bizDescVisible) {
+    // Confirmed live: this field intermittently times out with no other
+    // signal about why - dump what's actually on screen at that point
+    // (URL/heading/visible text inputs) instead of guessing, then give it
+    // one more window in case the page was just still settling.
+    const diag = await page.evaluate(() => ({
+      url: location.href,
+      heading: (document.querySelector('h1, h2, .gw-title, [role="heading"]')?.textContent || '').trim().slice(0, 200),
+      visibleTextboxes: [...document.querySelectorAll('input[type="text"], textarea')]
+        .filter(el => el.offsetParent !== null)
+        .map(el => el.name || el.id || el.placeholder || '(unnamed)').slice(0, 10),
+    })).catch(() => ({}));
+    console.log('Business Description field not visible after 30s - page diagnostic: ' + JSON.stringify(diag));
+  }
+  await businessDescField.waitFor({ state: 'visible', timeout: bizDescVisible ? 1000 : 15000 });
   await businessDescField.fill('test desc');
 
   const businessEntitySelect = page.locator('#ddlBusinessEntity').first();

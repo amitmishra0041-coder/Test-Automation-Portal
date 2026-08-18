@@ -11,6 +11,11 @@ const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./he
 const fs   = require('fs');
 const path = require('path');
 
+// Runtime-generated test-data JSON lives in its own subfolder to keep the
+// project root uncluttered (matches emailReporter.js's RUNTIME_DIR).
+const RUNTIME_DIR = path.join(__dirname, 'runtime-data');
+fs.mkdirSync(RUNTIME_DIR, { recursive: true });
+
 test('CA Submission', async ({ page }, testInfo) => {
   test.setTimeout(1800000);
   page.setDefaultTimeout(60000);
@@ -41,7 +46,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     addCoverageTimings: []
   };
 
-  const testDataFile = path.join(__dirname, `test-data-${testState}.json`);
+  const testDataFile = path.join(RUNTIME_DIR, `test-data-${testState}.json`);
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
   console.log(`Initialized test data for ${testState}`);
 
@@ -82,7 +87,7 @@ test('CA Submission', async ({ page }, testInfo) => {
   function saveTestData() {
     try {
       fs.writeFileSync(
-        path.join(__dirname, `test-data-${testState}.json`),
+        path.join(RUNTIME_DIR, `test-data-${testState}.json`),
         JSON.stringify(global.testData, null, 2)
       );
     } catch (e) { console.log('Could not save test-data.json:', e.message); }

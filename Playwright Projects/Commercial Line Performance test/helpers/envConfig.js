@@ -5,8 +5,8 @@
 
 const ENV_URLS = {
   qa: {
-    writeBizUrl: 'https://nautilustest.donegalgroup.com/agentlogin.aspx?bs=c',
-    policyCenterUrl: 'http://test-policycenter.donegalgroup.com/pc/PolicyCenter.do',
+    writeBizUrl: 'https://writebizqa.donegalgroup.com/agentlogin.aspx?bs=c',
+    policyCenterUrl: 'https://qa-policycenter.donegalgroup.com/pc/PolicyCenter.do',
   },
   test: {
     writeBizUrl: 'https://writebiztest.donegalgroup.com/agentlogin.aspx',

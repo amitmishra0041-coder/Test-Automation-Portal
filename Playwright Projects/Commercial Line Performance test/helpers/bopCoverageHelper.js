@@ -80,6 +80,46 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     await page.waitForTimeout(300);
   }
 
+  // ── Helper: select first real option in a Bootstrap Select found by its
+  // OWN label text, for dropdowns whose data-id/menu-id are not known in
+  // advance (unlike selectBootstrapFirst above). Confirmed live via
+  // diagnostic: "Class Group is required." / "Liability Exposure Base is
+  // required." were blocking Save Building/Classification on every run -
+  // these two fields were never being filled at all.
+  async function selectBootstrapByLabel(labelText) {
+    const label = page.getByText(labelText, { exact: true }).first();
+    if (!await label.isVisible({ timeout: 3000 }).catch(() => false)) {
+      console.log(labelText + ': label not found, skipping');
+      return false;
+    }
+    const btn = label.locator('xpath=following::button[1]');
+    if (!await btn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      console.log(labelText + ': dropdown button not found, skipping');
+      return false;
+    }
+    const currentTitle = await btn.getAttribute('title').catch(() => '');
+    if (currentTitle && currentTitle.trim() !== '' && currentTitle.trim() !== 'Nothing selected') {
+      console.log(labelText + ' already set: ' + currentTitle);
+      return true;
+    }
+    await btn.click();
+    await page.waitForTimeout(400);
+    const menuId = await btn.getAttribute('aria-owns');
+    const optionLocator = menuId
+      ? page.locator('#' + menuId + ' [role="option"], #' + menuId + ' li a')
+      : page.locator('.dropdown-menu.show [role="option"], .dropdown-menu.show li a');
+    const firstOpt = optionLocator.filter({ hasNotText: 'Nothing selected' }).first();
+    if (await firstOpt.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await firstOpt.click();
+      await page.waitForTimeout(300);
+      const finalVal = await btn.getAttribute('title').catch(() => '');
+      console.log(labelText + ' selected: ' + finalVal);
+      return true;
+    }
+    console.log(labelText + ': dropdown opened but no selectable options found');
+    return false;
+  }
+
   // ── Helper: robust integer field fill ─────────────────────────────────────
   async function fillIntegerField(selector, value) {
     const input = page.locator(selector).first();
@@ -203,6 +243,206 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     return false;
   }
 
+  // ── Helper: verify-and-retry for Verisk360 Construction Class dropdown ─────
+  // Confirmed live: it defaults to "Unknown", and Guidewire's own Calculate
+  // Now validation rejects that with "The Estimator returned an Unknown
+  // construction type, which is not a valid selection." A first attempt at
+  // locating this field via a loose ancestor "contains" xpath landed on the
+  // WRONG input (any element whose combined text happened to contain the
+  // phrase matched, not just the field's own label) - the value stayed
+  // "Unknown" and Calculate Now kept failing. Anchor on the label's own EXACT
+  // text instead, then verify the input actually changed before proceeding.
+  async function selectConstructionClassVerified(verisk360Modal, attempts = 3) {
+    const classLabel = page.getByText('Construction Class', { exact: true }).first();
+    if (!await classLabel.isVisible({ timeout: 5000 }).catch(() => false)) {
+      console.log('Construction Class label not found on Structure Options screen');
+      return false;
+    }
+    const classInput = classLabel.locator('xpath=following::input[1]');
+
+    for (let i = 1; i <= attempts; i++) {
+      const current = (await classInput.inputValue().catch(() => '')).trim();
+      if (current && !/unknown/i.test(current)) {
+        console.log('Verisk360 Construction Class already valid: ' + current);
+        return true;
+      }
+      try {
+        await classInput.click();
+        await page.waitForTimeout(700);
+
+        // Confirmed live via screenshot: the open list is
+        // (blank) / Unknown / 1 - Frame / 2 - Joisted Masonry / ... with
+        // "Unknown" highlighted as the current value. Playwright's own
+        // getByText()/ArrowDown+Enter could not reliably hit this widget
+        // (getByText found nothing visible; ArrowDown+Enter just blanked the
+        // field instead of landing on "1 - Frame") - go straight to the DOM
+        // and click the option's own leaf element directly, dispatching a
+        // realistic mousedown/mouseup/click sequence since custom
+        // combobox/autocomplete widgets often bind to mousedown rather than
+        // the synthetic click a plain .click() call produces.
+        const clickedViaJs = await page.evaluate(() => {
+          const isVisible = (el) => !!el.offsetParent;
+          const candidates = [...document.querySelectorAll('li, div, span, a, option')];
+          const target = candidates.find(el =>
+            el.children.length === 0 && isVisible(el) &&
+            /^1\s*-\s*Frame$/i.test((el.textContent || '').trim())
+          );
+          if (!target) return false;
+          target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+          target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+          target.click();
+          // The click sets the visible input's value, but if the widget's
+          // internal framework state (React/Angular binding) only updates on
+          // input/change - not on click - Calculate Now's own validation can
+          // still see the OLD "Unknown" state even though the field visibly
+          // shows "1 - Frame". Confirmed live: this happened on CP running
+          // the identical sequence, so it is timing/event-binding sensitive
+          // rather than a missing element.
+          const activeInput = document.activeElement;
+          if (activeInput && (activeInput.tagName === 'INPUT' || activeInput.tagName === 'SELECT')) {
+            activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            activeInput.dispatchEvent(new Event('change', { bubbles: true }));
+            activeInput.dispatchEvent(new Event('blur', { bubbles: true }));
+          }
+          return true;
+        }).catch(() => false);
+
+        if (clickedViaJs) {
+          console.log('Construction Class: clicked "1 - Frame" via direct DOM search');
+        } else {
+          console.log('Construction Class: "1 - Frame" not found in DOM - trying ArrowDown+Enter');
+          await page.keyboard.press('ArrowDown');
+          await page.waitForTimeout(300);
+          await page.keyboard.press('Enter');
+        }
+        // Widened from 500ms - confirmed live that Calculate Now can still
+        // fail to appear right after this selection even though the input
+        // value is already correct, suggesting the app needs more time to
+        // process the selection before its own validation/next-button logic
+        // catches up.
+        await page.waitForTimeout(1200);
+      } catch (e) {
+        console.log('Construction Class attempt ' + i + ' error: ' + e.message.split('\n')[0]);
+      }
+      const after = (await classInput.inputValue().catch(() => '')).trim();
+      console.log('Construction Class attempt ' + i + ': "' + after + '"');
+      if (after && !/unknown/i.test(after)) {
+        // The raw input value can update even when the widget's own
+        // committed state does not - confirmed live on CP: Calculate Now got
+        // clicked but never advanced past screen 2, and the modal's OWN
+        // rendered text still showed "Construction Class ... Unknown"
+        // despite inputValue() reporting "1 - Frame". Cross-check the
+        // widget's rendered text before trusting the input value alone.
+        const modalText = await verisk360Modal.innerText().catch(() => '');
+        const stillShowsUnknown = /Construction Class[\s\S]{0,40}Unknown/i.test(modalText);
+        if (!stillShowsUnknown) return true;
+        console.log('Construction Class attempt ' + i + ': input value shows "' + after + '" but modal still renders "Unknown" - retrying');
+      }
+    }
+
+    // Still stuck - reopen the dropdown and dump every visible leaf element
+    // whose text mentions "Frame" or "Unknown" anywhere in the document,
+    // plus the input's own tag/attrs, instead of guessing a fourth time.
+    // This tells us definitively whether the option text exists and is
+    // visible at all (timing issue), lives outside the DOM subtree we're
+    // searching (structure issue), or is rendered some other way entirely
+    // (e.g. canvas/shadow DOM - a fundamentally different control).
+    await classInput.click().catch(() => {});
+    await page.waitForTimeout(700);
+    const domDump = await page.evaluate(() => {
+      const isVisible = (el) => !!el.offsetParent;
+      const active = document.activeElement;
+      const matches = [...document.querySelectorAll('*')]
+        .filter(el => el.children.length === 0 && isVisible(el) && /frame|unknown/i.test((el.textContent || '').trim()))
+        .slice(0, 15)
+        .map(el => ({
+          tag: el.tagName, cls: (el.className || '').toString().slice(0, 60),
+          text: (el.textContent || '').trim().slice(0, 40),
+        }));
+      return {
+        activeElement: active ? { tag: active.tagName, id: active.id, cls: (active.className || '').toString().slice(0, 60) } : null,
+        visibleMatches: matches,
+      };
+    }).catch(() => ({ error: true }));
+    console.log('Construction Class DOM diagnostic: ' + JSON.stringify(domDump));
+
+    console.warn('Construction Class: FAILED to set a valid value after ' + attempts + ' attempts - still "Unknown"');
+    return false;
+  }
+
+  // ── Verify Import Data actually populated the property data ────────────────
+  // Clicking Import Data does not mean it worked - the coverage panel keeps
+  // showing the red "Property Information Not Found" banner until the import
+  // genuinely completes, which can take a while. Confirmed live via
+  // screenshot: success flips it to a GREEN "Property Information Found"
+  // banner with Estimated Replacement Cost / Estimator ID Number populated.
+  // Poll for that real signal instead of assuming a fixed wait is enough.
+  async function waitForPropertyInformationFound(timeout = 45000) {
+    const foundLocator = page.locator('text=Property Information Found').first();
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      if (await foundLocator.isVisible({ timeout: 1000 }).catch(() => false)) return true;
+      await page.waitForTimeout(1000);
+    }
+    return false;
+  }
+
+  // ── Generic blocking-dialog closer ──────────────────────────────────────────
+  // Any modal left over the page (Verisk360 valuation, Additional Coverages
+  // Schedule, "Attention" info dialogs, etc.) eats every subsequent click as a
+  // dead actionability timeout instead of failing fast. Try known close-button
+  // patterns, then Escape, then force-remove the modal + its backdrop from the
+  // DOM as a last resort so navigation can proceed. Originally only ran once,
+  // right after the Class Details "Next" click - now also called right after
+  // the estimator flow, since that is where a stuck Verisk360 modal (Import
+  // Data failing to fully close it) has been confirmed to block the page.
+  async function closeAnyBlockingDialog(maxAttempts = 3) {
+    const closeSelectors = [
+      'button[data-dismiss="modal"]',
+      'button.close',
+      'button:has-text("Close")',
+      'button:has-text("OK")',
+      'button:has-text("Ok")',
+      '#dgic-status-message button',
+      '.modal.show .modal-footer button',
+      '.modal.show button[aria-label="Close"]',
+    ];
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const anyModal = page.locator('.modal.show, #dgic-status-message:visible').first();
+      if (!await anyModal.isVisible({ timeout: 2000 }).catch(() => false)) return;
+
+      console.log('closeAnyBlockingDialog: modal detected (attempt ' + (attempt + 1) + '/' + maxAttempts + ')');
+      let closed = false;
+      for (const sel of closeSelectors) {
+        const btn = page.locator(sel).first();
+        if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await btn.click({ force: true }).catch(() => {});
+          await page.waitForTimeout(300);
+          console.log('closeAnyBlockingDialog: closed via ' + sel);
+          closed = true;
+          break;
+        }
+      }
+      if (!closed) {
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+        console.log('closeAnyBlockingDialog: tried Escape');
+      }
+    }
+
+    if (await page.locator('.modal.show').first().isVisible({ timeout: 1000 }).catch(() => false)) {
+      console.log('closeAnyBlockingDialog: modal still open after retries - force-removing from DOM');
+      await page.evaluate(() => {
+        document.querySelectorAll('.modal.show').forEach(el => el.remove());
+        document.querySelectorAll('.modal-backdrop, .ui-widget-overlay').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      });
+      await page.waitForTimeout(500);
+    }
+  }
+
   // ── Businessowners details tab ─────────────────────────────────────────────
   console.log('BOP - Details tab...');
   const bizTypeSelect = page.locator('#ddlBusinessType');
@@ -223,8 +463,15 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
 
+  // Widened from an immediate 2s check - confirmed live this intermittently
+  // fails to find the Edit Location button not because we are genuinely
+  // already on Location Details, but because the page from the previous
+  // "Additional Coverages -> Locations" transition had not finished
+  // rendering EITHER element yet, so the code wrongly assumed "already
+  // there" and then #btnVerifyAddress never showed up either.
+  await page.waitForTimeout(500);
   const editLocationBtn = page.locator('button[title="Edit Location"]');
-  if (await editLocationBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+  if (await editLocationBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
     await editLocationBtn.click();
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
@@ -234,7 +481,34 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   }
 
   const verifyAddressBtn = page.locator('#btnVerifyAddress');
-  await verifyAddressBtn.waitFor({ state: 'visible', timeout: 15000 });
+  let verifyAddressVisible = await verifyAddressBtn.waitFor({ state: 'visible', timeout: 25000 })
+    .then(() => true).catch(() => false);
+  if (!verifyAddressVisible) {
+    // We may have wrongly assumed "already on Location Details" above while
+    // the page was still on the Locations summary/list screen - check for
+    // Edit Location again now that more time has passed, and click it as a
+    // recovery instead of failing outright.
+    console.log('#btnVerifyAddress not visible after 25s - rechecking for Edit Location button');
+    if (await editLocationBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await editLocationBtn.click();
+      await page.waitForLoadState('domcontentloaded');
+      await dismissStatusModal();
+      console.log('Edit Location clicked (recovery)');
+      verifyAddressVisible = await verifyAddressBtn.waitFor({ state: 'visible', timeout: 15000 })
+        .then(() => true).catch(() => false);
+    }
+  }
+  if (!verifyAddressVisible) {
+    const diag = await page.evaluate(() => ({
+      url: location.href,
+      heading: (document.querySelector('h1, h2, .gw-title, [role="heading"]')?.textContent || '').trim().slice(0, 200),
+      visibleButtons: [...document.querySelectorAll('button')]
+        .filter(el => el.offsetParent !== null)
+        .map(el => (el.textContent || el.title || '').trim()).filter(Boolean).slice(0, 15),
+    })).catch(() => ({}));
+    console.log('#btnVerifyAddress still not visible after recovery attempt - page diagnostic: ' + JSON.stringify(diag));
+  }
+  await verifyAddressBtn.waitFor({ state: 'visible', timeout: verifyAddressVisible ? 1000 : 5000 });
   await verifyAddressBtn.click();
   // Shrunk from 2000ms - dismissStatusModal() already polls/retries for the modal.
   await page.waitForTimeout(400);
@@ -437,17 +711,60 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
 
     // Estimator
     const estimatorLink = page.locator('a:has-text("Create Estimator"), a:has-text("Edit Estimator")').first();
-    if (await estimatorLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+    const verisk360Modal  = page.locator('#dgic-modal-editverisk360valuation');
+    const oldEstimatorFld = page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL');
+    let isVerisk360 = false;
+    let isOldEstimator = false;
+    let estimatorLinkWasVisible = false;
+
+    // Confirmed live (user watching the real browser): the modal opens and
+    // then closes itself almost immediately, before any field gets filled -
+    // a single isVisible(timeout) check after the click can straddle that
+    // open/close window and wrongly report "never opened". Poll frequently
+    // right after each click instead of one long wait, and retry the click
+    // itself up to 3 times so a self-closing first attempt isn't fatal.
+    for (let openAttempt = 1; openAttempt <= 3 && !isVerisk360 && !isOldEstimator; openAttempt++) {
+      const linkVisible = await estimatorLink.isVisible({ timeout: 5000 }).catch(() => false);
+      if (!linkVisible) {
+        if (openAttempt === 1) console.log('Estimator link not visible');
+        break;
+      }
+      estimatorLinkWasVisible = true;
       await estimatorLink.click();
-      // Shrunk from 2000ms - the isVisible({timeout}) checks just below already
-      // poll for the modal/old-estimator field to appear.
-      await page.waitForTimeout(400);
+      console.log('Estimator link clicked (open attempt ' + openAttempt + ')');
 
-      const verisk360Modal  = page.locator('#dgic-modal-editverisk360valuation');
-      const oldEstimatorFld = page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL');
-      const isVerisk360     = await verisk360Modal.isVisible({ timeout: 3000 }).catch(() => false);
-      const isOldEstimator  = await oldEstimatorFld.isVisible({ timeout: 2000 }).catch(() => false);
+      const pollDeadline = Date.now() + 8000;
+      let sawItOpen = false;
+      while (Date.now() < pollDeadline) {
+        const v360 = await verisk360Modal.isVisible().catch(() => false);
+        const old  = await oldEstimatorFld.isVisible().catch(() => false);
+        if (v360 || old) {
+          sawItOpen = true;
+          isVerisk360 = v360;
+          isOldEstimator = !v360 && old;
+          console.log('Estimator opened (attempt ' + openAttempt + ') - Verisk360:' + v360 + ' Old:' + old);
+          break;
+        }
+        await page.waitForTimeout(300);
+      }
 
+      if (!sawItOpen) {
+        console.log('Estimator did not open within 8s (attempt ' + openAttempt + ') - retrying click');
+        await page.waitForTimeout(500);
+      } else if (isVerisk360) {
+        // Confirm it's still open a moment later rather than trusting the
+        // first sighting, since the observed failure mode is a near-instant
+        // self-close.
+        await page.waitForTimeout(600);
+        const stillOpen = await verisk360Modal.isVisible().catch(() => false);
+        if (!stillOpen) {
+          console.log('Verisk360 modal closed itself within ~600ms of opening (attempt ' + openAttempt + ') - retrying');
+          isVerisk360 = false;
+        }
+      }
+    }
+
+    if (estimatorLinkWasVisible) {
       if (isVerisk360) {
         console.log('Verisk360 Valuation modal detected');
 
@@ -510,31 +827,73 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         await page.waitForTimeout(300);
         console.log('Verisk360 CONTINUE clicked');
 
-        // CALCULATE NOW (screen 2)
-        const calculateBtn = verisk360Modal.locator('button:has-text("CALCULATE NOW"), button:has-text("Calculate Now")').first();
-        await calculateBtn.waitFor({ state: 'visible', timeout: 10000 });
-        await calculateBtn.click();
-        // Shrunk from 2000ms - finishBtn.waitFor() below already polls up to 15s.
-        await page.waitForTimeout(300);
-        console.log('Verisk360 CALCULATE NOW clicked');
+        // Screen 2 - "Structure Options": Construction Class defaults to
+        // "Unknown", which CALCULATE NOW rejects with:
+        // "The Estimator returned an Unknown construction type, which is not
+        // a valid selection. Please reopen the Estimator and select a valid
+        // Construction Class before importing." Confirmed live via
+        // screenshot - fix it before ever clicking CALCULATE NOW.
+        const constructionClassOk = await selectConstructionClassVerified(verisk360Modal);
 
-        // FINISH (screen 3)
-        const finishBtn = verisk360Modal.locator('button:has-text("FINISH"), button:has-text("Finish")').first();
-        await finishBtn.waitFor({ state: 'visible', timeout: 15000 });
-        await finishBtn.click();
-        // Shrunk from 1500ms - importBtn.waitFor() below already polls up to 10s.
-        await page.waitForTimeout(300);
-        console.log('Verisk360 FINISH clicked');
+        // CALCULATE NOW (screen 2) onward - skip the whole rest of the wizard
+        // if Construction Class could not be fixed, since clicking Calculate
+        // Now is guaranteed to reproduce the exact same validation error and
+        // leave the wizard stuck on screen 2 - FINISH/Import Data would then
+        // never appear and their unguarded waitFor() calls would throw and
+        // crash the coverage flow instead of falling back gracefully.
+        let importedOk = false;
+        if (constructionClassOk) {
+          const calculateBtn = verisk360Modal.locator('button:has-text("CALCULATE NOW"), button:has-text("Calculate Now")').first();
+          await calculateBtn.waitFor({ state: 'visible', timeout: 10000 });
+          await calculateBtn.click();
+          // Shrunk from 2000ms - finishBtn.waitFor() below already polls up to 15s.
+          await page.waitForTimeout(300);
+          console.log('Verisk360 CALCULATE NOW clicked');
 
-        // Import Data (screen 4)
-        const importBtn = page.locator('button:has-text("Import Data")').first();
-        await importBtn.waitFor({ state: 'visible', timeout: 10000 });
-        await importBtn.click();
-        // Shrunk from 1500ms - verisk360Modal.waitFor('hidden') below already polls up to 15s.
-        await page.waitForTimeout(300);
-        console.log('Verisk360 Import Data clicked');
+          // FINISH (screen 3) - widened from 15s: confirmed live on CP that
+          // Calculate Now's own processing can take longer than that under
+          // load, and a bare "never appeared" log gives no way to tell a
+          // slow calculation apart from a silent validation error.
+          const finishBtn = verisk360Modal.locator('button:has-text("FINISH"), button:has-text("Finish")').first();
+          const finishVisible = await finishBtn.waitFor({ state: 'visible', timeout: 25000 }).then(() => true).catch(() => false);
+          if (!finishVisible) {
+            const modalDiag = await verisk360Modal.evaluate(el => ({
+              text: (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 400),
+              buttons: [...el.querySelectorAll('button')]
+                .filter(b => b.offsetParent !== null)
+                .map(b => (b.textContent || '').trim()).filter(Boolean),
+            })).catch(() => ({ text: '(modal not found)', buttons: [] }));
+            console.log('Verisk360 modal state when FINISH did not appear: ' + JSON.stringify(modalDiag));
+          }
+          if (finishVisible) {
+            await finishBtn.click();
+            // Shrunk from 1500ms - importBtn.waitFor() below already polls up to 10s.
+            await page.waitForTimeout(300);
+            console.log('Verisk360 FINISH clicked');
 
-        await verisk360Modal.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+            // Import Data (screen 4)
+            const importBtn = page.locator('button:has-text("Import Data")').first();
+            const importVisible = await importBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+            if (importVisible) {
+              await importBtn.click();
+              // Shrunk from 1500ms - verisk360Modal.waitFor('hidden') below already polls up to 15s.
+              await page.waitForTimeout(300);
+              console.log('Verisk360 Import Data clicked');
+
+              await verisk360Modal.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+              importedOk = await waitForPropertyInformationFound(45000);
+            } else {
+              console.log('Import Data button never appeared after FINISH');
+            }
+          } else {
+            console.log('FINISH button never appeared after CALCULATE NOW - Calculate Now likely hit another validation error');
+          }
+        } else {
+          console.log('Skipping CALCULATE NOW/FINISH/Import Data - Construction Class still invalid, would fail validation');
+        }
+        console.log(importedOk
+          ? 'Property Information Found - Import Data succeeded'
+          : 'Property Information still shows Not Found - estimator flow did not complete, falling back to default limit');
         await dismissStatusModal();
         console.log('Verisk360 flow completed');
 
@@ -553,13 +912,49 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         await page.waitForTimeout(500);
         await page.getByRole('button', { name: 'Import Data' }).click().catch(() => {});
         await page.waitForTimeout(1000);
+        const importedOkOld = await waitForPropertyInformationFound(45000);
+        console.log(importedOkOld
+          ? 'Property Information Found - Import Data succeeded'
+          : 'Property Information still shows Not Found after 45s - Import Data likely failed');
         console.log('Old estimator completed');
 
       } else {
-        console.log('No estimator modal detected, skipping');
+        // Dump what's actually on screen instead of guessing - the estimator
+        // link click can open something neither selector recognizes (a slow
+        // Verisk360 render past the 10s window, a differently-ided modal,
+        // etc.), and the previous silent skip left the coverage unfilled with
+        // no trace of what needed handling.
+        const diag = await page.evaluate(() => {
+          const modals = [...document.querySelectorAll('.modal.show, [id*="modal"], [id*="Modal"]')]
+            .filter(el => el.offsetParent !== null)
+            .map(el => ({ id: el.id, text: (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200) }));
+          return modals.slice(0, 5);
+        }).catch(() => []);
+        console.log('No estimator modal detected via known selectors - visible modal-like elements: ' + JSON.stringify(diag));
       }
 
+      // Import Data (or Finish, on the old estimator) can leave the modal up
+      // if any step above silently failed - force it closed rather than
+      // letting every click downstream, including the Bldg Cov -> Bldg Add'l
+      // Cov Next click, inherit the same dead actionability timeout.
+      await closeAnyBlockingDialog();
       await dismissStatusModal();
+
+      // Verify the estimator actually put a value somewhere - there is no
+      // known field id for the BOP Structure Building limit yet (unlike CP's
+      // txt_CP7Limit52), so dump every visible numeric-looking input in the
+      // Structure Building section. If Import Data worked, one of these
+      // should now hold a real (non-zero, non-blank) value; if they are all
+      // still 0/blank, the estimator silently failed to save its data.
+      const limitDiag = await page.evaluate(() => {
+        const section = document.querySelector('#xacc_BP7StructureBuilding');
+        if (!section) return { found: false };
+        const inputs = [...section.querySelectorAll('input')]
+          .filter(el => el.offsetParent !== null)
+          .map(el => ({ id: el.id, name: el.name, value: el.value }));
+        return { found: true, inputs };
+      }).catch(() => ({ found: false }));
+      console.log('Structure Building limit-candidate fields after estimator: ' + JSON.stringify(limitDiag));
     } // end estimator
 
     // % Owner Occupied
@@ -578,6 +973,13 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await dismissStatusModal();
 
 // ── Class Details tab ──────────────────────────────────────────────────────
+  // Reverted per user direction: the "open grid icon, click first available
+  // row" replacement left Classification Description blank (WB's own
+  // validation then blocked Next with "Classification Description must have
+  // a valid value" etc, confirmed live via screenshot) because the grid
+  // popup this icon opens does not expose rows through any of the selectors
+  // tried. Back to the type-ahead search that was proven working across
+  // multiple runs, with the grid-icon click kept only as a fallback.
   const classInput = page.locator('#txtClassificationDescriptionValueAutoComplete_input, #txtClassificationDescriptionValueAutoComplete').first();
   const classLookupIcon = page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll > .input-group-text > .fas');
 
@@ -660,59 +1062,39 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       console.log('Classification sq ft after char-by-char: ' + val);
     }
   }
+
+  // Confirmed live via diagnostic dump: "Class Group is required." and
+  // "Liability Exposure Base is required." were blocking Save
+  // Building/Classification on every prior run - these two required
+  // dropdowns were never being filled at all.
+  await selectBootstrapByLabel('Class Group');
+  await selectBootstrapByLabel('Liability Exposure Base');
+
   await page.waitForTimeout(1000);
   await safeNextClick(); // Class Details → Class Cov
   await page.waitForLoadState('domcontentloaded');
-  
 
   // Handle any dialog/modal that appears after Next (e.g. attention/info dialog)
-  // Try multiple close button patterns
-  const closeDialogSelectors = [
-    'button[data-dismiss="modal"]',
-    'button.close',
-    'button:has-text("Close")',
-    'button:has-text("OK")',
-    'button:has-text("Ok")',
-    '#dgic-status-message button',
-    '.modal.show .modal-footer button',
-    '.modal.show button[aria-label="Close"]',
-  ];
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    // Check if any modal is blocking
-    const anyModal = page.locator('.modal.show, #dgic-status-message:visible').first();
-    if (!await anyModal.isVisible({ timeout: 2000 }).catch(() => false)) break;
-
-    console.log('Dialog detected after Class Details Next (attempt ' + (attempt + 1) + ')');
-
-    let closed = false;
-    for (const sel of closeDialogSelectors) {
-      const btn = page.locator(sel).first();
-      if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await btn.click({ force: true }).catch(() => {});
-        // Shrunk from 800ms - the loop's next-iteration isVisible({timeout:2000}) already re-polls.
-        await page.waitForTimeout(300);
-        console.log('Dialog closed via: ' + sel);
-        closed = true;
-        break;
-      }
-    }
-
-    if (!closed) {
-      // Try pressing Escape
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
-      console.log('Dialog closed via Escape');
-    }
-  }
+  await closeAnyBlockingDialog();
 
   await dismissStatusModal();
   await page.waitForLoadState('domcontentloaded');
 
-  // ── Class Cov tab — Business Personal Property ─────────────────────────────
-  const bppEditBtn = page.getByTitle('Edit Coverage').first();
-  if (await bppEditBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await bppEditBtn.click();
+  // ── Class Cov tab — Business Personal Property (and any other coverage
+  // panels on this screen) ────────────────────────────────────────────────
+  // Widened from .first() only: this screen's "Coverages" layout can show
+  // more than one panel needing "Edit Coverage" (confirmed live via
+  // diagnostic - the screen stayed on CLBOPBuildingClassificationCoverages
+  // with no validation error text, meaning Next was clicked but something
+  // on this page was never actually filled). Process every panel found.
+  const editCoverageCount = await page.getByTitle('Edit Coverage').count().catch(() => 0);
+  console.log('Class Cov: found ' + editCoverageCount + ' "Edit Coverage" panel(s)');
+  for (let i = 0; i < editCoverageCount; i++) {
+    // Re-query by index each time rather than caching locators - the DOM
+    // can re-render between panels as each one is filled and saved.
+    const editBtn = page.getByTitle('Edit Coverage').nth(i);
+    if (!await editBtn.isVisible({ timeout: 3000 }).catch(() => false)) continue;
+    await editBtn.click();
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
     await fillIntegerField('#txtexposure_integerWithCommas', '25300');
@@ -733,11 +1115,24 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await dismissStatusModal();
 
   // ── Save Building ──────────────────────────────────────────────────────────
+  // Confirmed live via diagnostic: this screen's actual visible buttons were
+  // ["Return to Summary","Collapse All Coverages","Next","Previous"] - no
+  // "Save Building/Classification" text anywhere - so the safeClick fallback
+  // was guaranteed to time out every time. Try "Next" before giving up,
+  // mirroring the same "Continue " vs "Next " mismatch already fixed in
+  // safeContinueClick.
   const saveClassBtn = page.locator('#btnNext_CLBOPBuildingClassificationAdditionalCoverages');
   if (await saveClassBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     await saveClassBtn.click();
   } else {
-    await safeClick(page.getByRole('button', { name: 'Save Building/Classification' }));
+    const saveTextBtn = page.getByRole('button', { name: 'Save Building/Classification' });
+    const saveTextVisible = await saveTextBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+    if (saveTextVisible) {
+      await safeClick(saveTextBtn);
+    } else {
+      console.log('"Save Building/Classification" not found - trying "Next" instead');
+      await safeNextClick();
+    }
   }
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();

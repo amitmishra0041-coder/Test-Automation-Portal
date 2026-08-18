@@ -83,10 +83,25 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     // multiple entries in the cart (e.g. a separate Commercial Umbrella
     // submission), and the unscoped selector hit a strict-mode violation
     // when more than one row was present.
-    const rowCheckbox = page.locator('#tblSubmitForApproval tbody tr')
-        .filter({ hasText: submissionNumber.toString() })
-        .locator('input[type="checkbox"]')
-        .first();
+    // The backend can take a few seconds after quote rating to actually
+    // register the submission in the cart table, so the row may not be
+    // present yet even though the table itself has rendered - confirmed live
+    // on BOP (30s straight timeout, no retry). Mirrors the same bounded
+    // reload-retry already proven for the later Submit For Issuance step.
+    const submissionRow = page.locator('#tblSubmitForApproval tbody tr')
+        .filter({ hasText: submissionNumber.toString() });
+
+    let submissionRowReady = await submissionRow.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+    for (let attempt = 1; attempt <= 5 && !submissionRowReady; attempt++) {
+        console.log(`Submit For Approval row for ${submissionNumber} not visible yet (attempt ${attempt}) - reloading...`);
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+        await page.waitForLoadState('networkidle').catch(() => {});
+        await page.waitForSelector('#tblSubmitForApproval', { timeout: 5000 }).catch(() => {});
+        await dismissStatusModal();
+        submissionRowReady = await submissionRow.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+    }
+
+    const rowCheckbox = submissionRow.locator('input[type="checkbox"]').first();
     await rowCheckbox.check();
     await page.waitForLoadState('domcontentloaded');
     // Shrunk from 2000ms - safeClickBtn() below already waits up to 30s for its target.
@@ -402,8 +417,8 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     // up to 10s to be noticed.
     function nextPollDelayMs(attemptNum) {
         if (attemptNum <= 3) return 3000;
-        if (attemptNum <= 6) return 5000;
-        if (attemptNum <= 10) return 7000;
+        if (attemptNum <= 15) return 2000;
+        if (attemptNum <= 20) return 1000;
         return 10000;
     }
     const MAX_POLL_MS = 10 * 60 * 1000;

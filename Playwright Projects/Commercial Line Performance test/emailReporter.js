@@ -5,6 +5,13 @@ const fs         = require('fs');
 const path       = require('path');
 const XLSX       = require('xlsx');
 
+// Runtime-generated JSON state (iterations/locks/test-data) and Excel reports live
+// in their own subfolders to keep the project root uncluttered.
+const RUNTIME_DIR = path.join(__dirname, 'runtime-data');
+const REPORTS_DIR = path.join(__dirname, 'reports');
+fs.mkdirSync(RUNTIME_DIR, { recursive: true });
+fs.mkdirSync(REPORTS_DIR, { recursive: true });
+
 class EmailReporter {
   constructor(options) {
     this.options    = options || {};
@@ -33,7 +40,7 @@ class EmailReporter {
   onBegin() {
     const suite    = this._getSuiteLabel();
     const suiteLC  = suite.toLowerCase();
-    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
+    const lockFile = path.join(RUNTIME_DIR, `parallel-run-lock-${suiteLC}.json`);
 
     if (this._isBatchRun(suiteLC)) {
       let lockData = {};
@@ -43,7 +50,7 @@ class EmailReporter {
       this.runId = lockData.runId || new Date().toISOString();
       console.log(`[EmailReporter] Batch run, shared runId: ${this.runId}`);
     } else {
-      const iterFile = path.join(__dirname, `iterations-data-${suiteLC}.json`);
+      const iterFile = path.join(RUNTIME_DIR, `iterations-data-${suiteLC}.json`);
       if (fs.existsSync(iterFile)) fs.unlinkSync(iterFile);
       this.runId = new Date().toISOString();
       console.log(`[EmailReporter] Solo run, runId: ${this.runId}`);
@@ -58,8 +65,8 @@ class EmailReporter {
 
       console.log(`onTestEnd: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
 
-      const stateFile    = testState ? path.join(__dirname, `test-data-${testState}.json`) : null;
-      const fallback     = path.join(__dirname, 'test-data.json');
+      const stateFile    = testState ? path.join(RUNTIME_DIR, `test-data-${testState}.json`) : null;
+      const fallback     = path.join(RUNTIME_DIR, 'test-data.json');
       const testDataFile = stateFile && fs.existsSync(stateFile) ? stateFile : fallback;
 
       if (!fs.existsSync(testDataFile)) {
@@ -95,7 +102,7 @@ class EmailReporter {
       };
 
       const stateKey      = (testData.state || testState || 'UNKNOWN').toUpperCase();
-      const stateIterFile = path.join(__dirname, `iterations-data-${suiteLC}-${stateKey}.json`);
+      const stateIterFile = path.join(RUNTIME_DIR, `iterations-data-${suiteLC}-${stateKey}.json`);
       fs.writeFileSync(stateIterFile, JSON.stringify([entry], null, 2));
       console.log(`Saved state iteration: ${stateIterFile} (${status})`);
 
@@ -117,7 +124,7 @@ class EmailReporter {
   }
 
   static _mergeStateFiles(suiteLC, runId) {
-    const dir      = __dirname;
+    const dir      = RUNTIME_DIR;
     const pattern  = new RegExp(`^iterations-data-${suiteLC}-([A-Z]+)\\.json$`);
     const stateFiles = fs.readdirSync(dir).filter(f => pattern.test(f));
 
@@ -149,7 +156,7 @@ class EmailReporter {
   }
 
   async _mergeAndSend(suiteLC, subjectPrefix) {
-    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
+    const lockFile = path.join(RUNTIME_DIR, `parallel-run-lock-${suiteLC}.json`);
     let runId = this.runId;
     if (!runId && fs.existsSync(lockFile)) {
       try { runId = JSON.parse(fs.readFileSync(lockFile, 'utf-8')).runId; } catch (_) {}
@@ -285,7 +292,7 @@ class EmailReporter {
 
   async _createExcelReport(iterations) {
     try {
-      const excelPath = path.join(__dirname, `WB_Test_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+      const excelPath = path.join(REPORTS_DIR, `WB_Test_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
       const wb        = XLSX.utils.book_new();
 
       const summaryData = iterations.map(it => ({
@@ -350,7 +357,7 @@ class EmailReporter {
     const suiteLC = (files[0] || 'iterations-data-package.json')
       .replace('iterations-data-', '').replace('.json', '');
 
-    const lockFile = path.join(__dirname, `parallel-run-lock-${suiteLC}.json`);
+    const lockFile = path.join(RUNTIME_DIR, `parallel-run-lock-${suiteLC}.json`);
     let runId = null;
     if (fs.existsSync(lockFile)) {
       try { runId = JSON.parse(fs.readFileSync(lockFile, 'utf-8')).runId; } catch (_) {}
@@ -363,7 +370,7 @@ class EmailReporter {
     if (!iterations.length) {
       console.log('No iterations found - checking shared iter file as fallback...');
       for (const file of files) {
-        const fp = path.join(__dirname, file);
+        const fp = path.join(RUNTIME_DIR, file);
         if (!fs.existsSync(fp)) continue;
         try {
           const all      = JSON.parse(fs.readFileSync(fp, 'utf-8')) || [];

@@ -10,6 +10,11 @@ const { runBopCoverageFlow } = require('./helpers/bopCoverageHelper');
 const fs = require('fs');
 const path = require('path');
 
+// Runtime-generated test-data JSON lives in its own subfolder to keep the
+// project root uncluttered (matches emailReporter.js's RUNTIME_DIR).
+const RUNTIME_DIR = path.join(__dirname, 'runtime-data');
+fs.mkdirSync(RUNTIME_DIR, { recursive: true });
+
 test('BOP Submission', async ({ page }, testInfo) => {
   test.setTimeout(1800000);
   page.setDefaultTimeout(60000);
@@ -40,7 +45,7 @@ test('BOP Submission', async ({ page }, testInfo) => {
     policyNumber: 'N/A',
   };
 
-  const testDataFile = path.join(__dirname, 'test-data-' + testState + '.json');
+  const testDataFile = path.join(RUNTIME_DIR, 'test-data-' + testState + '.json');
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
 
   page.on('response', async (response) => {
@@ -64,6 +69,7 @@ test('BOP Submission', async ({ page }, testInfo) => {
 
   let currentStepStartTime = new Date();
   let waitBudgetMs = 0;
+  let testFailed = false;
 
   const origWait = page.waitForTimeout.bind(page);
   page.waitForTimeout = async (ms) => {
@@ -122,9 +128,33 @@ test('BOP Submission', async ({ page }, testInfo) => {
     } catch (e) { }
   }
 
+  // Several silent, hard-to-diagnose failures traced back to a navigation
+  // button (Save Building/Classification, Next, Continue) simply never
+  // appearing - the bare TimeoutError gave no clue whether the page was
+  // stuck on an earlier screen, showing an unhandled validation error, or
+  // something else entirely. Dump what's actually on screen before failing
+  // so the next occurrence is a fact, not a guess.
+  async function dumpNavFailureDiagnostic(label) {
+    const diag = await page.evaluate(() => ({
+      url: location.href,
+      heading: (document.querySelector('h1, h2, .gw-title, [role="heading"]')?.textContent || '').trim().slice(0, 200),
+      visibleButtons: [...document.querySelectorAll('button')]
+        .filter(el => el.offsetParent !== null)
+        .map(el => (el.textContent || '').trim()).filter(Boolean).slice(0, 15),
+      visibleErrors: [...document.querySelectorAll('[class*="error" i], [class*="alert" i], [class*="danger" i]')]
+        .filter(el => el.offsetParent !== null)
+        .map(el => (el.textContent || '').trim()).filter(Boolean).slice(0, 5),
+    })).catch(() => ({}));
+    console.log(label + ': button not visible after 30s - page diagnostic: ' + JSON.stringify(diag));
+  }
+
   // ── Safe click helpers with retry loop ────────────────────────────────────────
   async function safeClick(locator, options = {}) {
-    await locator.waitFor({ state: 'visible', timeout: 30000 });
+    const locVisible = await locator.waitFor({ state: 'visible', timeout: 30000 }).then(() => true).catch(() => false);
+    if (!locVisible) {
+      await dumpNavFailureDiagnostic('safeClick');
+      await locator.waitFor({ state: 'visible', timeout: 1000 });
+    }
     await waitForModalsToClose();
     let clicked = false;
     for (let attempt = 1; attempt <= 4 && !clicked; attempt++) {
@@ -143,7 +173,11 @@ test('BOP Submission', async ({ page }, testInfo) => {
 
   async function safeNextClick() {
     const btn = page.getByRole('button', { name: 'Next' });
-    await btn.waitFor({ state: 'visible', timeout: 30000 });
+    const nextVisible = await btn.waitFor({ state: 'visible', timeout: 30000 }).then(() => true).catch(() => false);
+    if (!nextVisible) {
+      await dumpNavFailureDiagnostic('safeNextClick');
+      await btn.waitFor({ state: 'visible', timeout: 1000 });
+    }
     await dismissStatusModal();
     const isDisabled = await btn.evaluate(el => el.disabled || el.classList.contains('disabled')).catch(() => false);
     if (isDisabled) {
@@ -170,8 +204,24 @@ test('BOP Submission', async ({ page }, testInfo) => {
   }
 
   async function safeContinueClick() {
-    const btn = page.getByRole('button', { name: 'Continue ' });
-    await btn.waitFor({ state: 'visible', timeout: 30000 });
+    let btn = page.getByRole('button', { name: 'Continue ' });
+    let continueVisible = await btn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+    if (!continueVisible) {
+      // Confirmed live on CP: some screens in this wizard label their
+      // "proceed" button "Next" instead of "Continue " (e.g. the Mortgagees
+      // screen) - try that before giving up and dumping a diagnostic.
+      const nextBtn = page.getByRole('button', { name: 'Next ' });
+      const nextVisible = await nextBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+      if (nextVisible) {
+        console.log('safeContinueClick: "Continue " not found, using "Next " instead');
+        btn = nextBtn;
+        continueVisible = true;
+      }
+    }
+    if (!continueVisible) {
+      await dumpNavFailureDiagnostic('safeContinueClick');
+      await btn.waitFor({ state: 'visible', timeout: 1000 });
+    }
     await dismissStatusModal();
     let clicked = false;
     for (let attempt = 1; attempt <= 4 && !clicked; attempt++) {

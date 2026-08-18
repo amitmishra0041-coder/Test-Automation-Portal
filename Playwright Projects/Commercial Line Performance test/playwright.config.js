@@ -12,7 +12,15 @@ module.exports = defineConfig({
   'deploy-bop.ps1',
   'fix-account-helper.ps1',
 ],
-  timeout: 1200 * 1000, // 20 minutes for entire test
+  // Widened from 20 minutes: confirmed live that a fully successful CP run
+  // (estimator, all coverage screens, submission, UW approval, issuance -
+  // "Test completed successfully. Policy: 1003059560" was logged) still got
+  // marked FAILED by "Test timeout of 1200000ms exceeded", even though
+  // Create_Package.test.js/Create_BOP.test.js both call
+  // test.setTimeout(1800000) (30 min) at the top of the test body. Whatever
+  // the precedence issue, raising the config default above what the tests
+  // themselves intend removes the ambiguity outright.
+  timeout: 2100 * 1000, // 35 minutes for entire test
   expect: { timeout: 40 * 1000 },
 
   use: {
