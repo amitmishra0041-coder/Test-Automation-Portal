@@ -1,0 +1,31 @@
+{
+  "name": "cc-migration-reconciliation",
+  "version": "0.1.0",
+  "description": "Reconciles ClaimCenter On-Prem claims against their Cloud migration counterparts: extracts both sides into a shared structured model, normalizes, applies expected-migration-difference rules, and reports classified findings.",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "reconcile": "ts-node src/cli/reconcile.ts",
+    "reconcile:build": "npm run build && node dist/cli/reconcile.js",
+    "validate-updates": "ts-node src/cli/validateUpdates.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "playwright test",
+    "test:report": "playwright show-report",
+    "lint": "echo \"(no linter configured yet)\""
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}

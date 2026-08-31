@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+reports/*
+!reports/.gitkeep
+evidence/*
+!evidence/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
+playwright-report/
+test-results/
+*.log

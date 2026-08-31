@@ -1,0 +1,52 @@
+name: ClaimCenter Migration Reconciliation
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # nightly full batch
+  workflow_dispatch:
+    inputs:
+      claimsFile:
+        description: 'Path to claims CSV'
+        default: 'data/claims.sample.csv'
+      tier:
+        description: 'test | dev'
+        default: 'test'
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run reconciliation
+        run: npm run reconcile -- --claims ${{ inputs.claimsFile || 'data/claims.sample.csv' }} --tier ${{ inputs.tier || 'test' }}
+        env:
+          CC_USER: ${{ secrets.CC_USER }}
+          CC_PASS: ${{ secrets.CC_PASS }}
+          WORKERS: 4
+
+      # Exit code contract (Section M/32): 0 clean, 1 technical failures,
+      # 2 unexpected CRITICAL/HIGH findings — both 1 and 2 fail this job,
+      # but the report artifact below is uploaded regardless so the cause
+      # is never lost to a red X with nothing attached.
+      - name: Upload reconciliation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconciliation-report
+          path: reports/
+
+      - name: Upload evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconciliation-evidence
+          path: evidence/
