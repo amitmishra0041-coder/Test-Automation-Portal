@@ -1,0 +1,1840 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Playwright Test Runner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a21;
+    --panel-2: #1d222b;
+    --border: #2a3040;
+    --text: #e6e9ef;
+    --muted: #8b93a7;
+    --accent: #4f8cff;
+    --accent-2: #7aa5ff;
+    --green: #3fd68b;
+    --red: #ff5c68;
+    --amber: #ffb454;
+    --mono: 'Cascadia Code', 'Consolas', 'SFMono-Regular', Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  #conn { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  #conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; }
+  #conn.up .dot { background: var(--green); }
+
+  .layout { display: flex; align-items: stretch; min-height: calc(100vh - 66px); }
+  .sidebar {
+    flex: 0 0 236px; width: 236px; padding: 10px 10px 28px;
+    align-self: flex-start; position: sticky; top: 0; max-height: 100vh; overflow-y: auto;
+  }
+  .nav-group {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
+    padding: 16px 12px 6px;
+  }
+  .nav-group:first-child { padding-top: 8px; }
+  .tab-btn {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: 1px solid transparent;
+    color: var(--muted); padding: 9px 12px; font-size: 13.5px; cursor: pointer;
+    border-radius: 8px; margin-bottom: 2px; line-height: 1.3;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--panel-2); }
+  .tab-btn.active {
+    color: var(--text); background: var(--panel); border-color: var(--border);
+    box-shadow: inset 3px 0 0 var(--accent); font-weight: 600;
+  }
+  .content { flex: 1; min-width: 0; border-left: 1px solid var(--border); }
+  @media (max-width: 860px) {
+    .layout { flex-direction: column; }
+    .sidebar { position: static; width: 100%; flex-basis: auto; max-height: none; border-bottom: 1px solid var(--border); }
+    .content { border-left: none; }
+  }
+
+  main { padding: 20px 24px 32px; max-width: 1180px; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .field-label { font-size: 12px; color: var(--muted); margin: 14px 0 8px; }
+  .field-label:first-child { margin-top: 0; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .12s, background .12s;
+  }
+  .chip:hover { border-color: var(--accent-2); }
+  .chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .chip.disabled { opacity: .4; cursor: not-allowed; }
+  .chip.disabled:hover { border-color: var(--border); }
+
+  input[type=text], input[type=email], select {
+    width: 100%;
+    max-width: 360px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    font-family: var(--mono);
+  }
+  input[type=text]:focus, input[type=email]:focus, select:focus { outline: none; border-color: var(--accent); }
+  select { max-width: 560px; font-family: inherit; }
+
+  .preview {
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    background: #0b0d12;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    min-height: 20px;
+  }
+  .preview .job-line { color: var(--accent-2); padding: 2px 0; }
+  .preview .empty { color: var(--muted); }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; align-items: center; }
+  button.run, button.stop {
+    border: none; border-radius: 7px; padding: 10px 20px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  button.run { background: var(--accent); color: #fff; }
+  button.run:disabled { background: #2b3242; color: var(--muted); cursor: not-allowed; }
+  button.stop { background: var(--red); color: #fff; }
+  button.stop:disabled { background: #2b3242; color: var(--muted); cursor: not-allowed; }
+  .error-msg { color: var(--red); font-size: 12.5px; margin-top: 8px; }
+
+  .stats-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat {
+    flex: 1; min-width: 110px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .stat .n { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+  .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+  .stat.passed .n { color: var(--green); }
+  .stat.failed .n { color: var(--red); }
+  .stat.running .n { color: var(--amber); font-size: 14px; }
+
+  #queueList { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  #queueList span { color: var(--text); }
+
+  #progressWrap { display: none; margin-top: 12px; }
+  #progressWrap.show { display: block; }
+  .progress-track {
+    height: 8px; border-radius: 5px; overflow: hidden;
+    background: var(--panel-2); border: 1px solid var(--border);
+  }
+  .progress-fill {
+    height: 100%; border-radius: 5px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    width: 0%; transition: width .25s ease;
+  }
+  /* Total unknown yet (or the running suite has no per-item count, e.g.
+     reconciliation) - a sliding indeterminate bar still shows the run is
+     alive instead of sitting at an unexplained 0%. */
+  #progressWrap.indeterminate .progress-fill {
+    width: 40%; animation: progress-slide 1.1s ease-in-out infinite;
+  }
+  @keyframes progress-slide {
+    0%   { margin-left: 0%; }
+    50%  { margin-left: 60%; }
+    100% { margin-left: 0%; }
+  }
+  #progressLabel { font-size: 11.5px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+
+  #output {
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    height: 420px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 12.3px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  #output .l { padding: 0 0 1px; }
+  #output .pass { color: var(--green); font-weight: 600; }
+  #output .fail { color: var(--red); font-weight: 600; }
+  #output .err { color: #ff8a8a; }
+  #output .head { color: var(--accent-2); font-weight: 600; margin-top: 6px; border-top: 1px dashed var(--border); padding-top: 6px; }
+  #output .end-ok { color: var(--green); }
+  #output .end-fail { color: var(--red); }
+  #output .stop { color: var(--amber); font-weight: 600; }
+  #output .stderr { color: #c9a5ff; }
+
+  .out-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .out-toolbar button {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    padding: 5px 10px; font-size: 11.5px; border-radius: 6px; cursor: pointer;
+  }
+  .out-toolbar button:hover { color: var(--text); }
+
+  .or-sep { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+  .or-sep::before, .or-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  input[type=file] { font-size: 12.5px; color: var(--muted); }
+  .file-name { font-size: 12.5px; color: var(--accent-2); margin-top: 6px; }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .warn-banner { background: rgba(255,180,84,0.12); border: 1px solid var(--amber); color: var(--amber); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin: 0 0 16px; line-height: 1.5; }
+  .warn-banner b { color: var(--amber); }
+  .report-links { margin-top: 10px; font-size: 13px; }
+  .report-links a { color: var(--accent-2); text-decoration: none; margin-right: 14px; }
+  .report-links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Playwright Test Runner</h1>
+    <div class="sub">Test automation tools — policy, ClaimCenter, migration, SmartCOMM and reporting</div>
+  </div>
+  <div id="conn"><span class="dot"></span><span id="connLabel">connecting…</span></div>
+</header>
+
+<div class="layout">
+<nav class="sidebar" aria-label="Tools">
+  <div class="nav-group">Policy</div>
+  <button class="tab-btn active" data-tab="policy">Policy Tests (BOP / Package / CA)</button>
+  <div class="nav-group">ClaimCenter</div>
+  <button class="tab-btn" data-tab="claims">Claims (ClaimCenter)</button>
+  <button class="tab-btn" data-tab="reconciliation">Migration Reconciliation</button>
+  <button class="tab-btn" data-tab="updateValidation">Data Update &amp; Dropdown Validation</button>
+  <div class="nav-group">Documents</div>
+  <button class="tab-btn" data-tab="pdfCompare">PDF Compare</button>
+  <button class="tab-btn" data-tab="smartComm">SmartCOMM Validator</button>
+  <div class="nav-group">Reporting</div>
+  <button class="tab-btn" data-tab="jiraReport">Jira Sprint Report</button>
+</nav>
+<div class="content">
+
+<main>
+
+  <!-- ── Policy tab ─────────────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-policy">
+    <div class="card">
+      <h2>Configure run</h2>
+
+      <div class="field-label">Line of Business (select one or more)</div>
+      <div class="chips" id="policyLobChips"></div>
+
+      <div class="field-label">State (select one or more)</div>
+      <div class="chips" id="policyStateChips"></div>
+
+      <div class="field-label">Environment (select one)</div>
+      <div class="chips" id="policyEnvChips"></div>
+
+      <div class="field-label">Jobs that will run (LOB × State, one process each, run in sequence)</div>
+      <div class="preview" id="policyPreview"><span class="empty">Select at least one LOB, state and environment.</span></div>
+
+      <div class="actions">
+        <button class="run" id="policyRunBtn" disabled>Run Tests</button>
+        <button class="stop" id="policyStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="policyError"></div>
+    </div>
+  </div>
+
+  <!-- ── Claims tab ─────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-claims">
+    <div class="card">
+      <h2>Configure run</h2>
+
+      <div class="field-label">Line of Business (select one)</div>
+      <div class="chips" id="claimsLobChips"></div>
+
+      <div class="field-label">Policy number</div>
+      <input type="text" id="claimsPolicyNumber" placeholder="e.g. 1002239222 or XXXX-000007" autocomplete="off" />
+
+      <div class="field-label">Platform (select one)</div>
+      <div class="chips" id="claimsPlatformChips"></div>
+
+      <div class="field-label">Tier (select one)</div>
+      <div class="chips" id="claimsTierChips"></div>
+
+      <div class="field-label">Job that will run</div>
+      <div class="preview" id="claimsPreview"><span class="empty">Select LOB, platform, tier and enter a policy number.</span></div>
+
+      <div class="actions">
+        <button class="run" id="claimsRunBtn" disabled>Run Claim Test</button>
+        <button class="stop" id="claimsStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="claimsError"></div>
+    </div>
+  </div>
+
+  <!-- ── Migration Reconciliation tab ───────────────────────────────────── -->
+  <div class="tab-panel" id="tab-reconciliation">
+    <div class="card">
+      <h2>Configure run</h2>
+
+      <div class="field-label">Tier (select one)</div>
+      <div class="chips" id="reconTierChips"></div>
+
+      <div class="field-label">On-Prem claim #</div>
+      <input type="text" id="reconOnpremClaim" placeholder="e.g. WC-DE-01-26-0000345" autocomplete="off" />
+
+      <div class="field-label">Cloud claim # (optional — leave blank to use the same claim # on both sides)</div>
+      <input type="text" id="reconCloudClaim" placeholder="e.g. WC-DE-85-26-0000157" autocomplete="off" />
+      <div class="hint">A real migrated pair (same claim # on both platforms) isn't always available yet — enter a different cloud claim # here to compare two independent claims instead, for exercising the tool.</div>
+
+      <div class="or-sep">or upload a claims file for bulk comparison</div>
+      <input type="file" id="reconFileInput" accept=".csv,.xlsx,.xls" />
+      <div class="file-name" id="reconFileName"></div>
+      <div class="hint">Columns: claimNumber (on-prem), cloudClaimNumber (optional), claimType (LOB, used for the by-LOB summary), policyNumber, priority, testGroup, migrationBatch. Uploading a file clears the claim # fields above.</div>
+
+      <div class="field-label">Job that will run</div>
+      <div class="preview" id="reconPreview"><span class="empty">Select a tier, then either enter an on-prem claim # or choose a file to upload.</span></div>
+
+      <div class="actions">
+        <button class="run" id="reconRunBtn" disabled>Run Reconciliation</button>
+        <button class="stop" id="reconStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="reconError"></div>
+      <div class="report-links" id="reconReportLinks"></div>
+    </div>
+  </div>
+
+  <!-- ── Data Update & Dropdown Validation tab ───────────────────────────── -->
+  <div class="tab-panel" id="tab-updateValidation">
+    <div class="card">
+      <div class="warn-banner">
+        <b>This test WRITES to real claims.</b> For every section it finds, it opens Edit, compares dropdown/enum
+        option lists between platforms, and <b>always clicks Update to save</b> — this is how it verifies old
+        (pre-migration) claim data still saves cleanly, so a save failure here is a real finding, not a mistake.
+        Only point it at claims/tiers you're prepared to have re-saved.
+      </div>
+      <h2>Configure run</h2>
+
+      <div class="field-label">Tier (select one)</div>
+      <div class="chips" id="uvTierChips"></div>
+
+      <div class="field-label">On-Prem claim #</div>
+      <input type="text" id="uvOnpremClaim" placeholder="e.g. WC-DE-01-26-0000345" autocomplete="off" />
+
+      <div class="field-label">Cloud claim # (optional — leave blank to use the same claim # on both sides)</div>
+      <input type="text" id="uvCloudClaim" placeholder="e.g. WC-DE-85-26-0000157" autocomplete="off" />
+      <div class="hint">A real migrated pair (same claim # on both platforms) isn't always available yet — enter a different cloud claim # here to compare two independent claims instead.</div>
+
+      <div class="or-sep">or upload a claims file for bulk validation</div>
+      <input type="file" id="uvFileInput" accept=".csv,.xlsx,.xls" />
+      <div class="file-name" id="uvFileName"></div>
+      <div class="hint">Same file format as Migration Reconciliation: claimNumber (on-prem), cloudClaimNumber (optional), claimType, etc. Every claim in the file will have its editable fields saved.</div>
+
+      <div class="field-label">Job that will run</div>
+      <div class="preview" id="uvPreview"><span class="empty">Select a tier, then either enter an on-prem claim # or choose a file to upload.</span></div>
+
+      <div class="actions">
+        <button class="run" id="uvRunBtn" disabled>Run Update Validation</button>
+        <button class="stop" id="uvStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="uvError"></div>
+      <div class="report-links" id="uvReportLinks"></div>
+    </div>
+  </div>
+
+  <!-- ── PDF Compare tab ─────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-pdfCompare">
+    <div class="card">
+      <div class="warn-banner" id="pdfCompareScriptWarn" style="display:none">
+        <b>compare_insurance_pdfs.py not found</b> on the server at
+        <code>tools/pdf-compare/compare_insurance_pdfs.py</code> — copy it there before running this tab.
+      </div>
+      <h2>Configure run</h2>
+
+      <div class="field-label">Input folder (on the machine running this server)</div>
+      <input type="text" id="pdfInputDir" placeholder="e.g. C:\Users\amitmish\Desktop\New folder\CPPProposalParallel" autocomplete="off" style="max-width:600px" />
+      <div class="hint">Folder of sub-folders, each containing a PDF pair to compare (e.g. prod.pdf + qa.pdf). Check "Flat" below if the PDFs sit directly in this folder instead, or "Recursive" if pairs are nested deeper (e.g. root/state-folder/variant-folder/*.pdf).</div>
+
+      <div class="field-label">Output filename</div>
+      <input type="text" id="pdfOutputName" placeholder="results.xlsx" autocomplete="off" />
+
+      <div class="field-label">Options</div>
+      <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+          <input type="checkbox" id="pdfFlat" /> Flat (PDFs directly in the input folder, not sub-folders)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+          <input type="checkbox" id="pdfRecursive" /> Recursive (pairs nested at any depth, not just one level down)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+          Limit folders (0 = all)
+          <input type="text" id="pdfLimit" value="0" style="max-width:70px" />
+        </label>
+      </div>
+
+      <div class="field-label">Job that will run</div>
+      <div class="preview" id="pdfPreview"><span class="empty">Enter an input folder.</span></div>
+
+      <div class="actions">
+        <button class="run" id="pdfRunBtn" disabled>Run Comparison</button>
+        <button class="stop" id="pdfStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="pdfError"></div>
+      <div class="report-links" id="pdfReportLinks"></div>
+    </div>
+  </div>
+
+  <!-- ── SmartCOMM Template Validator tab ──────────────────────────────────── -->
+  <div class="tab-panel" id="tab-smartComm">
+    <div class="card">
+      <h2>Configure run</h2>
+
+      <div class="field-label">Validation type</div>
+      <div class="chips" id="smartCommModeChips"></div>
+      <div class="hint" id="smartCommModeHint"></div>
+
+      <div id="smartCommTemplateBlock">
+      <div class="field-label" id="smartCommTemplateLabel" style="margin-top:14px">Template</div>
+      <input type="text" id="smartCommTemplateFilter" placeholder="Type to filter by ID or name (e.g. DIG52)" autocomplete="off" style="margin-bottom:6px;" />
+      <select id="smartCommTemplateSelect">
+        <option value="">Select a template…</option>
+      </select>
+      <div id="smartCommTemplateMultiBlock" style="display:none; margin-top:8px;">
+        <div class="chips" id="smartCommSelectedTemplateChips"></div>
+        <div class="hint">Picking a template (or typing its full ID) adds it to this run instead of replacing your selection — click a chip to remove it. Queue as many as you like; they run one after another.</div>
+      </div>
+      </div>
+
+      <div id="smartCommTierBlock">
+      <div class="field-label">Environment (select one — cloud only)</div>
+      <div class="chips" id="smartCommTierChips"></div>
+      </div>
+
+      <div id="smartCommClaimBlock">
+      <div class="field-label">Claim # (optional)</div>
+      <input type="text" id="smartCommClaimNumber" placeholder="e.g. PA-PA-01-26-0000209 — leave blank to use real Test Data claims" autocomplete="off" />
+      <div class="hint">If set, validates this one claim directly instead of matching the Test Data claim inventory by the template's State/LOB applicability — useful for testing a template that doesn't have a matching test-data claim yet.</div>
+      </div>
+
+      <div id="smartCommInteractiveBlock">
+      <div class="hint">Most templates in the index are marked "Interactive", not "On Demand" — picking one automatically opens a real Microsoft sign-in popup that <b>you</b> need to complete (email, password, MFA) in the browser window this run opens. The few On-Demand templates run fully unattended. Nothing to toggle — this is detected per template automatically.</div>
+      </div>
+
+      <div id="smartCommMaxScenariosBlock">
+      <div class="field-label">Scenarios to run per template (optional)</div>
+      <select id="smartCommMaxScenarios">
+        <option value="">All matching (default — up to 3)</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+      <div class="hint">How many of the template's own LOB/State-matched scenarios to actually run — NOT the same as "concurrently" below, which only controls how many run at once, not how many run in total. Leave at the default to run every matched scenario (up to 3).</div>
+      </div>
+
+      <div id="smartCommConcurrencyBlock">
+      <div class="hint">Scenarios run 2 at a time per template automatically (a template with only 1 matching scenario just uses 1 worker — nothing to toggle here). With Interactive templates enabled, more than one Azure sign-in/MFA prompt or "Complete this draft?" dialog can appear at the same time — a saved sign-in session usually clears these on its own, but the first run of the day may need you to watch more than one window.</div>
+      </div>
+
+      <div id="smartCommS3Block" style="display:none">
+      <div class="field-label">S3 key (or part of one)</div>
+      <input type="text" id="smartCommS3Key" placeholder="e.g. 9a-45dd-a4d0-199082294229 — the full GUID is safest" autocomplete="off" />
+      <div class="hint">Searched under ClaimCenter &gt; Inbound Pending &gt; smartcomm &gt; output &gt; output in the S3 Integration Files admin tool (Planet is always switched to Test). A short/generic key can match several files — up to 10 matches are downloaded and emailed; more than that is refused, so use a more specific key (ideally the full GUID).</div>
+      </div>
+
+      <div class="field-label">Report Email (optional)</div>
+      <input type="email" id="smartCommReportEmail" placeholder="you@donegalgroup.com — leave blank for the default recipient" autocomplete="off" />
+      <div class="hint">Where the results report (with the generated PDF and template attached) gets emailed. Remembered in this browser so you only need to set it once.</div>
+
+      <div id="smartCommUiOptions" style="display:none">
+        <div class="field-label" style="margin-top:14px">Options</div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; margin-bottom:6px;">
+          <input type="checkbox" id="smartCommUiWrites" /> Include the write scenario (Business Rule 1) — saves ONE test document on the claim (TEST environment only)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+          <input type="checkbox" id="smartCommUiNoBr2" /> Skip the activity-pattern scan (Business Rule 2)
+        </label>
+        <div class="field-label">Also scan activity menus for these states (optional)</div>
+        <input type="text" id="smartCommUiBr2States" placeholder="e.g. MD,DE,VA,GA,TN" autocomplete="off" style="max-width:260px" />
+        <div class="hint">Two-letter state codes, comma-separated. One test-data claim per state is opened to look for activity patterns that only appear on that jurisdiction's claims (about a minute per state).</div>
+      </div>
+
+      <div class="field-label">Job that will run</div>
+      <div class="preview" id="smartCommPreview"><span class="empty">Select a template and an environment.</span></div>
+      <div class="hint" id="smartCommRunHint">Runs every scenario the selected template's own State/LOB applicability matches against real claims from the Test Data inventory (or just the claim # above, if set), validates each generated PDF against requirements derived from the template's own Word doc, and emails the aggregated report — with the generated PDF(s) and the template's own Word doc attached. Scenario-by-scenario results also stream to the console below.</div>
+
+      <div class="actions">
+        <button class="run" id="smartCommRunBtn" disabled>Validate Template</button>
+        <button class="stop" id="smartCommStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="smartCommError"></div>
+      <div class="report-links" id="smartCommReportLinks"></div>
+    </div>
+  </div>
+
+  <!-- ── Jira Sprint Report tab ─────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-jiraReport">
+    <div class="card">
+      <div class="warn-banner" id="jiraReportConfigWarn" style="display:none">
+        <b>JIRA_SITE / JIRA_EMAIL / JIRA_API_TOKEN not set</b> in this project's <code>.env</code> —
+        add them (see <code>.env.example</code>) before running this tab.
+      </div>
+      <h2>Sprint / Pending-Work report</h2>
+      <p class="hint">Pulls the selected track(s) straight from Jira (same JQL as the retired Power Query workbook), tags Track/Sprint, excludes Done &amp; Retired, and writes one Excel workbook — one sheet per selected track (with its own inline "Total Remaining Estimate by Assignee" summary), a combined Data sheet, and two cross-track summary sheets, then emails it as an attachment. Running a subset of tracks writes its own report file, separate from a full run's.</p>
+
+      <div class="field-label">Track (select one or more)</div>
+      <div class="chips" id="jiraReportTrackChips"></div>
+
+      <div class="field-label">Send report to (optional)</div>
+      <input type="email" id="jiraReportEmail" placeholder="you@donegalgroup.com — leave blank to send to the default recipient" autocomplete="off" style="max-width:400px" />
+      <div class="hint">The finished Excel workbook is attached to an email sent here (it's also still saved locally). Blank sends it to the default recipient (TO_EMAIL in <code>.env</code>). Remembered in this browser so you only need to set it once.</div>
+
+      <div class="field-label">Job that will run</div>
+      <div class="preview" id="jiraReportPreview"><span class="empty">Select at least one track.</span></div>
+
+      <div class="actions">
+        <button class="run" id="jiraReportRunBtn" disabled>Generate Report</button>
+        <button class="stop" id="jiraReportStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="jiraReportError"></div>
+      <div class="report-links" id="jiraReportReportLinks"></div>
+    </div>
+
+    <div class="card">
+      <h2>Add a new query</h2>
+      <p class="hint">Adds a new track backed by your own JQL — it's saved to <code>scripts/jiraTracks.custom.json</code> and shows up as a chip above immediately (no restart needed). Sprint is grouped by each issue's own current sprint (no fixed Sprint 4/5/6 numbering, since that needs specific sprint IDs this form can't look up for you).</p>
+
+      <div class="field-label">Track name (used as the sheet name and chip label)</div>
+      <input type="text" id="jiraNewTrackLabel" placeholder="e.g. Data Migration" autocomplete="off" style="max-width:400px" />
+
+      <div class="field-label">JQL</div>
+      <textarea id="jiraNewTrackJql" rows="4" placeholder="e.g. project = DMT AND assignee IN (currentUser()) AND sprint IN (6217, 6306)" style="width:100%; max-width:800px; font-family:monospace; font-size:12px;"></textarea>
+
+      <div class="field-label">Options</div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" id="jiraNewTrackFilterDoneRetired" checked /> Exclude Done &amp; Retired issues (only needed if your JQL doesn't already filter status)
+      </label>
+
+      <div class="actions">
+        <button class="run" id="jiraAddTrackBtn">Add Query</button>
+      </div>
+      <div class="error-msg" id="jiraAddTrackError"></div>
+
+      <div class="field-label">Custom queries</div>
+      <div id="jiraCustomTrackList"><span class="empty">None added yet.</span></div>
+    </div>
+  </div>
+
+  <!-- ── Shared status + output (one queue/process on the server) ─────────── -->
+  <div class="card">
+    <h2>Status</h2>
+    <div class="stats-row">
+      <div class="stat passed"><div class="n" id="statPassed">0</div><div class="l">Passed</div></div>
+      <div class="stat failed"><div class="n" id="statFailed">0</div><div class="l">Failed</div></div>
+      <div class="stat running"><div class="n" id="statRunning">Idle</div><div class="l">Running</div></div>
+    </div>
+    <div id="queueList"></div>
+    <div id="progressWrap">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div id="progressLabel"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="out-toolbar">
+      <h2 style="margin:0">Console output</h2>
+      <button id="clearOutputBtn">Clear</button>
+    </div>
+    <div id="output"></div>
+  </div>
+
+</main>
+</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Tabs ───────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      try { localStorage.setItem('runnerActiveTab', btn.dataset.tab); } catch (_) { /* ignore */ }
+    });
+  });
+  try {
+    var savedTab = localStorage.getItem('runnerActiveTab');
+    var savedBtn = savedTab && document.querySelector('.tab-btn[data-tab="' + savedTab + '"]');
+    if (savedBtn) savedBtn.click();
+  } catch (_) { /* localStorage unavailable — stay on the first tool */ }
+
+  // ── State ──────────────────────────────────────────────────────────────
+  var config = null;
+  var policy = { lobs: new Set(), states: new Set(), envs: new Set() };
+  var claims = { lob: null, platform: null, tier: null };
+  var recon = { tier: null, file: null };
+  var uv = { tier: null, file: null };
+  var smartComm = { templateId: null, tier: null, mode: 'template', templateIds: new Set() };
+  var jiraReport = { tracks: new Set() }; // populated with all track keys once /api/config loads
+  var anyRunning = false;
+  var pdfScriptFound = true;
+  var jiraReportConfigured = true;
+
+  function chip(label, selected, disabled, title) {
+    var el = document.createElement('div');
+    el.className = 'chip' + (selected ? ' selected' : '') + (disabled ? ' disabled' : '');
+    el.textContent = label;
+    if (title) el.title = title;
+    return el;
+  }
+
+  // ── Load config, render controls ─────────────────────────────────────────
+  fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
+    config = cfg;
+    renderPolicyLobs();
+    renderPolicyStates();
+    renderPolicyEnvs();
+    renderClaimsLobs();
+    renderClaimsPlatforms();
+    renderClaimsTiers();
+    renderReconTiers();
+    renderUvTiers();
+    renderSmartCommTemplates();
+    renderSmartCommTiers();
+    renderSmartCommMode();
+    pdfScriptFound = Boolean(cfg.pdfCompare && cfg.pdfCompare.scriptFound);
+    document.getElementById('pdfCompareScriptWarn').style.display = pdfScriptFound ? 'none' : 'block';
+    updatePdfPreview();
+    jiraReportConfigured = Boolean(cfg.jiraReport && cfg.jiraReport.configured);
+    document.getElementById('jiraReportConfigWarn').style.display = jiraReportConfigured ? 'none' : 'block';
+    if (cfg.jiraReport && cfg.jiraReport.tracks) {
+      Object.keys(cfg.jiraReport.tracks).forEach(function (k) { jiraReport.tracks.add(k); }); // default: all selected
+    }
+    renderJiraTracks();
+    renderJiraCustomTrackList();
+    updateJiraReportPreview();
+  }).catch(function (e) {
+    document.getElementById('policyError').textContent = 'Could not load /api/config: ' + e.message;
+  });
+
+  function renderPolicyLobs() {
+    var box = document.getElementById('policyLobChips');
+    box.innerHTML = '';
+    Object.keys(config.policy.lobs).forEach(function (code) {
+      var c = chip(config.policy.lobs[code].label, policy.lobs.has(code));
+      c.addEventListener('click', function () {
+        if (policy.lobs.has(code)) policy.lobs.delete(code); else policy.lobs.add(code);
+        renderPolicyLobs();
+        updatePolicyPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  function renderPolicyStates() {
+    var box = document.getElementById('policyStateChips');
+    box.innerHTML = '';
+    config.policy.states.forEach(function (st) {
+      var c = chip(st, policy.states.has(st));
+      c.addEventListener('click', function () {
+        if (policy.states.has(st)) policy.states.delete(st); else policy.states.add(st);
+        renderPolicyStates();
+        updatePolicyPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  function renderPolicyEnvs() {
+    var box = document.getElementById('policyEnvChips');
+    box.innerHTML = '';
+    config.policy.envs.forEach(function (e) {
+      var label = e.key.toUpperCase();
+      var c = chip(
+        label,
+        policy.envs.has(e.key),
+        !e.configured,
+        e.configured ? '' : 'Not wired up yet - add ENV_URLS.' + e.key + ' in helpers/envConfig.js'
+      );
+      if (e.configured) {
+        c.addEventListener('click', function () {
+          if (policy.envs.has(e.key)) policy.envs.delete(e.key); else policy.envs.add(e.key);
+          renderPolicyEnvs();
+          updatePolicyPreview();
+        });
+      }
+      box.appendChild(c);
+    });
+  }
+
+  function renderClaimsLobs() {
+    var box = document.getElementById('claimsLobChips');
+    box.innerHTML = '';
+    Object.keys(config.claims.lobs).forEach(function (code) {
+      var c = chip(config.claims.lobs[code].label, claims.lob === code);
+      c.addEventListener('click', function () {
+        claims.lob = code;
+        renderClaimsLobs();
+        updateClaimsPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  function renderClaimsPlatforms() {
+    var box = document.getElementById('claimsPlatformChips');
+    box.innerHTML = '';
+    var labels = { onprem: 'On-Prem', cloud: 'Cloud' };
+    config.claims.platforms.forEach(function (p) {
+      var c = chip(labels[p] || p, claims.platform === p);
+      c.addEventListener('click', function () {
+        claims.platform = p;
+        renderClaimsPlatforms();
+        updateClaimsPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  function renderClaimsTiers() {
+    var box = document.getElementById('claimsTierChips');
+    box.innerHTML = '';
+    config.claims.tiers.forEach(function (t) {
+      var c = chip(t.toUpperCase(), claims.tier === t);
+      c.addEventListener('click', function () {
+        claims.tier = t;
+        renderClaimsTiers();
+        updateClaimsPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  var smartCommTemplatesAll = [];
+
+  function renderSmartCommTemplates() {
+    // Server sends these pre-sorted (catalogService's numeric-aware DIG
+    // ordering) so both the unfiltered and filtered views stay in order.
+    smartCommTemplatesAll = (config.smartComm && config.smartComm.templates) || [];
+    populateSmartCommTemplateOptions('');
+
+    document.getElementById('smartCommTemplateSelect').addEventListener('change', function () {
+      if (smartComm.mode === 'template') {
+        if (this.value) addSmartCommTemplate(this.value);
+        this.value = '';
+        updateSmartCommPreview();
+      } else {
+        smartComm.templateId = this.value || null;
+        updateSmartCommPreview();
+      }
+    });
+    document.getElementById('smartCommTemplateFilter').addEventListener('input', function () {
+      populateSmartCommTemplateOptions(this.value);
+    });
+    document.getElementById('smartCommTemplateFilter').addEventListener('blur', function () {
+      if (!smartCommExactMatchTimer) return;
+      clearTimeout(smartCommExactMatchTimer);
+      var q = this.value.trim().toLowerCase();
+      var exact = smartCommTemplatesAll.filter(function (t) { return t.digNumber.toLowerCase() === q; })[0];
+      if (exact) commitSmartCommExactMatch(exact.digNumber, q);
+    });
+    document.getElementById('smartCommClaimNumber').addEventListener('input', updateSmartCommPreview);
+    ['smartCommUiWrites', 'smartCommUiNoBr2'].forEach(function (id) {
+      document.getElementById(id).addEventListener('change', updateSmartCommPreview);
+    });
+    document.getElementById('smartCommUiBr2States').addEventListener('input', updateSmartCommPreview);
+    document.getElementById('smartCommS3Key').addEventListener('input', updateSmartCommPreview);
+    document.getElementById('smartCommMaxScenarios').addEventListener('change', updateSmartCommPreview);
+
+    // Remembered per-browser so a user only has to type their own address
+    // once — localStorage is per-origin, so this doesn't leak between
+    // different people's machines/profiles.
+    var reportEmailInput = document.getElementById('smartCommReportEmail');
+    try {
+      var savedEmail = localStorage.getItem('smartCommReportEmail');
+      if (savedEmail) reportEmailInput.value = savedEmail;
+    } catch (_) { /* localStorage unavailable (private browsing, locked-down profile) — field just starts blank */ }
+    reportEmailInput.addEventListener('input', function () {
+      try { localStorage.setItem('smartCommReportEmail', this.value.trim()); } catch (_) { /* ignore */ }
+      updateSmartCommPreview();
+    });
+  }
+
+  var smartCommExactMatchTimer = null;
+
+  function commitSmartCommExactMatch(digNumber, expectedQ) {
+    smartCommExactMatchTimer = null;
+    var filterEl = document.getElementById('smartCommTemplateFilter');
+    // The user may have kept typing past this exact match already (e.g. "DIG5" → "DIG52") — only commit if
+    // the filter box still holds exactly what matched, so a stale, already-superseded timer never fires.
+    if (filterEl.value.trim().toLowerCase() !== expectedQ) return;
+    addSmartCommTemplate(digNumber);
+    filterEl.value = '';
+    populateSmartCommTemplateOptions('');
+  }
+
+  // 234 of the catalog's 238 templates are "Interactive" (a real Microsoft sign-in popup the user must
+  // complete) — only 4 are "On Demand" (fully unattended). There's no UI control for this any more (removed
+  // 2026-10-02, per user direction): whether a run needs Interactive handling is derived straight from the
+  // selected template(s)' own catalog data at job-build time (see smartCommTemplateJobs/smartCommJob below),
+  // every time, with no manual override to forget or get out of sync.
+  function smartCommTemplateIsInteractive(id) {
+    var t = smartCommTemplatesAll.filter(function (x) { return x.digNumber === id; })[0];
+    return !t || t.interactiveOrOnDemand !== 'On Demand';
+  }
+
+  function addSmartCommTemplate(id) {
+    id = (id || '').trim();
+    if (!id) return;
+    smartComm.templateIds.add(id);
+    renderSmartCommSelectedTemplates();
+  }
+
+  function removeSmartCommTemplate(id) {
+    smartComm.templateIds.delete(id);
+    renderSmartCommSelectedTemplates();
+    updateSmartCommPreview();
+  }
+
+  function renderSmartCommSelectedTemplates() {
+    var box = document.getElementById('smartCommSelectedTemplateChips');
+    if (!box) return;
+    box.innerHTML = '';
+    Array.from(smartComm.templateIds).sort().forEach(function (id) {
+      var c = chip(id + ' ×', true, false, 'Click to remove');
+      c.addEventListener('click', function () { removeSmartCommTemplate(id); });
+      box.appendChild(c);
+    });
+    if (smartComm.templateIds.size > 1) {
+      var clearBtn = chip('Clear all', false);
+      clearBtn.addEventListener('click', function () {
+        smartComm.templateIds.clear();
+        renderSmartCommSelectedTemplates();
+        updateSmartCommPreview();
+      });
+      box.appendChild(clearBtn);
+    }
+  }
+
+  function populateSmartCommTemplateOptions(filterText) {
+    var sel = document.getElementById('smartCommTemplateSelect');
+    var q = (filterText || '').trim().toLowerCase();
+    var matches = !q ? smartCommTemplatesAll : smartCommTemplatesAll.filter(function (t) {
+      return t.digNumber.toLowerCase().indexOf(q) !== -1 || t.documentName.toLowerCase().indexOf(q) !== -1;
+    });
+    sel.innerHTML = '<option value="">Select a template…</option>' + matches.map(function (t) {
+      return '<option value="' + t.digNumber + '">' + t.digNumber + ' — ' + t.documentName + '</option>';
+    }).join('');
+
+    // Typing a complete ID (e.g. "DIG52") auto-selects it — the field
+    // doubles as a jump-to-ID box, not just a list-narrowing filter.
+    var exact = matches.filter(function (t) { return t.digNumber.toLowerCase() === q; })[0];
+    if (smartCommExactMatchTimer) { clearTimeout(smartCommExactMatchTimer); smartCommExactMatchTimer = null; }
+    if (exact && smartComm.mode === 'template') {
+      // CONFIRMED live 2026-10-02: committing the instant an exact match appears fired too early whenever a
+      // SHORTER real template ID exactly matched what had been typed so far toward a LONGER one (e.g. typing
+      // "DIG52" one keystroke at a time hits an exact match on the real, separate template "DIG5" first) —
+      // it cleared the filter box mid-keystroke, silently eating the rest of what was being typed. Wait for
+      // a short pause in typing before committing; a blur (tab/click away) commits immediately instead of
+      // waiting it out, so there's no added delay for someone who deliberately stops there.
+      sel.value = exact.digNumber;
+      smartCommExactMatchTimer = setTimeout(function () { commitSmartCommExactMatch(exact.digNumber, q); }, 500);
+      updateSmartCommPreview();
+      return;
+    }
+    if (exact) {
+      sel.value = exact.digNumber;
+      smartComm.templateId = exact.digNumber;
+    } else if (smartComm.templateId && matches.some(function (t) { return t.digNumber === smartComm.templateId; })) {
+      sel.value = smartComm.templateId; // still-valid prior selection survives a narrower filter
+    } else {
+      sel.value = '';
+      smartComm.templateId = null;
+    }
+    updateSmartCommPreview();
+  }
+
+  var SMARTCOMM_MODES = [
+    { key: 'template', label: 'Template content',
+      hint: 'Generates the document from the selected template on real claims and checks the PDF against requirements from the template\'s own Word doc.' },
+    { key: 'ui', label: 'ClaimCenter screens (UI)',
+      hint: 'Checks the Create New Document screens — fields, mandatory/hidden rules, dropdown values, document screens and business rules — against the requirements workbook. Read-only by default.' },
+    { key: 's3', label: 'Download from S3',
+      hint: 'Finds a SmartCOMM file in the Guidewire S3 Integration Files admin tool by its key (or part of one), downloads every match, and emails them. Reuses a saved Okta sign-in session — run "Establish S3 Session" first (and again whenever a run fails saying the session expired).' },
+    { key: 's3-session', label: 'Establish S3 Session',
+      hint: 'Opens a real, visible browser window on this machine and waits for you to sign in to Okta by hand (email, password, MFA — whatever it asks for). Once you land on the admin tool, the session is saved so every later "Download from S3" run can reuse it instead of hitting Okta\'s sign-in wall itself.' }
+  ];
+
+  function renderSmartCommMode() {
+    var box = document.getElementById('smartCommModeChips');
+    box.innerHTML = '';
+    SMARTCOMM_MODES.forEach(function (m) {
+      var c = chip(m.label, smartComm.mode === m.key);
+      c.addEventListener('click', function () {
+        smartComm.mode = m.key;
+        renderSmartCommMode();
+      });
+      box.appendChild(c);
+    });
+    var ui = smartComm.mode === 'ui';
+    var s3 = smartComm.mode === 's3';
+    var s3session = smartComm.mode === 's3-session';
+    document.getElementById('smartCommModeHint').textContent = SMARTCOMM_MODES.filter(function (m) { return m.key === smartComm.mode; })[0].hint;
+    document.getElementById('smartCommUiOptions').style.display = ui ? 'block' : 'none';
+    document.getElementById('smartCommTemplateBlock').style.display = (s3 || s3session) ? 'none' : 'block';
+    document.getElementById('smartCommClaimBlock').style.display = (s3 || s3session) ? 'none' : 'block';
+    document.getElementById('smartCommTierBlock').style.display = (s3 || s3session) ? 'none' : 'block';
+    document.getElementById('smartCommS3Block').style.display = s3 ? 'block' : 'none';
+    document.getElementById('smartCommInteractiveBlock').style.display = (s3 || s3session || ui) ? 'none' : 'block';
+    document.getElementById('smartCommMaxScenariosBlock').style.display = (s3 || s3session || ui) ? 'none' : 'block';
+    document.getElementById('smartCommConcurrencyBlock').style.display = (s3 || s3session || ui) ? 'none' : 'block';
+    document.getElementById('smartCommTemplateMultiBlock').style.display = (smartComm.mode === 'template') ? 'block' : 'none';
+    document.getElementById('smartCommTemplateLabel').textContent = ui ? 'Template used to reach the wizard (optional — defaults to DIG52)' : smartComm.mode === 'template' ? 'Template(s) — pick one or more' : 'Template';
+    document.getElementById('smartCommRunBtn').textContent = ui ? 'Validate ClaimCenter UI' : s3 ? 'Download & Email File' : s3session ? 'Open Browser & Sign In' : 'Validate Template(s)';
+    document.getElementById('smartCommRunHint').textContent = ui
+      ? 'Opens a claim, walks the Create New Document wizard (Select Template, Recipients, Additional Data, Create), then checks the claim Documents screen, Document Properties and activity patterns against the requirements workbook. Print is the only delivery channel ever generated; new activities are cancelled, not saved. The report — with an "open items" list of what still needs your input — is emailed, and linked here when the run ends.'
+      : s3 ? 'Logs into the S3 Integration Files admin tool, switches to Planet: Test, searches ClaimCenter > Inbound Pending > smartcomm > output > output for the key, downloads every match and emails them. Downloaded file(s) are also linked here when the run ends.'
+      : s3session ? 'A real browser window opens on this machine — complete the Okta sign-in yourself (up to 10 minutes). Once you land on the admin tool, the session is saved for every later "Download from S3" run to reuse.'
+      : 'Runs every scenario the selected template\'s own State/LOB applicability matches against real claims from the Test Data inventory (or just the claim # above, if set), validates each generated PDF against requirements derived from the template\'s own Word doc, and emails the aggregated report — with the generated PDF(s) and the template\'s own Word doc attached. Scenario-by-scenario results also stream to the console below. Select more than one template to queue them together — each runs to completion (one after another) before the next starts, with its own report email.';
+    var writes = document.getElementById('smartCommUiWrites');
+    var testTier = smartComm.tier === 'test';
+    writes.disabled = !testTier;
+    if (!testTier) writes.checked = false;
+    updateSmartCommPreview();
+  }
+
+  function renderSmartCommTiers() {
+    var box = document.getElementById('smartCommTierChips');
+    box.innerHTML = '';
+    config.smartComm.tiers.forEach(function (t) {
+      var c = chip(t.toUpperCase(), smartComm.tier === t);
+      c.addEventListener('click', function () {
+        smartComm.tier = t;
+        renderSmartCommTiers();
+        renderSmartCommMode();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  document.getElementById('claimsPolicyNumber').addEventListener('input', updateClaimsPreview);
+
+  function renderReconTiers() {
+    var box = document.getElementById('reconTierChips');
+    box.innerHTML = '';
+    config.reconciliation.tiers.forEach(function (t) {
+      var c = chip(t.toUpperCase(), recon.tier === t);
+      c.addEventListener('click', function () {
+        recon.tier = t;
+        renderReconTiers();
+        updateReconPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  var reconOnpremInput = document.getElementById('reconOnpremClaim');
+  var reconCloudInput = document.getElementById('reconCloudClaim');
+  var reconFileInput = document.getElementById('reconFileInput');
+  var reconFileNameEl = document.getElementById('reconFileName');
+
+  // Claim #s and a bulk upload are mutually exclusive modes — picking one clears the other, so there's never ambiguity about which will actually run.
+  [reconOnpremInput, reconCloudInput].forEach(function (el) {
+    el.addEventListener('input', function () {
+      if (recon.file) {
+        recon.file = null;
+        reconFileInput.value = '';
+        reconFileNameEl.textContent = '';
+      }
+      updateReconPreview();
+    });
+  });
+  reconFileInput.addEventListener('change', function (e) {
+    recon.file = e.target.files[0] || null;
+    if (recon.file) {
+      reconOnpremInput.value = '';
+      reconCloudInput.value = '';
+      reconFileNameEl.textContent = recon.file.name;
+    } else {
+      reconFileNameEl.textContent = '';
+    }
+    updateReconPreview();
+  });
+
+  // ── Previews / job building ───────────────────────────────────────────────
+  function policyJobs() {
+    if (policy.envs.size === 0 || policy.lobs.size === 0 || policy.states.size === 0) return [];
+    var jobs = [];
+    policy.lobs.forEach(function (lob) {
+      policy.states.forEach(function (state) {
+        policy.envs.forEach(function (env) {
+          jobs.push({ lob: lob, state: state, env: env });
+        });
+      });
+    });
+    return jobs;
+  }
+
+  function updatePolicyPreview() {
+    var jobs = policyJobs();
+    var box = document.getElementById('policyPreview');
+    var btn = document.getElementById('policyRunBtn');
+    if (jobs.length === 0) {
+      box.innerHTML = '<span class="empty">Select at least one LOB, state and environment.</span>';
+      btn.disabled = true;
+      return;
+    }
+    box.innerHTML = jobs.map(function (j) {
+      var f = config.policy.lobs[j.lob].file;
+      return '<div class="job-line">npx playwright test ' + f + ' --project=chromium &nbsp;' +
+             '(TEST_ENV=' + j.env + ' TEST_STATE=' + j.state + ')</div>';
+    }).join('');
+    btn.disabled = anyRunning;
+  }
+
+  function claimsJob() {
+    var policyNumber = document.getElementById('claimsPolicyNumber').value.trim();
+    if (!claims.lob || !claims.platform || !claims.tier || !policyNumber) return null;
+    return { lob: claims.lob, platform: claims.platform, tier: claims.tier, policyNumber: policyNumber };
+  }
+
+  function updateClaimsPreview() {
+    var job = claimsJob();
+    var box = document.getElementById('claimsPreview');
+    var btn = document.getElementById('claimsRunBtn');
+    if (!job) {
+      box.innerHTML = '<span class="empty">Select LOB, platform, tier and enter a policy number.</span>';
+      btn.disabled = true;
+      return;
+    }
+    var proj = config.claims.lobs[job.lob].project;
+    box.innerHTML = '<div class="job-line">npx playwright test --project "' + proj + '" --workers=1 &nbsp;' +
+      '(CC_ENV=' + job.platform + ' CC_TIER=' + job.tier + ', policy ' + job.policyNumber + ')</div>';
+    btn.disabled = anyRunning;
+  }
+
+  function smartCommJob() {
+    var ui = smartComm.mode === 'ui';
+    var s3 = smartComm.mode === 's3';
+    if (smartComm.mode === 's3-session') {
+      return { mode: 's3-session' };
+    }
+    if (s3) {
+      var key = document.getElementById('smartCommS3Key').value.trim();
+      if (!key) return null;
+      var job = { mode: 's3', key: key };
+      var reportEmailS3 = document.getElementById('smartCommReportEmail').value.trim();
+      if (reportEmailS3) job.reportEmail = reportEmailS3;
+      return job;
+    }
+    if (!smartComm.tier || (!ui && !smartComm.templateId)) return null;
+    var claimNumber = document.getElementById('smartCommClaimNumber').value.trim();
+    var reportEmail = document.getElementById('smartCommReportEmail').value.trim();
+    var job = { templateId: smartComm.templateId || (ui ? 'DIG52' : null), tier: smartComm.tier };
+    if (claimNumber) job.claimNumber = claimNumber;
+    if (reportEmail) job.reportEmail = reportEmail;
+    if (!ui && smartComm.templateId && smartCommTemplateIsInteractive(smartComm.templateId)) job.interactive = true;
+    if (!ui) {
+      job.concurrency = 2; // always run up to 2 scenarios at once — naturally reduces to 1 worker for a template with only 1 matching scenario
+    }
+    if (ui) {
+      job.mode = 'ui';
+      if (document.getElementById('smartCommUiWrites').checked) job.writes = true;
+      if (document.getElementById('smartCommUiNoBr2').checked) job.noBr2 = true;
+      var states = document.getElementById('smartCommUiBr2States').value.trim();
+      if (states) job.br2States = states;
+    }
+    return job;
+  }
+
+  // Template content mode supports queuing several templates at once (the chip
+  // list in smartComm.templateIds); every other mode is inherently one job, so
+  // smartCommJobsToRun() is the one place that normalizes both into an array.
+  function smartCommTemplateJobs() {
+    if (!smartComm.tier || smartComm.templateIds.size === 0) return [];
+    var reportEmail = document.getElementById('smartCommReportEmail').value.trim();
+    var concurrency = 2; // always run up to 2 scenarios at once — naturally reduces to 1 worker for a template with only 1 matching scenario
+    var maxScenarios = parseInt(document.getElementById('smartCommMaxScenarios').value, 10) || 0;
+    var ids = Array.from(smartComm.templateIds).sort();
+    var interactive = ids.some(smartCommTemplateIsInteractive);
+    if (ids.length > 1) {
+      // 2+ templates: ONE consolidated run (bulkValidateSmartComm.js, one shared browser, one Excel report
+      // with a Summary tab, a cross-template "Common Issues" tab, then one tab per scenario) instead of N
+      // separate single-template jobs each emailing its own report. A manual claim # override doesn't apply
+      // here — each template needs its OWN matching claim, not one shared across all of them.
+      var bulkJob = { mode: 'bulk', templateIds: ids, tier: smartComm.tier };
+      if (reportEmail) bulkJob.reportEmail = reportEmail;
+      if (interactive) bulkJob.interactive = true;
+      if (concurrency > 1) bulkJob.concurrency = concurrency;
+      if (maxScenarios > 0) bulkJob.maxScenarios = maxScenarios;
+      return [bulkJob];
+    }
+    var claimNumber = document.getElementById('smartCommClaimNumber').value.trim();
+    return ids.map(function (id) {
+      var job = { templateId: id, tier: smartComm.tier };
+      if (claimNumber) job.claimNumber = claimNumber;
+      if (reportEmail) job.reportEmail = reportEmail;
+      if (interactive) job.interactive = true;
+      if (concurrency > 1) job.concurrency = concurrency;
+      if (maxScenarios > 0) job.maxScenarios = maxScenarios;
+      return job;
+    });
+  }
+
+  function smartCommJobsToRun() {
+    if (smartComm.mode === 'template') return smartCommTemplateJobs();
+    var job = smartCommJob();
+    return job ? [job] : [];
+  }
+
+  function updateSmartCommPreview() {
+    var jobs = smartCommJobsToRun();
+    var box = document.getElementById('smartCommPreview');
+    var btn = document.getElementById('smartCommRunBtn');
+    if (jobs.length === 0) {
+      box.innerHTML = '<span class="empty">' + (smartComm.mode === 's3' ? 'Enter a key.' : smartComm.mode === 'ui' ? 'Select an environment.' : smartComm.mode === 'template' ? 'Select at least one template and an environment.' : 'Select an environment.') + '</span>';
+      btn.disabled = true;
+      return;
+    }
+    var job = jobs[0]; // s3 / ui / s3-session are always a single job; template content may be several
+    if (job.mode === 's3-session') {
+      box.innerHTML = '<div class="job-line">node scripts/establishS3Session.js</div>' +
+        '<div class="hint" style="color:var(--amber);margin-top:6px;">A browser window will open on this machine and wait for you to sign in.</div>';
+      btn.disabled = anyRunning;
+      return;
+    }
+    if (job.mode === 's3') {
+      box.innerHTML = '<div class="job-line">node scripts/downloadSmartCommFile.js --key ' + job.key +
+        (job.reportEmail ? ' --email ' + job.reportEmail : '') + '</div>';
+      btn.disabled = anyRunning;
+      return;
+    }
+    if (job.mode === 'ui') {
+      box.innerHTML = '<div class="job-line">node scripts/validateCcUi.js --template ' + job.templateId +
+        (job.claimNumber ? ' --claim ' + job.claimNumber : '') +
+        (job.writes ? ' --writes' : '') +
+        (job.br2States ? ' --br2-states ' + job.br2States.replace(/\s+/g, '') : '') +
+        (job.noBr2 ? ' --no-br2' : '') + ' --email &nbsp;' +
+        '(CC_ENV=cloud CC_TIER=' + job.tier + (job.reportEmail ? ', EMAIL_TO=' + job.reportEmail : '') + ')</div>';
+      btn.disabled = anyRunning;
+      return;
+    }
+    if (job.mode === 'bulk') {
+      box.innerHTML = '<div class="job-line">node scripts/bulkValidateSmartComm.js "' + job.templateIds.join(',') + '" &nbsp;' +
+        '(CC_ENV=cloud CC_TIER=' + job.tier +
+        (job.interactive ? ', SMARTCOMM_INTERACTIVE=1' : '') +
+        (job.maxScenarios ? ', SMARTCOMM_MAX_SCENARIOS_PER_TEMPLATE=' + job.maxScenarios : '') +
+        (job.concurrency ? ', SMARTCOMM_CONCURRENCY=' + job.concurrency : '') +
+        (job.reportEmail ? ', EMAIL_TO=' + job.reportEmail : '') + ')</div>' +
+        '<div class="hint" style="margin-top:6px;">' + job.templateIds.length + ' templates queued in ONE run, sharing a browser — a single consolidated Excel report (Summary, a cross-template "Common Issues" tab, then one tab per scenario) is emailed at the end instead of one report per template.</div>' +
+        (job.interactive ? '<div class="hint" style="color:var(--amber);margin-top:6px;">A browser window will open and wait for you to sign in when an Interactive template comes up.</div>' : '') +
+        (job.concurrency ? '<div class="hint" style="color:var(--amber);margin-top:6px;">' + job.concurrency + ' scenarios will run at once per template, each in its own browser window.' + (job.interactive ? ' More than one sign-in/MFA prompt may appear at the same time.' : '') + '</div>' : '');
+      btn.disabled = anyRunning;
+      return;
+    }
+    box.innerHTML = jobs.map(function (j) {
+      return '<div class="job-line">npx playwright test --project "SmartCOMM Validator" --workers=1 &nbsp;' +
+        '(CC_ENV=cloud CC_TIER=' + j.tier + ', SMARTCOMM_TEMPLATE_ID=' + j.templateId +
+        (j.claimNumber ? ', SMARTCOMM_CLAIM_NUMBER=' + j.claimNumber : '') +
+        (j.interactive ? ', SMARTCOMM_INTERACTIVE=1' : '') +
+        (j.maxScenarios ? ', SMARTCOMM_MAX_SCENARIOS_PER_TEMPLATE=' + j.maxScenarios : '') +
+        (j.concurrency ? ', SMARTCOMM_CONCURRENCY=' + j.concurrency : '') +
+        (j.reportEmail ? ', EMAIL_TO=' + j.reportEmail : '') + ')</div>';
+    }).join('') +
+      (jobs.length > 1 ? '<div class="hint" style="margin-top:6px;">' + jobs.length + ' templates queued — each runs to completion before the next one starts.</div>' : '') +
+      (job.interactive ? '<div class="hint" style="color:var(--amber);margin-top:6px;">A browser window will open and wait for you to sign in when an Interactive template comes up.</div>' : '') +
+      (job.concurrency ? '<div class="hint" style="color:var(--amber);margin-top:6px;">' + job.concurrency + ' scenarios will run at once, each in its own browser window.' + (job.interactive ? ' More than one sign-in/MFA prompt may appear at the same time.' : '') + '</div>' : '');
+    btn.disabled = anyRunning;
+  }
+
+  function reconJob() {
+    if (!recon.tier) return null;
+    if (recon.file) {
+      return { mode: 'bulk', tier: recon.tier, fileName: recon.file.name };
+    }
+    var onprem = reconOnpremInput.value.trim();
+    if (!onprem) return null;
+    var cloud = reconCloudInput.value.trim() || onprem;
+    return { mode: 'single', tier: recon.tier, onpremClaim: onprem, cloudClaim: cloud };
+  }
+
+  function updateReconPreview() {
+    var job = reconJob();
+    var box = document.getElementById('reconPreview');
+    var btn = document.getElementById('reconRunBtn');
+    if (!job) {
+      box.innerHTML = '<span class="empty">Select a tier, then either enter an on-prem claim # or choose a file to upload.</span>';
+      btn.disabled = true;
+      return;
+    }
+    var line;
+    if (job.mode === 'bulk') {
+      line = 'npm run reconcile -- --claims &lt;uploaded ' + job.fileName + '&gt; --tier ' + job.tier;
+    } else if (job.onpremClaim === job.cloudClaim) {
+      line = 'npm run reconcile -- --claim ' + job.onpremClaim + ' --tier ' + job.tier;
+    } else {
+      line = 'npm run reconcile -- --onprem-claim ' + job.onpremClaim + ' --cloud-claim ' + job.cloudClaim + ' --tier ' + job.tier;
+    }
+    box.innerHTML = '<div class="job-line">' + line + '</div>';
+    btn.disabled = anyRunning;
+  }
+
+  // ── PDF Compare ────────────────────────────────────────────────────────
+  var pdfInputDirInput = document.getElementById('pdfInputDir');
+  var pdfOutputNameInput = document.getElementById('pdfOutputName');
+  var pdfFlatInput = document.getElementById('pdfFlat');
+  var pdfRecursiveInput = document.getElementById('pdfRecursive');
+  var pdfLimitInput = document.getElementById('pdfLimit');
+
+  function pdfJob() {
+    var inputDir = pdfInputDirInput.value.trim();
+    if (!inputDir) return null;
+    return {
+      inputDir: inputDir,
+      outputName: pdfOutputNameInput.value.trim() || 'results.xlsx',
+      flat: pdfFlatInput.checked,
+      recursive: pdfRecursiveInput.checked,
+      limit: pdfLimitInput.value.trim() || '0',
+    };
+  }
+
+  function updatePdfPreview() {
+    var job = pdfJob();
+    var box = document.getElementById('pdfPreview');
+    var btn = document.getElementById('pdfRunBtn');
+    if (!job) {
+      box.innerHTML = '<span class="empty">Enter an input folder.</span>';
+      btn.disabled = true;
+      return;
+    }
+    var line = 'python compare_insurance_pdfs.py --input-dir "' + job.inputDir + '" --output ' + job.outputName +
+      (job.flat ? ' --flat' : '') + (job.recursive ? ' --recursive' : '') +
+      (job.limit && job.limit !== '0' ? ' --limit ' + job.limit : '');
+    box.innerHTML = '<div class="job-line">' + line + '</div>';
+    btn.disabled = anyRunning || !pdfScriptFound;
+  }
+
+  [pdfInputDirInput, pdfOutputNameInput, pdfLimitInput].forEach(function (el) {
+    el.addEventListener('input', updatePdfPreview);
+  });
+  pdfFlatInput.addEventListener('change', updatePdfPreview);
+  pdfRecursiveInput.addEventListener('change', updatePdfPreview);
+
+  document.getElementById('pdfRunBtn').addEventListener('click', function () {
+    var job = pdfJob();
+    if (!job) return;
+    document.getElementById('pdfError').textContent = '';
+    document.getElementById('pdfReportLinks').innerHTML = '';
+    fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suite: 'pdfCompare', jobs: [job] }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) document.getElementById('pdfError').textContent = res.body.error || 'Failed to queue run';
+      });
+  });
+
+  // ── Run / Stop ─────────────────────────────────────────────────────────
+  document.getElementById('policyRunBtn').addEventListener('click', function () {
+    var jobs = policyJobs();
+    if (jobs.length === 0) return;
+    document.getElementById('policyError').textContent = '';
+    fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suite: 'policy', jobs: jobs }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) document.getElementById('policyError').textContent = res.body.error || 'Failed to queue run';
+      });
+  });
+
+  document.getElementById('claimsRunBtn').addEventListener('click', function () {
+    var job = claimsJob();
+    if (!job) return;
+    document.getElementById('claimsError').textContent = '';
+    fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suite: 'claims', jobs: [job] }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) document.getElementById('claimsError').textContent = res.body.error || 'Failed to queue run';
+      });
+  });
+
+  document.getElementById('smartCommRunBtn').addEventListener('click', function () {
+    var jobs = smartCommJobsToRun();
+    if (jobs.length === 0) return;
+    document.getElementById('smartCommError').textContent = '';
+    fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suite: 'smartComm', jobs: jobs }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) document.getElementById('smartCommError').textContent = res.body.error || 'Failed to queue run';
+      });
+  });
+
+  function renderJiraTracks() {
+    var box = document.getElementById('jiraReportTrackChips');
+    if (!config.jiraReport || !config.jiraReport.tracks) return;
+    box.innerHTML = '';
+    Object.keys(config.jiraReport.tracks).forEach(function (key) {
+      var c = chip(config.jiraReport.tracks[key].label, jiraReport.tracks.has(key));
+      c.addEventListener('click', function () {
+        if (jiraReport.tracks.has(key)) jiraReport.tracks.delete(key); else jiraReport.tracks.add(key);
+        renderJiraTracks();
+        updateJiraReportPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  function updateJiraReportPreview() {
+    var box = document.getElementById('jiraReportPreview');
+    var btn = document.getElementById('jiraReportRunBtn');
+    var tracks = Array.from(jiraReport.tracks);
+    if (tracks.length === 0) {
+      box.innerHTML = '<span class="empty">Select at least one track.</span>';
+      btn.disabled = true;
+      return;
+    }
+    var allCount = config.jiraReport && config.jiraReport.tracks ? Object.keys(config.jiraReport.tracks).length : 0;
+    var reportEmail = document.getElementById('jiraReportEmail').value.trim();
+    var line = 'node scripts/jiraReport.js ' + (tracks.length === allCount ? '(all tracks)' : tracks.join(',')) +
+      ' &nbsp;(email to ' + (reportEmail ? reportEmail.replace(/&/g, '&amp;').replace(/</g, '&lt;') : 'default recipient') + ')';
+    box.innerHTML = '<div class="job-line">' + line + '</div>';
+    btn.disabled = anyRunning || !jiraReportConfigured;
+  }
+
+  function renderJiraCustomTrackList() {
+    var box = document.getElementById('jiraCustomTrackList');
+    var customKeys = Object.keys(config.jiraReport.tracks).filter(function (k) { return config.jiraReport.tracks[k].custom; });
+    if (customKeys.length === 0) {
+      box.innerHTML = '<span class="empty">None added yet.</span>';
+      return;
+    }
+    box.innerHTML = '';
+    customKeys.forEach(function (key) {
+      var t = config.jiraReport.tracks[key];
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--border, #333); font-size:13px;';
+      var label = document.createElement('div');
+      label.style.flex = '1';
+      label.innerHTML = '<b>' + t.label + '</b> <span style="opacity:.7">' + t.jql.replace(/</g, '&lt;') + '</span>';
+      var removeBtn = document.createElement('button');
+      removeBtn.textContent = 'Remove';
+      removeBtn.className = 'stop';
+      removeBtn.addEventListener('click', function () {
+        fetch('/api/jiraReport/tracks/' + encodeURIComponent(key), { method: 'DELETE' })
+          .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+          .then(function (res) {
+            if (!res.ok) { document.getElementById('jiraAddTrackError').textContent = res.body.error || 'Failed to remove'; return; }
+            delete config.jiraReport.tracks[key];
+            jiraReport.tracks.delete(key);
+            renderJiraTracks();
+            renderJiraCustomTrackList();
+            updateJiraReportPreview();
+          });
+      });
+      row.appendChild(label);
+      row.appendChild(removeBtn);
+      box.appendChild(row);
+    });
+  }
+
+  document.getElementById('jiraAddTrackBtn').addEventListener('click', function () {
+    var label = document.getElementById('jiraNewTrackLabel').value.trim();
+    var jql = document.getElementById('jiraNewTrackJql').value.trim();
+    var filterDoneRetired = document.getElementById('jiraNewTrackFilterDoneRetired').checked;
+    document.getElementById('jiraAddTrackError').textContent = '';
+    if (!label || !jql) {
+      document.getElementById('jiraAddTrackError').textContent = 'Track name and JQL are both required.';
+      return;
+    }
+    fetch('/api/jiraReport/tracks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: label, jql: jql, filterDoneRetired: filterDoneRetired }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) { document.getElementById('jiraAddTrackError').textContent = res.body.error || 'Failed to add query'; return; }
+        config.jiraReport.tracks[res.body.track.key] = { label: label, custom: true, jql: jql, filterDoneRetired: filterDoneRetired };
+        jiraReport.tracks.add(res.body.track.key); // select the new track by default
+        document.getElementById('jiraNewTrackLabel').value = '';
+        document.getElementById('jiraNewTrackJql').value = '';
+        renderJiraTracks();
+        renderJiraCustomTrackList();
+        updateJiraReportPreview();
+      });
+  });
+
+  // Remembered per-browser (same approach as the SmartCOMM report email above)
+  // so the address only has to be typed once.
+  var jiraReportEmailInput = document.getElementById('jiraReportEmail');
+  try {
+    var savedJiraEmail = localStorage.getItem('jiraReportEmail');
+    if (savedJiraEmail) jiraReportEmailInput.value = savedJiraEmail;
+  } catch (_) { /* localStorage unavailable — field just starts blank */ }
+  jiraReportEmailInput.addEventListener('input', function () {
+    try { localStorage.setItem('jiraReportEmail', this.value.trim()); } catch (_) { /* ignore */ }
+    updateJiraReportPreview();
+  });
+
+  document.getElementById('jiraReportRunBtn').addEventListener('click', function () {
+    var tracks = Array.from(jiraReport.tracks);
+    if (tracks.length === 0) return;
+    document.getElementById('jiraReportError').textContent = '';
+    document.getElementById('jiraReportReportLinks').innerHTML = '';
+    var job = { tracks: tracks };
+    var reportEmail = document.getElementById('jiraReportEmail').value.trim();
+    if (reportEmail) job.reportEmail = reportEmail;
+    fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suite: 'jiraReport', jobs: [job] }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) document.getElementById('jiraReportError').textContent = res.body.error || 'Failed to queue run';
+      });
+  });
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result).split(',')[1] || ''); };
+      reader.onerror = function () { reject(new Error('Could not read file')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function queueReconJob(finalJob) {
+    return fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suite: 'reconciliation', jobs: [finalJob] }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) document.getElementById('reconError').textContent = res.body.error || 'Failed to queue run';
+      });
+  }
+
+  document.getElementById('reconRunBtn').addEventListener('click', function () {
+    var job = reconJob();
+    if (!job) return;
+    document.getElementById('reconError').textContent = '';
+    document.getElementById('reconReportLinks').innerHTML = '';
+
+    if (job.mode === 'bulk') {
+      fileToBase64(recon.file).then(function (b64) {
+        return fetch('/api/recon/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: recon.file.name, contentBase64: b64 }),
+        }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); });
+      }).then(function (res) {
+        if (!res.ok) {
+          document.getElementById('reconError').textContent = res.body.error || 'Upload failed';
+          return;
+        }
+        return queueReconJob({ mode: 'bulk', filePath: res.body.path, tier: job.tier });
+      }).catch(function (e) {
+        document.getElementById('reconError').textContent = 'Upload failed: ' + e.message;
+      });
+    } else {
+      queueReconJob(job);
+    }
+  });
+
+  // ── Data Update & Dropdown Validation (mirrors Reconciliation's UI shape) ──
+  function renderUvTiers() {
+    var box = document.getElementById('uvTierChips');
+    box.innerHTML = '';
+    config.updateValidation.tiers.forEach(function (t) {
+      var c = chip(t.toUpperCase(), uv.tier === t);
+      c.addEventListener('click', function () {
+        uv.tier = t;
+        renderUvTiers();
+        updateUvPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  var uvOnpremInput = document.getElementById('uvOnpremClaim');
+  var uvCloudInput = document.getElementById('uvCloudClaim');
+  var uvFileInput = document.getElementById('uvFileInput');
+  var uvFileNameEl = document.getElementById('uvFileName');
+
+  [uvOnpremInput, uvCloudInput].forEach(function (el) {
+    el.addEventListener('input', function () {
+      if (uv.file) {
+        uv.file = null;
+        uvFileInput.value = '';
+        uvFileNameEl.textContent = '';
+      }
+      updateUvPreview();
+    });
+  });
+  uvFileInput.addEventListener('change', function (e) {
+    uv.file = e.target.files[0] || null;
+    if (uv.file) {
+      uvOnpremInput.value = '';
+      uvCloudInput.value = '';
+      uvFileNameEl.textContent = uv.file.name;
+    } else {
+      uvFileNameEl.textContent = '';
+    }
+    updateUvPreview();
+  });
+
+  function uvJob() {
+    if (!uv.tier) return null;
+    if (uv.file) {
+      return { mode: 'bulk', tier: uv.tier, fileName: uv.file.name };
+    }
+    var onprem = uvOnpremInput.value.trim();
+    if (!onprem) return null;
+    var cloud = uvCloudInput.value.trim() || onprem;
+    return { mode: 'single', tier: uv.tier, onpremClaim: onprem, cloudClaim: cloud };
+  }
+
+  function updateUvPreview() {
+    var job = uvJob();
+    var box = document.getElementById('uvPreview');
+    var btn = document.getElementById('uvRunBtn');
+    if (!job) {
+      box.innerHTML = '<span class="empty">Select a tier, then either enter an on-prem claim # or choose a file to upload.</span>';
+      btn.disabled = true;
+      return;
+    }
+    var line;
+    if (job.mode === 'bulk') {
+      line = 'npm run validate-updates -- --claims &lt;uploaded ' + job.fileName + '&gt; --tier ' + job.tier;
+    } else if (job.onpremClaim === job.cloudClaim) {
+      line = 'npm run validate-updates -- --claim ' + job.onpremClaim + ' --tier ' + job.tier;
+    } else {
+      line = 'npm run validate-updates -- --onprem-claim ' + job.onpremClaim + ' --cloud-claim ' + job.cloudClaim + ' --tier ' + job.tier;
+    }
+    box.innerHTML = '<div class="job-line">' + line + '</div>';
+    btn.disabled = anyRunning;
+  }
+
+  function queueUvJob(finalJob) {
+    return fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suite: 'updateValidation', jobs: [finalJob] }),
+    }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) document.getElementById('uvError').textContent = res.body.error || 'Failed to queue run';
+      });
+  }
+
+  document.getElementById('uvRunBtn').addEventListener('click', function () {
+    var job = uvJob();
+    if (!job) return;
+    document.getElementById('uvError').textContent = '';
+    document.getElementById('uvReportLinks').innerHTML = '';
+
+    if (job.mode === 'bulk') {
+      fileToBase64(uv.file).then(function (b64) {
+        return fetch('/api/recon/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: uv.file.name, contentBase64: b64 }),
+        }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); });
+      }).then(function (res) {
+        if (!res.ok) {
+          document.getElementById('uvError').textContent = res.body.error || 'Upload failed';
+          return;
+        }
+        return queueUvJob({ mode: 'bulk', filePath: res.body.path, tier: job.tier });
+      }).catch(function (e) {
+        document.getElementById('uvError').textContent = 'Upload failed: ' + e.message;
+      });
+    } else {
+      queueUvJob(job);
+    }
+  });
+
+  function stopAll() {
+    fetch('/api/stop', { method: 'POST' });
+  }
+  document.getElementById('policyStopBtn').addEventListener('click', stopAll);
+  document.getElementById('claimsStopBtn').addEventListener('click', stopAll);
+  document.getElementById('reconStopBtn').addEventListener('click', stopAll);
+  document.getElementById('uvStopBtn').addEventListener('click', stopAll);
+  document.getElementById('pdfStopBtn').addEventListener('click', stopAll);
+  document.getElementById('smartCommStopBtn').addEventListener('click', stopAll);
+
+  // ── Output panel ───────────────────────────────────────────────────────
+  var output = document.getElementById('output');
+  document.getElementById('clearOutputBtn').addEventListener('click', function () {
+    output.innerHTML = '';
+  });
+
+  function appendLine(text, cls) {
+    var stick = output.scrollTop + output.clientHeight >= output.scrollHeight - 40;
+    var div = document.createElement('div');
+    div.className = 'l' + (cls ? ' ' + cls : '');
+    div.textContent = text;
+    output.appendChild(div);
+    if (stick) output.scrollTop = output.scrollHeight;
+  }
+
+  function classifyLine(text, stream) {
+    if (/^\s*ok\s+\d+\s+.*›/.test(text)) return 'pass';
+    if (/^\s*x\s+\d+\s+.*›/.test(text)) return 'fail';
+    if (/error/i.test(text)) return 'err';
+    if (stream === 'stderr') return 'stderr';
+    return '';
+  }
+
+  // ── Shared queue/run status ────────────────────────────────────────────
+  var statPassed = document.getElementById('statPassed');
+  var statFailed = document.getElementById('statFailed');
+  var statRunning = document.getElementById('statRunning');
+  var queueList = document.getElementById('queueList');
+  var progressWrap = document.getElementById('progressWrap');
+  var progressFill = document.getElementById('progressFill');
+  var progressLabel = document.getElementById('progressLabel');
+
+  // Client-side mirror of the server's `running` array (see server.js) - up
+  // to MAX_PARALLEL jobs can be in flight together now, keyed by the id each
+  // job-start/progress/job-end event carries, plus the last-known queue
+  // label list (progress ticks don't resend it, so it's tracked separately
+  // and reused between events that don't touch it).
+  var runningJobs = {}; // id -> { label: string, progress: { done, total } }
+  var queueLabels = [];
+
+  function runningList() {
+    return Object.keys(runningJobs).map(function (id) { return runningJobs[id]; });
+  }
+
+  // total === null means "no count known yet" (either that job's source
+  // hasn't printed its upfront total line yet, or this suite has no such
+  // line at all, e.g. reconciliation) - show a sliding indeterminate bar
+  // rather than a misleading 0%. With multiple jobs running at once, the bar
+  // shows their COMBINED done/total when every running job has reported a
+  // total, and falls back to an indeterminate "N done" otherwise.
+  function applyProgress(list) {
+    if (!list || list.length === 0) {
+      progressWrap.classList.remove('show', 'indeterminate');
+      return;
+    }
+    progressWrap.classList.add('show');
+    var allKnown = list.every(function (r) { return r.progress && typeof r.progress.total === 'number' && r.progress.total > 0; });
+    var doneSum = list.reduce(function (s, r) { return s + ((r.progress && r.progress.done) || 0); }, 0);
+    if (allKnown) {
+      var totalSum = list.reduce(function (s, r) { return s + r.progress.total; }, 0);
+      progressWrap.classList.remove('indeterminate');
+      var pct = Math.max(0, Math.min(100, (doneSum / totalSum) * 100));
+      progressFill.style.width = pct + '%';
+      progressLabel.textContent = doneSum + ' / ' + totalSum;
+    } else {
+      progressWrap.classList.add('indeterminate');
+      progressLabel.textContent = doneSum > 0 ? doneSum + ' done' : 'Running…';
+    }
+  }
+
+  function setRunning(isRunning, count) {
+    anyRunning = isRunning;
+    statRunning.textContent = isRunning ? (count + ' running') : 'Idle';
+    document.getElementById('policyRunBtn').disabled = isRunning || policyJobs().length === 0;
+    document.getElementById('claimsRunBtn').disabled = isRunning || !claimsJob();
+    document.getElementById('reconRunBtn').disabled = isRunning || !reconJob();
+    document.getElementById('uvRunBtn').disabled = isRunning || !uvJob();
+    document.getElementById('pdfRunBtn').disabled = isRunning || !pdfJob() || !pdfScriptFound;
+    document.getElementById('smartCommRunBtn').disabled = isRunning || smartCommJobsToRun().length === 0;
+    document.getElementById('jiraReportRunBtn').disabled = isRunning || !jiraReportConfigured || jiraReport.tracks.size === 0;
+    document.getElementById('policyStopBtn').disabled = !isRunning;
+    document.getElementById('claimsStopBtn').disabled = !isRunning;
+    document.getElementById('reconStopBtn').disabled = !isRunning;
+    document.getElementById('uvStopBtn').disabled = !isRunning;
+    document.getElementById('pdfStopBtn').disabled = !isRunning;
+    document.getElementById('smartCommStopBtn').disabled = !isRunning;
+    document.getElementById('jiraReportStopBtn').disabled = !isRunning;
+    if (!isRunning) progressWrap.classList.remove('show', 'indeterminate');
+  }
+
+  function renderQueue(labels, list) {
+    var parts = [];
+    if (list && list.length) {
+      parts.push('Running: <span>' + list.map(function (r) {
+        var p = r.progress;
+        var suffix = (p && typeof p.total === 'number' && p.total > 0) ? ' (' + p.done + '/' + p.total + ')'
+          : (p && p.done > 0) ? ' (' + p.done + ' done)' : '';
+        return r.label + suffix;
+      }).join(', ') + '</span>');
+    }
+    if (labels && labels.length) parts.push('Queued: <span>' + labels.join(', ') + '</span>');
+    queueList.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+  }
+
+  function applyStats(stats) {
+    if (!stats) return;
+    statPassed.textContent = stats.passed;
+    statFailed.textContent = stats.failed;
+  }
+
+  // ── SSE ────────────────────────────────────────────────────────────────
+  var connDot = document.querySelector('#conn');
+  var connLabel = document.getElementById('connLabel');
+  var es = new EventSource('/api/stream');
+
+  es.onopen = function () { connDot.classList.add('up'); connLabel.textContent = 'connected'; };
+  es.onerror = function () { connDot.classList.remove('up'); connLabel.textContent = 'reconnecting…'; };
+
+  es.addEventListener('hello', function (ev) {
+    var d = JSON.parse(ev.data);
+    applyStats(d.stats);
+    queueLabels = d.queue || [];
+    runningJobs = {};
+    (d.running || []).forEach(function (r) { runningJobs[r.id] = { label: r.label, progress: r.progress }; });
+    var list = runningList();
+    renderQueue(queueLabels, list);
+    setRunning(list.length > 0, list.length);
+    applyProgress(list);
+  });
+
+  es.addEventListener('queued', function (ev) {
+    var d = JSON.parse(ev.data);
+    queueLabels = d.queue || [];
+    renderQueue(queueLabels, runningList());
+    appendLine('+ queued: ' + d.added.join(', '), '');
+  });
+
+  es.addEventListener('job-start', function (ev) {
+    var d = JSON.parse(ev.data);
+    runningJobs[d.id] = { label: d.label, progress: { done: 0, total: null } };
+    queueLabels = d.queue || [];
+    var list = runningList();
+    setRunning(true, list.length);
+    renderQueue(queueLabels, list);
+    appendLine('▶ Running: ' + d.label, 'head');
+    applyProgress(list);
+  });
+
+  es.addEventListener('progress', function (ev) {
+    var d = JSON.parse(ev.data);
+    if (runningJobs[d.id]) runningJobs[d.id].progress = { done: d.done, total: d.total };
+    var list = runningList();
+    applyProgress(list);
+    renderQueue(queueLabels, list);
+  });
+
+  es.addEventListener('line', function (ev) {
+    var d = JSON.parse(ev.data);
+    appendLine(d.text, classifyLine(d.text, d.stream));
+  });
+
+  es.addEventListener('test-result', function (ev) {
+    var d = JSON.parse(ev.data);
+    applyStats(d.stats);
+  });
+
+  es.addEventListener('job-end', function (ev) {
+    var d = JSON.parse(ev.data);
+    applyStats(d.stats);
+    appendLine('■ Finished: ' + d.label + ' — exit code ' + d.code, d.code === 0 ? 'end-ok' : 'end-fail');
+    delete runningJobs[d.id];
+    queueLabels = d.queue || queueLabels;
+    var list = runningList();
+    setRunning(list.length > 0, list.length);
+    renderQueue(queueLabels, list);
+    applyProgress(list);
+    // reportUrls is only set on reconciliation/updateValidation jobs; the
+    // report is written regardless of exit code (a non-zero code means
+    // findings/technical failures, not that the report failed to generate),
+    // so show it either way. Reconciliation's reportUrls includes .xlsx,
+    // updateValidation's doesn't — used here to route to the right tab's
+    // link area without the server needing to tag jobs with a suite field.
+    if (d.reportUrls) {
+      if (d.reportUrls.kind === 's3Download') {
+        var linksBox = document.getElementById('smartCommReportLinks');
+        linksBox.innerHTML = 'Fetching result…';
+        fetch(d.reportUrls.manifest).then(function (r) { return r.json(); }).then(function (m) {
+          if (m.error) { linksBox.innerHTML = '<span style="color:var(--red)">' + m.error.replace(/</g, '&lt;') + '</span>'; return; }
+          var items = (m.matches || []).map(function (f) {
+            return '<a href="' + d.reportUrls.dir + encodeURIComponent(f.fileName) + '" target="_blank">' + f.fileName + '</a>';
+          }).join(' · ');
+          linksBox.innerHTML = (items || '(no files)') +
+            (m.emailed ? ' — emailed to ' + m.to : m.emailReason ? ' — not emailed (' + m.emailReason + ')' : '');
+        }).catch(function () { linksBox.innerHTML = '<span style="color:var(--red)">Could not load the result.</span>'; });
+      } else if (d.reportUrls.kind === 'ccUi') {
+        document.getElementById('smartCommReportLinks').innerHTML =
+          'Report: <a href="' + d.reportUrls.html + '" target="_blank">HTML</a>' +
+          ' · <a href="' + d.reportUrls.json + '" target="_blank">JSON</a>';
+      } else if (d.reportUrls.kind === 'jiraReport') {
+        document.getElementById('jiraReportReportLinks').innerHTML =
+          'Report: <a href="' + d.reportUrls.xlsx + '">Excel</a> (cache-bust with a fresh click if your browser shows the old file)';
+      } else if (d.reportUrls.html && d.reportUrls.xlsx) {
+        document.getElementById('reconReportLinks').innerHTML =
+          'Report: <a href="' + d.reportUrls.html + '" target="_blank">HTML</a>' +
+          ' · <a href="' + d.reportUrls.xlsx + '">Excel</a>' +
+          ' · <a href="' + d.reportUrls.json + '" target="_blank">JSON</a>';
+      } else if (d.reportUrls.html) {
+        document.getElementById('uvReportLinks').innerHTML =
+          'Report: <a href="' + d.reportUrls.html + '" target="_blank">HTML</a>' +
+          ' · <a href="' + d.reportUrls.json + '" target="_blank">JSON</a>';
+      } else if (d.reportUrls.xlsx) {
+        document.getElementById('pdfReportLinks').innerHTML =
+          'Report: <a href="' + d.reportUrls.xlsx + '">Excel</a>';
+      }
+    }
+  });
+
+  es.addEventListener('queue-empty', function (ev) {
+    var d = JSON.parse(ev.data);
+    applyStats(d.stats);
+    runningJobs = {};
+    queueLabels = [];
+    setRunning(false, 0);
+    renderQueue([], []);
+  });
+
+  es.addEventListener('stopped', function (ev) {
+    var d = JSON.parse(ev.data);
+    appendLine('✋ Stopped: ' + d.label, 'stop');
+  });
+
+})();
+</script>
+</body>
+</html>
