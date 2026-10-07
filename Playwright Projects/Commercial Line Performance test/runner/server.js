@@ -56,13 +56,13 @@ const ENTITLEMENTS_URL = process.env.RUNNER_ENTITLEMENTS_URL
 const ENTITLEMENTS_CACHE_FILE = process.env.RUNNER_ENTITLEMENTS_CACHE
   || path.join(__dirname, '..', 'runtime-data', 'entitlements-cache.json');
 const ENTITLEMENTS_POLL_MS = 15 * 60 * 1000;
-let entitlementsCache = { default: ['smartcomm'], grants: {} };
+let entitlementsCache = { default: ['smartComm'], grants: {} };
 
 function loadCachedEntitlements() {
   try {
     const parsed = JSON.parse(fs.readFileSync(ENTITLEMENTS_CACHE_FILE, 'utf8'));
     if (parsed && typeof parsed === 'object') entitlementsCache = parsed;
-  } catch (e) { /* no cache yet, or unreadable - keep the smartcomm-only default */ }
+  } catch (e) { /* no cache yet, or unreadable - keep the smartComm-only default */ }
 }
 
 async function refreshEntitlements() {
@@ -87,12 +87,15 @@ async function refreshEntitlements() {
 function allowedSuitesFor(email) {
   if (!PACKAGED) return SUITES.slice();
   const key = String(email || '').trim().toLowerCase();
-  const granted = (key && entitlementsCache.grants && entitlementsCache.grants[key]) || entitlementsCache.default || ['smartcomm'];
-  // smartcomm is always on, regardless of what the entitlements file says -
+  const granted = (key && entitlementsCache.grants && entitlementsCache.grants[key]) || entitlementsCache.default || ['smartComm'];
+  // smartComm is always on, regardless of what the entitlements file says -
   // it's the one tool every packaged install should be able to use out of
   // the box per the original ask, so a malformed/missing entitlements file
   // can never accidentally lock out the one thing that must always work.
-  return Array.from(new Set([...granted, 'smartcomm']));
+  // Matches the SUITES/pools casing (camelCase, see SUITES below) - confirmed live that an entitlements
+  // default of lowercase 'smartcomm' never actually matched the real suite key 'smartComm' anywhere it was
+  // compared against, silently defeating the entire "on by default" guarantee this function exists to give.
+  return Array.from(new Set([...granted, 'smartComm']));
 }
 
 // This runner can be used by anyone, but its maintainer should always get a copy of every emailed report,
@@ -345,7 +348,7 @@ app.post('/api/settings', (req, res) => {
 
 // ── Tab-level entitlements (packaged build only) ─────────────────────────────
 // Read-only - approvals happen by editing entitlements.json on GitHub, not
-// through this app. `allowed` always includes smartcomm; `comingSoon` is the
+// through this app. `allowed` always includes smartComm; `comingSoon` is the
 // separate, always-locked-for-now list from PACKAGED_UNAVAILABLE_SUITES.
 app.get('/api/entitlements', (req, res) => {
   const email = String(req.query.email || '').trim().toLowerCase();
