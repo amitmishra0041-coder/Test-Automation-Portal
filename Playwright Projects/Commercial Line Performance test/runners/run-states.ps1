@@ -89,8 +89,8 @@ $pendingStates = [System.Collections.ArrayList]@($stateList)
 # Pre-create .bat files for each state
 foreach ($state in $stateList) {
   $batPath = Join-Path $tmpDir "run-$suiteLabel-$state.bat"
-  $logPath = Join-Path $logsDir "$suiteLabel-$state.log"
-  $outDir  = Join-Path $projectPath "test-results\$suiteLabel-$state"
+  $logPath = Join-Path $logsDir "$suiteLabel-$state-$Env.log"
+  $outDir  = Join-Path $projectPath "test-results\$suiteLabel-$state-$Env"
 
   $batLines = @(
     "@echo off",
@@ -151,7 +151,7 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
       $color = if ($passed) { 'Green' } else { 'Red' }
       Write-Host "  [$icon] $($entry.State) finished (exit=$($entry.Process.ExitCode))" -ForegroundColor $color
 
-      $logPath = Join-Path $logsDir "$suiteLabel-$($entry.State).log"
+      $logPath = Join-Path $logsDir "$suiteLabel-$($entry.State)-$Env.log"
       if (-not $passed -and (Test-Path $logPath)) {
         Write-Host "  --- $($entry.State) failure log (last 25 lines) ---" -ForegroundColor Yellow
         Get-Content $logPath | Select-Object -Last 25 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
@@ -178,7 +178,7 @@ while ($pendingStates.Count -gt 0 -or $activeProcs.Count -gt 0) {
     $state   = $pendingStates[0]
     $pendingStates.RemoveAt(0)
     $batPath = Join-Path $tmpDir "run-$suiteLabel-$state.bat"
-    $logPath = Join-Path $logsDir "$suiteLabel-$state.log"
+    $logPath = Join-Path $logsDir "$suiteLabel-$state-$Env.log"
 
     if (Test-Path $logPath) { Remove-Item $logPath -Force }
 
@@ -217,7 +217,7 @@ require('dotenv').config();
 const r = require('./emailReporter.js');
 const fn = r.sendBatchEmailReport || (r.EmailReporter && r.EmailReporter.sendBatchEmailReport);
 if (!fn) { console.error('sendBatchEmailReport not found'); process.exit(1); }
-fn(['iterations-data-$suiteLabel.json'], 'WB $TestType Smoke Test Report')
+fn(['iterations-data-$suiteLabel.json'], 'WB $TestType Smoke Test Report [$($Env.ToUpper())]')
   .then(() => { console.log('Consolidated email sent'); process.exit(0); })
   .catch(err => { console.error('Email failed:', err.message); process.exit(1); });
 "@

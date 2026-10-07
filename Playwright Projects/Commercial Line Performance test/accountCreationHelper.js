@@ -29,7 +29,32 @@ function randPhone717() {
   return '717' + Math.floor(1000000 + Math.random() * 9000000);
 }
 
-function getAgencyConfig(testState) {
+// Per user direction: on Training, agency 0000988 / producer Linda D.
+// Strause is the only confirmed-working pairing (Christina M. Bower fails
+// submission creation there - see getAgencyConfig below), and Linda is
+// only licensed to write in these states. A state outside this list should
+// not attempt to run on Training at all - the test files check this via
+// isTrainingUrl()/TRAINING_LICENSED_STATES and skip rather than fail.
+const TRAINING_LICENSED_STATES = ['DE', 'IA', 'MD', 'MI', 'NC', 'PA', 'VA'];
+
+function isTrainingUrl(writeBizUrl) {
+  return /training/i.test(writeBizUrl || '');
+}
+
+function getAgencyConfig(testState, writeBizUrl) {
+  if (isTrainingUrl(writeBizUrl)) {
+    // Confirmed live: agency 0000988 with producer Christina M. Bower fails
+    // submission creation on Training ("Attention: Error(s) occurred. Failed
+    // to create CA7CommAuto submission." / "...CommercialPackage
+    // submission.") - a producer/agency sync mismatch between WriteBiz and
+    // PolicyCenter specific to this environment. Linda D. Strause works, and
+    // is used for every state here rather than the qa/test/perf-only
+    // Jeffery Reynolds (CO/IL/IN) / Christina Bower (AZ) pairings below,
+    // which are unconfirmed on Training - callers must check
+    // TRAINING_LICENSED_STATES before reaching this point for states
+    // outside Linda's license.
+    return { agencyCode: '0000988', producerName: 'LINDA D. STRAUSE' };
+  }
   if (['CO', 'IL', 'IN'].includes(testState)) return { agencyCode: '4501307', producerName: 'JEFFERY S. REYNOLDS' };
   if (testState === 'AZ') return { agencyCode: '9000325', producerName: 'CHRISTINA M. BOWER' };
   return { agencyCode: '0000988', producerName: 'CHRISTINA M. BOWER' };
@@ -117,12 +142,43 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   console.log('Address: ' + mailingStreet + ', ' + mailingCity + ', ' + mailingZip);
 
   // ── Login ────────────────────────────────────────────────────────────────────
+  // Confirmed live on Training (writeBizUrl = .../launch-app?app=WB): this is
+  // Donegal's public PORTAL login page, not the direct agentlogin.aspx form
+  // qa/test/perf use - "Username"/"Password" labels (not "User ID:"/
+  // "Password:") and a role=button "Log In" (not #btnLogin). Try both shapes
+  // rather than assuming one, so this keeps working unchanged for every
+  // other environment.
   await page.goto(writeBizUrl);
-  await page.getByRole('textbox', { name: 'User ID:' }).fill(creds.username);
-  await page.getByRole('textbox', { name: 'Password:' }).fill(creds.password);
-  await page.locator('#btnLogin').click({ timeout: 30000 });
+
+  const usernameField = page.getByRole('textbox', { name: 'User ID:' })
+    .or(page.getByRole('textbox', { name: 'Username' }));
+  const passwordField = page.getByRole('textbox', { name: 'Password:' })
+    .or(page.getByRole('textbox', { name: 'Password' }));
+
+  await usernameField.first().waitFor({ state: 'visible', timeout: 30000 });
+  await usernameField.first().fill(creds.username);
+  await passwordField.first().fill(creds.password);
+
+  const legacyLoginBtn = page.locator('#btnLogin');
+  if (await legacyLoginBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await legacyLoginBtn.click({ timeout: 30000 });
+  } else {
+    await page.getByRole('button', { name: 'Log In' }).click({ timeout: 30000 });
+  }
+
   await page.waitForLoadState('domcontentloaded').catch(() => {});
   await dismissStatusModal(page);
+
+  // The portal page's own copy warns MFA can prompt a 6-digit emailed code
+  // for "select users" - not something this automation can satisfy (no
+  // inbox access). Detect it explicitly and fail with a clear, actionable
+  // message instead of hanging on the next step for 60s with no context.
+  const mfaPrompt = page.getByText(/verification code|6-digit code|enter.*code/i).first();
+  if (await mfaPrompt.isVisible({ timeout: 5000 }).catch(() => false)) {
+    throw new Error('MFA verification code prompt appeared after login - this automation cannot retrieve the emailed code. ' +
+      'Ask the environment owner whether this account can be exempted from MFA, or provide a way to read the code.');
+  }
+
   console.log('WB Login successful');
   trackMilestone('Logged in to WB');
 
@@ -148,7 +204,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   }, { timeout: 25000 });
 
   // ── Agency selection ─────────────────────────────────────────────────────────
-  const { agencyCode, producerName } = getAgencyConfig(testState);
+  const { agencyCode, producerName } = getAgencyConfig(testState, writeBizUrl);
 
   const agencySels = ['#acg_agency_input','#txtAgency_input','input.dgic-autocomplete-grid','input[data-toggle="dropdown"]','input[placeholder*="Enter Search Text"]','input[placeholder*="Search Text here"]'];
   let agencyInput = null;
@@ -169,7 +225,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   if (curVal !== agencyCode) {
     await agencyInput.click({ clickCount: 1 });
     await agencyInput.press('Control+A');
-    await page.keyboard.type(agencyCode, { delay: 60 });
+    await page.keyboard.type(agencyCode, { delay: 30 });
     await page.waitForTimeout(500);
     curVal = await agencyInput.inputValue().catch(() => '');
     console.log('Agency value after typing: ' + curVal);
@@ -178,7 +234,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   if (curVal !== agencyCode) {
     await agencyInput.click({ clickCount: 1 });
     await page.keyboard.press('Control+A');
-    await page.keyboard.type(agencyCode, { delay: 60 });
+    await page.keyboard.type(agencyCode, { delay: 30 });
     await page.waitForTimeout(500);
   }
 
@@ -307,6 +363,31 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
 
   // ── Submit client info ───────────────────────────────────────────────────────
   await safeNextClick(page);
+
+  // Confirmed live on Training (intermittent - not every run): the wizard's
+  // client-side email validation can lag behind the fill/blur above, so this
+  // Next click lands before it clears and the page shows a "Please enter a
+  // valid email address" alert banner and stays on the same step - even
+  // though the field already holds a syntactically valid address (verified
+  // via inputValue() a few lines up). Nothing downstream detects this: every
+  // subsequent clickIfExists() call (Accept As-Is/Use Suggested/etc.) just
+  // silently no-ops since the page never advanced, and the run doesn't
+  // actually fail until "Business Description" on the NEXT step times out
+  // 45s+ later - a confusing, unrelated-looking symptom for what's really a
+  // stuck validation banner here. Detect it and retry in place instead.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const emailAlert = page.getByRole('alert').filter({ hasText: /valid email address/i }).first();
+    const alertVisible = await emailAlert.isVisible({ timeout: 2000 }).catch(() => false);
+    if (!alertVisible) break;
+    console.log(`Email validation alert blocked Next (attempt ${attempt + 1}) - dismissing and retrying`);
+    const closeBtn = emailAlert.getByRole('button', { name: 'Close' }).first();
+    if (await closeBtn.isVisible().catch(() => false)) await closeBtn.click().catch(() => {});
+    await emailField.click().catch(() => {});
+    await emailField.blur().catch(() => {});
+    await page.waitForTimeout(1500 + attempt * 1000);
+    await safeNextClick(page);
+  }
+
   await page.waitForLoadState('domcontentloaded');
   // Shrunk from 2000ms - clickIfExists()'s own click() call below already
   // auto-waits up to 5000ms for its target to become actionable.
@@ -365,21 +446,39 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     await naicsInput.click({ clickCount: 3 });
     await naicsInput.fill('');
     await page.waitForTimeout(200);
-    await naicsInput.type('812210', { delay: 150 });
+    await naicsInput.type('811210', { delay: 70 });
 
-    const suggestion = page.locator(
-      '.ui-menu.ui-widget .ui-menu-item, .ui-autocomplete .ui-menu-item, [role="option"], .dgic-autocomplete-grid tr, .dropdown-menu.show .dropdown-item'
-    ).filter({ hasText: 'Director services, funeral' }).first();
+    // CONFIRMED live 2026-09-15 (NAICS_DEBUG dump): typing the code renders
+    // a DataTables grid (#txtNAICSCode_resultsTable, one <tr> per business
+    // description filed under this code) inside a Bootstrap dropdown
+    // (.dropdown-menu.show) anchored to the input - NOT a jQuery UI
+    // autocomplete or role="option" list, so the selectors this used to try
+    // first never actually matched this markup and it silently fell through
+    // to the gridcell fallback below on every run. That fallback used to be
+    // scoped by a hardcoded description filter; removing that filter (to
+    // genuinely pick "any" description per user direction) exposed a second
+    // bug: the page also has an unrelated grid still in the DOM (#tblClients,
+    // an account-search results table from an earlier step), so a bare
+    // getByRole('gridcell') can land on ITS first cell instead of a NAICS
+    // row. Go straight to the real table now, scoped to its own rows - any
+    // one of them is a valid selection for this code, so just take whichever
+    // the table shows first.
+    const resultsTableRow = page.locator('#txtNAICSCode_resultsTable tbody tr').first();
 
     try {
-      await suggestion.waitFor({ state: 'visible', timeout: 8000 });
-      await suggestion.click({ force: true });
-      console.log('NAICS suggestion clicked');
+      await resultsTableRow.waitFor({ state: 'visible', timeout: 8000 });
+      const rowText = await resultsTableRow.innerText().catch(() => '');
+      await resultsTableRow.click({ force: true });
+      console.log('NAICS description selected: ' + rowText.replace(/\s+/g, ' ').trim());
     } catch (_) {
-      const gridCell = page.getByRole('gridcell', { name: /Director services, funeral/i }).first();
-      if (await gridCell.count() > 0) {
-        await gridCell.click({ force: true });
-        console.log('NAICS clicked via gridcell');
+      // Fallback selectors, scoped the same way (never a bare, page-wide
+      // gridcell/option locator), in case the table's own ID ever changes.
+      const suggestion = page.locator(
+        '.dropdown-menu.show table[role="grid"] tbody tr, .ui-menu.ui-widget .ui-menu-item, .ui-autocomplete .ui-menu-item'
+      ).first();
+      if (await suggestion.count() > 0 && await suggestion.isVisible().catch(() => false)) {
+        await suggestion.click({ force: true });
+        console.log('NAICS suggestion clicked via fallback selector');
       } else {
         await naicsInput.press('ArrowDown');
         await page.waitForTimeout(500);
@@ -477,10 +576,12 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   // after each one so the next field's visibility check doesn't poll/stall
   // against a still-settling DOM.
 
-  // Q3: Power units - first non-empty option
+  // Q3: Power units - "N/A, no CA will be quoted" (falls back to the first
+  // non-empty option if that exact wording isn't present)
   const powerUnitsSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfPowerUnits_121_Multiple_Choice_Question').first();
   if (await powerUnitsSelect.count() > 0 && await powerUnitsSelect.isVisible().catch(() => false)) {
-    const pwrVal = await powerUnitsSelect.locator('option:not([value=""])').first().getAttribute('value').catch(() => null);
+    let pwrVal = await powerUnitsSelect.locator('option').filter({ hasText: 'N/A, no CA will be quoted' }).first().getAttribute('value').catch(() => null);
+    if (!pwrVal) pwrVal = await powerUnitsSelect.locator('option:not([value=""])').first().getAttribute('value').catch(() => null);
     if (pwrVal) {
       await powerUnitsSelect.selectOption(pwrVal);
       console.log('Power units: ' + pwrVal);
@@ -541,10 +642,12 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     console.log('Employees dropdown visibility wait timed out, proceeding anyway');
   });
 
-  // Q4: Employees - first non-empty option
+  // Q4: Employees - "N/A, no WC will be quoted" (falls back to the first
+  // non-empty option if that exact wording isn't present)
   const employeesSelect = page.locator('#xddl_Question_Form_CLAcctProdEligibility_Ext_0_WhatIsTheTotalNumberOfEmployeesAcrossAllApplicableLocations_122_Multiple_Choice_Question').first();
   if (await employeesSelect.count() > 0 && await employeesSelect.isVisible().catch(() => false)) {
-    const empVal = await employeesSelect.locator('option:not([value=""])').first().getAttribute('value').catch(() => null);
+    let empVal = await employeesSelect.locator('option').filter({ hasText: 'N/A, no WC will be quoted' }).first().getAttribute('value').catch(() => null);
+    if (!empVal) empVal = await employeesSelect.locator('option:not([value=""])').first().getAttribute('value').catch(() => null);
     if (empVal) {
       await employeesSelect.selectOption(empVal);
       console.log('Employees: ' + empVal);
@@ -568,6 +671,27 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     }
     console.log('WARNING: could not find Yes/No toggle for: "' + questionSnippet.substring(0, 50) + '"');
     return false;
+  }
+
+  // Same text-anchored approach as clickYesNoByQuestionText, for a question
+  // answered via a <select> dropdown instead of a Yes/No toggle.
+  async function selectDropdownByQuestionText(questionSnippet, optionTextSnippet) {
+    const select = page.locator(
+      'xpath=//*[contains(normalize-space(.), ' + JSON.stringify(questionSnippet) + ')]/following::select[1]'
+    ).first();
+
+    if (!(await select.count() > 0 && await select.isVisible().catch(() => false))) {
+      console.log('WARNING: could not find dropdown for: "' + questionSnippet.substring(0, 50) + '"');
+      return false;
+    }
+    const optionValue = await select.locator('option').filter({ hasText: optionTextSnippet }).first().getAttribute('value').catch(() => null);
+    if (optionValue === null) {
+      console.log('WARNING: option "' + optionTextSnippet + '" not found for: "' + questionSnippet.substring(0, 50) + '"');
+      return false;
+    }
+    await select.selectOption(optionValue);
+    console.log('"' + questionSnippet.substring(0, 40) + '..." = ' + optionTextSnippet);
+    return true;
   }
 
   // Q5: active business operation = Yes
@@ -595,7 +719,7 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     await grossSalesField.click({ clickCount: 3 }).catch(() => {});
     await grossSalesField.press('Control+A').catch(() => {});
     await grossSalesField.press('Delete').catch(() => {});
-    await page.keyboard.type('45555', { delay: 120 });
+    await page.keyboard.type('45555', { delay: 30 });
     await grossSalesField.blur().catch(() => {});
     for (let i = 0; i < 10; i++) {
       const cur = await grossSalesField.inputValue().catch(() => '');
@@ -611,6 +735,16 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await occupyLabel.click({ force: true, timeout: 10000 });
   console.log('OccupySquareFeet = No');
 
+  // Q12a-g: additional qualification questions (text-anchored - no stable
+  // element IDs known for these yet, same reasoning as Q5-Q10 above)
+  await clickYesNoByQuestionText('total annual payroll greater than', 'No');
+  await clickYesNoByQuestionText('perform any mold remediation', 'No');
+  await clickYesNoByQuestionText('work performed over 3 stories', 'No');
+  await clickYesNoByQuestionText('trenches at depths greater than', 'No');
+  await clickYesNoByQuestionText('yard/open storage', 'No');
+  await selectDropdownByQuestionText('percentage of work subcontracted', '0-15');
+  await clickYesNoByQuestionText('separate roofing jobs', 'No');
+
   // Q13: CertifyQuestion = Yes
   const certifyLabel = page.locator('#for_xrdo_Question_Form_CLAcctProdEligibility_Ext_0_CertifyQuestion_101_Ext_Yes').first();
   await certifyLabel.click({ force: true, timeout: 10000 });
@@ -623,4 +757,4 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   console.log('Account qualification completed');
 }
 
-module.exports = { createAccountAndQualify };
+module.exports = { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES };

@@ -213,11 +213,64 @@
   input[type=file] { font-size: 12.5px; color: var(--muted); }
   .file-name { font-size: 12.5px; color: var(--accent-2); margin-top: 6px; }
   .hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .info-dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%; position: relative; margin-left: 2px;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--accent-2);
+    font-size: 10px; font-style: normal; font-weight: 700; cursor: help; vertical-align: middle;
+  }
+  .info-dot:hover, .info-dot:focus { border-color: var(--accent-2); outline: none; }
+  .info-dot .tooltip-bubble {
+    display: none; position: absolute; left: 0; top: 130%; z-index: 20;
+    width: max-content; max-width: 320px; background: #11141a; color: var(--text);
+    border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px;
+    font-size: 11.5px; font-weight: 400; line-height: 1.5; white-space: normal; text-align: left;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  .info-dot:hover .tooltip-bubble, .info-dot:focus .tooltip-bubble { display: block; }
   .warn-banner { background: rgba(255,180,84,0.12); border: 1px solid var(--amber); color: var(--amber); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin: 0 0 16px; line-height: 1.5; }
   .warn-banner b { color: var(--amber); }
   .report-links { margin-top: 10px; font-size: 13px; }
   .report-links a { color: var(--accent-2); text-decoration: none; margin-right: 14px; }
   .report-links a:hover { text-decoration: underline; }
+
+  .session-banner {
+    margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+  }
+  .session-banner b { color: var(--text); }
+  .session-banner.mine { border-color: var(--accent); color: var(--text); }
+  .session-banner.full { border-color: var(--amber); color: var(--amber); }
+  .session-banner.full b { color: var(--amber); }
+
+  /* SmartCOMM step-by-step progress — a short, human-readable checklist built from the same log lines the
+     Console output panel shows raw, so "waiting for YOUR sign-in" can't get buried in scrolling text. */
+  #smartCommProgressCard .sc-action-banner {
+    background: rgba(255,180,84,0.14); border: 1px solid var(--amber); color: var(--amber);
+    border-radius: 8px; padding: 9px 12px; font-size: 12.5px; margin-bottom: 12px; font-weight: 600; line-height: 1.5;
+  }
+  .sc-job { margin-bottom: 14px; }
+  .sc-job:last-child { margin-bottom: 0; }
+  .sc-job-title { font-size: 12.5px; color: var(--text); font-weight: 600; margin-bottom: 8px; }
+  .sc-lanes { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sc-lane { flex: 1 1 260px; min-width: 220px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
+  .sc-lane-title { font-size: 11px; color: var(--accent-2); font-weight: 600; margin-bottom: 7px; text-transform: uppercase; letter-spacing: .03em; }
+  .sc-step { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 3px 0; }
+  .sc-step .dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; background: var(--border); }
+  .sc-step.done .dot { background: var(--green); }
+  .sc-step.start .dot { background: var(--accent); }
+  .sc-step.warn .dot { background: var(--amber); }
+  .sc-step.error .dot { background: var(--red); }
+  .sc-step.waiting .dot { background: var(--amber); animation: sc-pulse 1s ease-in-out infinite; }
+  @keyframes sc-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+  .sc-step .txt { min-width: 0; }
+  .sc-step .label { color: var(--text); }
+  .sc-step.waiting .label { color: var(--amber); font-weight: 600; }
+  .sc-step.error .label { color: var(--red); }
+  .sc-step .detail { color: var(--muted); display: block; word-break: break-word; }
+  .sc-preview-wrap { margin-top: 9px; display: none; }
+  .sc-preview-label { font-size: 10.5px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .03em; }
+  .sc-preview { width: 100%; max-width: 280px; border-radius: 6px; border: 1px solid var(--border); display: block; cursor: zoom-in; }
 </style>
 </head>
 <body>
@@ -314,12 +367,12 @@
 
       <div class="field-label">Cloud claim # (optional — leave blank to use the same claim # on both sides)</div>
       <input type="text" id="reconCloudClaim" placeholder="e.g. WC-DE-85-26-0000157" autocomplete="off" />
-      <div class="hint">A real migrated pair (same claim # on both platforms) isn't always available yet — enter a different cloud claim # here to compare two independent claims instead, for exercising the tool.</div>
+      <div class="hint">Enter a different claim # to exercise the tool with two independent claims.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">A real migrated pair (same claim # on both platforms) isn't always available yet — enter a different cloud claim # here to compare two independent claims instead, for exercising the tool.</span></span></div>
 
       <div class="or-sep">or upload a claims file for bulk comparison</div>
       <input type="file" id="reconFileInput" accept=".csv,.xlsx,.xls" />
       <div class="file-name" id="reconFileName"></div>
-      <div class="hint">Columns: claimNumber (on-prem), cloudClaimNumber (optional), claimType (LOB, used for the by-LOB summary), policyNumber, priority, testGroup, migrationBatch. Uploading a file clears the claim # fields above.</div>
+      <div class="hint">Columns: claimNumber, cloudClaimNumber, claimType, policyNumber, priority, testGroup, migrationBatch.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Columns: claimNumber (on-prem), cloudClaimNumber (optional), claimType (LOB, used for the by-LOB summary), policyNumber, priority, testGroup, migrationBatch. Uploading a file clears the claim # fields above.</span></span></div>
 
       <div class="field-label">Job that will run</div>
       <div class="preview" id="reconPreview"><span class="empty">Select a tier, then either enter an on-prem claim # or choose a file to upload.</span></div>
@@ -352,12 +405,12 @@
 
       <div class="field-label">Cloud claim # (optional — leave blank to use the same claim # on both sides)</div>
       <input type="text" id="uvCloudClaim" placeholder="e.g. WC-DE-85-26-0000157" autocomplete="off" />
-      <div class="hint">A real migrated pair (same claim # on both platforms) isn't always available yet — enter a different cloud claim # here to compare two independent claims instead.</div>
+      <div class="hint">Enter a different claim # to exercise the tool with two independent claims.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">A real migrated pair (same claim # on both platforms) isn't always available yet — enter a different cloud claim # here to compare two independent claims instead.</span></span></div>
 
       <div class="or-sep">or upload a claims file for bulk validation</div>
       <input type="file" id="uvFileInput" accept=".csv,.xlsx,.xls" />
       <div class="file-name" id="uvFileName"></div>
-      <div class="hint">Same file format as Migration Reconciliation: claimNumber (on-prem), cloudClaimNumber (optional), claimType, etc. Every claim in the file will have its editable fields saved.</div>
+      <div class="hint">Same file format as Migration Reconciliation — this mode <b>writes</b> to every claim in the file.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Same file format as Migration Reconciliation: claimNumber (on-prem), cloudClaimNumber (optional), claimType, etc. Every claim in the file will have its editable fields saved.</span></span></div>
 
       <div class="field-label">Job that will run</div>
       <div class="preview" id="uvPreview"><span class="empty">Select a tier, then either enter an on-prem claim # or choose a file to upload.</span></div>
@@ -382,7 +435,7 @@
 
       <div class="field-label">Input folder (on the machine running this server)</div>
       <input type="text" id="pdfInputDir" placeholder="e.g. C:\Users\amitmish\Desktop\New folder\CPPProposalParallel" autocomplete="off" style="max-width:600px" />
-      <div class="hint">Folder of sub-folders, each containing a PDF pair to compare (e.g. prod.pdf + qa.pdf). Check "Flat" below if the PDFs sit directly in this folder instead, or "Recursive" if pairs are nested deeper (e.g. root/state-folder/variant-folder/*.pdf).</div>
+      <div class="hint">Folder of sub-folders, each holding one PDF pair to compare.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Folder of sub-folders, each containing a PDF pair to compare (e.g. prod.pdf + qa.pdf). Check "Flat" below if the PDFs sit directly in this folder instead, or "Recursive" if pairs are nested deeper (e.g. root/state-folder/variant-folder/*.pdf).</span></span></div>
 
       <div class="field-label">Output filename</div>
       <input type="text" id="pdfOutputName" placeholder="results.xlsx" autocomplete="off" />
@@ -430,7 +483,7 @@
       </select>
       <div id="smartCommTemplateMultiBlock" style="display:none; margin-top:8px;">
         <div class="chips" id="smartCommSelectedTemplateChips"></div>
-        <div class="hint">Picking a template (or typing its full ID) adds it to this run instead of replacing your selection — click a chip to remove it. Queue as many as you like; they run one after another.</div>
+        <div class="hint">Adds to your selection (doesn't replace it) — click a chip to remove.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Picking a template (or typing its full ID) adds it to this run instead of replacing your selection — click a chip to remove it. Queue as many as you like; they run one after another.</span></span></div>
       </div>
       </div>
 
@@ -442,11 +495,11 @@
       <div id="smartCommClaimBlock">
       <div class="field-label">Claim # (optional)</div>
       <input type="text" id="smartCommClaimNumber" placeholder="e.g. PA-PA-01-26-0000209 — leave blank to use real Test Data claims" autocomplete="off" />
-      <div class="hint">If set, validates this one claim directly instead of matching the Test Data claim inventory by the template's State/LOB applicability — useful for testing a template that doesn't have a matching test-data claim yet.</div>
+      <div class="hint">Validates this one claim directly instead of auto-matching by State/LOB.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">If set, validates this one claim directly instead of matching the Test Data claim inventory by the template's State/LOB applicability — useful for testing a template that doesn't have a matching test-data claim yet.</span></span></div>
       </div>
 
       <div id="smartCommInteractiveBlock">
-      <div class="hint">Most templates in the index are marked "Interactive", not "On Demand" — picking one automatically opens a real Microsoft sign-in popup that <b>you</b> need to complete (email, password, MFA) in the browser window this run opens. The few On-Demand templates run fully unattended. Nothing to toggle — this is detected per template automatically.</div>
+      <div class="hint">Most templates need a live Microsoft sign-in (email/password/MFA) from <b>you</b> when they run.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Most templates in the index are marked "Interactive", not "On Demand" — picking one automatically opens a real Microsoft sign-in popup that you need to complete (email, password, MFA) in the browser window this run opens. The few On-Demand templates run fully unattended. Nothing to toggle — this is detected per template automatically.</span></span></div>
       </div>
 
       <div id="smartCommMaxScenariosBlock">
@@ -457,22 +510,22 @@
         <option value="2">2</option>
         <option value="3">3</option>
       </select>
-      <div class="hint">How many of the template's own LOB/State-matched scenarios to actually run — NOT the same as "concurrently" below, which only controls how many run at once, not how many run in total. Leave at the default to run every matched scenario (up to 3).</div>
+      <div class="hint">How many matched scenarios to run in total (default: all, up to 3).<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">How many of the template's own LOB/State-matched scenarios to actually run — NOT the same as "concurrently" below, which only controls how many run at once, not how many run in total. Leave at the default to run every matched scenario (up to 3).</span></span></div>
       </div>
 
       <div id="smartCommConcurrencyBlock">
-      <div class="hint">Scenarios run 2 at a time per template automatically (a template with only 1 matching scenario just uses 1 worker — nothing to toggle here). With Interactive templates enabled, more than one Azure sign-in/MFA prompt or "Complete this draft?" dialog can appear at the same time — a saved sign-in session usually clears these on its own, but the first run of the day may need you to watch more than one window.</div>
+      <div class="hint">Runs 2 scenarios at a time per template automatically.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Scenarios run 2 at a time per template automatically (a template with only 1 matching scenario just uses 1 worker — nothing to toggle here). With Interactive templates enabled, more than one Azure sign-in/MFA prompt or "Complete this draft?" dialog can appear at the same time — a saved sign-in session usually clears these on its own, but the first run of the day may need you to watch more than one window.</span></span></div>
       </div>
 
       <div id="smartCommS3Block" style="display:none">
       <div class="field-label">S3 key (or part of one)</div>
       <input type="text" id="smartCommS3Key" placeholder="e.g. 9a-45dd-a4d0-199082294229 — the full GUID is safest" autocomplete="off" />
-      <div class="hint">Searched under ClaimCenter &gt; Inbound Pending &gt; smartcomm &gt; output &gt; output in the S3 Integration Files admin tool (Planet is always switched to Test). A short/generic key can match several files — up to 10 matches are downloaded and emailed; more than that is refused, so use a more specific key (ideally the full GUID).</div>
+      <div class="hint">Searches ClaimCenter &gt; Inbound Pending &gt; smartcomm &gt; output &gt; output (Planet: Test).<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Searched under ClaimCenter &gt; Inbound Pending &gt; smartcomm &gt; output &gt; output in the S3 Integration Files admin tool (Planet is always switched to Test). A short/generic key can match several files — up to 10 matches are downloaded and emailed; more than that is refused, so use a more specific key (ideally the full GUID).</span></span></div>
       </div>
 
-      <div class="field-label">Report Email (optional)</div>
-      <input type="email" id="smartCommReportEmail" placeholder="you@donegalgroup.com — leave blank for the default recipient" autocomplete="off" />
-      <div class="hint">Where the results report (with the generated PDF and template attached) gets emailed. Remembered in this browser so you only need to set it once.</div>
+      <div class="field-label">Report Email</div>
+      <input type="email" id="smartCommReportEmail" placeholder="you@donegalgroup.com" autocomplete="off" />
+      <div class="hint">Also identifies you to this tool (see Status panel) — required before anything can run.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Where the results report (with the generated PDF and template attached) gets emailed — also identifies you to teammates sharing this tool (see the Status panel), so it's required before anything can run, here or on any other tab. Remembered in this browser so you only need to set it once.</span></span></div>
 
       <div id="smartCommUiOptions" style="display:none">
         <div class="field-label" style="margin-top:14px">Options</div>
@@ -484,12 +537,12 @@
         </label>
         <div class="field-label">Also scan activity menus for these states (optional)</div>
         <input type="text" id="smartCommUiBr2States" placeholder="e.g. MD,DE,VA,GA,TN" autocomplete="off" style="max-width:260px" />
-        <div class="hint">Two-letter state codes, comma-separated. One test-data claim per state is opened to look for activity patterns that only appear on that jurisdiction's claims (about a minute per state).</div>
+        <div class="hint">Two-letter state codes, comma-separated (e.g. MD,DE,VA).<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Two-letter state codes, comma-separated. One test-data claim per state is opened to look for activity patterns that only appear on that jurisdiction's claims (about a minute per state).</span></span></div>
       </div>
 
       <div class="field-label">Job that will run</div>
       <div class="preview" id="smartCommPreview"><span class="empty">Select a template and an environment.</span></div>
-      <div class="hint" id="smartCommRunHint">Runs every scenario the selected template's own State/LOB applicability matches against real claims from the Test Data inventory (or just the claim # above, if set), validates each generated PDF against requirements derived from the template's own Word doc, and emails the aggregated report — with the generated PDF(s) and the template's own Word doc attached. Scenario-by-scenario results also stream to the console below.</div>
+      <div class="hint" id="smartCommRunHint">Runs every matched scenario against real claims and emails the report.</div>
 
       <div class="actions">
         <button class="run" id="smartCommRunBtn" disabled>Validate Template</button>
@@ -508,14 +561,14 @@
         add them (see <code>.env.example</code>) before running this tab.
       </div>
       <h2>Sprint / Pending-Work report</h2>
-      <p class="hint">Pulls the selected track(s) straight from Jira (same JQL as the retired Power Query workbook), tags Track/Sprint, excludes Done &amp; Retired, and writes one Excel workbook — one sheet per selected track (with its own inline "Total Remaining Estimate by Assignee" summary), a combined Data sheet, and two cross-track summary sheets, then emails it as an attachment. Running a subset of tracks writes its own report file, separate from a full run's.</p>
+      <p class="hint">Pulls the selected tracks from Jira and emails one Excel workbook.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Pulls the selected track(s) straight from Jira (same JQL as the retired Power Query workbook), tags Track/Sprint, excludes Done &amp; Retired, and writes one Excel workbook — one sheet per selected track (with its own inline "Total Remaining Estimate by Assignee" summary), a combined Data sheet, and two cross-track summary sheets, then emails it as an attachment. Running a subset of tracks writes its own report file, separate from a full run's.</span></span></p>
 
       <div class="field-label">Track (select one or more)</div>
       <div class="chips" id="jiraReportTrackChips"></div>
 
-      <div class="field-label">Send report to (optional)</div>
-      <input type="email" id="jiraReportEmail" placeholder="you@donegalgroup.com — leave blank to send to the default recipient" autocomplete="off" style="max-width:400px" />
-      <div class="hint">The finished Excel workbook is attached to an email sent here (it's also still saved locally). Blank sends it to the default recipient (TO_EMAIL in <code>.env</code>). Remembered in this browser so you only need to set it once.</div>
+      <div class="field-label">Send report to</div>
+      <input type="email" id="jiraReportEmail" placeholder="you@donegalgroup.com" autocomplete="off" style="max-width:400px" />
+      <div class="hint">Also identifies you to this tool (see Status panel) — required before anything can run.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">The finished Excel workbook is attached to an email sent here (it's also still saved locally) — also identifies you to teammates sharing this tool (see the Status panel), so it's required before anything can run, here or on any other tab (the SmartCOMM tab's own Report Email field works just as well, if you've already set that one). Remembered in this browser so you only need to set it once.</span></span></div>
 
       <div class="field-label">Job that will run</div>
       <div class="preview" id="jiraReportPreview"><span class="empty">Select at least one track.</span></div>
@@ -530,7 +583,7 @@
 
     <div class="card">
       <h2>Add a new query</h2>
-      <p class="hint">Adds a new track backed by your own JQL — it's saved to <code>scripts/jiraTracks.custom.json</code> and shows up as a chip above immediately (no restart needed). Sprint is grouped by each issue's own current sprint (no fixed Sprint 4/5/6 numbering, since that needs specific sprint IDs this form can't look up for you).</p>
+      <p class="hint">Adds a new track backed by your own JQL — shows up as a chip immediately.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Adds a new track backed by your own JQL — it's saved to scripts/jiraTracks.custom.json and shows up as a chip above immediately (no restart needed). Sprint is grouped by each issue's own current sprint (no fixed Sprint 4/5/6 numbering, since that needs specific sprint IDs this form can't look up for you).</span></span></p>
 
       <div class="field-label">Track name (used as the sheet name and chip label)</div>
       <input type="text" id="jiraNewTrackLabel" placeholder="e.g. Data Migration" autocomplete="off" style="max-width:400px" />
@@ -556,7 +609,8 @@
   <!-- ── Shared status + output (one queue/process on the server) ─────────── -->
   <div class="card">
     <h2>Status</h2>
-    <div class="stats-row">
+    <div class="session-banner" id="sessionBanner">Enter your email in the Report Email field (SmartCOMM or Jira Sprint Report tab) to run anything — this tool supports up to 2 people running jobs at once.</div>
+    <div class="stats-row" style="margin-top:14px">
       <div class="stat passed"><div class="n" id="statPassed">0</div><div class="l">Passed</div></div>
       <div class="stat failed"><div class="n" id="statFailed">0</div><div class="l">Failed</div></div>
       <div class="stat running"><div class="n" id="statRunning">Idle</div><div class="l">Running</div></div>
@@ -568,10 +622,18 @@
     </div>
   </div>
 
+  <div class="card" id="smartCommProgressCard" style="display:none">
+    <h2>SmartCOMM progress</h2>
+    <div id="smartCommProgressBody"></div>
+  </div>
+
   <div class="card">
     <div class="out-toolbar">
       <h2 style="margin:0">Console output</h2>
-      <button id="clearOutputBtn">Clear</button>
+      <div style="display:flex; gap:8px;">
+        <button id="toggleOutputBtn">Hide full log</button>
+        <button id="clearOutputBtn">Clear</button>
+      </div>
     </div>
     <div id="output"></div>
   </div>
@@ -611,6 +673,32 @@
   var anyRunning = false;
   var pdfScriptFound = true;
   var jiraReportConfigured = true;
+
+  // Client-side mirror of the server's `running` array (see server.js) - up
+  // to MAX_PARALLEL jobs can be in flight together now, keyed by the id each
+  // job-start/progress/job-end event carries, plus the last-known queue
+  // label list (progress ticks don't resend it, so it's tracked separately
+  // and reused between events that don't touch it). Declared up here (not
+  // next to runningList()/renderQueue() below, where this used to live)
+  // because syncIdentity(), right below, can run synchronously at page-load
+  // time - before SSE's first 'hello' event - and calls setRunning(), which
+  // needs these to already be real values, not just hoisted-but-undefined.
+  var runningJobs = {}; // id -> { label: string, progress: { done, total }, requestedBy: string }
+  var queueLabels = [];
+
+  // ── Identity (so this shared, single-server tool can tell teammates apart) ─
+  // Reuses the existing "Report Email" fields (SmartCOMM tab, Jira Sprint Report tab) instead of adding a
+  // separate field just for this — whichever one has something typed in it is who you are to this tool.
+  // SmartCOMM's wins if both are filled in (it's the one most people here already use day to day).
+  function isValidEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+  var myEmail = '';
+  function syncIdentity() {
+    var scInput = document.getElementById('smartCommReportEmail');
+    var jrInput = document.getElementById('jiraReportEmail');
+    var val = (scInput && scInput.value.trim()) || (jrInput && jrInput.value.trim()) || '';
+    myEmail = val.toLowerCase();
+    setRunning(runningList());
+  }
 
   function chip(label, selected, disabled, title) {
     var el = document.createElement('div');
@@ -789,7 +877,9 @@
     reportEmailInput.addEventListener('input', function () {
       try { localStorage.setItem('smartCommReportEmail', this.value.trim()); } catch (_) { /* ignore */ }
       updateSmartCommPreview();
+      syncIdentity();
     });
+    syncIdentity();
   }
 
   var smartCommExactMatchTimer = null;
@@ -888,14 +978,38 @@
 
   var SMARTCOMM_MODES = [
     { key: 'template', label: 'Template content',
+      summary: 'Generates the document on real claims and checks it against the template\'s own requirements.',
       hint: 'Generates the document from the selected template on real claims and checks the PDF against requirements from the template\'s own Word doc.' },
     { key: 'ui', label: 'ClaimCenter screens (UI)',
+      summary: 'Checks the Create New Document screens against the requirements workbook. Read-only by default.',
       hint: 'Checks the Create New Document screens — fields, mandatory/hidden rules, dropdown values, document screens and business rules — against the requirements workbook. Read-only by default.' },
     { key: 's3', label: 'Download from S3',
+      summary: 'Finds a SmartCOMM file in the S3 admin tool by key, downloads every match, and emails them.',
       hint: 'Finds a SmartCOMM file in the Guidewire S3 Integration Files admin tool by its key (or part of one), downloads every match, and emails them. Reuses a saved Okta sign-in session — run "Establish S3 Session" first (and again whenever a run fails saying the session expired).' },
     { key: 's3-session', label: 'Establish S3 Session',
+      summary: 'Opens a real browser window for you to sign in to Okta by hand, then saves the session.',
       hint: 'Opens a real, visible browser window on this machine and waits for you to sign in to Okta by hand (email, password, MFA — whatever it asks for). Once you land on the admin tool, the session is saved so every later "Download from S3" run can reuse it instead of hitting Okta\'s sign-in wall itself.' }
   ];
+
+  // Renders a hint element as a short visible summary plus an "i" dot whose hover/focus tooltip carries the
+  // full explanation — added 2026-10-05 per user request to cut this page's wall-of-text hints down to one
+  // line each. Skips the dot entirely when there's nothing more to say beyond the summary itself.
+  function setHint(el, summary, full) {
+    el.textContent = '';
+    el.appendChild(document.createTextNode(summary));
+    if (!full || full === summary) return;
+    el.appendChild(document.createTextNode(' '));
+    var dot = document.createElement('span');
+    dot.className = 'info-dot';
+    dot.tabIndex = 0;
+    dot.setAttribute('aria-label', 'More info');
+    dot.appendChild(document.createTextNode('i'));
+    var bubble = document.createElement('span');
+    bubble.className = 'tooltip-bubble';
+    bubble.textContent = full;
+    dot.appendChild(bubble);
+    el.appendChild(dot);
+  }
 
   function renderSmartCommMode() {
     var box = document.getElementById('smartCommModeChips');
@@ -911,7 +1025,8 @@
     var ui = smartComm.mode === 'ui';
     var s3 = smartComm.mode === 's3';
     var s3session = smartComm.mode === 's3-session';
-    document.getElementById('smartCommModeHint').textContent = SMARTCOMM_MODES.filter(function (m) { return m.key === smartComm.mode; })[0].hint;
+    var currentMode = SMARTCOMM_MODES.filter(function (m) { return m.key === smartComm.mode; })[0];
+    setHint(document.getElementById('smartCommModeHint'), currentMode.summary, currentMode.hint);
     document.getElementById('smartCommUiOptions').style.display = ui ? 'block' : 'none';
     document.getElementById('smartCommTemplateBlock').style.display = (s3 || s3session) ? 'none' : 'block';
     document.getElementById('smartCommClaimBlock').style.display = (s3 || s3session) ? 'none' : 'block';
@@ -923,11 +1038,15 @@
     document.getElementById('smartCommTemplateMultiBlock').style.display = (smartComm.mode === 'template') ? 'block' : 'none';
     document.getElementById('smartCommTemplateLabel').textContent = ui ? 'Template used to reach the wizard (optional — defaults to DIG52)' : smartComm.mode === 'template' ? 'Template(s) — pick one or more' : 'Template';
     document.getElementById('smartCommRunBtn').textContent = ui ? 'Validate ClaimCenter UI' : s3 ? 'Download & Email File' : s3session ? 'Open Browser & Sign In' : 'Validate Template(s)';
-    document.getElementById('smartCommRunHint').textContent = ui
-      ? 'Opens a claim, walks the Create New Document wizard (Select Template, Recipients, Additional Data, Create), then checks the claim Documents screen, Document Properties and activity patterns against the requirements workbook. Print is the only delivery channel ever generated; new activities are cancelled, not saved. The report — with an "open items" list of what still needs your input — is emailed, and linked here when the run ends.'
+    var runHintSummary = ui ? 'Walks the Create New Document wizard, then checks screens/activities against the requirements workbook.'
+      : s3 ? 'Logs into the S3 admin tool, downloads every match for the key, and emails them.'
+      : s3session ? 'A real browser window opens — complete the Okta sign-in yourself, then the session is saved.'
+      : 'Runs every matched scenario against real claims and emails the aggregated report.';
+    var runHintFull = ui ? 'Opens a claim, walks the Create New Document wizard (Select Template, Recipients, Additional Data, Create), then checks the claim Documents screen, Document Properties and activity patterns against the requirements workbook. Print is the only delivery channel ever generated; new activities are cancelled, not saved. The report — with an "open items" list of what still needs your input — is emailed, and linked here when the run ends.'
       : s3 ? 'Logs into the S3 Integration Files admin tool, switches to Planet: Test, searches ClaimCenter > Inbound Pending > smartcomm > output > output for the key, downloads every match and emails them. Downloaded file(s) are also linked here when the run ends.'
       : s3session ? 'A real browser window opens on this machine — complete the Okta sign-in yourself (up to 10 minutes). Once you land on the admin tool, the session is saved for every later "Download from S3" run to reuse.'
       : 'Runs every scenario the selected template\'s own State/LOB applicability matches against real claims from the Test Data inventory (or just the claim # above, if set), validates each generated PDF against requirements derived from the template\'s own Word doc, and emails the aggregated report — with the generated PDF(s) and the template\'s own Word doc attached. Scenario-by-scenario results also stream to the console below. Select more than one template to queue them together — each runs to completion (one after another) before the next starts, with its own report email.';
+    setHint(document.getElementById('smartCommRunHint'), runHintSummary, runHintFull);
     var writes = document.getElementById('smartCommUiWrites');
     var testTier = smartComm.tier === 'test';
     writes.disabled = !testTier;
@@ -1260,7 +1379,7 @@
     fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suite: 'pdfCompare', jobs: [job] }),
+      body: JSON.stringify({ suite: 'pdfCompare', jobs: [job], requestedBy: myEmail }),
     }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok) document.getElementById('pdfError').textContent = res.body.error || 'Failed to queue run';
@@ -1275,7 +1394,7 @@
     fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suite: 'policy', jobs: jobs }),
+      body: JSON.stringify({ suite: 'policy', jobs: jobs, requestedBy: myEmail }),
     }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok) document.getElementById('policyError').textContent = res.body.error || 'Failed to queue run';
@@ -1289,7 +1408,7 @@
     fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suite: 'claims', jobs: [job] }),
+      body: JSON.stringify({ suite: 'claims', jobs: [job], requestedBy: myEmail }),
     }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok) document.getElementById('claimsError').textContent = res.body.error || 'Failed to queue run';
@@ -1303,7 +1422,7 @@
     fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suite: 'smartComm', jobs: jobs }),
+      body: JSON.stringify({ suite: 'smartComm', jobs: jobs, requestedBy: myEmail }),
     }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok) document.getElementById('smartCommError').textContent = res.body.error || 'Failed to queue run';
@@ -1414,7 +1533,13 @@
   jiraReportEmailInput.addEventListener('input', function () {
     try { localStorage.setItem('jiraReportEmail', this.value.trim()); } catch (_) { /* ignore */ }
     updateJiraReportPreview();
+    syncIdentity();
   });
+  // Deferred (not called directly here): this line runs synchronously, this early in the page's own very
+  // first script pass - before setRunning()'s own DOM lookups (statRunning, queueList, progressWrap...,
+  // declared further down this same file) have executed, so calling it straight away throws. A 0ms
+  // setTimeout just pushes it past the end of this synchronous pass instead.
+  setTimeout(syncIdentity, 0);
 
   document.getElementById('jiraReportRunBtn').addEventListener('click', function () {
     var tracks = Array.from(jiraReport.tracks);
@@ -1427,7 +1552,7 @@
     fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suite: 'jiraReport', jobs: [job] }),
+      body: JSON.stringify({ suite: 'jiraReport', jobs: [job], requestedBy: myEmail }),
     }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok) document.getElementById('jiraReportError').textContent = res.body.error || 'Failed to queue run';
@@ -1447,7 +1572,7 @@
     return fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suite: 'reconciliation', jobs: [finalJob] }),
+      body: JSON.stringify({ suite: 'reconciliation', jobs: [finalJob], requestedBy: myEmail }),
     }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok) document.getElementById('reconError').textContent = res.body.error || 'Failed to queue run';
@@ -1559,7 +1684,7 @@
     return fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suite: 'updateValidation', jobs: [finalJob] }),
+      body: JSON.stringify({ suite: 'updateValidation', jobs: [finalJob], requestedBy: myEmail }),
     }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok) document.getElementById('uvError').textContent = res.body.error || 'Failed to queue run';
@@ -1593,8 +1718,14 @@
     }
   });
 
+  // Scoped server-side to the caller's own jobs (see server.js's /api/stop) - this only ever stops MY runs,
+  // never a teammate's, now that the tool supports more than one person at once.
   function stopAll() {
-    fetch('/api/stop', { method: 'POST' });
+    fetch('/api/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestedBy: myEmail }),
+    });
   }
   document.getElementById('policyStopBtn').addEventListener('click', stopAll);
   document.getElementById('claimsStopBtn').addEventListener('click', stopAll);
@@ -1602,12 +1733,85 @@
   document.getElementById('uvStopBtn').addEventListener('click', stopAll);
   document.getElementById('pdfStopBtn').addEventListener('click', stopAll);
   document.getElementById('smartCommStopBtn').addEventListener('click', stopAll);
+  document.getElementById('jiraReportStopBtn').addEventListener('click', stopAll);
 
   // ── Output panel ───────────────────────────────────────────────────────
   var output = document.getElementById('output');
   document.getElementById('clearOutputBtn').addEventListener('click', function () {
     output.innerHTML = '';
   });
+
+  // Collapsible raw console — per user request 2026-10-07: the SmartCOMM validator's output is a dense
+  // technical log, so a running SmartCOMM job auto-collapses it in favor of the step-by-step panel below
+  // (#smartCommProgressCard); the user can still expand it any time (e.g. to see the FULL error text behind
+  // a warning step), and it stays expanded as normal for every other suite.
+  var outputCollapsed = false;
+  function setOutputCollapsed(v) {
+    outputCollapsed = v;
+    output.style.display = v ? 'none' : 'block';
+    document.getElementById('toggleOutputBtn').textContent = v ? 'Show full log' : 'Hide full log';
+  }
+  document.getElementById('toggleOutputBtn').addEventListener('click', function () { setOutputCollapsed(!outputCollapsed); });
+
+  // ── SmartCOMM step-by-step progress ────────────────────────────────────
+  // jobId -> { lanes: { laneKey: { order: [stepId...], steps: { stepId: {status,label,detail} } } } } — mirrors
+  // the server's own entry.smartComm shape (see server.js's classifySmartCommLine), just kept client-side so
+  // a reconnect (the 'hello' event) can reseed it for any job already running.
+  var smartCommProgress = {};
+  function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function laneTitle(lane) {
+    if (lane === '_setup') return 'Setup';
+    if (lane.indexOf('tpl:') === 0) return 'Template ' + lane.slice(4);
+    return 'Scenario ' + lane;
+  }
+  // Only a real scenario lane has its own live Interactive-mode browser page to screenshot — "_setup" and
+  // "tpl:..." lanes are synthetic groupings for lines with no single page behind them (see server.js's
+  // classifySmartCommLine), so a preview thumbnail would have nothing real to show there.
+  function isScenarioLane(lane) { return lane !== '_setup' && lane.indexOf('tpl:') !== 0; }
+  // Bumped on a fixed timer (see below) to cache-bust the preview <img> tags below, forcing each one to
+  // re-fetch its scenario's screenshot file (livePreviewService.js overwrites it in place every ~1.5s) rather
+  // than showing a browser-cached first frame forever.
+  var scPreviewTick = Date.now();
+  function renderSmartCommProgress() {
+    var card = document.getElementById('smartCommProgressCard');
+    var body = document.getElementById('smartCommProgressBody');
+    var jobIds = Object.keys(smartCommProgress);
+    if (!jobIds.length) { card.style.display = 'none'; body.innerHTML = ''; return; }
+    card.style.display = 'block';
+    var waiting = [];
+    var html = jobIds.map(function (id) {
+      var job = runningJobs[id];
+      var data = smartCommProgress[id];
+      var laneKeys = Object.keys(data.lanes);
+      var lanesHtml = laneKeys.map(function (lane) {
+        var laneState = data.lanes[lane];
+        var rows = laneState.order.map(function (stepId) {
+          var s = laneState.steps[stepId];
+          if (s.status === 'waiting') waiting.push((job ? job.label : lane) + ' — ' + s.label + (s.detail ? ' (' + s.detail + ')' : ''));
+          return '<div class="sc-step ' + (s.status || '') + '"><span class="dot"></span><span class="txt"><span class="label">' + escapeHtml(s.label) + '</span>' +
+            (s.detail ? '<span class="detail">' + escapeHtml(s.detail) + '</span>' : '') + '</span></div>';
+        }).join('');
+        var previewUrl = '/live-preview/' + encodeURIComponent(lane) + '.jpg?t=' + scPreviewTick;
+        var preview = isScenarioLane(lane)
+          ? '<div class="sc-preview-wrap"><div class="sc-preview-label">Live preview</div>' +
+            '<a href="' + previewUrl + '" target="_blank" rel="noopener">' +
+            '<img class="sc-preview" src="' + previewUrl + '" alt="Live browser preview for ' + escapeHtml(lane) + '" ' +
+            'onload="this.parentElement.parentElement.style.display=\'block\'" ' +
+            'onerror="this.parentElement.parentElement.style.display=\'none\'" /></a></div>'
+          : '';
+        return '<div class="sc-lane"><div class="sc-lane-title">' + escapeHtml(laneTitle(lane)) + '</div>' + rows + preview + '</div>';
+      }).join('');
+      return '<div class="sc-job"><div class="sc-job-title">' + escapeHtml(job ? job.label : ('Job #' + id)) + '</div><div class="sc-lanes">' + lanesHtml + '</div></div>';
+    }).join('');
+    var banner = waiting.length ? '<div class="sc-action-banner">⏳ Action needed: ' + waiting.map(escapeHtml).join(' · ') + '</div>' : '';
+    body.innerHTML = banner + html;
+  }
+  // Refreshes every live-preview <img>'s cache-busting query param on a fixed timer, independent of any SSE
+  // event — livePreviewService.js overwrites each scenario's screenshot file in place roughly this often, so
+  // this is what actually makes the thumbnail look "live" rather than frozen on its first frame. Cheap to
+  // call even when nothing's running: renderSmartCommProgress() itself no-ops immediately when
+  // smartCommProgress is empty.
+  setInterval(function () { scPreviewTick = Date.now(); renderSmartCommProgress(); }, 1500);
 
   function appendLine(text, cls) {
     var stick = output.scrollTop + output.clientHeight >= output.scrollHeight - 40;
@@ -1634,14 +1838,6 @@
   var progressWrap = document.getElementById('progressWrap');
   var progressFill = document.getElementById('progressFill');
   var progressLabel = document.getElementById('progressLabel');
-
-  // Client-side mirror of the server's `running` array (see server.js) - up
-  // to MAX_PARALLEL jobs can be in flight together now, keyed by the id each
-  // job-start/progress/job-end event carries, plus the last-known queue
-  // label list (progress ticks don't resend it, so it's tracked separately
-  // and reused between events that don't touch it).
-  var runningJobs = {}; // id -> { label: string, progress: { done, total } }
-  var queueLabels = [];
 
   function runningList() {
     return Object.keys(runningJobs).map(function (id) { return runningJobs[id]; });
@@ -1673,9 +1869,17 @@
     }
   }
 
-  function setRunning(isRunning, count) {
+  // isRunning here means "should MY run buttons be disabled" - either I haven't entered a valid email yet,
+  // or I already have a job in flight (prevents an accidental duplicate submit while it's running). It is
+  // deliberately NOT "is anything running anywhere" - up to 2 different people can now share this tool at
+  // once (see server.js's MAX_PARALLEL), and someone else's job should never block my own Run buttons; it
+  // just means mine will queue behind theirs if both slots are already taken.
+  function setRunning(list) {
+    var emailOk = isValidEmail(myEmail);
+    var mine = list.filter(function (r) { return r.requestedBy === myEmail; });
+    var isRunning = !emailOk || mine.length > 0;
     anyRunning = isRunning;
-    statRunning.textContent = isRunning ? (count + ' running') : 'Idle';
+    statRunning.textContent = list.length ? (list.length + ' running') : 'Idle';
     document.getElementById('policyRunBtn').disabled = isRunning || policyJobs().length === 0;
     document.getElementById('claimsRunBtn').disabled = isRunning || !claimsJob();
     document.getElementById('reconRunBtn').disabled = isRunning || !reconJob();
@@ -1683,27 +1887,57 @@
     document.getElementById('pdfRunBtn').disabled = isRunning || !pdfJob() || !pdfScriptFound;
     document.getElementById('smartCommRunBtn').disabled = isRunning || smartCommJobsToRun().length === 0;
     document.getElementById('jiraReportRunBtn').disabled = isRunning || !jiraReportConfigured || jiraReport.tracks.size === 0;
-    document.getElementById('policyStopBtn').disabled = !isRunning;
-    document.getElementById('claimsStopBtn').disabled = !isRunning;
-    document.getElementById('reconStopBtn').disabled = !isRunning;
-    document.getElementById('uvStopBtn').disabled = !isRunning;
-    document.getElementById('pdfStopBtn').disabled = !isRunning;
-    document.getElementById('smartCommStopBtn').disabled = !isRunning;
-    document.getElementById('jiraReportStopBtn').disabled = !isRunning;
-    if (!isRunning) progressWrap.classList.remove('show', 'indeterminate');
+    var stopDisabled = mine.length === 0;
+    document.getElementById('policyStopBtn').disabled = stopDisabled;
+    document.getElementById('claimsStopBtn').disabled = stopDisabled;
+    document.getElementById('reconStopBtn').disabled = stopDisabled;
+    document.getElementById('uvStopBtn').disabled = stopDisabled;
+    document.getElementById('pdfStopBtn').disabled = stopDisabled;
+    document.getElementById('smartCommStopBtn').disabled = stopDisabled;
+    document.getElementById('jiraReportStopBtn').disabled = stopDisabled;
+    if (!list.length) progressWrap.classList.remove('show', 'indeterminate');
+    renderSessionBanner(list, queueLabels, emailOk);
   }
 
-  function renderQueue(labels, list) {
+  // Tells the next person in line who's ahead of them, by email - the whole point being that nobody has to
+  // guess why their run is queued instead of starting immediately.
+  function renderSessionBanner(list, queueEntries, emailOk) {
+    var el = document.getElementById('sessionBanner');
+    el.classList.remove('full', 'mine');
+    if (!emailOk) {
+      el.textContent = 'Enter your email in the Report Email field (SmartCOMM or Jira Sprint Report tab) to run anything — this tool supports up to 2 people running jobs at once.';
+      return;
+    }
+    var distinctRunning = [];
+    list.forEach(function (r) { if (r.requestedBy && distinctRunning.indexOf(r.requestedBy) === -1) distinctRunning.push(r.requestedBy); });
+    if (distinctRunning.length === 0) {
+      el.textContent = 'No one is running anything right now — both session slots are free.';
+      return;
+    }
+    el.classList.add(distinctRunning.length >= 2 ? 'full' : 'mine');
+    var who = distinctRunning.map(function (e) { return e === myEmail ? e + ' (you)' : e; }).join(' and ');
+    var waitingOthers = [];
+    (queueEntries || []).forEach(function (q) {
+      if (q.requestedBy && distinctRunning.indexOf(q.requestedBy) === -1 && waitingOthers.indexOf(q.requestedBy) === -1) waitingOthers.push(q.requestedBy);
+    });
+    el.innerHTML = (distinctRunning.length >= 2 ? '2 of 2 session slots in use' : '1 of 2 session slots in use') +
+      ' — <b>' + who.replace(/</g, '&lt;') + '</b>' +
+      (waitingOthers.length ? '. Waiting their turn: ' + waitingOthers.join(', ').replace(/</g, '&lt;') : '');
+  }
+
+  function renderQueue(entries, list) {
     var parts = [];
     if (list && list.length) {
       parts.push('Running: <span>' + list.map(function (r) {
         var p = r.progress;
         var suffix = (p && typeof p.total === 'number' && p.total > 0) ? ' (' + p.done + '/' + p.total + ')'
           : (p && p.done > 0) ? ' (' + p.done + ' done)' : '';
-        return r.label + suffix;
+        return r.label + suffix + (r.requestedBy ? ' [' + r.requestedBy + ']' : '');
       }).join(', ') + '</span>');
     }
-    if (labels && labels.length) parts.push('Queued: <span>' + labels.join(', ') + '</span>');
+    if (entries && entries.length) {
+      parts.push('Queued: <span>' + entries.map(function (q) { return q.label + (q.requestedBy ? ' [' + q.requestedBy + ']' : ''); }).join(', ') + '</span>');
+    }
     queueList.innerHTML = parts.join(' &nbsp;·&nbsp; ');
   }
 
@@ -1726,29 +1960,48 @@
     applyStats(d.stats);
     queueLabels = d.queue || [];
     runningJobs = {};
-    (d.running || []).forEach(function (r) { runningJobs[r.id] = { label: r.label, progress: r.progress }; });
+    (d.running || []).forEach(function (r) {
+      runningJobs[r.id] = { label: r.label, requestedBy: r.requestedBy, progress: r.progress };
+      if (r.smartComm) smartCommProgress[r.id] = r.smartComm;
+    });
     var list = runningList();
     renderQueue(queueLabels, list);
-    setRunning(list.length > 0, list.length);
+    setRunning(list);
     applyProgress(list);
+    renderSmartCommProgress();
   });
 
   es.addEventListener('queued', function (ev) {
     var d = JSON.parse(ev.data);
     queueLabels = d.queue || [];
     renderQueue(queueLabels, runningList());
-    appendLine('+ queued: ' + d.added.join(', '), '');
+    appendLine('+ queued: ' + d.added.map(function (a) { return a.label; }).join(', '), '');
   });
 
   es.addEventListener('job-start', function (ev) {
     var d = JSON.parse(ev.data);
-    runningJobs[d.id] = { label: d.label, progress: { done: 0, total: null } };
+    runningJobs[d.id] = { label: d.label, requestedBy: d.requestedBy, progress: { done: 0, total: null } };
     queueLabels = d.queue || [];
     var list = runningList();
-    setRunning(true, list.length);
+    setRunning(list);
     renderQueue(queueLabels, list);
-    appendLine('▶ Running: ' + d.label, 'head');
+    appendLine('▶ Running: ' + d.label + (d.requestedBy ? ' [' + d.requestedBy + ']' : ''), 'head');
     applyProgress(list);
+    if (d.label && d.label.indexOf('SmartCOMM') === 0) {
+      smartCommProgress[d.id] = { lanes: {} };
+      setOutputCollapsed(true);
+    }
+    renderSmartCommProgress();
+  });
+
+  es.addEventListener('smartcomm-step', function (ev) {
+    var d = JSON.parse(ev.data);
+    if (!smartCommProgress[d.id]) smartCommProgress[d.id] = { lanes: {} };
+    var lanes = smartCommProgress[d.id].lanes;
+    if (!lanes[d.lane]) lanes[d.lane] = { order: [], steps: {} };
+    if (!lanes[d.lane].steps[d.step]) lanes[d.lane].order.push(d.step);
+    lanes[d.lane].steps[d.step] = { status: d.status, label: d.label, detail: d.detail };
+    renderSmartCommProgress();
   });
 
   es.addEventListener('progress', function (ev) {
@@ -1761,7 +2014,10 @@
 
   es.addEventListener('line', function (ev) {
     var d = JSON.parse(ev.data);
-    appendLine(d.text, classifyLine(d.text, d.stream));
+    // Tag which job a line came from once more than one is running at once — otherwise two people's
+    // concurrent output would interleave in this one shared panel with no way to tell them apart.
+    var tag = Object.keys(runningJobs).length > 1 ? '[' + (d.requestedBy || d.label) + '] ' : '';
+    appendLine(tag + d.text, classifyLine(d.text, d.stream));
   });
 
   es.addEventListener('test-result', function (ev) {
@@ -1776,9 +2032,14 @@
     delete runningJobs[d.id];
     queueLabels = d.queue || queueLabels;
     var list = runningList();
-    setRunning(list.length > 0, list.length);
+    setRunning(list);
     renderQueue(queueLabels, list);
     applyProgress(list);
+    // Keep the finished job's checklist visible for a bit (so the final step shows), then clear it out rather
+    // than letting completed runs pile up in this panel over a long session.
+    if (smartCommProgress[d.id]) {
+      (function (jobId) { setTimeout(function () { delete smartCommProgress[jobId]; renderSmartCommProgress(); }, 20000); })(d.id);
+    }
     // reportUrls is only set on reconciliation/updateValidation jobs; the
     // report is written regardless of exit code (a non-zero code means
     // findings/technical failures, not that the report failed to generate),
@@ -1825,8 +2086,10 @@
     applyStats(d.stats);
     runningJobs = {};
     queueLabels = [];
-    setRunning(false, 0);
+    setRunning([]);
     renderQueue([], []);
+    smartCommProgress = {};
+    renderSmartCommProgress();
   });
 
   es.addEventListener('stopped', function (ev) {

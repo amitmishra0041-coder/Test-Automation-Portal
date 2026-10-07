@@ -6,7 +6,8 @@
   "scripts": {
     "test": "npx playwright test",
     "test:headed": "npx playwright test --headed",
-    "test:chromium": "npx playwright test --project=chromium"
+    "test:chromium": "npx playwright test --project=chromium",
+    "runner": "node runner/server.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,8 @@
     "axios": "^1.17.0",
     "deep-diff": "^1.0.2",
     "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
     "nodemailer": "^8.0.11",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.4",

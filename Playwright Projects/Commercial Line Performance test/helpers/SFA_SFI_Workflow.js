@@ -1,5 +1,6 @@
 // helpers/SFA_SFI_Workflow.js
 const { blinqClick } = require('../utils/blinqClick');
+const { randSSN } = require('./randomData');
 
 async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl, trackMilestone } = {}) {
     page.setDefaultTimeout(60000);
@@ -78,6 +79,28 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.waitForTimeout(1500);
     await dismissStatusModal();
+    console.log('Review Cart opened, locating submission row...');
+
+    // DIAGNOSTIC (Training env investigation): confirmed live that this can
+    // fail after every reload with no clue whether the #tblSubmitForApproval
+    // TABLE itself is even on the page (wrong screen after "Review Cart") or
+    // whether the table is present but this specific submission's row just
+    // hasn't synced into it yet. Log both possibilities explicitly on the
+    // FIRST check only - not on every reload - so the log stays readable.
+    try {
+        const tableCount = await page.locator('#tblSubmitForApproval').count();
+        if (tableCount === 0) {
+            console.log(`DIAGNOSTIC: #tblSubmitForApproval table not found on page at all. Current URL/heading: ${page.url()}`);
+            const heading = await page.locator('h1, h2, .page-title, [role="heading"]').first()
+                .textContent({ timeout: 2000 }).catch(() => null);
+            if (heading) console.log(`DIAGNOSTIC: page heading = "${heading.trim()}"`);
+        } else {
+            const rowTexts = await page.locator('#tblSubmitForApproval tbody tr').allTextContents().catch(() => []);
+            console.log(`DIAGNOSTIC: #tblSubmitForApproval table found with ${rowTexts.length} row(s): ${JSON.stringify(rowTexts.map(t => t.trim().slice(0, 80)))}`);
+        }
+    } catch (e) {
+        console.log(`DIAGNOSTIC: table-presence check failed: ${e.message.split('\n')[0]}`);
+    }
 
     // Scoped to the submission we're actually processing - an account can have
     // multiple entries in the cart (e.g. a separate Commercial Umbrella
@@ -91,16 +114,46 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     const submissionRow = page.locator('#tblSubmitForApproval tbody tr')
         .filter({ hasText: submissionNumber.toString() });
 
-    let submissionRowReady = await submissionRow.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
-    for (let attempt = 1; attempt <= 5 && !submissionRowReady; attempt++) {
-        console.log(`Submit For Approval row for ${submissionNumber} not visible yet (attempt ${attempt}) - reloading...`);
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
-        await page.waitForLoadState('networkidle').catch(() => {});
-        await page.waitForSelector('#tblSubmitForApproval', { timeout: 5000 }).catch(() => {});
+    // Adaptive instead of a fixed "5 reloads, N-second waits each" budget:
+    // poll cheaply first (no reload) since the cart table may just need an
+    // AJAX-driven refresh, which is far faster than a full page reload -
+    // only pay the expensive reload cost if that genuinely doesn't work,
+    // and time-box the whole thing rather than counting fixed attempts, so
+    // it exits the instant the row appears instead of always waiting out a
+    // per-attempt timeout.
+    let submissionRowReady = false;
+    const approvalPollDeadline = Date.now() + 15000;
+    while (Date.now() < approvalPollDeadline && !submissionRowReady) {
+        submissionRowReady = await submissionRow.first().isVisible().catch(() => false);
+        if (!submissionRowReady) await page.waitForTimeout(1000);
+    }
+
+    const approvalReloadDeadline = Date.now() + 90000;
+    let reloadAttempt = 0;
+    // Confirmed live: this loop spun 160-1929 "reload attempts" inside its
+    // 90s budget - physically impossible for real page.reload() cycles
+    // (~10s each), which only happens if the page/context went dead and
+    // every awaited call inside the loop was rejecting near-instantly
+    // instead of actually reloading. Bail out immediately once the page is
+    // gone instead of burning the full 90s spinning on a dead page, and cap
+    // attempts as a hard safety valve regardless of cause.
+    while (!submissionRowReady && Date.now() < approvalReloadDeadline && reloadAttempt < 20) {
+        if (!isPageAlive(page)) {
+            console.log('Page closed during Submit For Approval reload polling - stopping');
+            break;
+        }
+        reloadAttempt++;
+        console.log(`Submit For Approval row for ${submissionNumber} not visible yet (reload attempt ${reloadAttempt}) - reloading...`);
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await dismissStatusModal();
         submissionRowReady = await submissionRow.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
     }
 
+    if (!submissionRowReady) {
+        throw new Error(`Submit For Approval row for ${submissionNumber} never appeared after ${reloadAttempt} reload(s) - the captured quote/submission number may be wrong, or the submission never finished rating.`);
+    }
+    console.log('Submission row found, selecting checkbox...');
     const rowCheckbox = submissionRow.locator('input[type="checkbox"]').first();
     await rowCheckbox.check();
     await page.waitForLoadState('domcontentloaded');
@@ -108,10 +161,28 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     await page.waitForTimeout(400);
     await dismissStatusModal();
 
+    console.log('Clicking Request Purchase Approval...');
     await safeClickBtn(page.getByRole('button', { name: 'Request Purchase Approval' }), 'Request Purchase Approval');
+    console.log('Request Purchase Approval submitted, checking Federal ID...');
     // Shrunk from 1000ms - safeClickBtn() below already waits up to 30s for its target.
     await page.waitForTimeout(300);
     await dismissStatusModal();
+
+    // Confirmed live via screenshot: this "Client Information" panel's
+    // Federal ID Number can be blank here even though it was already filled
+    // during account creation - reusing the same dummy-SSN logic
+    // (randSSN(), same as accountCreationHelper.js) rather than leaving it
+    // empty and letting Send's own validation/retry silently eat time.
+    const federalIdInput = page.getByRole('textbox', { name: 'Federal ID Number' });
+    if (await federalIdInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+        const currentFederalId = await federalIdInput.inputValue().catch(() => '');
+        if (!currentFederalId.trim()) {
+            await federalIdInput.fill(randSSN());
+            console.log('Federal ID Number was blank on Request Purchase Approval screen - filled with dummy SSN');
+        }
+    }
+
+    console.log('Clicking Send...');
     await safeClickBtn(page.getByRole('button', { name: 'Send' }), 'Send');
     await page.waitForLoadState('domcontentloaded');
 
@@ -300,24 +371,44 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         return document.readyState === 'complete' && (!spinner || getComputedStyle(spinner).display === 'none');
     }, { timeout: 13000 }).catch(() => {});
 
-    // The backend can take a few seconds after UW approval to actually register
-    // the submission as ready for issuance, so the row may not be present on the
-    // first reload even though the table itself has rendered. Retry with fresh
-    // reloads (bounded) instead of assuming one reload is enough.
+    // The backend can take a while after UW approval to actually register the
+    // submission as ready for issuance. Confirmed live on both Training and QA:
+    // the old fixed 6-reload budget (~90s) regularly isn't enough, which left
+    // the unconditional row.check() below hanging the full 60s actionTimeout
+    // against a row that was always going to show up a little later and
+    // throwing a confusing low-level "locator.check: Timeout" instead of a
+    // clear "it never showed up" error. Mirrors the same two-phase
+    // poll-then-reload pattern already proven above for the Submit For
+    // Approval row: poll cheaply first (no reload - an AJAX-driven refresh
+    // can beat a full page reload), then fall back to bounded reloads under a
+    // generous overall time budget instead of a small fixed attempt count.
     const row = page.locator('#tblSubmitForIssuance tbody tr')
         .filter({ hasText: submissionNumber.toString() });
 
     let rowReady = false;
-    for (let attempt = 1; attempt <= 6 && !rowReady; attempt++) {
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
-        await page.waitForLoadState('networkidle').catch(() => {});
-        await page.waitForSelector('#tblSubmitForIssuance', { timeout: 5000 }).catch(() => {});
+    const issuancePollDeadline = Date.now() + 15000;
+    while (Date.now() < issuancePollDeadline && !rowReady) {
+        rowReady = await row.first().isVisible().catch(() => false);
+        if (!rowReady) await page.waitForTimeout(1000);
+    }
+
+    const issuanceReloadDeadline = Date.now() + 150000;
+    let issuanceAttempt = 0;
+    while (!rowReady && Date.now() < issuanceReloadDeadline && issuanceAttempt < 20) {
+        if (!isPageAlive(page)) {
+            console.log('Page closed during Submit For Issuance reload polling - stopping');
+            break;
+        }
+        issuanceAttempt++;
+        console.log(`Issuance row for ${submissionNumber} not visible yet (reload attempt ${issuanceAttempt}) - reloading...`);
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await dismissStatusModal();
         rowReady = await row.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
-        if (!rowReady) {
-            console.log(`Issuance row for ${submissionNumber} not visible yet (attempt ${attempt}) - retrying...`);
-            await page.waitForTimeout(3000);
-        }
+    }
+
+    if (!rowReady) {
+        throw new Error(`Issuance row for ${submissionNumber} never appeared after ${issuanceAttempt} reload(s) - the submission may still be propagating from UW approval, or the submission number may be wrong.`);
     }
 
     await row.locator('input[type="checkbox"]').check();
@@ -436,12 +527,34 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
             break;
         }
 
+        const policyCell = page.locator('#tblPolicies tbody tr:first-child td:nth-child(3)');
+
+        // Confirmed live in training env: page.reload() below was timing
+        // out on every single attempt for the full 10-minute budget, and
+        // since the table check only ran AFTER a successful reload, it
+        // never once looked at the current page - even though the policy
+        // number was already sitting on screen the whole time. Check
+        // before reloading so a slow/failing reload can't hide an answer
+        // that's already visible.
+        try {
+            const count = await safeCount(policyCell);
+            if (count > 0) {
+                const value = (await policyCell.textContent({ timeout: 5000 }))?.trim();
+                if (value) {
+                    policyNumber = value;
+                    console.log(`Policy Number Found (pre-reload check): ${policyNumber}`);
+                    break;
+                }
+            }
+        } catch (e) {
+            console.warn(`Poll attempt ${attempt} pre-reload check error (will retry): ${e.message}`);
+        }
+
         try {
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
             await page.waitForLoadState('networkidle').catch(() => {});
             await dismissStatusModal();
 
-            const policyCell = page.locator('#tblPolicies tbody tr:first-child td:nth-child(3)');
             const count = await safeCount(policyCell);
             if (count > 0) {
                 const value = (await policyCell.textContent({ timeout: 5000 }))?.trim();

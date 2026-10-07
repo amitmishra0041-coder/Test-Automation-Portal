@@ -131,16 +131,48 @@ async function processCoverageDropdowns(page) {
 
           let targetOption = null, targetValue = null, targetText = null;
 
+          // Confirmed live on CA/DE (Truck + Private Passenger Collision and
+          // Other Than Collision): when a field already holds a real value
+          // (e.g. "ACV"), the old logic picked the FIRST option that simply
+          // differed from it - including "No Coverage", if that happened to
+          // be first in that field's list. Declining a coverage that already
+          // had a real selection is a genuine downgrade, and for Collision/
+          // OTC specifically it left the companion Deductible field required
+          // but never re-enabled/filled, which WriteBiz's own validation
+          // then blocked with "Missing required field \"Deductible\"" -
+          // silently stalling on the Vehicles page's Next button.
+          // Fix: prefer the first REAL coverage option over "No Coverage",
+          // only falling back to "No Coverage" if it is the sole non-
+          // placeholder choice - so a dropdown that legitimately has no
+          // other option (or was already on "No Coverage") is unaffected.
+          let fallbackOption = null, fallbackValue = null, fallbackText = null;
+
           for (const opt of options) {
             const txt = (await opt.textContent())?.trim() || '';
             if (!txt || /^(nothing selected|select\.\.\.)$/i.test(txt)) continue;
-            if (isEmpty) {
-              targetOption = opt; targetValue = await opt.getAttribute('value'); targetText = txt;
-              break;
-            } else if (txt !== oldValue) {
+            const isCandidate = isEmpty || txt !== oldValue;
+            if (!isCandidate) continue;
+
+            if (!fallbackOption) { fallbackOption = opt; fallbackValue = await opt.getAttribute('value'); fallbackText = txt; }
+            if (!/^no coverage$/i.test(txt)) {
               targetOption = opt; targetValue = await opt.getAttribute('value'); targetText = txt;
               break;
             }
+          }
+
+          // Only fall back to "No Coverage" when the field was genuinely
+          // blank/placeholder and a REQUIRED field needs SOME value.
+          // Confirmed live: Truck/Private Passenger Collision and Other
+          // Than Collision Coverage Type each offer just two options -
+          // their existing real value (e.g. "ACV") and "No Coverage" -
+          // so the "prefer a real option" search above finds nothing
+          // better and still landed on "No Coverage", re-triggering the
+          // same "Missing required field Deductible" block. A field that
+          // already held a real, non-placeholder value is left exactly as
+          // it was rather than downgraded - it was already valid, so
+          // leaving it alone cannot newly break anything.
+          if (!targetOption && fallbackOption && isEmpty) {
+            targetOption = fallbackOption; targetValue = fallbackValue; targetText = fallbackText;
           }
 
           if (!targetOption) { processedIds.add(selectId); continue; }

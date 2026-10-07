@@ -20,6 +20,8 @@ parallel-run-lock-*.json
 # Generated Excel reports
 WB_Test_Report*.xlsx
 results/
+reports/pdf-compare/*.xlsx
+reports/jira/*.xlsx
 
 # Environment / secrets
 .env
@@ -35,3 +37,8 @@ Thumbs.db
 
 # Backup folders
 _BACKUP_*/
+.backup-*/
+
+# Python build artifacts
+__pycache__/
+*.pyc

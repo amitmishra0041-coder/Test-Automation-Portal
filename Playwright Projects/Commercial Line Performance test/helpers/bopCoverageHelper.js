@@ -19,32 +19,59 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
 
   await dismissStatusModal();
 
-  // ── Helper: click Yes/No by question text ──────────────────────────────────
-  async function clickYesNoByQuestion(questionSnippet, answer) {
-    const byXpath = page.locator(
-      'xpath=//*[contains(normalize-space(.), ' + JSON.stringify(questionSnippet) + ')]' +
-      '/following::label[contains(@class,"btn") and normalize-space(.)=' + JSON.stringify(answer) + '][1]'
-    ).first();
-    let clicked = false;
-    if (!clicked && await byXpath.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await byXpath.click({ force: true, timeout: 5000 }).catch(() => {});
-      clicked = true;
-      console.log('"' + questionSnippet.substring(0, 40) + '..." = ' + answer + ' (xpath)');
+  // ── Helper: answer every Yes/No question visible on the current screen ─────
+  // Confirmed live via screenshot: the UW Questions tab's question set
+  // varies by classification (e.g. "mortgagees on this property" vs
+  // "Condominiums, Co-ops, Associations - D&O Liability" vs "cremations for
+  // other funeral homes" depending on run) - hardcoding specific question
+  // text left whichever question didn't match completely unanswered,
+  // Continue then rejected/stayed disabled, and safeContinueClick's own
+  // retry loop burned through its budget before eventually muscling
+  // through with a force click. Answer whatever IS actually on screen
+  // instead of guessing the wording in advance.
+  async function answerAllYesNoQuestions(affirmativeKeywords = ['best of my knowledge']) {
+    // Three prior attempts assumed a markup problem (wrong tag, then
+    // whitespace, then a whole-page XPath leaf scan that matched unrelated
+    // "Yes" text elsewhere on the page - confirmed live it grabbed inline
+    // script text). Confirmed live via screenshot: the real markup IS the
+    // classic label.btn toggle-pill pattern the original code targeted -
+    // the actual bug is timing. This runs right after domcontentloaded with
+    // no wait for the UW Questions tab's own content (loaded separately) to
+    // render, so every attempt ran before the real rows existed. Wait for a
+    // real toggle first instead of guessing the selector again.
+    const toggleScope = 'label.btn, button, [role="button"]';
+    const yesButtons = page.locator(toggleScope).filter({ hasText: /^\s*Yes\s*$/i });
+    await yesButtons.first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+    const count = await yesButtons.count().catch(() => 0);
+    console.log('UW Questions: found ' + count + ' Yes/No question row(s)');
+    if (count === 0) {
+      // Still nothing - dump real candidates instead of guessing a fourth
+      // time. Any leaf whose exact text is Yes/No anywhere on the page.
+      const diag = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('body *'))
+          .filter(el => el.children.length === 0 && /^(Yes|No)$/.test((el.textContent || '').trim()))
+          .slice(0, 8)
+          .map(el => ({ tag: el.tagName, cls: el.className, html: el.outerHTML.slice(0, 150) }));
+      }).catch(() => []);
+      console.log('UW Questions: 0 rows - diagnostic candidates: ' + JSON.stringify(diag));
     }
-    if (!clicked) {
-      try {
-        const questionEl = page.locator('*').filter({ hasText: questionSnippet }).last();
-        const row = questionEl.locator('xpath=ancestor::tr[1] | ancestor::div[contains(@class,"row")][1] | ancestor::li[1]');
-        const answerBtn = row.locator('label.btn, button').filter({ hasText: new RegExp('^' + answer + '$') }).first();
-        if (await answerBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await answerBtn.click({ force: true });
-          clicked = true;
-          console.log('"' + questionSnippet.substring(0, 40) + '..." = ' + answer + ' (row sibling)');
+    for (let i = 0; i < count; i++) {
+      const yesBtn = yesButtons.nth(i);
+      const row = yesBtn.locator('xpath=ancestor::tr[1] | ancestor::div[contains(@class,"row")][1] | ancestor::li[1]').first();
+      const questionText = (await row.textContent().catch(() => '') || '').replace(/\s+/g, ' ').trim();
+      const isAffirmative = affirmativeKeywords.some(k => questionText.toLowerCase().includes(k.toLowerCase()));
+      if (isAffirmative) {
+        await yesBtn.click({ force: true }).catch(() => {});
+        console.log('UW Question: "' + questionText.slice(0, 70) + '" = Yes');
+      } else {
+        const noBtn = row.locator(toggleScope).filter({ hasText: /^\s*No\s*$/i }).first();
+        if (await noBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await noBtn.click({ force: true }).catch(() => {});
+          console.log('UW Question: "' + questionText.slice(0, 70) + '" = No');
+        } else {
+          console.log('UW Question: "' + questionText.slice(0, 70) + '" - No button not found, leaving unanswered');
         }
-      } catch (_) {}
-    }
-    if (!clicked) {
-      console.log('WARNING: could not find Yes/No toggle for: "' + questionSnippet.substring(0, 40) + '"');
+      }
     }
   }
 
@@ -62,6 +89,13 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     }
     await btn.click();
     await page.waitForTimeout(600);
+    // Read the real menu id from the button's own aria-owns instead of
+    // trusting the passed-in menuId - bootstrap-select's auto-generated
+    // bs-select-N number depends on how many other selectpickers exist on
+    // the page, which can shift by classification/state. aria-owns is
+    // always accurate at runtime; the parameter is just a fallback.
+    const realMenuId = await btn.getAttribute('aria-owns').catch(() => null);
+    const effectiveMenuId = realMenuId || menuId;
     const selected = await page.evaluate((mid) => {
       const menu = document.querySelector('#' + mid);
       if (!menu) return null;
@@ -71,7 +105,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         if (txt) { span.closest('a').click(); return txt; }
       }
       return null;
-    }, menuId);
+    }, effectiveMenuId);
     console.log(dataId + ' selected: ' + selected);
     await page.waitForFunction((did) => {
       const b = document.querySelector('button[data-id="' + did + '"]');
@@ -87,6 +121,59 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   // required." were blocking Save Building/Classification on every run -
   // these two fields were never being filled at all.
   async function selectBootstrapByLabel(labelText) {
+    // Confirmed live via screenshot: chaining these calls back-to-back with
+    // no settle time can fire while the PREVIOUS field's own change is still
+    // propagating (Guidewire's dependent-field postback re-renders parts of
+    // this panel), so the click either hits a stale/about-to-be-replaced
+    // button or silently doesn't take. Verify the value actually stuck and
+    // retry after a settle pause instead of trusting a single pass.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const label = page.getByText(labelText, { exact: true }).first();
+      if (!await label.isVisible({ timeout: 3000 }).catch(() => false)) {
+        console.log(labelText + ': label not found, skipping');
+        return false;
+      }
+      const btn = label.locator('xpath=following::button[1]');
+      if (!await btn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        console.log(labelText + ': dropdown button not found, skipping');
+        return false;
+      }
+      const currentTitle = await btn.getAttribute('title').catch(() => '');
+      if (currentTitle && currentTitle.trim() !== '' && currentTitle.trim() !== 'Nothing selected') {
+        console.log(labelText + ' already set: ' + currentTitle);
+        return true;
+      }
+      await btn.click();
+      await page.waitForTimeout(400);
+      const menuId = await btn.getAttribute('aria-owns');
+      const optionLocator = menuId
+        ? page.locator('#' + menuId + ' [role="option"], #' + menuId + ' li a')
+        : page.locator('.dropdown-menu.show [role="option"], .dropdown-menu.show li a');
+      const firstOpt = optionLocator.filter({ hasNotText: 'Nothing selected' }).first();
+      if (await firstOpt.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await firstOpt.click();
+        await page.waitForTimeout(300);
+        const finalVal = await btn.getAttribute('title').catch(() => '');
+        if (finalVal && finalVal.trim() !== '' && finalVal.trim() !== 'Nothing selected') {
+          console.log(labelText + ' selected: ' + finalVal);
+          return true;
+        }
+        console.log(labelText + ': selection did not stick (attempt ' + attempt + ') - retrying after settle');
+      } else {
+        console.log(labelText + ': dropdown opened but no selectable options found (attempt ' + attempt + ')');
+      }
+      await page.waitForTimeout(700);
+    }
+    console.log(labelText + ': failed to select after 3 attempts');
+    return false;
+  }
+
+  // ── Helper: same label-lookup as selectBootstrapByLabel, but targets a
+  // specific option text instead of just "first real option". Confirmed
+  // live via screenshot (WI): the "Property Type" field on Bldg Details had
+  // no fill logic at all and needs to land on "Auto Services" specifically,
+  // not just whatever happens to be first in the list.
+  async function selectBootstrapByLabelText(labelText, preferredText) {
     const label = page.getByText(labelText, { exact: true }).first();
     if (!await label.isVisible({ timeout: 3000 }).catch(() => false)) {
       console.log(labelText + ': label not found, skipping');
@@ -98,7 +185,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       return false;
     }
     const currentTitle = await btn.getAttribute('title').catch(() => '');
-    if (currentTitle && currentTitle.trim() !== '' && currentTitle.trim() !== 'Nothing selected') {
+    if (currentTitle && currentTitle.trim() === preferredText) {
       console.log(labelText + ' already set: ' + currentTitle);
       return true;
     }
@@ -108,9 +195,13 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     const optionLocator = menuId
       ? page.locator('#' + menuId + ' [role="option"], #' + menuId + ' li a')
       : page.locator('.dropdown-menu.show [role="option"], .dropdown-menu.show li a');
-    const firstOpt = optionLocator.filter({ hasNotText: 'Nothing selected' }).first();
-    if (await firstOpt.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await firstOpt.click();
+    let target = optionLocator.filter({ hasText: preferredText }).first();
+    if (!await target.isVisible({ timeout: 2000 }).catch(() => false)) {
+      console.log(labelText + ': "' + preferredText + '" option not found, falling back to first available');
+      target = optionLocator.filter({ hasNotText: 'Nothing selected' }).first();
+    }
+    if (await target.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await target.click();
       await page.waitForTimeout(300);
       const finalVal = await btn.getAttribute('title').catch(() => '');
       console.log(labelText + ' selected: ' + finalVal);
@@ -163,7 +254,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       await page.keyboard.press('Control+A');
       await page.keyboard.press('Delete');
       await page.waitForTimeout(300);
-      await page.keyboard.type(strVal, { delay: 100 });
+      await page.keyboard.type(strVal, { delay: 50 });
       await page.waitForTimeout(300);
       await input.blur();
       await page.waitForTimeout(1000);
@@ -180,7 +271,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       try {
         await locator.click({ clickCount: 3 });
         await page.keyboard.press('Delete');
-        await page.keyboard.type(strVal, { delay: 50 });
+        await page.keyboard.type(strVal, { delay: 30 });
         await locator.blur();
         await page.waitForTimeout(300);
 
@@ -208,7 +299,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       try {
         await input.click({ clickCount: 3 });
         await page.keyboard.press('Delete');
-        await page.keyboard.type(typeText, { delay: 100 });
+        await page.keyboard.type(typeText, { delay: 50 });
         await page.waitForTimeout(1000);
 
         const suggestion = page.locator(
@@ -252,7 +343,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   // phrase matched, not just the field's own label) - the value stayed
   // "Unknown" and Calculate Now kept failing. Anchor on the label's own EXACT
   // text instead, then verify the input actually changed before proceeding.
-  async function selectConstructionClassVerified(verisk360Modal, attempts = 3) {
+  async function selectConstructionClassVerified(attempts = 3) {
     const classLabel = page.getByText('Construction Class', { exact: true }).first();
     if (!await classLabel.isVisible({ timeout: 5000 }).catch(() => false)) {
       console.log('Construction Class label not found on Structure Options screen');
@@ -267,77 +358,57 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         return true;
       }
       try {
-        await classInput.click();
-        await page.waitForTimeout(700);
+        // Per user direction: stop relying on clicking a pre-rendered
+        // option in the full unfiltered list - neither an untrusted
+        // synthetic dispatchEvent click NOR a real trusted Playwright click
+        // via role=option/mat-option made any difference (both hit the
+        // identical "input value updates but widget's committed state
+        // stays Unknown" race). This field is a "searchable-select"
+        // (iv360-searchable-select-input) - the "Use" field on screen 1 is
+        // the SAME kind of widget and has been reliable all session by
+        // TYPING to filter the list first, then selecting, rather than
+        // opening the full list and hunting for a match. Apply that
+        // identical, proven approach here: clear the field and type a
+        // substring only "1 - Frame" matches (no other option contains
+        // "Frame"), narrowing the list to one unambiguous result.
+        await classInput.click({ clickCount: 3 });
+        await page.keyboard.press('Delete');
+        await page.keyboard.type('Frame', { delay: 50 });
+        await page.waitForTimeout(1000);
 
-        // Confirmed live via screenshot: the open list is
-        // (blank) / Unknown / 1 - Frame / 2 - Joisted Masonry / ... with
-        // "Unknown" highlighted as the current value. Playwright's own
-        // getByText()/ArrowDown+Enter could not reliably hit this widget
-        // (getByText found nothing visible; ArrowDown+Enter just blanked the
-        // field instead of landing on "1 - Frame") - go straight to the DOM
-        // and click the option's own leaf element directly, dispatching a
-        // realistic mousedown/mouseup/click sequence since custom
-        // combobox/autocomplete widgets often bind to mousedown rather than
-        // the synthetic click a plain .click() call produces.
-        const clickedViaJs = await page.evaluate(() => {
-          const isVisible = (el) => !!el.offsetParent;
-          const candidates = [...document.querySelectorAll('li, div, span, a, option')];
-          const target = candidates.find(el =>
-            el.children.length === 0 && isVisible(el) &&
-            /^1\s*-\s*Frame$/i.test((el.textContent || '').trim())
-          );
-          if (!target) return false;
-          target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-          target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-          target.click();
-          // The click sets the visible input's value, but if the widget's
-          // internal framework state (React/Angular binding) only updates on
-          // input/change - not on click - Calculate Now's own validation can
-          // still see the OLD "Unknown" state even though the field visibly
-          // shows "1 - Frame". Confirmed live: this happened on CP running
-          // the identical sequence, so it is timing/event-binding sensitive
-          // rather than a missing element.
-          const activeInput = document.activeElement;
-          if (activeInput && (activeInput.tagName === 'INPUT' || activeInput.tagName === 'SELECT')) {
-            activeInput.dispatchEvent(new Event('input', { bubbles: true }));
-            activeInput.dispatchEvent(new Event('change', { bubbles: true }));
-            activeInput.dispatchEvent(new Event('blur', { bubbles: true }));
-          }
-          return true;
-        }).catch(() => false);
+        const suggestion = page.locator(
+          '.dropdown-menu.show li:has-text("1 - Frame"), ' +
+          '[role="option"]:has-text("1 - Frame"), ' +
+          'mat-option:has-text("1 - Frame"), ' +
+          'li:has-text("1 - Frame")'
+        ).first();
 
-        if (clickedViaJs) {
-          console.log('Construction Class: clicked "1 - Frame" via direct DOM search');
+        if (await suggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await suggestion.click();
+          console.log('Construction Class: selected "1 - Frame" via filtered suggestion');
         } else {
-          console.log('Construction Class: "1 - Frame" not found in DOM - trying ArrowDown+Enter');
+          console.log('Construction Class: filtered suggestion not visible - trying ArrowDown+Enter');
           await page.keyboard.press('ArrowDown');
           await page.waitForTimeout(300);
           await page.keyboard.press('Enter');
         }
-        // Widened from 500ms - confirmed live that Calculate Now can still
-        // fail to appear right after this selection even though the input
-        // value is already correct, suggesting the app needs more time to
-        // process the selection before its own validation/next-button logic
-        // catches up.
         await page.waitForTimeout(1200);
       } catch (e) {
         console.log('Construction Class attempt ' + i + ' error: ' + e.message.split('\n')[0]);
       }
       const after = (await classInput.inputValue().catch(() => '')).trim();
       console.log('Construction Class attempt ' + i + ': "' + after + '"');
-      if (after && !/unknown/i.test(after)) {
-        // The raw input value can update even when the widget's own
-        // committed state does not - confirmed live on CP: Calculate Now got
-        // clicked but never advanced past screen 2, and the modal's OWN
-        // rendered text still showed "Construction Class ... Unknown"
-        // despite inputValue() reporting "1 - Frame". Cross-check the
-        // widget's rendered text before trusting the input value alone.
-        const modalText = await verisk360Modal.innerText().catch(() => '');
-        const stillShowsUnknown = /Construction Class[\s\S]{0,40}Unknown/i.test(modalText);
-        if (!stillShowsUnknown) return true;
-        console.log('Construction Class attempt ' + i + ': input value shows "' + after + '" but modal still renders "Unknown" - retrying');
-      }
+      // Reverted the modal-text cross-check added earlier: it matched
+      // "Construction Class ... Unknown" against the whole modal's text,
+      // but the diagnostic dump shows a SEPARATE element,
+      // class="iv360-originalDefaultsText" with text "Unknown" - almost
+      // certainly a permanent "original value" reference label, not live
+      // current state. That made the cross-check a false positive,
+      // rejecting a genuinely valid "1 - Frame" selection every time and
+      // forcing pointless retries. Trust inputValue() directly, exactly
+      // like the proven selectUseVerified() above does for the Use field -
+      // it never cross-checks the modal text either.
+      if (after && !/unknown/i.test(after)) return true;
     }
 
     // Still stuck - reopen the dropdown and dump every visible leaf element
@@ -447,8 +518,24 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   console.log('BOP - Details tab...');
   const bizTypeSelect = page.locator('#ddlBusinessType');
   if (await bizTypeSelect.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await bizTypeSelect.selectOption('Apartment');
-    console.log('Business type: Apartment');
+    // Was selectOption('Auto services') - a guessed literal option value.
+    // Confirmed live across all 4 states: "did not find some options" after
+    // the full 60s retry budget, since that string never matched any real
+    // <option value="..."> - identical bug class to the Property Type field
+    // above, just earlier in the flow and blocking everything downstream.
+    // Inspect the real options instead of guessing the value string.
+    const bizTypeValue = await bizTypeSelect.evaluate(el => {
+      const opts = Array.from(el.options);
+      const match = opts.find(o => /auto\s*services/i.test(o.textContent) || /auto\s*services/i.test(o.value));
+      const first = opts.find(o => o.value && o.value.trim() !== '');
+      return (match || first || {}).value || null;
+    });
+    if (bizTypeValue) {
+      await bizTypeSelect.selectOption(bizTypeValue);
+      console.log('Business type selected: ' + bizTypeValue);
+    } else {
+      console.log('Business type: no options available to select');
+    }
   }
   await dismissStatusModal();
   await safeNextClick(); // Details → Coverages
@@ -564,11 +651,29 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await dismissStatusModal();
   trackMilestone('BOP Locations Tab Completed');
 
+  // Widened from 5s - confirmed live that missing this window left the
+  // screen unsaved (still on CLBOPLocationAdditionalCoverages.aspx, whose
+  // only real button is "Save Location") and silently fell through into
+  // the State Specific Info loop below, which then hunted for a "Next "
+  // button that does not exist on this screen - a 30s dead timeout with no
+  // trace of what actually went wrong.
   const saveLocationBtn = page.locator('#btnNext_CLBOPLocationAdditionalCoverages');
-  if (await saveLocationBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+  const saveLocationVisible = await saveLocationBtn.waitFor({ state: 'visible', timeout: 20000 })
+    .then(() => true).catch(() => false);
+  if (saveLocationVisible) {
     await saveLocationBtn.click();
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
+  } else {
+    const saveLocationTextBtn = page.getByRole('button', { name: 'Save Location' });
+    if (await saveLocationTextBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await saveLocationTextBtn.click();
+      await page.waitForLoadState('domcontentloaded');
+      await dismissStatusModal();
+      console.log('Save Location clicked via text fallback');
+    } else {
+      console.log('Save Location button not found by id or text after waiting - continuing (may already be past this screen)');
+    }
   }
 
   // ── State Specific Info tab ────────────────────────────────────────────────
@@ -682,6 +787,8 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     console.log('Building description: Main building');
   }
 
+  await selectBootstrapByLabelText('Property Type', 'Auto Services');
+
   await selectBootstrapFirst('ddlConstructionType', 'bs-select-6');
 
   const yearField = page.locator('#txtYearOfConstruction');
@@ -701,11 +808,50 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   console.log('Moved to Bldg Cov tab');
 
   // ── Bldg Cov tab ──────────────────────────────────────────────────────────
-  const structureSection = page.locator('#xacc_BP7StructureBuilding');
-  if (await structureSection.count() > 0) {
-    await structureSection.getByTitle('Add Coverage').click().catch(() => {});
+  // Confirmed live: structureSection.count() is an instant, non-polling
+  // check - if the Bldg Cov page had not fully rendered by that exact
+  // millisecond, it read 0 even though the section (and the whole Rating
+  // Basis/Estimator/Construction Class/Limit block behind it) existed a
+  // moment later, silently skipping the entire Building coverage section
+  // with zero trace. Poll for the real, confirmed-working signal (the "Add
+  // Coverage" icon itself) instead of an instant count on the container.
+  const structureAddCoverageIcon = page.locator('[title="Add Coverage"][coverageid="BP7StructureBuilding"]');
+  const hasStructureBuilding = await structureAddCoverageIcon.waitFor({ state: 'visible', timeout: 8000 })
+    .then(() => true).catch(() => false);
+  if (hasStructureBuilding) {
+    // Confirmed live via screenshot: the "Building" coverage panel can stay
+    // COLLAPSED because this click was silently swallowed by .catch(() =>
+    // {}) with no visibility wait and no logging - the whole rest of this
+    // section (Rating Basis, Estimator, Construction Class, Limit, % Owner
+    // Occupied) then got skipped with zero trace of why. Confirmed live via
+    // the actual element HTML: <i title="Add Coverage"
+    // coverageid="BP7StructureBuilding" onclick="...addCoverage(...)"
+    // class="fa fa-plus-circle cardAdd"> - this icon carries its own
+    // coverageid attribute, so target it directly by that instead of
+    // scoping through #xacc_BP7StructureBuilding, which may not actually
+    // contain it (that id likely belongs to the panel body that only
+    // appears AFTER this icon is clicked, not the header the icon lives
+    // in) - a plausible reason the scoped search kept finding nothing.
+    const addCoverageBtn = structureAddCoverageIcon;
+    await addCoverageBtn.click();
+    console.log('Building coverage panel: Add Coverage clicked');
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
+
+    // Verify the panel actually expanded - if the Rating Basis dropdown
+    // still is not there after a real wait, the panel is genuinely
+    // collapsed/unopened and everything below will silently no-op.
+    const ratingBasisBtn = page.locator('button[data-id="ddlBP7RatingBasis"]');
+    const ratingBasisVisible = await ratingBasisBtn.waitFor({ state: 'visible', timeout: 8000 })
+      .then(() => true).catch(() => false);
+    if (!ratingBasisVisible) {
+      console.log('Building coverage panel: Rating Basis still not visible after expand attempt - retrying Add Coverage click');
+      await addCoverageBtn.click({ force: true }).catch(() => {});
+      await page.waitForLoadState('domcontentloaded');
+      await dismissStatusModal();
+      const retryVisible = await ratingBasisBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+      console.log('Building coverage panel: Rating Basis visible after retry? ' + retryVisible);
+    }
 
     await selectBootstrapFirst('ddlBP7RatingBasis', 'bs-select-1');
 
@@ -833,7 +979,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         // a valid selection. Please reopen the Estimator and select a valid
         // Construction Class before importing." Confirmed live via
         // screenshot - fix it before ever clicking CALCULATE NOW.
-        const constructionClassOk = await selectConstructionClassVerified(verisk360Modal);
+        const constructionClassOk = await selectConstructionClassVerified();
 
         // CALCULATE NOW (screen 2) onward - skip the whole rest of the wizard
         // if Construction Class could not be fixed, since clicking Calculate
@@ -940,21 +1086,6 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       await closeAnyBlockingDialog();
       await dismissStatusModal();
 
-      // Verify the estimator actually put a value somewhere - there is no
-      // known field id for the BOP Structure Building limit yet (unlike CP's
-      // txt_CP7Limit52), so dump every visible numeric-looking input in the
-      // Structure Building section. If Import Data worked, one of these
-      // should now hold a real (non-zero, non-blank) value; if they are all
-      // still 0/blank, the estimator silently failed to save its data.
-      const limitDiag = await page.evaluate(() => {
-        const section = document.querySelector('#xacc_BP7StructureBuilding');
-        if (!section) return { found: false };
-        const inputs = [...section.querySelectorAll('input')]
-          .filter(el => el.offsetParent !== null)
-          .map(el => ({ id: el.id, name: el.name, value: el.value }));
-        return { found: true, inputs };
-      }).catch(() => ({ found: false }));
-      console.log('Structure Building limit-candidate fields after estimator: ' + JSON.stringify(limitDiag));
     } // end estimator
 
     // % Owner Occupied
@@ -973,49 +1104,31 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await dismissStatusModal();
 
 // ── Class Details tab ──────────────────────────────────────────────────────
-  // Reverted per user direction: the "open grid icon, click first available
-  // row" replacement left Classification Description blank (WB's own
-  // validation then blocked Next with "Classification Description must have
-  // a valid value" etc, confirmed live via screenshot) because the grid
-  // popup this icon opens does not expose rows through any of the selectors
-  // tried. Back to the type-ahead search that was proven working across
-  // multiple runs, with the grid-icon click kept only as a fallback.
-  const classInput = page.locator('#txtClassificationDescriptionValueAutoComplete_input, #txtClassificationDescriptionValueAutoComplete').first();
-  const classLookupIcon = page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll > .input-group-text > .fas');
+  // Per user direction: replicate the same grid-lookup logic already proven
+  // working for CP's Special Classes lookup (identical UI pattern - a
+  // _displayAll icon opens a grid, the first row in its _resultsTable is
+  // picked) instead of hardcoding a specific classification text that does
+  // not exist for every Property Type. An earlier attempt at this failed
+  // because it only gave the grid ~800ms to render before checking for rows
+  // with a 3s timeout; CP's own working code waits up to 8s for the first
+  // result row to appear, which is the timing this actually needs.
+  const classLookupTrigger = page.locator('#txtClassificationDescriptionValueAutoComplete_displayAll');
+  const classLookupVisible = await classLookupTrigger.waitFor({ state: 'visible', timeout: 5000 })
+    .then(() => true).catch(() => false);
 
-  if (await classInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-    // Type to filter — much faster than opening full lookup grid
-    await classInput.click({ clickCount: 3 });
-    await classInput.type('Over 4 families with no office occupancy', { delay: 80 });
-    // Shrunk from 800ms - firstSuggestion.isVisible({timeout}) below already polls.
-    await page.waitForTimeout(300);
-
-    // Pick first result from autocomplete dropdown
-    const firstSuggestion = page.locator(
-      '#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr, ' +
-      '.ui-autocomplete .ui-menu-item, ' +
-      '[role="option"]:has-text("Over 4 families with no office occupancy")'
-    ).first();
-
-    if (await firstSuggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await firstSuggestion.click({ force: true });
-      console.log('Classification selected via type-ahead');
+  if (classLookupVisible) {
+    await classLookupTrigger.click();
+    const firstClassRow = page.locator('#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr').first();
+    const firstClassRowVisible = await firstClassRow.waitFor({ state: 'visible', timeout: 8000 })
+      .then(() => true).catch(() => false);
+    if (firstClassRowVisible) {
+      await firstClassRow.click();
+      console.log('Classification selected: first available option from grid lookup');
     } else {
-      // Fallback: open full lookup grid
-      if (await classLookupIcon.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await classLookupIcon.click();
-        await page.getByRole('gridcell', { name: 'Over 4 families with no office occupancy' }).click().catch(async () => {
-          await page.locator('#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr').first().click().catch(() => {});
-        });
-        console.log('Classification selected via grid lookup');
-      }
+      console.log('Classification grid lookup opened but no rows found within 8s');
     }
-  } else if (await classLookupIcon.isVisible({ timeout: 3000 }).catch(() => false)) {
-    // Input not found — fall back to icon click
-    await classLookupIcon.click();
-    await page.locator('#txtClassificationDescriptionValueAutoComplete_resultsTable tbody tr').first()
-      .click({ timeout: 10000 }).catch(() => {});
-    console.log('Classification selected via icon fallback');
+  } else {
+    console.log('Classification lookup icon not found - skipping');
   }
 
 
@@ -1069,6 +1182,18 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   // dropdowns were never being filled at all.
   await selectBootstrapByLabel('Class Group');
   await selectBootstrapByLabel('Liability Exposure Base');
+  // Confirmed live via screenshot (Automobile Body Shops classification):
+  // "Gasoline sales is required." - same gap, this conditional field (only
+  // appears for some classifications) had no fill logic either.
+  // Was selectBootstrapByLabel(...) - confirmed live via inspect element its
+  // Locator-based option .click() can leave the button's title showing
+  // "Yes" (decorative state) without actually syncing the underlying
+  // <select id="ddlClassificationGasolineSales">, so validation still sees
+  // it unfilled. Now that we have the real data-id/menu-id, use
+  // selectBootstrapFirst instead - it clicks options via an in-page
+  // evaluate() call, the same mechanism already proven reliable for
+  // Construction Type/Roof Type.
+  await selectBootstrapFirst('ddlClassificationGasolineSales', 'bs-select-4');
 
   await page.waitForTimeout(1000);
   await safeNextClick(); // Class Details → Class Cov
@@ -1115,29 +1240,84 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await dismissStatusModal();
 
   // ── Save Building ──────────────────────────────────────────────────────────
-  // Confirmed live via diagnostic: this screen's actual visible buttons were
-  // ["Return to Summary","Collapse All Coverages","Next","Previous"] - no
-  // "Save Building/Classification" text anywhere - so the safeClick fallback
-  // was guaranteed to time out every time. Try "Next" before giving up,
-  // mirroring the same "Continue " vs "Next " mismatch already fixed in
-  // safeContinueClick.
+  // Confirmed live via diagnostic: which real button is present on this
+  // screen varies by run - some show only "Save Building/Classification",
+  // others only "Next ". Trying one for a fixed window (8s) then switching
+  // to the other failed even when the first one WAS actually present, just
+  // not rendered yet within that window (the diagnostic dump proved it was
+  // there right after we'd already given up and moved on). Poll for
+  // whichever real button appears first instead of committing to an order.
   const saveClassBtn = page.locator('#btnNext_CLBOPBuildingClassificationAdditionalCoverages');
   if (await saveClassBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    // Confirmed live: the button can become visible/clickable before the
+    // Class Add'l Cov grid has actually finished rendering right after
+    // landing on this sub-tab - give it a beat to settle before submitting.
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(800);
     await saveClassBtn.click();
   } else {
-    const saveTextBtn = page.getByRole('button', { name: 'Save Building/Classification' });
-    const saveTextVisible = await saveTextBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
-    if (saveTextVisible) {
-      await safeClick(saveTextBtn);
-    } else {
-      console.log('"Save Building/Classification" not found - trying "Next" instead');
+    // Confirmed live: a single race between "Save Building/Classification"
+    // and "Next " isn't enough - this screen can have multiple sub-steps
+    // (e.g. an "Exclusions" tab) where "Next " is the real button for one
+    // step, only for "Save Building/Classification" to be the real button
+    // on the NEXT step after that. Loop through intermediate "Next " clicks
+    // until the actual Save button shows up, instead of treating a single
+    // "Next " click as the end of the job.
+    // Was getByRole('button', {name: 'Save Building/Classification'}) - a
+    // guessed accessible-name match. Confirmed live via inspect element this
+    // button's real id is the same btnNext_CLBOPBuildingClassificationAdditionalCoverages
+    // as saveClassBtn above; using the id directly is more precise than
+    // recomputing an accessible name, and this loop still earns its keep by
+    // polling across intermediate "Next " sub-steps before the id-matched
+    // button actually appears.
+    const saveTextBtn = page.locator('#btnNext_CLBOPBuildingClassificationAdditionalCoverages');
+    const nextTextBtn = page.getByRole('button', { name: 'Next ' });
+    let saved = false;
+    for (let step = 1; step <= 5 && !saved; step++) {
+      const stepDeadline = Date.now() + 15000;
+      let which = null;
+      while (Date.now() < stepDeadline && !which) {
+        if (await saveTextBtn.isVisible().catch(() => false)) { which = 'save'; break; }
+        if (await nextTextBtn.isVisible().catch(() => false)) { which = 'next'; break; }
+        await page.waitForTimeout(500);
+      }
+      if (which === 'save') {
+        console.log(`"Save Building/Classification" button found (step ${step})`);
+        await safeClick(saveTextBtn);
+        saved = true;
+      } else if (which === 'next') {
+        console.log(`"Next" button found (step ${step}) - clicking through to next sub-screen`);
+        await safeNextClick();
+        await page.waitForLoadState('domcontentloaded');
+        await dismissStatusModal();
+      } else {
+        console.log(`Neither button appeared within 15s (step ${step})`);
+        break;
+      }
+    }
+    if (!saved) {
+      console.log('Save Building/Classification never confirmed clicked - trying Next as last resort');
       await safeNextClick();
     }
   }
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
   console.log('Building and classification saved');
-  await safeNextClick(); 
+
+  // Confirmed live: saving can surface a confirmation dialog with its own
+  // "Close" button, which sat over the page and made the immediate
+  // safeNextClick() below time out hunting for "Next " while the real
+  // blocking button was "Close".
+  const postSaveCloseBtn = page.getByRole('button', { name: 'Close' });
+  if (await postSaveCloseBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    console.log('Post-save Close dialog detected - dismissing');
+    await postSaveCloseBtn.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(300);
+  }
+  await closeAnyBlockingDialog();
+  await dismissStatusModal();
+
+  await safeNextClick();
   trackMilestone('BOP Buildings/Classifications Completed');
 
   // ── Blankets tab ───────────────────────────────────────────────────────────
@@ -1161,9 +1341,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
   await page.waitForLoadState('domcontentloaded');
   await dismissStatusModal();
 
-  await clickYesNoByQuestion('mortgagees on this property', 'No');
-  await clickYesNoByQuestion('cremations for other funeral homes', 'No');
-  await clickYesNoByQuestion('best of my knowledge', 'Yes');
+  await answerAllYesNoQuestions();
 
   await dismissStatusModal();
   await safeContinueClick();

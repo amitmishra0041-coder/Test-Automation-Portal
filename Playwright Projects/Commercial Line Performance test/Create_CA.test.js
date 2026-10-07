@@ -6,7 +6,7 @@ const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddr
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
-const { createAccountAndQualify } = require('./accountCreationHelper');
+const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
 const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./helpers/coverageHelpers');
 const fs   = require('fs');
 const path = require('path');
@@ -22,6 +22,13 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   const envName   = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
+  // Confirmed live: getEnvUrls() previously fell through to qa silently
+  // whenever the requested env's casing didn't match ENV_URLS' own key
+  // casing (e.g. TEST_ENV=Training vs the declared key "Training") - every
+  // run looked like it was hitting the requested env but wasn't. Logging
+  // the resolved URL makes that class of mismatch visible immediately
+  // instead of silently testing the wrong environment.
+  console.log(`Resolved environment "${envName}" -> writeBizUrl=${writeBizUrl}`);
 
   const allowedStates = Object.keys(STATE_CONFIG);
   let testState = String(process.env.TEST_STATE || 'DE').trim().toUpperCase();
@@ -31,6 +38,14 @@ test('CA Submission', async ({ page }, testInfo) => {
   }
   const stateConfig = getStateConfig(testState);
   console.log(`Running test for state: ${testState} (${stateConfig.name})`);
+
+  // Per user direction: on Training the only confirmed-working producer
+  // (Linda D. Strause, agency 0000988) is licensed in a specific state
+  // list. Running an unlicensed state there fails submission creation
+  // (see accountCreationHelper.js's getAgencyConfig) - skip cleanly rather
+  // than burning a full run on a state that can never succeed.
+  test.skip(isTrainingUrl(writeBizUrl) && !TRAINING_LICENSED_STATES.includes(testState),
+    `Skipping ${testState} on Training - producer Linda D. Strause is only licensed in: ${TRAINING_LICENSED_STATES.join(', ')}`);
 
   global.testData = {
     state: testState,
@@ -115,6 +130,35 @@ test('CA Submission', async ({ page }, testInfo) => {
     await fallback.click({ force: true });
   }
 
+  // Bootstrap-select dropdown OPTION menus (e.g. #bs-select-2-1) were being
+  // clicked directly with zero visibility wait throughout the Vehicles
+  // section - any transient render delay hung the full 60s actionTimeout
+  // with no diagnostic. Wait for the option first, and log clearly if it
+  // never appears instead of silently eating the whole timeout.
+  async function clickBsSelect(id, label) {
+    const opt = page.locator('#' + id);
+    const visible = await opt.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    if (visible) {
+      await opt.click();
+    } else {
+      await dumpNavFailureDiagnostic((label || id) + ' (bs-select option #' + id + ')');
+      await opt.click().catch(e => console.log((label || id) + ': click failed - ' + e.message.split('\n')[0]));
+    }
+  }
+
+  // Generic wait-then-click-with-diagnostic used for first-action-after-
+  // page-transition clicks (comboboxes, edit buttons) that previously fired
+  // as raw .click() calls with no visibility guard.
+  async function waitAndClick(locator, label, timeout = 15000) {
+    const visible = await locator.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
+    if (visible) {
+      await locator.click();
+    } else {
+      await dumpNavFailureDiagnostic(label);
+      await locator.click().catch(e => console.log(`${label}: click failed - ${e.message.split('\n')[0]}`));
+    }
+  }
+
   global.testData.retryCount = testInfo.retry || 0;
   currentStepStartTime       = new Date();
 
@@ -170,6 +214,26 @@ test('CA Submission', async ({ page }, testInfo) => {
       }
     }
     if (!clicked) await locator.click({ ...options, force: true });
+  }
+
+  // Mirrors the same diagnostic added to Create_Package.test.js/
+  // Create_BOP.test.js after several silent, hard-to-diagnose failures
+  // traced back to a button simply never appearing. Dumps what's actually
+  // on screen instead of leaving a bare TimeoutError with no clue whether
+  // the page is stuck on an earlier screen, showing an unhandled validation
+  // error, or something else entirely.
+  async function dumpNavFailureDiagnostic(label) {
+    const diag = await page.evaluate(() => ({
+      url: location.href,
+      heading: (document.querySelector('h1, h2, .gw-title, [role="heading"]')?.textContent || '').trim().slice(0, 200),
+      visibleButtons: [...document.querySelectorAll('button')]
+        .filter(el => el.offsetParent !== null)
+        .map(el => (el.textContent || '').trim()).filter(Boolean).slice(0, 15),
+      visibleErrors: [...document.querySelectorAll('[class*="error" i], [class*="alert" i], [class*="danger" i]')]
+        .filter(el => el.offsetParent !== null)
+        .map(el => (el.textContent || '').trim()).filter(Boolean).slice(0, 5),
+    })).catch(() => ({}));
+    console.log(`${label}: element not visible - page diagnostic: ${JSON.stringify(diag)}`);
   }
 
   async function safeNextClick() {
@@ -240,29 +304,61 @@ test('CA Submission', async ({ page }, testInfo) => {
     }
 
     // Commercial Auto checkbox
+    // Confirmed live on Training via a standalone diagnostic: selecting the
+    // rating state triggers a "Reloading products.." status modal
+    // (#dgic-status-message) that can take up to (and sometimes past) 60s to
+    // clear - far longer than dismissStatusModal()'s own ~25s ceiling. A
+    // force click fired while that modal still covers the checkbox lands ON
+    // THE MODAL, not the input (verified via elementFromPoint), and never
+    // actually checks the box - confirmed both a force click AND a plain
+    // click on the box's own <label> silently failed for this reason, while
+    // a raw coordinate click thrown right after the modal finally cleared
+    // succeeded immediately. Wait the modal out properly, then click and
+    // verify the box actually got checked rather than trusting the click.
     const autoInput = page.locator('#chk_commercialauto');
     await autoInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-    await autoInput.click({ force: true }).catch(() => {});
-    await page.waitForTimeout(500);
-    console.log('Commercial Auto checkbox clicked');
+    await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 120000 }).catch(() => {});
+    await dismissStatusModal();
+
+    let autoChecked = await autoInput.isChecked().catch(() => false);
+    for (let attempt = 0; attempt < 3 && !autoChecked; attempt++) {
+      await autoInput.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(500);
+      autoChecked = await autoInput.isChecked().catch(() => false);
+    }
+    if (!autoChecked) {
+      console.log('WARNING: Commercial Auto checkbox did not report checked after retries - product eligibility validation may block Next');
+    }
+    console.log('Commercial Auto checkbox clicked, checked =', autoChecked);
 
     await dismissStatusModal();
-    await page.getByRole('button', { name: 'Next' }).click();
+    await safeClick(page.getByRole('button', { name: 'Next' }));
 
     // Business Auto Coverage Form
+    // Was an instant count()>0 check - same bug class as the BOP Structure
+    // Building panel and the Delete Coverage button below: if the page
+    // hadn't rendered #ddlPolicyType at that exact millisecond (confirmed
+    // live on Training/DE - the page transition can be slower than usual),
+    // this read 0 and silently skipped selecting "Business Auto Coverage
+    // Form" entirely, leaving the flow one screen behind and making the
+    // very next step (the "Yes" button) hang for the full 30s timeout with
+    // no clue why. Give it a real wait before deciding it's genuinely absent.
     await page.getByText('Product Eligibility', { exact: true }).click().catch(() => {});
     const policySelect = page.locator('#ddlPolicyType').first();
-    if (await policySelect.count() > 0) {
-      await policySelect.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    const policySelectPresent = await policySelect.waitFor({ state: 'visible', timeout: 15000 })
+      .then(() => true).catch(() => false);
+    if (policySelectPresent) {
       try {
         await policySelect.selectOption({ value: 'Business Auto Coverage Form' });
         await page.waitForTimeout(500);
         console.log('Selected Business Auto Coverage Form');
       } catch (e) { console.log('selectOption failed for #ddlPolicyType:', e.message); }
+    } else {
+      await dumpNavFailureDiagnostic('#ddlPolicyType (Business Auto Coverage Form)');
     }
 
     await dismissStatusModal();
-    await page.getByRole('button', { name: 'Yes' }).click();
+    await safeClick(page.getByRole('button', { name: 'Yes' }));
 
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
@@ -308,31 +404,64 @@ test('CA Submission', async ({ page }, testInfo) => {
 
     if (yesTogglesCount > 0) {
       try {
-        const lastYes      = yesToggles.last();
-        const nestedYes    = lastYes.locator('input[type="radio"]');
+        // Was yesToggles.last() - picked by list position, so an eligibility
+        // question added/removed above the certification question would
+        // silently answer the wrong row. Identify it by its own text first,
+        // falling back to last position only if no row matches.
+        let targetYes = null;
+        for (let i = 0; i < yesTogglesCount; i++) {
+          const candidate = yesToggles.nth(i);
+          const row = candidate.locator('xpath=ancestor::tr[1] | ancestor::div[contains(@class,"row")][1] | ancestor::li[1]').first();
+          const rowText = ((await row.textContent().catch(() => '')) || '').toLowerCase();
+          if (/certif|best of (my|our) knowledge|true and correct/.test(rowText)) {
+            targetYes = candidate;
+            break;
+          }
+        }
+        if (!targetYes) {
+          console.log('Certification question not identified by text - falling back to last "Yes" toggle');
+          targetYes = yesToggles.last();
+        }
+        const nestedYes    = targetYes.locator('input[type="radio"]');
         const yesChecked   = await nestedYes.isChecked().catch(() => false);
-        const ariaPressed  = await lastYes.getAttribute('aria-pressed').catch(() => null);
-        const classAttr    = (await lastYes.getAttribute('class').catch(() => '')) || '';
+        const ariaPressed  = await targetYes.getAttribute('aria-pressed').catch(() => null);
+        const classAttr    = (await targetYes.getAttribute('class').catch(() => '')) || '';
         const alreadySelected = yesChecked || ariaPressed === 'true' || /active|selected|on/i.test(classAttr);
-        if (!alreadySelected && await lastYes.isVisible().catch(() => false)) {
-          await lastYes.scrollIntoViewIfNeeded({ timeout: 3000 });
-          await lastYes.click({ timeout: 5000 });
+        if (!alreadySelected && await targetYes.isVisible().catch(() => false)) {
+          await targetYes.scrollIntoViewIfNeeded({ timeout: 3000 });
+          await targetYes.click({ timeout: 5000 });
           console.log('Clicked Yes for certification question');
         }
       } catch (e) { console.log(`Could not click certification Yes: ${e.message.split('\n')[0]}`); }
     }
 
     await dismissStatusModal();
-    await page.getByRole('button', { name: 'Finish ' }).click();
+    await safeClick(page.getByRole('button', { name: 'Finish ' }));
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
     trackMilestone('Commercial Auto Product Eligibility Completed');
 
     // Prior carrier
+    // Was a hardcoded selectOption('Progressive') - not guaranteed to exist
+    // in every environment/state's carrier list. Pick the first real
+    // (non-placeholder) option instead, same "first available" pattern used
+    // for Classification Description / Secondary Class Code below.
     console.log('Waiting for prior carrier dropdown...');
     const priorCarrier = page.locator('#ddlPriorCarrier');
     await priorCarrier.waitFor({ state: 'visible', timeout: 30000 });
-    await priorCarrier.selectOption('Progressive');
+    const priorCarrierOptions = await priorCarrier.locator('option').all();
+    let priorCarrierSet = false;
+    for (const opt of priorCarrierOptions) {
+      const value = await opt.getAttribute('value');
+      const text  = ((await opt.textContent()) || '').trim();
+      if (value && text && !/select|none/i.test(text)) {
+        await priorCarrier.selectOption(value);
+        console.log(`Prior Carrier: selected "${text}"`);
+        priorCarrierSet = true;
+        break;
+      }
+    }
+    if (!priorCarrierSet) console.log('Prior Carrier: no valid option found, leaving default');
     await safeNextClick();
     trackMilestone('Policy Details Entered');
 
@@ -355,9 +484,16 @@ test('CA Submission', async ({ page }, testInfo) => {
     await dismissStatusModal();
 
     // Delete Coverage if present
+    // Was an instant count()>0 check - same bug class as the BOP Structure
+    // Building panel: if the page hadn't fully rendered at that exact
+    // millisecond, this read 0 and silently skipped a legitimately-present
+    // button. Give it a short window to actually appear before deciding
+    // it's genuinely absent.
     try {
       const deleteCoverageButton = page.locator('i[title="Delete Coverage"]').first();
-      if (await deleteCoverageButton.count() > 0) {
+      const deleteCoveragePresent = await deleteCoverageButton.waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true).catch(() => false);
+      if (deleteCoveragePresent) {
         console.log('Found Delete Coverage button, clicking...');
         await deleteCoverageButton.click({ timeout: 5000 });
         await page.waitForTimeout(500);
@@ -374,9 +510,14 @@ test('CA Submission', async ({ page }, testInfo) => {
     await dismissStatusModal();
 
     // ── Locations page ──────────────────────────────────────────────────────────
-    await page.locator('#tblCLAutoLocations button[data-action="edit"]').first().click();
+    // Both of these were raw .click() calls with no visibility wait - first
+    // action after a page transition, no fallback if the page took longer
+    // than expected to render.
+    const locationEditBtn = page.locator('#tblCLAutoLocations button[data-action="edit"]').first();
+    await waitAndClick(locationEditBtn, 'Locations edit button');
     await dismissStatusModal();
-    await page.getByRole('button', { name: 'Verify Address' }).click();
+    const verifyAddressBtn = page.getByRole('button', { name: 'Verify Address' });
+    await waitAndClick(verifyAddressBtn, 'Verify Address button');
 
     const statusModalAddr = page.locator('#dgic-status-message');
     if (await statusModalAddr.isVisible().catch(() => false))
@@ -451,6 +592,27 @@ test('CA Submission', async ({ page }, testInfo) => {
     await dismissStatusModal();
 
     await processCoverageDropdowns(page);
+
+    // Confirmed live on Training: "Number of Employees" is a required plain
+    // text input on this Details tab (marked with a red asterisk), which
+    // processCoverageDropdowns() never touches since it only fills <select>
+    // elements. Left empty, clicking Next later silently bounces the page
+    // back to this Details tab with a "Number of Employees is required"
+    // banner - which looked like every subsequent step (Vehicle Prefill,
+    // Add New Vehicle, ...) was stuck, when the flow had actually never
+    // left this tab at all. Fill it explicitly before proceeding.
+    const numEmployeesField = page.getByRole('textbox', { name: 'Number of Employees' });
+    const numEmployeesVisible = await numEmployeesField.isVisible({ timeout: 3000 }).catch(() => false);
+    if (numEmployeesVisible) {
+      const currentVal = await numEmployeesField.inputValue().catch(() => '');
+      if (!currentVal.trim()) {
+        await numEmployeesField.fill('5');
+        console.log('Number of Employees filled: 5');
+      }
+    } else {
+      console.log('Number of Employees field not visible - skipping (may not be required for this LOB/state combo)');
+    }
+
     await safeNextClick();
     trackMilestone('State specific info - Coverages');
 
@@ -458,44 +620,79 @@ test('CA Submission', async ({ page }, testInfo) => {
     trackMilestone('State specific info - Additional coverages');
 
     // ── Vehicles - Private passenger ────────────────────────────────────────────
-    await page.locator('#CLAutoVehiclePrefill_dialog_btn_1').click();
+    // Confirmed live: this raw .click() with no wait/fallback hung for the
+    // full 60s actionTimeout when the dialog didn't appear (or took longer
+    // than that to render), with no diagnostic to tell whether it was a
+    // timing issue or the dialog being genuinely absent this run.
+    const vehiclePrefillBtn = page.locator('#CLAutoVehiclePrefill_dialog_btn_1');
+    const vehiclePrefillVisible = await vehiclePrefillBtn.waitFor({ state: 'visible', timeout: 20000 })
+      .then(() => true).catch(() => false);
+    if (vehiclePrefillVisible) {
+      await vehiclePrefillBtn.click();
+    } else {
+      await dumpNavFailureDiagnostic('CLAutoVehiclePrefill_dialog_btn_1');
+      console.log('Vehicle Prefill dialog not visible after 20s - continuing without it');
+    }
     await dismissStatusModal();
-    await page.getByRole('combobox', { name: 'Add New Vehicle' }).click();
-    await page.locator('#bs-select-2-1').click();
+    await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (private passenger)');
+    await clickBsSelect('bs-select-2-1', 'Vehicle Type (private passenger)');
     await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
-    await page.locator('#bs-select-3-1').click();
+    await clickBsSelect('bs-select-3-1', 'Garaging Location (private passenger)');
     await page.getByRole('button', { name: 'Confirm' }).click();
     await dismissStatusModal();
     await page.locator('#txt_Vin').fill('1GBJ6C1BX8F416705');
     await page.getByText('Model *').click();
     await page.getByRole('combobox', { name: 'Please select' }).click();
-    await page.locator('#bs-select-2-1').click();
+    await clickBsSelect('bs-select-2-1', 'Model (private passenger)');
     await page.getByRole('textbox', { name: 'Original Cost New Of Vehicle' }).fill('15555');
     await safeNextClick();
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
     await dismissStatusModal();
-    //await processCoverageDropdowns(page);
+    // Confirmed live: this was commented out on both vehicle screens, unlike
+    // the identical sequence on the State Specific Info page above (which
+    // does call it) - leaving required vehicle coverage limits/options
+    // unset here, causing rating or a much later Save to fail for what
+    // looks like an unrelated reason.
+    await processCoverageDropdowns(page);
     await safeNextClick();
     await dismissStatusModal()
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
     trackMilestone('Vehicles Page: Private passenger Vehicle Added');
 
     // ── Vehicles - Truck ────────────────────────────────────────────────────────
-    await page.getByRole('combobox', { name: 'Add New Vehicle' }).click();
-    await page.locator('#bs-select-2-3').click();
+    await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (truck)');
+    await clickBsSelect('bs-select-2-3', 'Vehicle Type (truck)');
     await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
-    await page.locator('#bs-select-3-1').click();
+    await clickBsSelect('bs-select-3-1', 'Garaging Location (truck)');
     await page.getByRole('button', { name: 'Confirm' }).click();
     await dismissStatusModal();
     await page.locator('#txt_Vin').fill('1FDXX46F93EA79961');
     await page.locator('#xrgn_CLAutoVehiclesDetails_LeftColumn').click();
     await page.locator('#xrgn_BusinessUseClass_Trucks_Dropdown').getByRole('combobox', { name: 'Nothing selected' }).click();
-    await page.locator('#bs-select-3-0').click();
+    await clickBsSelect('bs-select-3-0', 'Business Use Class');
     await page.locator('#xrgn_RadiusClass_Dropdown').getByRole('combobox', { name: 'Nothing selected' }).click();
-    await page.locator('#bs-select-4-0').click();
+    await clickBsSelect('bs-select-4-0', 'Radius Class');
     await page.locator('#txt_SecondaryClassCode_Trucks_displayAll > .input-group-text').click();
-    await clickTextItem('03 - Truckers - Tow Trucks For-Hire');
+    // Confirmed live via BOP's Classification Description fix: this same
+    // "open a lookup grid icon, pick a row" widget pattern is fragile when
+    // hardcoded to one specific classification text - a different random
+    // account's available class list may not include "03 - Truckers - Tow
+    // Trucks For-Hire" at all, and clickTextItem() throws UNCAUGHT after
+    // 10s in that case, killing the whole test. Prefer picking the first
+    // available row from the grid (mirrors the proven BOP fix); fall back
+    // to the original hardcoded text only if that selector guess is wrong.
+    const secondaryClassRow = page.locator('#txt_SecondaryClassCode_Trucks_resultsTable tbody tr').first();
+    const secondaryClassRowVisible = await secondaryClassRow.waitFor({ state: 'visible', timeout: 8000 })
+      .then(() => true).catch(() => false);
+    if (secondaryClassRowVisible) {
+      await secondaryClassRow.click();
+      console.log('Secondary Class Code: selected first available option from grid lookup');
+    } else {
+      console.log('Secondary Class Code: grid lookup rows not found via #txt_SecondaryClassCode_Trucks_resultsTable - trying hardcoded fallback');
+      await clickTextItem('03 - Truckers - Tow Trucks For-Hire')
+        .catch(e => console.log('Secondary Class Code: hardcoded fallback also failed: ' + e.message.split('\n')[0]));
+    }
     await page.locator('#txt_GrossCombinedWeight').fill('5000');
     await page.getByRole('textbox', { name: 'Description of Permanently' }).fill('test desc');
     await page.getByRole('textbox', { name: 'Original Cost New Of Vehicle' }).fill('01555');
@@ -504,7 +701,12 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
     await dismissStatusModal();
-    //await processCoverageDropdowns(page);
+    // Confirmed live: this was commented out on both vehicle screens, unlike
+    // the identical sequence on the State Specific Info page above (which
+    // does call it) - leaving required vehicle coverage limits/options
+    // unset here, causing rating or a much later Save to fail for what
+    // looks like an unrelated reason.
+    await processCoverageDropdowns(page);
     await safeNextClick();
     await dismissStatusModal()
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));

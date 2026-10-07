@@ -7,7 +7,7 @@ const { randEmail, randCompany, randPhone, randFirstName, randLastName, randAddr
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
-const { createAccountAndQualify } = require('./accountCreationHelper');
+const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
 const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./helpers/coverageHelpers');
 const fs = require('fs');
 const path = require('path');
@@ -23,6 +23,10 @@ test('Package Submission', async ({ page }, testInfo) => {
 
     const envName = process.env.TEST_ENV || 'qa';
     const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
+    // See Create_CA.test.js for why this is logged: getEnvUrls() previously
+    // fell through to qa silently on a casing mismatch (e.g. TEST_ENV=Training
+    // vs the declared key "Training").
+    console.log(`Resolved environment "${envName}" -> writeBizUrl=${writeBizUrl}`);
 
     const allowedStates = Object.keys(STATE_CONFIG);
     let testState = (process.env.TEST_STATE || 'DE').toUpperCase();
@@ -32,6 +36,13 @@ test('Package Submission', async ({ page }, testInfo) => {
     }
     const stateConfig = getStateConfig(testState);
     console.log(`Running test for state: ${testState} (${stateConfig.name})`);
+
+    // See Create_CA.test.js for why: on Training the only confirmed-working
+    // producer (Linda D. Strause, agency 0000988) is licensed in a specific
+    // state list. Skip cleanly rather than burning a full run on a state
+    // that can never succeed there.
+    test.skip(isTrainingUrl(writeBizUrl) && !TRAINING_LICENSED_STATES.includes(testState),
+      `Skipping ${testState} on Training - producer Linda D. Strause is only licensed in: ${TRAINING_LICENSED_STATES.join(', ')}`);
 
     global.testData = {
         state: testState,
@@ -111,7 +122,13 @@ test('Package Submission', async ({ page }, testInfo) => {
     async function clickTextItem(text) {
         const gridItem = page.getByRole('gridcell', { name: text }).first();
         if (await gridItem.count() > 0) { await gridItem.click(); return; }
-        const fallback = page.locator(`text="${text}"`).first();
+        // getByText accepts a string OR a RegExp natively - building the
+        // locator as `text="${text}"` broke every RegExp caller (e.g.
+        // clickTextItem(/Car washes/)): template-string interpolation
+        // stringifies a RegExp to its literal source INCLUDING the slashes
+        // ("/Car washes/"), so the locator was searching for text that
+        // literally contains slashes and could never match real page text.
+        const fallback = page.getByText(text).first();
         await fallback.waitFor({ state: 'visible', timeout: 10000 });
         await fallback.click({ force: true });
     }
@@ -420,7 +437,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             await page.keyboard.press('Control+A');
             await page.keyboard.press('Delete');
             await page.waitForTimeout(500);
-            await page.keyboard.type(numericValue, { delay: 100 });
+            await page.keyboard.type(numericValue, { delay: 50 });
             await page.waitForTimeout(300);
             await locator.blur();
             await page.waitForTimeout(1500);
@@ -440,7 +457,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             try {
                 await locator.click({ clickCount: 3 });
                 await page.keyboard.press('Delete');
-                await page.keyboard.type(strVal, { delay: 50 });
+                await page.keyboard.type(strVal, { delay: 30 });
                 await locator.blur();
                 await page.waitForTimeout(300);
 
@@ -465,7 +482,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             try {
                 await input.click({ clickCount: 3 });
                 await page.keyboard.press('Delete');
-                await page.keyboard.type(typeText, { delay: 100 });
+                await page.keyboard.type(typeText, { delay: 50 });
                 await page.waitForTimeout(1000);
 
                 const suggestion = page.locator(
@@ -509,7 +526,7 @@ test('Package Submission', async ({ page }, testInfo) => {
     // phrase matched, not just the field's own label) - the value stayed
     // "Unknown" and Calculate Now kept failing. Anchor on the label's own
     // EXACT text instead, then verify the input actually changed.
-    async function selectConstructionClassVerified(verisk360Modal, attempts = 3) {
+    async function selectConstructionClassVerified(attempts = 3) {
         const classLabel = page.getByText('Construction Class', { exact: true }).first();
         if (!await classLabel.isVisible({ timeout: 5000 }).catch(() => false)) {
             console.log('Construction Class label not found on Structure Options screen');
@@ -524,80 +541,59 @@ test('Package Submission', async ({ page }, testInfo) => {
                 return true;
             }
             try {
-                await classInput.click();
-                await page.waitForTimeout(700);
+                // Per user direction: stop relying on clicking a pre-rendered
+                // option in the full unfiltered list - neither an untrusted
+                // synthetic dispatchEvent click NOR a real trusted Playwright
+                // click via role=option/mat-option made any difference (both
+                // hit the identical "input value updates but widget's
+                // committed state stays Unknown" race). This field is a
+                // "searchable-select" (iv360-searchable-select-input) - the
+                // "Use" field on screen 1 is the SAME kind of widget and has
+                // been reliable all session by TYPING to filter the list
+                // first, then selecting, rather than opening the full list
+                // and hunting for a match. Apply that identical, proven
+                // approach here: clear the field and type a substring only
+                // "1 - Frame" matches (no other option contains "Frame"),
+                // narrowing the list to one unambiguous result.
+                await classInput.click({ clickCount: 3 });
+                await page.keyboard.press('Delete');
+                await page.keyboard.type('Frame', { delay: 50 });
+                await page.waitForTimeout(1000);
 
-                // Confirmed live via screenshot: the open list is
-                // (blank) / Unknown / 1 - Frame / 2 - Joisted Masonry / ...
-                // with "Unknown" highlighted as the current value.
-                // Playwright's own getByText()/ArrowDown+Enter could not
-                // reliably hit this widget (getByText found nothing visible;
-                // ArrowDown+Enter just blanked the field instead of landing
-                // on "1 - Frame") - go straight to the DOM and click the
-                // option's own leaf element directly, dispatching a
-                // realistic mousedown/mouseup/click sequence since custom
-                // combobox/autocomplete widgets often bind to mousedown
-                // rather than the synthetic click a plain .click() produces.
-                const clickedViaJs = await page.evaluate(() => {
-                    const isVisible = (el) => !!el.offsetParent;
-                    const candidates = [...document.querySelectorAll('li, div, span, a, option')];
-                    const target = candidates.find(el =>
-                        el.children.length === 0 && isVisible(el) &&
-                        /^1\s*-\s*Frame$/i.test((el.textContent || '').trim())
-                    );
-                    if (!target) return false;
-                    target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                    target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                    target.click();
-                    // The click sets the visible input's value, but if the
-                    // widget's internal framework state (React/Angular
-                    // binding) only updates on input/change - not on click -
-                    // Calculate Now's own validation can still see the OLD
-                    // "Unknown" state even though the field visibly shows
-                    // "1 - Frame". Confirmed live: this happened on CP (BOP
-                    // ran fine on an identical sequence, so it is timing/
-                    // event-binding sensitive, not a missing element).
-                    const activeInput = document.activeElement;
-                    if (activeInput && (activeInput.tagName === 'INPUT' || activeInput.tagName === 'SELECT')) {
-                        activeInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        activeInput.dispatchEvent(new Event('change', { bubbles: true }));
-                        activeInput.dispatchEvent(new Event('blur', { bubbles: true }));
-                    }
-                    return true;
-                }).catch(() => false);
+                const suggestion = page.locator(
+                    '.dropdown-menu.show li:has-text("1 - Frame"), ' +
+                    '[role="option"]:has-text("1 - Frame"), ' +
+                    'mat-option:has-text("1 - Frame"), ' +
+                    'li:has-text("1 - Frame")'
+                ).first();
 
-                if (clickedViaJs) {
-                    console.log('Construction Class: clicked "1 - Frame" via direct DOM search');
+                if (await suggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
+                    await suggestion.click();
+                    console.log('Construction Class: selected "1 - Frame" via filtered suggestion');
                 } else {
-                    console.log('Construction Class: "1 - Frame" not found in DOM - trying ArrowDown+Enter');
+                    console.log('Construction Class: filtered suggestion not visible - trying ArrowDown+Enter');
                     await page.keyboard.press('ArrowDown');
                     await page.waitForTimeout(300);
                     await page.keyboard.press('Enter');
                 }
-                // Widened from 500ms - confirmed live that Calculate Now can
-                // still fail to appear on CP right after this selection even
-                // though the input value is already correct, suggesting the
-                // app needs more time to process the selection before its
-                // own validation/next-button logic catches up.
                 await page.waitForTimeout(1200);
             } catch (e) {
                 console.log(`Construction Class attempt ${i} error: ${e.message.split('\n')[0]}`);
             }
             const after = (await classInput.inputValue().catch(() => '')).trim();
             console.log(`Construction Class attempt ${i}: "${after}"`);
-            if (after && !/unknown/i.test(after)) {
-                // The raw input value can update even when the widget's own
-                // committed state does not - confirmed live: Calculate Now
-                // got clicked but never advanced past screen 2, and the
-                // modal's OWN rendered text still showed
-                // "Construction Class ... Unknown" despite inputValue()
-                // reporting "1 - Frame". Cross-check the widget's rendered
-                // text before trusting the input value alone.
-                const modalText = await verisk360Modal.innerText().catch(() => '');
-                const stillShowsUnknown = /Construction Class[\s\S]{0,40}Unknown/i.test(modalText);
-                if (!stillShowsUnknown) return true;
-                console.log(`Construction Class attempt ${i}: input value shows "${after}" but modal still renders "Unknown" - retrying`);
-            }
+            // Reverted the modal-text cross-check added earlier: it matched
+            // "Construction Class ... Unknown" against the whole modal's
+            // text, but the diagnostic dump shows a SEPARATE element,
+            // class="iv360-originalDefaultsText" with text "Unknown" -
+            // almost certainly a permanent "original value" reference
+            // label, not live current state. That made the cross-check a
+            // false positive, rejecting a genuinely valid "1 - Frame"
+            // selection every time and forcing pointless retries. Trust
+            // inputValue() directly, exactly like the proven
+            // selectUseVerified() above does for the Use field - it never
+            // cross-checks the modal text either.
+            if (after && !/unknown/i.test(after)) return true;
         }
 
         // Still stuck - reopen the dropdown and dump every visible leaf
@@ -921,6 +917,25 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(3000);
         await dismissStatusModal();
 
+        // Confirmed live on Training/DE: this "Edit Location" click failed
+        // with a 120s timeout because #dgic-modal-clcpplocationaddress was
+        // ALREADY open and intercepting pointer events on the button itself -
+        // left over from the earlier general-Locations "Edit Location" cycle
+        // above, whose only close signal was a best-effort clickIfExists('Save')
+        // with no wait for the modal to actually finish hiding. Wait for any
+        // stray modal to clear before attempting this second, CP-specific
+        // location edit rather than assuming the page is clean.
+        const staleLocationModal = page.locator('#dgic-modal-clcpplocationaddress, .modal.show');
+        if (await staleLocationModal.first().isVisible().catch(() => false)) {
+            console.log('CP Locations: a location modal was still open - waiting for it to close before Edit Location');
+            await staleLocationModal.first().waitFor({ state: 'hidden', timeout: 15000 }).catch(async () => {
+                console.log('CP Locations: stale modal did not close in time - forcing it closed');
+                await clickIfExists('Save');
+                await clickIfExists('Close');
+                await clickIfExists('Cancel');
+            });
+        }
+
         await page.getByTitle('Edit Location').click();
         await page.waitForTimeout(200);
         await dismissStatusModal();
@@ -1050,7 +1065,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                 // and skip the rest of the wizard entirely if it can't be
                 // fixed, since Calculate Now is guaranteed to reproduce the
                 // same error otherwise.
-                const constructionClassOk = await selectConstructionClassVerified(verisk360Modal);
+                const constructionClassOk = await selectConstructionClassVerified();
 
                 let importClicked = false;
                 if (constructionClassOk) {
@@ -1706,7 +1721,14 @@ test('Package Submission', async ({ page }, testInfo) => {
         let attempts = 0;
         console.log('Initial Status:', status);
 
-        while (status === 'Quote Requested' && attempts < 50) {
+        // "Draft" is a valid transient pre-rating state, same as "Quote
+        // Requested" - the quote row can appear in the table before the
+        // backend has finished transitioning it out of Draft. Treating only
+        // "Quote Requested" as "keep polling" meant a first read landing on
+        // "Draft" (confirmed live: "Quote did not reach 'Quoted' after 0
+        // attempts. Final: 'Draft'") skipped the loop entirely and failed
+        // immediately instead of waiting like it should have.
+        while ((status === 'Quote Requested' || status === 'Draft') && attempts < 50) {
             attempts++;
             const delay = nextPollDelayMs(attempts);
             console.log(`Attempt ${attempts}/50: waiting ${delay / 1000}s...`);

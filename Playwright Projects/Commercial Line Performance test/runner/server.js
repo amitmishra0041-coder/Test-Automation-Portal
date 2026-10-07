@@ -27,6 +27,11 @@ const { ENV_URLS } = require('../helpers/envConfig');
 // request. Every report sender here (nodemailer's `to`) already accepts a comma-separated address list, so
 // this just appends the owner's address instead of needing a separate CC mechanism.
 const ALWAYS_CC_EMAIL = 'amitmishra@donegalgroup.com';
+// Identifies who is submitting/stopping a run, so this shared, single-server tool can let a second,
+// different person in alongside whoever is already running something (see SUITE_MAX_PARALLEL below) and show
+// everyone who currently holds a session — added 2026-10-05 per user request ("tool can only be used by
+// one person at a time"). Same shape as the reportEmail checks already scattered through the job builders.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function withAlwaysCc(email) {
   const typed = String(email || '').trim();
   if (!typed) return ALWAYS_CC_EMAIL;
@@ -46,6 +51,7 @@ const JIRA_REPORTS_DIR = path.join(POLICY_DIR, 'reports', 'jira');
 const CC_UI_REPORTS_DIR = path.join(CLAIMS_DIR, 'results', 'ccUi');
 const S3_DOWNLOAD_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'downloadSmartCommFile.js');
 const S3_DOWNLOADS_DIR = path.join(CLAIMS_DIR, 'results', 's3Downloads');
+const SMARTCOMM_LIVE_PREVIEW_DIR = path.join(CLAIMS_DIR, 'results', 'smartComm', 'live-preview');
 const S3_ESTABLISH_SESSION_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'establishS3Session.js');
 // Mirrors scripts/jiraReport.js's ALL_TRACK_KEYS/TRACK_DEFS - kept as a
 // separate literal (not required in) so this server has zero dependency on
@@ -102,6 +108,7 @@ fs.mkdirSync(PDF_COMPARE_REPORTS_DIR, { recursive: true });
 fs.mkdirSync(JIRA_REPORTS_DIR, { recursive: true });
 fs.mkdirSync(CC_UI_REPORTS_DIR, { recursive: true });
 fs.mkdirSync(S3_DOWNLOADS_DIR, { recursive: true });
+fs.mkdirSync(SMARTCOMM_LIVE_PREVIEW_DIR, { recursive: true });
 
 // ── Catalogs (single source of truth - the UI just renders these) ──────────
 
@@ -175,6 +182,12 @@ app.use('/reports/pdf-compare', express.static(PDF_COMPARE_REPORTS_DIR));
 app.use('/reports/jira', express.static(JIRA_REPORTS_DIR));
 app.use('/reports/cc-ui', express.static(CC_UI_REPORTS_DIR));
 app.use('/reports/s3-download', express.static(S3_DOWNLOADS_DIR));
+// SmartCOMM Interactive-mode live preview — screenshots livePreviewService.js (ClaimCenter-Automation)
+// writes per scenario, polled by the Runner UI's own #smartCommProgressCard (see its live-preview <img>
+// tags). `maxAge: 0` + no etag: these files get overwritten in place every ~1.5s and the UI always requests
+// them with its own cache-busting query param anyway, but a stale 304/cached response would defeat the
+// purpose of a LIVE preview if a proxy or the browser ever cached by path alone.
+app.use('/live-preview', express.static(SMARTCOMM_LIVE_PREVIEW_DIR, { etag: false, maxAge: 0, lastModified: false }));
 
 app.get('/api/config', (req, res) => {
   res.json({
@@ -295,8 +308,8 @@ app.get('/api/stream', (req, res) => {
   res.flushHeaders();
   sseClients.push(res);
   sendEvent(res, 'hello', {
-    queue: queue.map((j) => j.label),
-    running: running.map((r) => ({ id: r.id, label: r.job.label, progress: r.progress })),
+    queue: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })),
+    running: allRunning().map((r) => ({ id: r.id, label: r.job.label, requestedBy: r.job.requestedBy, progress: r.progress, smartComm: r.smartComm || null })),
     stats,
   });
   req.on('close', () => {
@@ -305,18 +318,34 @@ app.get('/api/stream', (req, res) => {
 });
 
 // ── Job queue ────────────────────────────────────────────────────────────────
-// Up to MAX_PARALLEL jobs run concurrently (across ALL suites - the queue is
-// one shared FIFO, same as it always was); a newly-started job waits
-// STAGGER_MS after the most recently started one before launching, so two
-// browser sessions never hit login at the exact same instant. Both mirror
-// runners/run-states.ps1's own -MaxParallel/-StaggerSeconds defaults.
-const MAX_PARALLEL = 2;
+// Each SUITE (Policy, Claims, Reconciliation, Update Validation, PDF Compare, SmartCOMM, Jira Report) gets
+// its own independent queue/running pool and its own SUITE_MAX_PARALLEL slots — CONFIRMED live 2026-10-07
+// (user report): a single shared pool across every suite meant 2 people running SmartCOMM validations left
+// BOTH slots occupied, so a third person's totally unrelated "run my BOP test" sat queued behind them for no
+// real reason — these suites don't share a browser, a target system, or any other actual resource, so there
+// was never a real contention to protect against, just an accident of how the queue was modeled as one pool.
+// Within EACH suite's own pool, the same two ideas as before still apply: up to SUITE_MAX_PARALLEL jobs run
+// concurrently, a newly-started job waits STAGGER_MS after that SAME suite's most recently started one before
+// launching (so two browser sessions for the same automation never hit login at the exact same instant —
+// mirrors runners/run-states.ps1's own -MaxParallel/-StaggerSeconds defaults), and processQueue() prefers to
+// hand a freed slot to a queued job from someone NOT already running that suite, so the 2 slots naturally end
+// up held by 2 DIFFERENT people instead of one person's own backlog hogging both (added 2026-10-05).
+const SUITE_MAX_PARALLEL = 2;
 const STAGGER_MS = 60000;
+const SUITES = ['policy', 'claims', 'reconciliation', 'updateValidation', 'pdfCompare', 'smartComm', 'jiraReport'];
 
-let queue = [];
-let running = []; // { id, proc, job, startedAt, progress: { done, total } }
+function makePool() { return { queue: [], running: [], staggerTimer: null }; }
+const pools = {};
+SUITES.forEach((s) => { pools[s] = makePool(); });
+
+// Flattened views across every suite's pool — only for reporting to the UI (the 'hello'/'queued'/'job-start'/
+// 'job-end' SSE payloads all show one combined queue/running list, same shape the client already expects;
+// what changed is only how CONCURRENCY is enforced server-side, not what the UI displays).
+function allQueued() { return SUITES.flatMap((s) => pools[s].queue); }
+function allRunning() { return SUITES.flatMap((s) => pools[s].running); }
+function allIdle() { return SUITES.every((s) => pools[s].queue.length === 0 && pools[s].running.length === 0); }
+
 let nextJobId = 1;
-let staggerTimer = null;
 let stats = { passed: 0, failed: 0 };
 // Per-job progress (unlike `stats` above, which is a cumulative session
 // total never reset between jobs) now lives on each entry in `running`,
@@ -336,6 +365,88 @@ let stats = { passed: 0, failed: 0 };
 // and the UI falls back to an indeterminate/animated bar.
 const RUNNING_TESTS_RE = /^Running (\d+) tests? using \d+ worker/;
 const PDF_TOTAL_RE = /^Found (\d+) folder/;
+
+// ── SmartCOMM step-by-step progress ─────────────────────────────────────────
+// Per user request 2026-10-07: the SmartCOMM validator's console output is a dense, scrolling technical log
+// (the exact thing that buried "waiting up to 360s for YOUR sign-in" among dozens of other lines). Rather
+// than building a live browser-screencast view (a separate, larger undertaking — view-only anyway, since the
+// actual Azure/MFA sign-in still has to happen in the real window), this parses the SAME log lines
+// ClaimCenter-Automation's helpers/smartComm/*.js already print (via their own `log()`/`console.log()` calls
+// — see e.g. validationService.js's `[SmartComm] ${scenario.scenarioId}: ...` convention) into a short,
+// human-readable checklist per scenario: Opening claim → Signing in → Editing fields → ... An unrecognized
+// line just stays out of this panel and still shows up in the raw "Console output" panel below (toggleable,
+// not removed) — this never blocks or alters anything, it's a read-only re-presentation of output already
+// being printed.
+//
+// Deliberately covers only the highest-value milestones, not every log line — see each rule's own regex for
+// exactly which real, CONFIRMED-live log strings it matches. `lane` groups steps that belong together:
+// - a scenario ID (e.g. "DIG47B-AUTO-MD") for everything printed with that scenario's own `[SmartComm] <id>: `
+//   prefix (the vast majority of the interesting lines - see runInteractiveGeneration's `log` convention).
+// - "tpl:<DIG>" for template-level lines that happen before any scenario exists yet (requirements-derived,
+//   bulk-mode per-template start/result banners).
+// - "_setup" for a handful of shared ClaimCenter-login lines that are printed with NO scenario prefix at all
+//   (a different helper's own console.log, not validationService.js's scoped `log`) - with 2 concurrent
+//   scenarios these can't be reliably attributed to one or the other, so they're shown as one shared lane
+//   rather than guessed into the wrong scenario's checklist.
+function stripSmartCommPrefix(text) {
+  let m = /^\[SmartComm\] BLOCKED template (\S+): (.+)$/.exec(text);
+  if (m) return { lane: `tpl:${m[1]}`, rest: m[2], terminal: 'error' };
+  m = /^\[SmartComm\] BLOCKED (\S+): (.+)$/.exec(text);
+  if (m) return { lane: m[1], rest: m[2], terminal: 'error' };
+  m = /^\[SmartComm\] ERROR (\S+): (.+)$/.exec(text);
+  if (m) return { lane: m[1], rest: m[2], terminal: 'error' };
+  m = /^\[SmartComm\] (\S+): (.+)$/.exec(text);
+  if (m) return { lane: m[1], rest: m[2] };
+  return { lane: null, rest: text };
+}
+
+const SMARTCOMM_CONTENT_RULES = [
+  { re: /^derived (\d+) requirements from (.+)$/, build: (m, lane) => ({ lane, step: 'requirements', status: 'done', label: 'Loaded template requirements', detail: `${m[1]} requirement(s) from ${m[2].split(/[\\/]/).pop()}` }) },
+  { re: /^claim data — (.+)$/, build: (m, lane) => ({ lane, step: 'claimData', status: 'done', label: 'Read claim data', detail: m[1].slice(0, 160) }) },
+  { re: /^opening claim (\S+) \(user=([^,]+),/, build: (m, lane) => ({ lane, step: 'openClaim', status: 'start', label: 'Opening claim', detail: `${m[1]} (user=${m[2]})` }) },
+  { re: /^WARNING — no test-data claim actually matches/, build: (m, lane, rest) => ({ lane, step: 'openClaim', status: 'warn', label: 'Opening claim', detail: rest.slice(0, 160) }) },
+  { re: /no permission to view claim/, build: (m, lane, rest) => ({ lane, step: 'openClaim', status: 'warn', label: 'Opening claim', detail: rest.slice(0, 160) }) },
+  { re: /^login as .* failed/, build: (m, lane, rest) => ({ lane, step: 'login', status: 'warn', label: 'ClaimCenter login', detail: rest.slice(0, 160) }) },
+  { re: /^\[AzureSession\] Loaded (\d+) saved cookie/, build: (m, lane) => ({ lane, step: 'signin', status: 'start', label: 'Signing in (Azure)', detail: `using a saved session (${m[1]} cookies)` }) },
+  { re: /^\[Interactive\] Popup closed itself almost immediately/, build: (m, lane) => ({ lane, step: 'signin', status: 'start', label: 'Signing in (Azure)', detail: 'saved session may have worked — checking…' }) },
+  { re: /^\[Interactive\] Waiting up to (\d+)s for sign-in/, build: (m, lane) => ({ lane, step: 'signin', status: 'waiting', label: 'SmartCOMM interactive session validation in progress', detail: `up to ${m[1]}s` }) },
+  { re: /^\[Interactive\] Still waiting for sign-in… \((\d+)s left\)/, build: (m, lane) => ({ lane, step: 'signin', status: 'waiting', label: 'SmartCOMM interactive session validation in progress', detail: `${m[1]}s left` }) },
+  { re: /^interactive editor: (\d+) merge field\(s\) found \((\d+) editable, (\d+) locked\)/, build: (m, lane) => ({ lane, step: 'editFields', status: 'start', label: 'Editing fields', detail: `${m[1]} field(s) — ${m[2]} editable, ${m[3]} locked` }) },
+  { re: /^field #\d+ FAILED: (.+)$/, build: (m, lane) => ({ lane, step: 'editFields', status: 'warn', label: 'Editing fields', detail: m[1].slice(0, 160) }) },
+  { re: /^made (\d+) choice selection/, build: (m, lane, rest) => ({ lane, step: 'choices', status: 'done', label: 'Applied Choices-panel selections', detail: rest.slice(0, 160) }) },
+  { re: /^Document Properties Identifier: (.+)$/, build: (m, lane) => ({ lane, step: 'complete', status: 'done', label: 'Document completed', detail: m[1] }) },
+  { re: /^\[S3\] ".*isn't a real PDF/, build: (m, lane, rest) => ({ lane, step: 's3', status: 'warn', label: 'Fetching document from S3', detail: rest.replace(/^\[S3\] /, '').slice(0, 160) }) },
+  { re: /^\[S3\] "/, build: (m, lane, rest) => ({ lane, step: 's3', status: 'start', label: 'Fetching document from S3', detail: rest.replace(/^\[S3\] /, '').slice(0, 160) }) },
+  { re: /^\[S3\] downloaded /, build: (m, lane, rest) => ({ lane, step: 's3', status: 'done', label: 'Fetching document from S3', detail: rest.replace(/^\[S3\] /, '').slice(0, 160) }) },
+  { re: /^(PASS|FAIL|BLOCKED|ERROR) \((\d+) passed, (\d+) failed, (\d+) blocked, (\d+) skipped\)$/, build: (m, lane) => ({ lane, step: 'validate', status: m[1] === 'PASS' ? 'done' : 'warn', label: 'Scenario finished', detail: `${m[1]} — ${m[2]} passed, ${m[3]} failed, ${m[4]} blocked, ${m[5]} skipped` }) },
+];
+
+const SMARTCOMM_GENERAL_RULES = [
+  { re: /^\[Bulk\] \((\d+)\/(\d+)\) (\S+) — starting\.\.\.$/, build: (m) => ({ lane: `tpl:${m[3]}`, step: 'template', status: 'start', label: `Template ${m[3]} (${m[1]}/${m[2]})`, detail: 'starting' }) },
+  { re: /^\[Bulk\] \((\d+)\/(\d+)\) (\S+): (PASS|FAIL|BLOCKED|ERROR|CRASHED)(.*)$/, build: (m) => ({ lane: `tpl:${m[3]}`, step: 'template', status: m[4] === 'PASS' ? 'done' : (m[4] === 'CRASHED' || m[4] === 'ERROR') ? 'error' : 'warn', label: `Template ${m[3]} (${m[1]}/${m[2]})`, detail: `${m[4]}${m[5]}`.slice(0, 160) }) },
+  { re: /^CC Login successful/, build: (m, lane, rest) => ({ lane: '_setup', step: 'ccLogin', status: 'done', label: 'ClaimCenter login', detail: rest.slice(0, 160) }) },
+  { re: /^Switched login to: (.+)$/, build: (m) => ({ lane: '_setup', step: 'ccLogin', status: 'done', label: 'ClaimCenter login', detail: `switched to ${m[1]}` }) },
+  { re: /^Opened existing claim: (.+)$/, build: (m) => ({ lane: '_setup', step: 'openClaim', status: 'done', label: 'Opening claim', detail: m[1] }) },
+];
+
+function classifySmartCommLine(text) {
+  const { lane, rest, terminal } = stripSmartCommPrefix(text);
+  if (lane && terminal) {
+    return { lane, step: 'final', status: terminal, label: terminal === 'error' ? 'Blocked / Error' : 'Final', detail: rest.slice(0, 200) };
+  }
+  if (lane) {
+    for (const rule of SMARTCOMM_CONTENT_RULES) {
+      const m = rule.re.exec(rest);
+      if (m) return rule.build(m, lane, rest);
+    }
+    return null;
+  }
+  for (const rule of SMARTCOMM_GENERAL_RULES) {
+    const m = rule.re.exec(text);
+    if (m) return rule.build(m, null, text);
+  }
+  return null;
+}
 
 function buildPolicyJob(j) {
   const lob = POLICY_LOB[j.lob];
@@ -748,10 +859,17 @@ function buildJiraReportJob(j) {
 }
 
 app.post('/api/run', (req, res) => {
-  const { suite, jobs } = req.body || {};
+  const { suite, jobs, requestedBy } = req.body || {};
+  const identity = String(requestedBy || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(identity)) {
+    return res.status(400).json({ error: 'Your email is required to run anything - enter it above the Status panel (this is how teammates sharing this tool will know it\'s you).' });
+  }
   if (!Array.isArray(jobs) || jobs.length === 0) {
     return res.status(400).json({ error: 'No jobs provided' });
   }
+  // Same fallback as the builder dispatch below: an unrecognized/missing `suite` is treated as 'policy' for
+  // BOTH which builder runs and which pool the job lands in, so the two stay consistent with each other.
+  const suiteKey = pools[suite] ? suite : 'policy';
   let built;
   try {
     built = jobs.map((j) => (
@@ -766,19 +884,40 @@ app.post('/api/run', (req, res) => {
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }
+  built.forEach((b) => { b.requestedBy = identity; b.suite = suiteKey; });
 
-  queue.push(...built);
-  broadcast('queued', { added: built.map((b) => b.label), queue: queue.map((j) => j.label) });
-  processQueue();
+  pools[suiteKey].queue.push(...built);
+  broadcast('queued', {
+    added: built.map((b) => ({ label: b.label, requestedBy: b.requestedBy })),
+    queue: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })),
+  });
+  processQueue(suiteKey);
   res.json({ ok: true, queued: built.length });
 });
 
+// Scoped to the caller's own jobs by default, so one person sharing this tool can never kill a different
+// person's run - only the tool's owner (ALWAYS_CC_EMAIL) gets the old "stop everything" behavior, as an
+// escape hatch for clearing a stuck/abandoned job.
 app.post('/api/stop', (req, res) => {
-  const clearedQueue = queue.length;
-  queue = [];
-  if (staggerTimer) { clearTimeout(staggerTimer); staggerTimer = null; }
-  const stoppedLabels = running.map((r) => r.job.label);
-  running.forEach((r) => killTree(r.proc.pid));
+  const identity = String((req.body || {}).requestedBy || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(identity)) {
+    return res.status(400).json({ error: 'Your email is required to stop a run.' });
+  }
+  const isOwner = identity === ALWAYS_CC_EMAIL.toLowerCase();
+  // Owner's "stop everything" (or a normal user's "stop my own jobs") now has to sweep every suite's own
+  // pool, since a person's jobs (or, for the owner, ALL jobs) can be spread across several of them at once.
+  let clearedQueue = 0;
+  const stoppedLabels = [];
+  for (const s of SUITES) {
+    const pool = pools[s];
+    const before = pool.queue.length;
+    pool.queue = isOwner ? [] : pool.queue.filter((j) => j.requestedBy !== identity);
+    clearedQueue += before - pool.queue.length;
+    if (isOwner && pool.staggerTimer) { clearTimeout(pool.staggerTimer); pool.staggerTimer = null; }
+    const toStop = isOwner ? pool.running : pool.running.filter((r) => r.job.requestedBy === identity);
+    stoppedLabels.push(...toStop.map((r) => r.job.label));
+    toStop.forEach((r) => killTree(r.proc.pid));
+  }
   stoppedLabels.forEach((label) => broadcast('stopped', { label }));
   res.json({ ok: true, clearedQueue, stoppedLabels });
 });
@@ -807,27 +946,39 @@ function shellQuote(arg) {
   return /\s/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
 }
 
-function scheduleProcessQueue(delayMs) {
-  if (staggerTimer) return; // already have a pending retry - it'll re-check everything
-  staggerTimer = setTimeout(() => { staggerTimer = null; processQueue(); }, delayMs);
+function scheduleProcessQueue(suite, delayMs) {
+  const pool = pools[suite];
+  if (pool.staggerTimer) return; // already have a pending retry for THIS suite - it'll re-check everything
+  pool.staggerTimer = setTimeout(() => { pool.staggerTimer = null; processQueue(suite); }, delayMs);
 }
 
-function processQueue() {
-  if (queue.length === 0) {
-    if (running.length === 0) broadcast('queue-empty', { stats });
+function processQueue(suite) {
+  const pool = pools[suite];
+  if (pool.queue.length === 0) {
+    // Only announce a full, tool-wide idle reset once EVERY suite's pool is empty, not just this one -
+    // matches the client's own 'queue-empty' handler, which blanket-resets its whole UI state.
+    if (pool.running.length === 0 && allIdle()) broadcast('queue-empty', { stats });
     return;
   }
-  if (running.length >= MAX_PARALLEL) return; // retried by the job-end handler below when a slot frees up
+  if (pool.running.length >= SUITE_MAX_PARALLEL) return; // retried by this suite's own job-end handler below
 
-  if (running.length > 0) {
-    const elapsed = Date.now() - Math.max(...running.map((r) => r.startedAt));
+  if (pool.running.length > 0) {
+    const elapsed = Date.now() - Math.max(...pool.running.map((r) => r.startedAt));
     if (elapsed < STAGGER_MS) {
-      scheduleProcessQueue(STAGGER_MS - elapsed);
+      scheduleProcessQueue(suite, STAGGER_MS - elapsed);
       return;
     }
   }
 
-  const job = queue.shift();
+  // Prefer the first queued job (within THIS suite) from someone NOT already running it, so a slot that just
+  // freed up goes to a different person before it goes to the already-running person's own next job in line -
+  // this is what actually lets a second person in rather than being stuck behind one person's whole queue.
+  // Falls back to plain FIFO (the queue's own front) when nobody else is waiting, so a lone user's jobs still
+  // run back-to-back.
+  const runningIdentities = new Set(pool.running.map((r) => r.job.requestedBy));
+  let dequeueIdx = pool.queue.findIndex((j) => !runningIdentities.has(j.requestedBy));
+  if (dequeueIdx === -1) dequeueIdx = 0;
+  const job = pool.queue.splice(dequeueIdx, 1)[0];
   const id = nextJobId++;
   const child = spawn(job.cmd, job.args.map(shellQuote), {
     cwd: job.cwd,
@@ -836,14 +987,17 @@ function processQueue() {
     env: { ...process.env, ...job.env, FORCE_COLOR: '0' },
   });
   const entry = { id, proc: child, job, startedAt: Date.now(), progress: { done: 0, total: null } };
-  running.push(entry);
-  broadcast('job-start', { id, label: job.label, queue: queue.map((j) => j.label) });
+  pool.running.push(entry);
+  broadcast('job-start', {
+    id, label: job.label, requestedBy: job.requestedBy,
+    queue: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })),
+  });
   broadcast('progress', { id, label: job.label, ...entry.progress });
 
   const handleChunk = (stream) => (chunk) => {
     for (const rawLine of chunk.toString().split(/\r?\n/)) {
       if (rawLine === '') continue;
-      broadcast('line', { id, label: job.label, stream, text: rawLine });
+      broadcast('line', { id, label: job.label, requestedBy: job.requestedBy, stream, text: rawLine });
 
       const m = rawLine.match(TEST_LINE_RE);
       if (m && rawLine.includes('›')) {
@@ -873,29 +1027,40 @@ function processQueue() {
         entry.progress.done += 1;
         broadcast('progress', { id, label: job.label, ...entry.progress });
       }
+
+      if (job.label.startsWith('SmartCOMM')) {
+        const step = classifySmartCommLine(rawLine);
+        if (step) {
+          if (!entry.smartComm) entry.smartComm = { lanes: {} };
+          let laneState = entry.smartComm.lanes[step.lane];
+          if (!laneState) { laneState = { order: [], steps: {} }; entry.smartComm.lanes[step.lane] = laneState; }
+          if (!laneState.steps[step.step]) laneState.order.push(step.step);
+          laneState.steps[step.step] = { status: step.status, label: step.label, detail: step.detail };
+          broadcast('smartcomm-step', { id, lane: step.lane, step: step.step, status: step.status, label: step.label, detail: step.detail });
+        }
+      }
     }
   };
   child.stdout.on('data', handleChunk('stdout'));
   child.stderr.on('data', handleChunk('stderr'));
 
   child.on('close', (code) => {
-    running = running.filter((r) => r.id !== id);
+    pool.running = pool.running.filter((r) => r.id !== id);
     broadcast('job-end', {
-      id, label: job.label, code, stats, reportUrls: job.reportUrls || null,
-      queue: queue.map((j) => j.label),
+      id, label: job.label, requestedBy: job.requestedBy, code, stats, reportUrls: job.reportUrls || null,
+      queue: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })),
     });
-    processQueue();
+    processQueue(suite);
   });
 
   child.on('error', (err) => {
-    broadcast('line', { id, label: job.label, stream: 'stderr', text: `Failed to start: ${err.message}` });
+    broadcast('line', { id, label: job.label, requestedBy: job.requestedBy, stream: 'stderr', text: `Failed to start: ${err.message}` });
   });
 
-  // Try to fill the next slot too - if MAX_PARALLEL allows it, this recurses
-  // immediately and (since `running` now includes the job just started) hits
-  // the stagger check above, scheduling itself for STAGGER_MS later instead
-  // of launching back-to-back.
-  processQueue();
+  // Try to fill this suite's next slot too - if SUITE_MAX_PARALLEL allows it, this recurses immediately and
+  // (since pool.running now includes the job just started) hits the stagger check above, scheduling itself
+  // for STAGGER_MS later instead of launching back-to-back.
+  processQueue(suite);
 }
 
 app.listen(PORT, () => {

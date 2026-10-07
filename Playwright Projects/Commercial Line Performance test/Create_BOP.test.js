@@ -5,7 +5,7 @@ const { test, expect } = require('@playwright/test');
 const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig } = require('./stateConfig');
-const { createAccountAndQualify } = require('./accountCreationHelper');
+const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
 const { runBopCoverageFlow } = require('./helpers/bopCoverageHelper');
 const fs = require('fs');
 const path = require('path');
@@ -21,6 +21,10 @@ test('BOP Submission', async ({ page }, testInfo) => {
 
   const envName = process.env.TEST_ENV || 'qa';
   const { writeBizUrl, policyCenterUrl } = getEnvUrls(envName);
+  // See Create_CA.test.js for why this is logged: getEnvUrls() previously
+  // fell through to qa silently on a casing mismatch (e.g. TEST_ENV=Training
+  // vs the declared key "Training").
+  console.log(`Resolved environment "${envName}" -> writeBizUrl=${writeBizUrl}`);
 
   const allowedStates = Object.keys(STATE_CONFIG);
   let testState = String(process.env.TEST_STATE || 'DE').trim().toUpperCase();
@@ -30,6 +34,13 @@ test('BOP Submission', async ({ page }, testInfo) => {
   }
   const stateConfig = getStateConfig(testState);
   console.log('Running BOP test for state: ' + testState + ' (' + stateConfig.name + ')');
+
+  // See Create_CA.test.js for why: on Training the only confirmed-working
+  // producer (Linda D. Strause, agency 0000988) is licensed in a specific
+  // state list. Skip cleanly rather than burning a full run on a state
+  // that can never succeed there.
+  test.skip(isTrainingUrl(writeBizUrl) && !TRAINING_LICENSED_STATES.includes(testState),
+    `Skipping ${testState} on Training - producer Linda D. Strause is only licensed in: ${TRAINING_LICENSED_STATES.join(', ')}`);
 
   global.testData = {
     state: testState,
@@ -266,10 +277,28 @@ test('BOP Submission', async ({ page }, testInfo) => {
     await dismissStatusModal();
 
     // ── Select Businessowners (BOP) ───────────────────────────────────────────
+    // Same defensive wait as Create_CA.test.js's Commercial Auto checkbox:
+    // confirmed live on Training that a "Reloading products.." status modal
+    // (#dgic-status-message) can cover this checkbox for up to (and
+    // sometimes past) 60s, and a force click fired while it's still up lands
+    // on the modal instead of the checkbox - it never actually gets checked
+    // even though the click "succeeds". Wait the modal out first, then
+    // click and verify rather than trusting the click alone.
     const bopCheckbox = page.locator('#chk_businessowners, label[for="chk_businessowners"]').first();
     await bopCheckbox.waitFor({ state: 'visible', timeout: 15000 });
-    await bopCheckbox.click({ force: true });
-    console.log('Businessowners checkbox clicked');
+    await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 120000 }).catch(() => {});
+    await dismissStatusModal();
+
+    let bopChecked = await page.locator('#chk_businessowners').isChecked().catch(() => false);
+    for (let attempt = 0; attempt < 3 && !bopChecked; attempt++) {
+      await bopCheckbox.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(500);
+      bopChecked = await page.locator('#chk_businessowners').isChecked().catch(() => false);
+    }
+    if (!bopChecked) {
+      console.log('WARNING: Businessowners checkbox did not report checked after retries');
+    }
+    console.log('Businessowners checkbox clicked, checked =', bopChecked);
     await dismissStatusModal();
 
     await safeNextClick();

@@ -120,7 +120,8 @@ class EmailReporter {
       return;
     }
 
-    await this._mergeAndSend(suiteLC, `WB ${suite} Smoke Test Report`);
+    const envTag = (process.env.TEST_ENV || '').toUpperCase();
+    await this._mergeAndSend(suiteLC, `WB ${suite} Smoke Test Report${envTag ? ` [${envTag}]` : ''}`);
   }
 
   static _mergeStateFiles(suiteLC, runId) {
@@ -284,7 +285,9 @@ class EmailReporter {
     });
 
     const today   = new Date().toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' });
-    const subject = `WB ${subjectPrefix}: ${today} - ${passed} Passed, ${failed} Failed`;
+    // Every caller already includes its own "WB " - this used to prepend a
+    // second one unconditionally, producing "WB WB BOP Smoke Test Report...".
+    const subject = `${subjectPrefix}: ${today} - ${passed} Passed, ${failed} Failed`;
 
     await transporter.sendMail({ from: process.env.FROM_EMAIL, to: process.env.TO_EMAIL, subject, html, attachments });
     console.log(`Email sent: ${subject}`);

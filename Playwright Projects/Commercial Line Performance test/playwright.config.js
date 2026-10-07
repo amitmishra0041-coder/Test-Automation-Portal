@@ -44,7 +44,12 @@ module.exports = defineConfig({
       use: { 
         ...devices['Desktop Chrome'],
         launchOptions: {
-          slowMo: 100 // Add 100ms delay between actions to simulate human timing
+          // Trimmed from 100ms - this multiplies across every single action
+          // (click/fill/press/etc), roughly 150-250+ per full BOP/CP run, so
+          // it alone was adding ~15-25s of pure overhead per run. 20ms still
+          // gives the app a moment between actions without the "simulate
+          // human typing" cost these automated regression runs don't need.
+          slowMo: 20
         }
       } 
     },
