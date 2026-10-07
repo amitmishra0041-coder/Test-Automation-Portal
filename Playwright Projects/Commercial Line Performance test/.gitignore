@@ -16,6 +16,8 @@ ca-email-temp.json
 parallel-run-lock-*.json
 .batch-run-in-progress-*
 .batch-email-sent-*
+runner-settings.json
+entitlements-cache.json
 
 # Generated Excel reports
 WB_Test_Report*.xlsx

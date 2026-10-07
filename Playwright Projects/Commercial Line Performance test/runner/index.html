@@ -100,6 +100,8 @@
   .chip.disabled { opacity: .4; cursor: not-allowed; }
   .chip.disabled:hover { border-color: var(--border); }
 
+  .tab-btn.locked, .tab-btn.comingSoon { opacity: .55; }
+
   input[type=text], input[type=email], select {
     width: 100%;
     max-width: 360px;
@@ -296,6 +298,8 @@
   <button class="tab-btn" data-tab="smartComm">SmartCOMM Validator</button>
   <div class="nav-group">Reporting</div>
   <button class="tab-btn" data-tab="jiraReport">Jira Sprint Report</button>
+  <div class="nav-group">Account</div>
+  <button class="tab-btn" data-tab="settings">Settings</button>
 </nav>
 <div class="content">
 
@@ -606,6 +610,42 @@
     </div>
   </div>
 
+  <!-- ── Settings tab (packaged build: per-install name/email/SmartCOMM data dir) ── -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="card">
+      <h2>Your info</h2>
+      <p class="hint">Identifies you to this tool (same as typing your email into a Report Email field) and is used to look up which tools you're approved for.</p>
+
+      <div class="field-label">Your name</div>
+      <input type="text" id="settingsName" placeholder="Jane Smith" autocomplete="off" style="max-width:360px" />
+
+      <div class="field-label">Your email</div>
+      <input type="email" id="settingsEmail" placeholder="you@donegalgroup.com" autocomplete="off" style="max-width:360px" />
+
+      <div class="field-label">SmartCOMM data folder</div>
+      <input type="text" id="settingsSmartCommDataDir" placeholder="e.g. C:\Users\you\Documents\SmartComm" autocomplete="off" style="max-width:520px" />
+      <div class="hint">Folder holding the Claims_Documents_Index spreadsheet and template .docx files — ask the tool's owner for a copy.</div>
+
+      <div class="actions">
+        <button class="run" id="settingsSaveBtn">Save</button>
+      </div>
+      <div class="error-msg" id="settingsError"></div>
+      <div class="hint" id="settingsSavedMsg" style="display:none; color:var(--green)">Saved.</div>
+    </div>
+  </div>
+
+  <!-- ── Shared "locked" / "not available yet" panel (not tied to a sidebar button - activated by JS when a
+       gated or not-yet-shipped tab is clicked instead of that tab's own panel) ───────────────────────────── -->
+  <div class="tab-panel" id="tab-blocked">
+    <div class="card">
+      <h2 id="blockedTitle">Not available</h2>
+      <p id="blockedMessage" class="hint"></p>
+      <div class="actions">
+        <a id="blockedRequestLink" class="run" style="text-decoration:none; display:inline-block" href="#">Request access</a>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Shared status + output (one queue/process on the server) ─────────── -->
   <div class="card">
     <h2>Status</h2>
@@ -647,8 +687,16 @@
   'use strict';
 
   // ── Tabs ───────────────────────────────────────────────────────────────
-  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+  // Entitlements (see refreshEntitlements() below) can mark a tab locked or "coming soon" - checked here,
+  // before the normal switch, so a gated tab's real panel (and the job-submitting controls in it) never
+  // renders; the shared #tab-blocked panel is shown instead (see applyTabLocks()/showBlockedPanel() below).
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
+    btn.dataset.baseLabel = btn.textContent;
     btn.addEventListener('click', function () {
+      if (btn.classList.contains('locked') || btn.classList.contains('comingSoon')) {
+        showBlockedPanel(btn);
+        return;
+      }
       document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
       btn.classList.add('active');
@@ -692,12 +740,77 @@
   // SmartCOMM's wins if both are filled in (it's the one most people here already use day to day).
   function isValidEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
   var myEmail = '';
+  var myAllowedTabs = null;   // null = not loaded yet / entitlements don't apply (plain dev use) -> nothing locked
+  var myComingSoon = [];
+  var packagedBuild = false;
+  var ownerEmail = 'amitmishra@donegalgroup.com';
   function syncIdentity() {
+    // Settings tab's email wins once set (the deliberate, persisted "who am I" for a standalone install);
+    // falls back to the original SmartCOMM/Jira report-email trick for the shared dev-server use this tool
+    // already had before Settings existed.
+    var settingsInput = document.getElementById('settingsEmail');
     var scInput = document.getElementById('smartCommReportEmail');
     var jrInput = document.getElementById('jiraReportEmail');
-    var val = (scInput && scInput.value.trim()) || (jrInput && jrInput.value.trim()) || '';
+    var val = (settingsInput && settingsInput.value.trim()) || (scInput && scInput.value.trim()) || (jrInput && jrInput.value.trim()) || '';
+    var changed = val.toLowerCase() !== myEmail;
     myEmail = val.toLowerCase();
     setRunning(runningList());
+    if (changed) refreshEntitlements();
+  }
+
+  function refreshEntitlements() {
+    var url = '/api/entitlements' + (isValidEmail(myEmail) ? ('?email=' + encodeURIComponent(myEmail)) : '');
+    fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      packagedBuild = Boolean(d.packagedBuild);
+      myAllowedTabs = Array.isArray(d.allowed) ? d.allowed : null;
+      myComingSoon = Array.isArray(d.comingSoon) ? d.comingSoon : [];
+      ownerEmail = d.ownerEmail || ownerEmail;
+      applyTabLocks();
+    }).catch(function () { /* stay with whatever we last knew - network hiccup, not fatal */ });
+  }
+
+  // Re-labels every tab button with a lock/clock suffix and toggles the classes the click handler and CSS
+  // check, based on the entitlements most recently fetched above. Outside a packaged build (myAllowedTabs
+  // stays null until the first successful fetch, which always reports packagedBuild:false there) every tab
+  // stays fully open, matching this tool's existing shared-dev-server behavior.
+  function applyTabLocks() {
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
+      var tab = btn.dataset.tab;
+      if (tab === 'settings') return; // Settings itself is never gated - you need it to set the email entitlements are looked up by
+      var comingSoon = myComingSoon.indexOf(tab) !== -1;
+      var locked = packagedBuild && myAllowedTabs && myAllowedTabs.indexOf(tab) === -1 && !comingSoon;
+      btn.classList.toggle('locked', locked);
+      btn.classList.toggle('comingSoon', comingSoon);
+      btn.textContent = btn.dataset.baseLabel + (locked ? ' 🔒' : comingSoon ? ' (soon)' : '');
+    });
+    // If the tab the user is currently looking at just became locked/comingSoon (e.g. entitlements changed
+    // under them mid-session), swap them to the blocked panel instead of leaving a now-gated panel showing.
+    var activeBtn = document.querySelector('.tab-btn.active');
+    if (activeBtn && (activeBtn.classList.contains('locked') || activeBtn.classList.contains('comingSoon'))) {
+      showBlockedPanel(activeBtn);
+    }
+  }
+
+  function showBlockedPanel(btn) {
+    var comingSoon = btn.classList.contains('comingSoon');
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-blocked').classList.add('active');
+    document.getElementById('blockedTitle').textContent = btn.dataset.baseLabel;
+    var requestLink = document.getElementById('blockedRequestLink');
+    if (comingSoon) {
+      document.getElementById('blockedMessage').textContent = 'This tool isn\'t available in this build yet - it\'s planned for a future release.';
+      requestLink.style.display = 'none';
+    } else {
+      document.getElementById('blockedMessage').textContent = 'This tool needs approval before you can use it here.';
+      requestLink.style.display = 'inline-block';
+      var subject = 'Runner access request: ' + btn.dataset.baseLabel;
+      var body = 'Name: ' + (document.getElementById('settingsName').value.trim() || '(not set)') +
+        '\nEmail: ' + (myEmail || '(not set)') +
+        '\nTool: ' + btn.dataset.baseLabel;
+      requestLink.href = 'mailto:' + ownerEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    }
   }
 
   function chip(label, selected, disabled, title) {
@@ -733,8 +846,36 @@
     renderJiraTracks();
     renderJiraCustomTrackList();
     updateJiraReportPreview();
+
+    if (cfg.settings) {
+      if (cfg.settings.name) document.getElementById('settingsName').value = cfg.settings.name;
+      if (cfg.settings.email) document.getElementById('settingsEmail').value = cfg.settings.email;
+      if (cfg.settings.smartCommDataDir) document.getElementById('settingsSmartCommDataDir').value = cfg.settings.smartCommDataDir;
+    }
+    syncIdentity(); // picks up the just-populated Settings email (if any) and fetches entitlements for it
   }).catch(function (e) {
     document.getElementById('policyError').textContent = 'Could not load /api/config: ' + e.message;
+  });
+
+  // ── Settings tab ───────────────────────────────────────────────────────
+  document.getElementById('settingsSaveBtn').addEventListener('click', function () {
+    var errEl = document.getElementById('settingsError');
+    var savedEl = document.getElementById('settingsSavedMsg');
+    errEl.textContent = '';
+    savedEl.style.display = 'none';
+    var payload = {
+      name: document.getElementById('settingsName').value.trim(),
+      email: document.getElementById('settingsEmail').value.trim(),
+      smartCommDataDir: document.getElementById('settingsSmartCommDataDir').value.trim(),
+    };
+    fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { errEl.textContent = res.d.error || 'Failed to save settings'; return; }
+        savedEl.style.display = 'block';
+        syncIdentity();
+      })
+      .catch(function (e) { errEl.textContent = 'Failed to save settings: ' + e.message; });
   });
 
   function renderPolicyLobs() {

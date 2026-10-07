@@ -15,12 +15,85 @@
 // Start with:  node runner/server.js   (from this project root, or anywhere)
 'use strict';
 
-require('dotenv').config();
-const express = require('express');
 const path = require('path');
 const fs = require('fs');
+// Anchored at this repo's root (not process.cwd()) - when this server runs
+// from inside the packaged Electron app, cwd is unpredictable, but __dirname
+// still resolves correctly since the file itself is still at runner/server.js
+// wherever it's bundled. dotenv never overwrites an already-set process.env
+// value, so anything electron-app/main.js sets before requiring this file
+// (packaged settings, see "Packaged runtime" below) still wins.
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const express = require('express');
 const { spawn, exec } = require('child_process');
 const { ENV_URLS } = require('../helpers/envConfig');
+
+// ── Packaged runtime (electron-app) ─────────────────────────────────────────
+// electron-app/main.js sets RUNNER_PACKAGED=1 and RUNNER_NODE_EXEC (its own
+// process.execPath, run with ELECTRON_RUN_AS_NODE=1 - the standard way to use
+// Electron's bundled Node as a drop-in replacement for a system Node install)
+// before require()-ing this file in-process. Plain `node runner/server.js`
+// dev use never sets these, so every job below falls through to today's bare
+// npx/node - nothing changes for normal dev use.
+const PACKAGED = process.env.RUNNER_PACKAGED === '1';
+const BUNDLED_NODE_EXEC = process.env.RUNNER_NODE_EXEC || process.execPath;
+// Suites that need a 3rd sibling repo (cc-migration-reconciliation) or a
+// bundled Python runtime - deferred to a later release; see buildReconJob/
+// buildUpdateValidationJob/buildPdfCompareJob's own PACKAGED guards below.
+const PACKAGED_UNAVAILABLE_SUITES = ['reconciliation', 'updateValidation', 'pdfCompare'];
+
+// ── Tab-level entitlements ───────────────────────────────────────────────────
+// Gates which tabs a packaged install may use, independent of PACKAGED_UNAVAILABLE_SUITES
+// above (that's "not built yet for anyone"; this is "built, but needs approval for you").
+// In plain dev use (this repo, run directly) everything stays open - the entitlements
+// file only ever narrows a PACKAGED build, see allowedSuitesFor() below.
+const ENTITLEMENTS_URL = process.env.RUNNER_ENTITLEMENTS_URL
+  || 'https://raw.githubusercontent.com/amitmish0041/ClaimCenter-Automation/main/electron-app/entitlements/entitlements.json';
+// electron-app/main.js points this at app.getPath('userData') so a grant
+// survives app updates/restarts even if a later fetch fails (offline, GitHub
+// unreachable, etc.) - falls back to this repo's own runtime-data folder so
+// plain `node runner/server.js` dev use still has somewhere to cache to.
+const ENTITLEMENTS_CACHE_FILE = process.env.RUNNER_ENTITLEMENTS_CACHE
+  || path.join(__dirname, '..', 'runtime-data', 'entitlements-cache.json');
+const ENTITLEMENTS_POLL_MS = 15 * 60 * 1000;
+let entitlementsCache = { default: ['smartcomm'], grants: {} };
+
+function loadCachedEntitlements() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(ENTITLEMENTS_CACHE_FILE, 'utf8'));
+    if (parsed && typeof parsed === 'object') entitlementsCache = parsed;
+  } catch (e) { /* no cache yet, or unreadable - keep the smartcomm-only default */ }
+}
+
+async function refreshEntitlements() {
+  try {
+    const resp = await fetch(ENTITLEMENTS_URL, { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const parsed = await resp.json();
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.default)) {
+      throw new Error('Malformed entitlements.json');
+    }
+    entitlementsCache = parsed;
+    fs.mkdirSync(path.dirname(ENTITLEMENTS_CACHE_FILE), { recursive: true });
+    fs.writeFileSync(ENTITLEMENTS_CACHE_FILE, JSON.stringify(parsed, null, 2));
+  } catch (e) {
+    console.error('Entitlements refresh failed (keeping last-known-good copy):', e.message);
+  }
+}
+
+// Not gated at all outside a packaged build - this repo's own dev/shared-server
+// use predates entitlements entirely and every suite already in production use
+// there shouldn't suddenly need an approval step.
+function allowedSuitesFor(email) {
+  if (!PACKAGED) return SUITES.slice();
+  const key = String(email || '').trim().toLowerCase();
+  const granted = (key && entitlementsCache.grants && entitlementsCache.grants[key]) || entitlementsCache.default || ['smartcomm'];
+  // smartcomm is always on, regardless of what the entitlements file says -
+  // it's the one tool every packaged install should be able to use out of
+  // the box per the original ask, so a malformed/missing entitlements file
+  // can never accidentally lock out the one thing that must always work.
+  return Array.from(new Set([...granted, 'smartcomm']));
+}
 
 // This runner can be used by anyone, but its maintainer should always get a copy of every emailed report,
 // regardless of whose address was typed into the UI's own "Report Email" field — added 2026-10-02 per user
@@ -110,6 +183,32 @@ fs.mkdirSync(CC_UI_REPORTS_DIR, { recursive: true });
 fs.mkdirSync(S3_DOWNLOADS_DIR, { recursive: true });
 fs.mkdirSync(SMARTCOMM_LIVE_PREVIEW_DIR, { recursive: true });
 
+loadCachedEntitlements();
+refreshEntitlements(); // fire-and-forget on boot, don't delay server startup on a slow/offline GitHub fetch
+setInterval(refreshEntitlements, ENTITLEMENTS_POLL_MS);
+
+// ── Per-install settings (packaged build only - Settings tab in index.html) ─
+// Persisted name/email/SmartCOMM data dir for a standalone install, so there's
+// somewhere to save them other than this repo's own .env (which won't exist
+// on another machine). electron-app/main.js points RUNNER_SETTINGS_FILE at
+// app.getPath('userData'); falls back to runtime-data/ for plain dev use.
+const SETTINGS_FILE = process.env.RUNNER_SETTINGS_FILE
+  || path.join(__dirname, '..', 'runtime-data', 'runner-settings.json');
+
+function loadSettings() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (e) { return {}; }
+}
+
+// Applied once at boot (so a restart remembers last session's SmartCOMM data
+// dir) and again on every POST /api/settings below - catalogService.js reads
+// process.env.SMARTCOMM_DATA_DIR fresh on every /api/config call, so this
+// takes effect immediately with no server restart needed either way.
+const bootSettings = loadSettings();
+if (bootSettings.smartCommDataDir) process.env.SMARTCOMM_DATA_DIR = bootSettings.smartCommDataDir;
+
 // ── Catalogs (single source of truth - the UI just renders these) ──────────
 
 // LOB -> spec file, mirrors runners/run-states.ps1's $testFile switch.
@@ -191,6 +290,9 @@ app.use('/live-preview', express.static(SMARTCOMM_LIVE_PREVIEW_DIR, { etag: fals
 
 app.get('/api/config', (req, res) => {
   res.json({
+    packagedBuild: PACKAGED,
+    comingSoonSuites: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
+    settings: loadSettings(),
     policy: {
       lobs: POLICY_LOB,
       states: POLICY_STATES,
@@ -218,6 +320,40 @@ app.get('/api/config', (req, res) => {
       configured: Boolean(process.env.JIRA_SITE && process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN),
       tracks: getAllJiraTracks(),
     },
+  });
+});
+
+// ── Per-install settings (packaged build's Settings tab) ────────────────────
+app.post('/api/settings', (req, res) => {
+  const name = String((req.body || {}).name || '').trim();
+  const email = String((req.body || {}).email || '').trim().toLowerCase();
+  const smartCommDataDir = String((req.body || {}).smartCommDataDir || '').trim();
+  if (email && !EMAIL_RE.test(email)) return res.status(400).json({ error: `"${email}" doesn't look like a valid email address` });
+  if (smartCommDataDir && (!fs.existsSync(smartCommDataDir) || !fs.statSync(smartCommDataDir).isDirectory())) {
+    return res.status(400).json({ error: `Folder does not exist: ${smartCommDataDir}` });
+  }
+  const settings = { name, email, smartCommDataDir };
+  try {
+    fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  } catch (e) {
+    return res.status(500).json({ error: `Failed to save settings: ${e.message}` });
+  }
+  if (smartCommDataDir) process.env.SMARTCOMM_DATA_DIR = smartCommDataDir;
+  res.json({ ok: true, settings });
+});
+
+// ── Tab-level entitlements (packaged build only) ─────────────────────────────
+// Read-only - approvals happen by editing entitlements.json on GitHub, not
+// through this app. `allowed` always includes smartcomm; `comingSoon` is the
+// separate, always-locked-for-now list from PACKAGED_UNAVAILABLE_SUITES.
+app.get('/api/entitlements', (req, res) => {
+  const email = String(req.query.email || '').trim().toLowerCase();
+  res.json({
+    packagedBuild: PACKAGED,
+    allowed: allowedSuitesFor(email),
+    comingSoon: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
+    ownerEmail: ALWAYS_CC_EMAIL,
   });
 });
 
@@ -674,6 +810,7 @@ function buildSmartCommJob(j) {
 // asymmetric pair is the common case, not the exception); bulk mode reads
 // an uploaded claims file (already saved by /api/recon/upload).
 function buildReconJob(j) {
+  if (PACKAGED) throw new Error('Migration Reconciliation isn\'t available in this build yet - planned for a future release.');
   if (!RECON_TIERS.includes(j.tier)) throw new Error(`Unknown tier "${j.tier}"`);
   const reportBase = `reconciliation-${j.tier}`;
   const reportUrls = {
@@ -721,6 +858,7 @@ function buildReconJob(j) {
 // same ClaimListReader), but runs the DIFFERENT `validate-updates` CLI,
 // which WRITES to whichever claims it's pointed at.
 function buildUpdateValidationJob(j) {
+  if (PACKAGED) throw new Error('Data Update & Dropdown Validation isn\'t available in this build yet - planned for a future release.');
   if (!UPDATE_VALIDATION_TIERS.includes(j.tier)) throw new Error(`Unknown tier "${j.tier}"`);
   const reportBase = `update-validation-${j.tier}`;
   const reportUrls = {
@@ -767,6 +905,7 @@ function buildUpdateValidationJob(j) {
 // server-side path (this runner and the browser share the same machine, same
 // as every other suite here) - never given to the browser, only referenced.
 function buildPdfCompareJob(j) {
+  if (PACKAGED) throw new Error('PDF Compare isn\'t available in this build yet - planned for a future release.');
   if (!fs.existsSync(PDF_COMPARE_SCRIPT)) {
     throw new Error(`compare_insurance_pdfs.py not found at ${PDF_COMPARE_SCRIPT}`);
   }
@@ -870,6 +1009,12 @@ app.post('/api/run', (req, res) => {
   // Same fallback as the builder dispatch below: an unrecognized/missing `suite` is treated as 'policy' for
   // BOTH which builder runs and which pool the job lands in, so the two stay consistent with each other.
   const suiteKey = pools[suite] ? suite : 'policy';
+  // Server-side backstop for the packaged build's tab-lock UI - a locked tab's panel never renders real
+  // controls to submit from, but this closes the gap for anyone calling the API directly instead of clicking
+  // through the UI. No-op (every suite always "allowed") outside a packaged build - see allowedSuitesFor().
+  if (!allowedSuitesFor(identity).includes(suiteKey)) {
+    return res.status(403).json({ error: `This tool isn't enabled for ${identity} yet - use "Request access" on its tab.` });
+  }
   let built;
   try {
     built = jobs.map((j) => (
@@ -980,11 +1125,47 @@ function processQueue(suite) {
   if (dequeueIdx === -1) dequeueIdx = 0;
   const job = pool.queue.splice(dequeueIdx, 1)[0];
   const id = nextJobId++;
-  const child = spawn(job.cmd, job.args.map(shellQuote), {
+
+  // Packaged build: swap bare 'npx'/'node' for Electron's own bundled Node (no system Node/npx on a clean
+  // Windows machine - see "Packaged runtime" near the top of this file). Every PACKAGED job is already one of
+  // these two (buildReconJob/buildUpdateValidationJob/buildPdfCompareJob, the only 'npm'/'python' builders,
+  // all throw before a job ever reaches this point when PACKAGED is set - see their own guards), so the 'npm'/
+  // 'python' cases below are an unreachable defensive fallback, not a real code path.
+  let spawnCmd = job.cmd;
+  let spawnArgs = job.args;
+  if (PACKAGED) {
+    if (job.cmd === 'npx') {
+      // Every 'npx' job here is 'npx playwright ...' - args[0] is always the literal 'playwright'.
+      // '@playwright/test/cli.js' (with the extension) isn't a path this package's own "exports" map allows -
+      // confirmed live (ERR_PACKAGE_PATH_NOT_EXPORTED) - 'cli' (no extension) is the public subpath it exports.
+      const playwrightCli = require.resolve('@playwright/test/cli', { paths: [job.cwd] });
+      spawnCmd = BUNDLED_NODE_EXEC;
+      spawnArgs = [playwrightCli, ...job.args.slice(1)];
+    } else if (job.cmd === 'node') {
+      spawnCmd = BUNDLED_NODE_EXEC;
+      spawnArgs = job.args;
+    } else {
+      // Defensive only - unreachable in practice, since every PACKAGED job builder that would ever return
+      // cmd:'npm'/'python' already throws before its job reaches the queue (see buildReconJob/
+      // buildUpdateValidationJob/buildPdfCompareJob). This job was already removed from pool.queue above and
+      // never added to pool.running, so there's nothing to clean up there - just report it and move on.
+      broadcast('job-end', { id, label: job.label, requestedBy: job.requestedBy, code: 1, stats, reportUrls: null, queue: allQueued().map((q) => ({ label: q.label, requestedBy: q.requestedBy })) });
+      broadcast('line', { id, label: job.label, requestedBy: job.requestedBy, stream: 'stderr', text: `"${job.cmd}" is not available in the packaged build yet` });
+      processQueue(suite);
+      return;
+    }
+  }
+
+  const child = spawn(shellQuote(spawnCmd), spawnArgs.map(shellQuote), {
     cwd: job.cwd,
-    shell: true, // resolves npx.cmd on Windows
+    shell: true, // resolves npx.cmd/npm.cmd on Windows in dev use; harmless no-op for an already-absolute packaged exe path
     detached: process.platform !== 'win32',
-    env: { ...process.env, ...job.env, FORCE_COLOR: '0' },
+    // PACKAGED builds inherit PLAYWRIGHT_BROWSERS_PATH from process.env here (set once by electron-app/main.js
+    // before requiring this file) - points Playwright at the bundled Chromium instead of trying to download one.
+    // ELECTRON_RUN_AS_NODE makes BUNDLED_NODE_EXEC (Electron's own binary) behave as a plain `node <script>`
+    // process instead of launching another full Electron/Chromium GUI instance - without this, every spawned
+    // job here would pop a second app window instead of running headless-CLI-style as intended.
+    env: { ...process.env, ...job.env, FORCE_COLOR: '0', ...(PACKAGED ? { ELECTRON_RUN_AS_NODE: '1' } : {}) },
   });
   const entry = { id, proc: child, job, startedAt: Date.now(), progress: { done: 0, total: null } };
   pool.running.push(entry);
@@ -1063,9 +1244,16 @@ function processQueue(suite) {
   processQueue(suite);
 }
 
-app.listen(PORT, () => {
+// Bound to loopback only - this served no purpose being reachable from other
+// machines on the network (no auth exists here at all, see EMAIL_RE above -
+// that's an identity label, not a password) and nothing about the UI or any
+// job needs LAN access to this server itself.
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`Test runner UI: http://localhost:${PORT}`);
   console.log(`  Policy suite dir: ${POLICY_DIR}`);
   console.log(`  Claims suite dir: ${CLAIMS_DIR}`);
   console.log(`  Reconciliation project dir: ${RECON_DIR}`);
+  if (PACKAGED) console.log(`  Packaged build - bundled Node: ${BUNDLED_NODE_EXEC}`);
 });
+
+module.exports = { app };
