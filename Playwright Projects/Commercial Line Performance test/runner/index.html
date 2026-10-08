@@ -622,15 +622,37 @@
       <div class="field-label">Your email</div>
       <input type="email" id="settingsEmail" placeholder="you@donegalgroup.com" autocomplete="off" style="max-width:360px" />
 
-      <div class="field-label">SmartCOMM data folder</div>
-      <input type="text" id="settingsSmartCommDataDir" placeholder="e.g. C:\Users\you\Documents\SmartComm" autocomplete="off" style="max-width:520px" />
-      <div class="hint">Folder holding the Claims_Documents_Index spreadsheet and template .docx files — ask the tool's owner for a copy.</div>
+      <div class="field-label">SmartCOMM data folder (optional override)</div>
+      <input type="text" id="settingsSmartCommDataDir" placeholder="leave blank to use the copy bundled with this app" autocomplete="off" style="max-width:520px" />
+      <div class="hint">A copy of the Claims_Documents_Index spreadsheet and template .docx files already ships with this app — only set this if you need to point at a different or newer copy.</div>
 
       <div class="actions">
         <button class="run" id="settingsSaveBtn">Save</button>
       </div>
       <div class="error-msg" id="settingsError"></div>
       <div class="hint" id="settingsSavedMsg" style="display:none; color:var(--green)">Saved.</div>
+    </div>
+
+    <div class="card">
+      <h2>ClaimCenter / SmartCOMM credentials</h2>
+      <p class="hint">Needed for the Claims and SmartCOMM tabs. Saved only on this machine, in your own user profile — never bundled into the installer, never sent anywhere except to ClaimCenter itself when a job runs.</p>
+
+      <div class="field-label">ClaimCenter username</div>
+      <input type="text" id="settingsCcUser" placeholder="e.g. benjsmit" autocomplete="off" style="max-width:360px" />
+      <div class="field-label">ClaimCenter password</div>
+      <input type="password" id="settingsCcPass" autocomplete="off" style="max-width:360px" />
+
+      <div class="field-label">ClaimCenter admin username</div>
+      <input type="text" id="settingsCcAdminUser" placeholder="e.g. willfolm" autocomplete="off" style="max-width:360px" />
+      <div class="hint">A separate admin-level login SmartCOMM needs for closing exposures/claims and some activities — not the same account as above.</div>
+      <div class="field-label">ClaimCenter admin password</div>
+      <input type="password" id="settingsCcAdminPass" autocomplete="off" style="max-width:360px" />
+    </div>
+
+    <div class="card">
+      <h2>Policy (WriteBiz) credentials</h2>
+      <p class="hint">Needed for the Policy tab — one login per state. Same storage/privacy as above.</p>
+      <div id="settingsWbFields"></div>
     </div>
   </div>
 
@@ -851,6 +873,15 @@
       if (cfg.settings.name) document.getElementById('settingsName').value = cfg.settings.name;
       if (cfg.settings.email) document.getElementById('settingsEmail').value = cfg.settings.email;
       if (cfg.settings.smartCommDataDir) document.getElementById('settingsSmartCommDataDir').value = cfg.settings.smartCommDataDir;
+      if (cfg.settings.ccUser) document.getElementById('settingsCcUser').value = cfg.settings.ccUser;
+      if (cfg.settings.ccPass) document.getElementById('settingsCcPass').value = cfg.settings.ccPass;
+      if (cfg.settings.ccAdminUser) document.getElementById('settingsCcAdminUser').value = cfg.settings.ccAdminUser;
+      if (cfg.settings.ccAdminPass) document.getElementById('settingsCcAdminPass').value = cfg.settings.ccAdminPass;
+      WB_STATES.forEach(function (st) {
+        var u = cfg.settings['wbUser' + st], p = cfg.settings['wbPass' + st];
+        if (u) document.getElementById('settingsWbUser' + st).value = u;
+        if (p) document.getElementById('settingsWbPass' + st).value = p;
+      });
     }
     syncIdentity(); // picks up the just-populated Settings email (if any) and fetches entitlements for it
   }).catch(function (e) {
@@ -858,6 +889,23 @@
   });
 
   // ── Settings tab ───────────────────────────────────────────────────────
+  // Policy's WriteBiz login is one username+password PER STATE (matches accountCreationHelper.js's
+  // STATE_USERS/WB_USER_<state>/WB_PASS_<state> convention) - built once from a plain list rather than
+  // hand-repeating 4 near-identical field pairs in the markup above.
+  var WB_STATES = ['DE', 'PA', 'MI', 'WI'];
+  (function renderWbFields() {
+    var box = document.getElementById('settingsWbFields');
+    WB_STATES.forEach(function (st) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML =
+        '<div class="field-label">' + st + ' username</div>' +
+        '<input type="text" id="settingsWbUser' + st + '" autocomplete="off" style="max-width:360px" />' +
+        '<div class="field-label">' + st + ' password</div>' +
+        '<input type="password" id="settingsWbPass' + st + '" autocomplete="off" style="max-width:360px" />';
+      box.appendChild(wrap);
+    });
+  })();
+
   document.getElementById('settingsSaveBtn').addEventListener('click', function () {
     var errEl = document.getElementById('settingsError');
     var savedEl = document.getElementById('settingsSavedMsg');
@@ -867,7 +915,15 @@
       name: document.getElementById('settingsName').value.trim(),
       email: document.getElementById('settingsEmail').value.trim(),
       smartCommDataDir: document.getElementById('settingsSmartCommDataDir').value.trim(),
+      ccUser: document.getElementById('settingsCcUser').value.trim(),
+      ccPass: document.getElementById('settingsCcPass').value,
+      ccAdminUser: document.getElementById('settingsCcAdminUser').value.trim(),
+      ccAdminPass: document.getElementById('settingsCcAdminPass').value,
     };
+    WB_STATES.forEach(function (st) {
+      payload['wbUser' + st] = document.getElementById('settingsWbUser' + st).value.trim();
+      payload['wbPass' + st] = document.getElementById('settingsWbPass' + st).value;
+    });
     fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {

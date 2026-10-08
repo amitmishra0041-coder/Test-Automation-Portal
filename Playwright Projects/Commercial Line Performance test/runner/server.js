@@ -191,10 +191,10 @@ refreshEntitlements(); // fire-and-forget on boot, don't delay server startup on
 setInterval(refreshEntitlements, ENTITLEMENTS_POLL_MS);
 
 // ── Per-install settings (packaged build only - Settings tab in index.html) ─
-// Persisted name/email/SmartCOMM data dir for a standalone install, so there's
-// somewhere to save them other than this repo's own .env (which won't exist
-// on another machine). electron-app/main.js points RUNNER_SETTINGS_FILE at
-// app.getPath('userData'); falls back to runtime-data/ for plain dev use.
+// Persisted name/email/SmartCOMM data dir/credentials for a standalone install. A packaged build never
+// ships either repo's .env (stage-resources.js excludes it so no secret is ever baked into the installer),
+// so this is the ONLY place an installed copy gets its ClaimCenter/WriteBiz logins from. electron-app/
+// main.js points RUNNER_SETTINGS_FILE at app.getPath('userData'); falls back to runtime-data/ for dev use.
 const SETTINGS_FILE = process.env.RUNNER_SETTINGS_FILE
   || path.join(__dirname, '..', 'runtime-data', 'runner-settings.json');
 
@@ -205,12 +205,38 @@ function loadSettings() {
   } catch (e) { return {}; }
 }
 
-// Applied once at boot (so a restart remembers last session's SmartCOMM data
-// dir) and again on every POST /api/settings below - catalogService.js reads
-// process.env.SMARTCOMM_DATA_DIR fresh on every /api/config call, so this
-// takes effect immediately with no server restart needed either way.
-const bootSettings = loadSettings();
-if (bootSettings.smartCommDataDir) process.env.SMARTCOMM_DATA_DIR = bootSettings.smartCommDataDir;
+// Settings field -> the env var every spawned job inherits it as (spawn's env starts from process.env).
+// `secret` fields are stored byte-for-byte (a leading/trailing space is a legal password character);
+// everything else is trimmed.
+const SETTINGS_ENV_FIELDS = [
+  { field: 'smartCommDataDir', env: 'SMARTCOMM_DATA_DIR' },
+  { field: 'ccUser', env: 'CC_USER' },
+  { field: 'ccPass', env: 'CC_PASS', secret: true },
+  { field: 'ccAdminUser', env: 'CC_ADMIN_USER' },
+  { field: 'ccAdminPass', env: 'CC_ADMIN_PASS', secret: true },
+  ...['DE', 'PA', 'MI', 'WI'].flatMap((st) => [
+    { field: `wbUser${st}`, env: `WB_USER_${st}` },
+    { field: `wbPass${st}`, env: `WB_PASS_${st}`, secret: true },
+  ]),
+];
+
+// Whatever each var was BEFORE Settings touched it - this repo's own .env in dev use, electron-app/main.js's
+// bundled SmartCOMM data path in a packaged build, or nothing. A blank Settings field restores this rather
+// than deleting outright, so saving the form just to change your email can never wipe a value a dev
+// machine's own .env was already providing.
+const ENV_BASELINE = {};
+SETTINGS_ENV_FIELDS.forEach(({ env }) => { ENV_BASELINE[env] = process.env[env]; });
+
+function applySettingsToEnv(settings) {
+  for (const { field, env } of SETTINGS_ENV_FIELDS) {
+    if (settings[field]) process.env[env] = settings[field];
+    else if (ENV_BASELINE[env] === undefined) delete process.env[env];
+    else process.env[env] = ENV_BASELINE[env];
+  }
+}
+
+// Once at boot (so a restart remembers last session's settings), again on every POST /api/settings below.
+applySettingsToEnv(loadSettings());
 
 // ── Catalogs (single source of truth - the UI just renders these) ──────────
 
@@ -328,22 +354,32 @@ app.get('/api/config', (req, res) => {
 
 // ── Per-install settings (packaged build's Settings tab) ────────────────────
 app.post('/api/settings', (req, res) => {
-  const name = String((req.body || {}).name || '').trim();
-  const email = String((req.body || {}).email || '').trim().toLowerCase();
-  const smartCommDataDir = String((req.body || {}).smartCommDataDir || '').trim();
+  const body = req.body || {};
+  const name = String(body.name || '').trim();
+  const email = String(body.email || '').trim().toLowerCase();
   if (email && !EMAIL_RE.test(email)) return res.status(400).json({ error: `"${email}" doesn't look like a valid email address` });
-  if (smartCommDataDir && (!fs.existsSync(smartCommDataDir) || !fs.statSync(smartCommDataDir).isDirectory())) {
-    return res.status(400).json({ error: `Folder does not exist: ${smartCommDataDir}` });
+  const settings = { name, email };
+  for (const { field, secret } of SETTINGS_ENV_FIELDS) {
+    const raw = String(body[field] || '');
+    settings[field] = secret ? raw : raw.trim();
   }
-  const settings = { name, email, smartCommDataDir };
+  const dataDir = settings.smartCommDataDir;
+  if (dataDir && (!fs.existsSync(dataDir) || !fs.statSync(dataDir).isDirectory())) {
+    return res.status(400).json({ error: `Folder does not exist: ${dataDir}` });
+  }
   try {
     fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
   } catch (e) {
     return res.status(500).json({ error: `Failed to save settings: ${e.message}` });
   }
-  if (smartCommDataDir) process.env.SMARTCOMM_DATA_DIR = smartCommDataDir;
-  res.json({ ok: true, settings });
+  const dataDirChanged = (process.env.SMARTCOMM_DATA_DIR || '') !== (dataDir || ENV_BASELINE.SMARTCOMM_DATA_DIR || '');
+  applySettingsToEnv(settings);
+  // catalogService.js reads SMARTCOMM_DATA_DIR into a module-level const on first require, so a changed
+  // folder only reaches the in-app template list if that cached module is dropped - spawned validation
+  // runs are fresh processes and pick the new value up on their own either way.
+  if (dataDirChanged) delete require.cache[require.resolve(SMARTCOMM_CATALOG_PATH)];
+  res.json({ ok: true });
 });
 
 // ── Tab-level entitlements (packaged build only) ─────────────────────────────
