@@ -127,7 +127,6 @@ const JIRA_REPORTS_DIR = path.join(POLICY_DIR, 'reports', 'jira');
 const CC_UI_REPORTS_DIR = path.join(CLAIMS_DIR, 'results', 'ccUi');
 const S3_DOWNLOAD_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'downloadSmartCommFile.js');
 const S3_DOWNLOADS_DIR = path.join(CLAIMS_DIR, 'results', 's3Downloads');
-const SMARTCOMM_LIVE_PREVIEW_DIR = path.join(CLAIMS_DIR, 'results', 'smartComm', 'live-preview');
 const S3_ESTABLISH_SESSION_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'establishS3Session.js');
 // Mirrors scripts/jiraReport.js's ALL_TRACK_KEYS/TRACK_DEFS - kept as a
 // separate literal (not required in) so this server has zero dependency on
@@ -184,7 +183,6 @@ fs.mkdirSync(PDF_COMPARE_REPORTS_DIR, { recursive: true });
 fs.mkdirSync(JIRA_REPORTS_DIR, { recursive: true });
 fs.mkdirSync(CC_UI_REPORTS_DIR, { recursive: true });
 fs.mkdirSync(S3_DOWNLOADS_DIR, { recursive: true });
-fs.mkdirSync(SMARTCOMM_LIVE_PREVIEW_DIR, { recursive: true });
 
 loadCachedEntitlements();
 refreshEntitlements(); // fire-and-forget on boot, don't delay server startup on a slow/offline GitHub fetch
@@ -310,12 +308,6 @@ app.use('/reports/pdf-compare', express.static(PDF_COMPARE_REPORTS_DIR));
 app.use('/reports/jira', express.static(JIRA_REPORTS_DIR));
 app.use('/reports/cc-ui', express.static(CC_UI_REPORTS_DIR));
 app.use('/reports/s3-download', express.static(S3_DOWNLOADS_DIR));
-// SmartCOMM Interactive-mode live preview — screenshots livePreviewService.js (ClaimCenter-Automation)
-// writes per scenario, polled by the Runner UI's own #smartCommProgressCard (see its live-preview <img>
-// tags). `maxAge: 0` + no etag: these files get overwritten in place every ~1.5s and the UI always requests
-// them with its own cache-busting query param anyway, but a stale 304/cached response would defeat the
-// purpose of a LIVE preview if a proxy or the browser ever cached by path alone.
-app.use('/live-preview', express.static(SMARTCOMM_LIVE_PREVIEW_DIR, { etag: false, maxAge: 0, lastModified: false }));
 
 app.get('/api/config', (req, res) => {
   res.json({

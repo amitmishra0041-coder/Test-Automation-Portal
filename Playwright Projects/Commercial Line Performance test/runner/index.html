@@ -270,9 +270,6 @@
   .sc-step.waiting .label { color: var(--amber); font-weight: 600; }
   .sc-step.error .label { color: var(--red); }
   .sc-step .detail { color: var(--muted); display: block; word-break: break-word; }
-  .sc-preview-wrap { margin-top: 9px; display: none; }
-  .sc-preview-label { font-size: 10.5px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .03em; }
-  .sc-preview { width: 100%; max-width: 280px; border-radius: 6px; border: 1px solid var(--border); display: block; cursor: zoom-in; }
 </style>
 </head>
 <body>
@@ -1972,14 +1969,6 @@
     if (lane.indexOf('tpl:') === 0) return 'Template ' + lane.slice(4);
     return 'Scenario ' + lane;
   }
-  // Only a real scenario lane has its own live Interactive-mode browser page to screenshot — "_setup" and
-  // "tpl:..." lanes are synthetic groupings for lines with no single page behind them (see server.js's
-  // classifySmartCommLine), so a preview thumbnail would have nothing real to show there.
-  function isScenarioLane(lane) { return lane !== '_setup' && lane.indexOf('tpl:') !== 0; }
-  // Bumped on a fixed timer (see below) to cache-bust the preview <img> tags below, forcing each one to
-  // re-fetch its scenario's screenshot file (livePreviewService.js overwrites it in place every ~1.5s) rather
-  // than showing a browser-cached first frame forever.
-  var scPreviewTick = Date.now();
   function renderSmartCommProgress() {
     var card = document.getElementById('smartCommProgressCard');
     var body = document.getElementById('smartCommProgressBody');
@@ -1999,28 +1988,13 @@
           return '<div class="sc-step ' + (s.status || '') + '"><span class="dot"></span><span class="txt"><span class="label">' + escapeHtml(s.label) + '</span>' +
             (s.detail ? '<span class="detail">' + escapeHtml(s.detail) + '</span>' : '') + '</span></div>';
         }).join('');
-        var previewUrl = '/live-preview/' + encodeURIComponent(lane) + '.jpg?t=' + scPreviewTick;
-        var preview = isScenarioLane(lane)
-          ? '<div class="sc-preview-wrap"><div class="sc-preview-label">Live preview</div>' +
-            '<a href="' + previewUrl + '" target="_blank" rel="noopener">' +
-            '<img class="sc-preview" src="' + previewUrl + '" alt="Live browser preview for ' + escapeHtml(lane) + '" ' +
-            'onload="this.parentElement.parentElement.style.display=\'block\'" ' +
-            'onerror="this.parentElement.parentElement.style.display=\'none\'" /></a></div>'
-          : '';
-        return '<div class="sc-lane"><div class="sc-lane-title">' + escapeHtml(laneTitle(lane)) + '</div>' + rows + preview + '</div>';
+        return '<div class="sc-lane"><div class="sc-lane-title">' + escapeHtml(laneTitle(lane)) + '</div>' + rows + '</div>';
       }).join('');
       return '<div class="sc-job"><div class="sc-job-title">' + escapeHtml(job ? job.label : ('Job #' + id)) + '</div><div class="sc-lanes">' + lanesHtml + '</div></div>';
     }).join('');
     var banner = waiting.length ? '<div class="sc-action-banner">⏳ Action needed: ' + waiting.map(escapeHtml).join(' · ') + '</div>' : '';
     body.innerHTML = banner + html;
   }
-  // Refreshes every live-preview <img>'s cache-busting query param on a fixed timer, independent of any SSE
-  // event — livePreviewService.js overwrites each scenario's screenshot file in place roughly this often, so
-  // this is what actually makes the thumbnail look "live" rather than frozen on its first frame. Cheap to
-  // call even when nothing's running: renderSmartCommProgress() itself no-ops immediately when
-  // smartCommProgress is empty.
-  setInterval(function () { scPreviewTick = Date.now(); renderSmartCommProgress(); }, 1500);
-
   function appendLine(text, cls) {
     var stick = output.scrollTop + output.clientHeight >= output.scrollHeight - 40;
     var div = document.createElement('div');
