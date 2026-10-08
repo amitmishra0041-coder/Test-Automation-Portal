@@ -669,6 +669,8 @@
   </div>
 
   <!-- ── Shared status + output (one queue/process on the server) ─────────── -->
+  <!-- Hidden on non-run tabs (Settings, and any locked "blocked" panel) - there's no run to show there. -->
+  <div id="runPanels">
   <div class="card">
     <h2>Status</h2>
     <div class="session-banner" id="sessionBanner">Enter your email in the Report Email field (SmartCOMM or Jira Sprint Report tab) to run anything — this tool supports up to 2 people running jobs at once.</div>
@@ -699,6 +701,7 @@
     </div>
     <div id="output"></div>
   </div>
+  </div>
 
 </main>
 </div>
@@ -723,9 +726,16 @@
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      setRunPanelsVisible(btn.dataset.tab !== 'settings');
       try { localStorage.setItem('runnerActiveTab', btn.dataset.tab); } catch (_) { /* ignore */ }
     });
   });
+  // The shared Status / SmartCOMM progress / Console output cards only make sense on a tab that runs jobs -
+  // hide them on Settings and on any locked "blocked" panel.
+  function setRunPanelsVisible(show) {
+    var el = document.getElementById('runPanels');
+    if (el) el.style.display = show ? '' : 'none';
+  }
   try {
     var savedTab = localStorage.getItem('runnerActiveTab');
     var savedBtn = savedTab && document.querySelector('.tab-btn[data-tab="' + savedTab + '"]');
@@ -819,6 +829,7 @@
     document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
     btn.classList.add('active');
     document.getElementById('tab-blocked').classList.add('active');
+    setRunPanelsVisible(false);
     document.getElementById('blockedTitle').textContent = btn.dataset.baseLabel;
     var requestLink = document.getElementById('blockedRequestLink');
     if (comingSoon) {
@@ -1182,10 +1193,10 @@
       hint: 'Checks the Create New Document screens — fields, mandatory/hidden rules, dropdown values, document screens and business rules — against the requirements workbook. Read-only by default.' },
     { key: 's3', label: 'Download from S3',
       summary: 'Finds a SmartCOMM file in the S3 admin tool by key, downloads every match, and emails them.',
-      hint: 'Finds a SmartCOMM file in the Guidewire S3 Integration Files admin tool by its key (or part of one), downloads every match, and emails them. Reuses a saved Okta sign-in session — run "Establish S3 Session" first (and again whenever a run fails saying the session expired).' },
+      hint: 'Finds a SmartCOMM file in the Guidewire S3 Integration Files admin tool by its key (or part of one), downloads every match, and emails them. It reuses a shared Okta sign-in kept on the team drive and maintained centrally, so you don\'t need your own S3 access. If a run fails saying the shared session expired, let the tool owner know so they can refresh it — you don\'t sign in yourself.' },
     { key: 's3-session', label: 'Establish S3 Session',
-      summary: 'Opens a real browser window for you to sign in to Okta by hand, then saves the session.',
-      hint: 'Opens a real, visible browser window on this machine and waits for you to sign in to Okta by hand (email, password, MFA — whatever it asks for). Once you land on the admin tool, the session is saved so every later "Download from S3" run can reuse it instead of hitting Okta\'s sign-in wall itself.' }
+      summary: 'Owner-only: refreshes the shared Okta sign-in on the team drive that everyone else reuses.',
+      hint: 'Owner-only. Opens a real, visible browser window and waits for the tool owner to sign in to Okta by hand (email, password, MFA — whatever it asks for). Once it lands on the admin tool, the session is saved to the shared team drive so everyone\'s "Download from S3" and Interactive validation runs can reuse it without signing in themselves. Most people never need this — run it only if you maintain the shared S3 session and it has expired.' }
   ];
 
   // Renders a hint element as a short visible summary plus an "i" dot whose hover/focus tooltip carries the
