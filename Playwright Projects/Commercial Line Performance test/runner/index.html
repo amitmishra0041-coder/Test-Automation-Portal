@@ -798,6 +798,7 @@
     }).catch(function () { /* stay with whatever we last knew - network hiccup, not fatal */ });
   }
 
+  var initialTabPicked = false;
   // Re-labels every tab button with a lock/clock suffix and toggles the classes the click handler and CSS
   // check, based on the entitlements most recently fetched above. Outside a packaged build (myAllowedTabs
   // stays null until the first successful fetch, which always reports packagedBuild:false there) every tab
@@ -812,6 +813,21 @@
       btn.classList.toggle('comingSoon', comingSoon);
       btn.textContent = btn.dataset.baseLabel + (locked ? ' 🔒' : comingSoon ? ' (soon)' : '');
     });
+    // First entitlements load on a brand-new install: there's no saved tab, so the app is sitting on the
+    // default Policy tab - which is locked for anyone not granted it, making "needs approval" a new user's
+    // entire first impression. Land them on their primary unlocked tool instead (SmartCOMM is always allowed).
+    // Only on a genuine first run (no saved tab); a returning user whose granted tab was revoked still gets
+    // the blocked panel below.
+    if (!initialTabPicked) {
+      initialTabPicked = true;
+      var hadSavedTab = false;
+      try { hadSavedTab = !!localStorage.getItem('runnerActiveTab'); } catch (_) { /* ignore */ }
+      var active0 = document.querySelector('.tab-btn.active');
+      if (!hadSavedTab && active0 && (active0.classList.contains('locked') || active0.classList.contains('comingSoon'))) {
+        var scBtn = document.querySelector('.tab-btn[data-tab="smartComm"]');
+        if (scBtn && !scBtn.classList.contains('locked') && !scBtn.classList.contains('comingSoon')) { scBtn.click(); return; }
+      }
+    }
     // If the tab the user is currently looking at just became locked/comingSoon (e.g. entitlements changed
     // under them mid-session), swap them to the blocked panel instead of leaving a now-gated panel showing.
     var activeBtn = document.querySelector('.tab-btn.active');
