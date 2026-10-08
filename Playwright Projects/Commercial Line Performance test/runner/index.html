@@ -23,7 +23,8 @@
   body {
     margin: 0;
     font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
+    background: radial-gradient(1100px 520px at 78% -8%, rgba(79,140,255,0.08), transparent 60%), var(--bg);
+    background-attachment: fixed;
     color: var(--text);
   }
   header {
@@ -33,9 +34,10 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 16px;
+    background: linear-gradient(180deg, rgba(79,140,255,0.07), transparent);
   }
-  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  header .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  header h1 { font-size: 19px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+  header .sub { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
   #conn { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   #conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; }
   #conn.up .dot { background: var(--green); }
@@ -78,8 +80,9 @@
     border-radius: 10px;
     padding: 18px 20px;
     margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
   }
-  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent-2); margin: 0 0 12px; font-weight: 600; }
   .field-label { font-size: 12px; color: var(--muted); margin: 14px 0 8px; }
   .field-label:first-child { margin-top: 0; }
 
@@ -102,7 +105,7 @@
 
   .tab-btn.locked, .tab-btn.comingSoon { opacity: .55; }
 
-  input[type=text], input[type=email], select {
+  input[type=text], input[type=email], input[type=password], select {
     width: 100%;
     max-width: 360px;
     background: var(--panel-2);
@@ -113,7 +116,7 @@
     font-size: 13.5px;
     font-family: var(--mono);
   }
-  input[type=text]:focus, input[type=email]:focus, select:focus { outline: none; border-color: var(--accent); }
+  input[type=text]:focus, input[type=email]:focus, input[type=password]:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,140,255,0.15); }
   select { max-width: 560px; font-family: inherit; }
 
   .preview {
@@ -135,9 +138,11 @@
     border: none; border-radius: 7px; padding: 10px 20px; font-size: 13.5px; font-weight: 600;
     cursor: pointer;
   }
-  button.run { background: var(--accent); color: #fff; }
+  button.run { background: var(--accent); color: #fff; transition: background .12s, box-shadow .12s; }
+  button.run:hover:not(:disabled) { background: var(--accent-2); box-shadow: 0 2px 12px rgba(79,140,255,0.35); }
   button.run:disabled { background: #2b3242; color: var(--muted); cursor: not-allowed; }
-  button.stop { background: var(--red); color: #fff; }
+  button.stop { background: var(--red); color: #fff; transition: background .12s; }
+  button.stop:hover:not(:disabled) { background: #ff7580; }
   button.stop:disabled { background: #2b3242; color: var(--muted); cursor: not-allowed; }
   .error-msg { color: var(--red); font-size: 12.5px; margin-top: 8px; }
 
@@ -152,6 +157,9 @@
   .stat.passed .n { color: var(--green); }
   .stat.failed .n { color: var(--red); }
   .stat.running .n { color: var(--amber); font-size: 14px; }
+  .stat.passed { border-left: 3px solid var(--green); }
+  .stat.failed { border-left: 3px solid var(--red); }
+  .stat.running { border-left: 3px solid var(--amber); }
 
   #queueList { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
   #queueList span { color: var(--text); }
