@@ -236,6 +236,31 @@ function applySettingsToEnv(settings) {
 // Once at boot (so a restart remembers last session's settings), again on every POST /api/settings below.
 applySettingsToEnv(loadSettings());
 
+// ── Usage tracking (team-wide, via a shared append-only log) ────────────────
+// Every accepted run appends one JSON line here; the Stats tab reads + aggregates it. A packaged build points
+// RUNNER_USAGE_LOG at the shared V: drive (see electron-app/main.js) so ONE file collects everyone's runs -
+// no backend, no token. Append-only, one line per run, so concurrent writers from different machines don't
+// corrupt each other. Best-effort on both ends: a logging failure (drive down, lock) must NEVER block a run,
+// and an unreadable/missing log just reads as "no data yet".
+const USAGE_LOG_FILE = process.env.RUNNER_USAGE_LOG
+  || path.join(__dirname, '..', 'runtime-data', 'usage.jsonl');
+
+function recordUsage(rec) {
+  try {
+    fs.mkdirSync(path.dirname(USAGE_LOG_FILE), { recursive: true });
+    fs.appendFileSync(USAGE_LOG_FILE, JSON.stringify({ ts: new Date().toISOString(), ...rec }) + '\n');
+  } catch (e) { /* never let usage logging break a run */ }
+}
+
+function readUsage() {
+  try {
+    return fs.readFileSync(USAGE_LOG_FILE, 'utf8')
+      .split('\n').filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch (e) { return null; } })
+      .filter(Boolean);
+  } catch (e) { return []; }
+}
+
 // ── Catalogs (single source of truth - the UI just renders these) ──────────
 
 // LOB -> spec file, mirrors runners/run-states.ps1's $testFile switch.
@@ -312,6 +337,7 @@ app.use('/reports/s3-download', express.static(S3_DOWNLOADS_DIR));
 app.get('/api/config', (req, res) => {
   res.json({
     packagedBuild: PACKAGED,
+    appVersion: process.env.RUNNER_APP_VERSION || '',
     comingSoonSuites: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
     settings: loadSettings(),
     policy: {
@@ -1068,7 +1094,47 @@ app.post('/api/run', (req, res) => {
     queue: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })),
   });
   processQueue(suiteKey);
+  // Team-wide usage stat (best-effort) - one record per accepted submission. mode/tier come from the raw job
+  // payload when present, so per-tool breakdowns can distinguish e.g. SmartCOMM template vs S3 vs ClaimCenter-UI.
+  recordUsage({
+    email: identity,
+    name: (loadSettings().name || ''),
+    tool: suiteKey,
+    mode: (jobs[0] && jobs[0].mode) || '',
+    tier: (jobs[0] && (jobs[0].tier || jobs[0].env)) || '',
+    jobs: built.length,
+  });
   res.json({ ok: true, queued: built.length });
+});
+
+// Team-wide usage stats for the Stats tab (shown to everyone) - aggregates the shared usage log.
+app.get('/api/stats', (req, res) => {
+  const recs = readUsage();
+  const byTool = {};
+  const byUser = {};
+  const usersSet = new Set();
+  for (const r of recs) {
+    const tool = r.tool || 'unknown';
+    byTool[tool] = (byTool[tool] || 0) + 1;
+    const key = (r.email || r.name || 'unknown').toLowerCase();
+    usersSet.add(key);
+    if (!byUser[key]) byUser[key] = { email: r.email || '', name: r.name || '', runs: 0, lastTs: '' };
+    byUser[key].runs += 1;
+    if (r.name && !byUser[key].name) byUser[key].name = r.name;
+    if (!byUser[key].lastTs || r.ts > byUser[key].lastTs) byUser[key].lastTs = r.ts;
+  }
+  const toolLabels = {
+    policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator',
+    jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
+    updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare',
+  };
+  res.json({
+    totalRuns: recs.length,
+    distinctUsers: usersSet.size,
+    tools: Object.keys(byTool).sort((a, b) => byTool[b] - byTool[a]).map((k) => ({ key: k, label: toolLabels[k] || k, runs: byTool[k] })),
+    users: Object.values(byUser).sort((a, b) => b.runs - a.runs),
+    recent: recs.slice(-40).reverse(),
+  });
 });
 
 // Scoped to the caller's own jobs by default, so one person sharing this tool can never kill a different

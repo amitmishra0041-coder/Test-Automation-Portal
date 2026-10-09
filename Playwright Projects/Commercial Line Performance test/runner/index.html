@@ -278,6 +278,15 @@
   .sc-step.waiting .label { color: var(--amber); font-weight: 600; }
   .sc-step.error .label { color: var(--red); }
   .sc-step .detail { color: var(--muted); display: block; word-break: break-word; }
+
+  .appver { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .stats-table th { text-align: left; color: var(--muted); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .stats-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  .stats-table tr:last-child td { border-bottom: none; }
+  .stats-table .num { text-align: right; font-family: var(--mono); color: var(--accent-2); white-space: nowrap; }
+  .stats-table .when { color: var(--muted); white-space: nowrap; }
+  .stats-empty { color: var(--muted); font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -287,7 +296,10 @@
     <h1>Playwright Test Runner</h1>
     <div class="sub">Test automation tools — policy, ClaimCenter, migration, SmartCOMM and reporting</div>
   </div>
-  <div id="conn"><span class="dot"></span><span id="connLabel">connecting…</span></div>
+  <div style="text-align:right;">
+    <div id="conn"><span class="dot"></span><span id="connLabel">connecting…</span></div>
+    <div id="appVersion" class="appver"></div>
+  </div>
 </header>
 
 <div class="layout">
@@ -303,6 +315,7 @@
   <button class="tab-btn" data-tab="smartComm">SmartCOMM Validator</button>
   <div class="nav-group">Reporting</div>
   <button class="tab-btn" data-tab="jiraReport">Jira Sprint Report</button>
+  <button class="tab-btn" data-tab="stats">Usage Stats</button>
   <div class="nav-group">Account</div>
   <button class="tab-btn" data-tab="settings">Settings</button>
 </nav>
@@ -673,8 +686,32 @@
     </div>
   </div>
 
+  <!-- ── Usage Stats tab (visible to everyone) ──────────────────────────── -->
+  <div class="tab-panel" id="tab-stats">
+    <div class="card">
+      <div class="out-toolbar"><h2 style="margin:0">Usage stats</h2><button id="statsRefreshBtn">Refresh</button></div>
+      <div class="stats-row" style="margin-top:14px">
+        <div class="stat"><div class="n" id="statTotalRuns">—</div><div class="l">Total runs</div></div>
+        <div class="stat"><div class="n" id="statDistinctUsers">—</div><div class="l">People who used it</div></div>
+      </div>
+      <div class="hint" id="statsHint" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>Runs by tool</h2>
+      <div id="statsByTool"><span class="stats-empty">Loading…</span></div>
+    </div>
+    <div class="card">
+      <h2>By person</h2>
+      <div id="statsByUser"><span class="stats-empty">Loading…</span></div>
+    </div>
+    <div class="card">
+      <h2>Recent activity</h2>
+      <div id="statsRecent"><span class="stats-empty">Loading…</span></div>
+    </div>
+  </div>
+
   <!-- ── Shared status + output (one queue/process on the server) ─────────── -->
-  <!-- Hidden on non-run tabs (Settings, and any locked "blocked" panel) - there's no run to show there. -->
+  <!-- Hidden on non-run tabs (Settings, Usage Stats, and any locked "blocked" panel) - no run to show there. -->
   <div id="runPanels">
   <div class="card">
     <h2>Status</h2>
@@ -731,7 +768,8 @@
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      setRunPanelsVisible(btn.dataset.tab !== 'settings');
+      setRunPanelsVisible(btn.dataset.tab !== 'settings' && btn.dataset.tab !== 'stats');
+      if (btn.dataset.tab === 'stats') loadStats();
       try { localStorage.setItem('runnerActiveTab', btn.dataset.tab); } catch (_) { /* ignore */ }
     });
   });
@@ -814,7 +852,7 @@
   function applyTabLocks() {
     document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
       var tab = btn.dataset.tab;
-      if (tab === 'settings') return; // Settings itself is never gated - you need it to set the email entitlements are looked up by
+      if (tab === 'settings' || tab === 'stats') return; // Settings + Usage Stats are never gated - everyone sees them
       var comingSoon = myComingSoon.indexOf(tab) !== -1;
       var locked = packagedBuild && myAllowedTabs && myAllowedTabs.indexOf(tab) === -1 && !comingSoon;
       btn.classList.toggle('locked', locked);
@@ -901,6 +939,7 @@
     renderJiraCustomTrackList();
     updateJiraReportPreview();
 
+    if (cfg.appVersion) { var avEl = document.getElementById('appVersion'); if (avEl) avEl.textContent = 'v' + cfg.appVersion; }
     if (cfg.settings) {
       if (cfg.settings.name) document.getElementById('settingsName').value = cfg.settings.name;
       if (cfg.settings.email) document.getElementById('settingsEmail').value = cfg.settings.email;
@@ -919,6 +958,43 @@
   }).catch(function (e) {
     document.getElementById('policyError').textContent = 'Could not load /api/config: ' + e.message;
   });
+
+  // ── Usage Stats tab (reads the shared team-wide usage log via /api/stats) ──
+  function fmtWhen(ts) { try { return new Date(ts).toLocaleString(); } catch (e) { return ts || ''; } }
+  function loadStats() {
+    fetch('/api/stats').then(function (r) { return r.json(); }).then(function (s) {
+      document.getElementById('statTotalRuns').textContent = s.totalRuns || 0;
+      document.getElementById('statDistinctUsers').textContent = s.distinctUsers || 0;
+      document.getElementById('statsHint').textContent = s.totalRuns ? '' : 'No runs recorded yet — stats fill in as people use the tools.';
+      document.getElementById('statsByTool').innerHTML = (s.tools && s.tools.length)
+        ? '<table class="stats-table"><thead><tr><th>Tool</th><th class="num">Runs</th></tr></thead><tbody>' +
+          s.tools.map(function (t) { return '<tr><td>' + escapeHtml(t.label) + '</td><td class="num">' + t.runs + '</td></tr>'; }).join('') + '</tbody></table>'
+        : '<span class="stats-empty">No runs yet.</span>';
+      document.getElementById('statsByUser').innerHTML = (s.users && s.users.length)
+        ? '<table class="stats-table"><thead><tr><th>Person</th><th class="num">Runs</th><th class="when">Last used</th></tr></thead><tbody>' +
+          s.users.map(function (u) { var who = escapeHtml(u.name || u.email || 'unknown') + (u.name && u.email ? ' <span class="stats-empty">(' + escapeHtml(u.email) + ')</span>' : ''); return '<tr><td>' + who + '</td><td class="num">' + u.runs + '</td><td class="when">' + fmtWhen(u.lastTs) + '</td></tr>'; }).join('') + '</tbody></table>'
+        : '<span class="stats-empty">No runs yet.</span>';
+      document.getElementById('statsRecent').innerHTML = (s.recent && s.recent.length)
+        ? '<table class="stats-table"><thead><tr><th class="when">When</th><th>Who</th><th>Tool</th></tr></thead><tbody>' +
+          s.recent.map(function (r) { return '<tr><td class="when">' + fmtWhen(r.ts) + '</td><td>' + escapeHtml(r.name || r.email || 'unknown') + '</td><td>' + escapeHtml(r.tool || '') + (r.mode ? ' · ' + escapeHtml(r.mode) : '') + '</td></tr>'; }).join('') + '</tbody></table>'
+        : '<span class="stats-empty">No runs yet.</span>';
+    }).catch(function () {
+      document.getElementById('statsHint').textContent = 'Could not load stats (the shared usage log may be unreachable).';
+    });
+  }
+  document.getElementById('statsRefreshBtn').addEventListener('click', loadStats);
+
+  // ── Desktop notification when YOUR run finishes (useful for long SmartCOMM sweeps you walk away from) ──
+  if ('Notification' in window && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) { /* ignore */ } }
+  function notifyRunDone() {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      var passed = (document.getElementById('statPassed') || {}).textContent || '0';
+      var failed = (document.getElementById('statFailed') || {}).textContent || '0';
+      var n = new Notification('ClaimCenter Runner — run finished', { body: 'Passed: ' + passed + ' · Failed: ' + failed + '. Open the app for details.' });
+      n.onclick = function () { window.focus(); n.close(); };
+    } catch (e) { /* ignore */ }
+  }
 
   // ── Settings tab ───────────────────────────────────────────────────────
   // Policy's WriteBiz login is one username+password PER STATE (matches accountCreationHelper.js's
@@ -2085,6 +2161,10 @@
     var mine = list.filter(function (r) { return r.requestedBy === myEmail; });
     var isRunning = !emailOk || mine.length > 0;
     anyRunning = isRunning;
+    // Fire a desktop notification when MY run finishes (mine goes from running -> none) - handy when you kicked
+    // off a long SmartCOMM sweep and walked away. Only my own runs, never someone else's.
+    if (window.__myRunWasActive && mine.length === 0) notifyRunDone();
+    window.__myRunWasActive = mine.length > 0;
     statRunning.textContent = list.length ? (list.length + ' running') : 'Idle';
     document.getElementById('policyRunBtn').disabled = isRunning || policyJobs().length === 0;
     document.getElementById('claimsRunBtn').disabled = isRunning || !claimsJob();
