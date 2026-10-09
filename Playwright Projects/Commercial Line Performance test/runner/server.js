@@ -86,8 +86,12 @@ async function refreshEntitlements() {
 // there shouldn't suddenly need an approval step.
 function allowedSuitesFor(email) {
   if (!PACKAGED) return SUITES.slice();
+  if (isAdmin(email)) return SUITES.slice(); // an admin can use every tool (they manage access, after all)
+  // activeEntitlements() prefers the admin-set config on V: (live), falling back to the GitHub-sourced cache -
+  // read here rather than mutating entitlementsCache, so the async GitHub refresh can't clobber an admin's grants.
+  const ent = activeEntitlements();
   const key = String(email || '').trim().toLowerCase();
-  const granted = (key && entitlementsCache.grants && entitlementsCache.grants[key]) || entitlementsCache.default || ['smartComm'];
+  const granted = (key && ent.grants && ent.grants[key]) || ent.default || ['smartComm'];
   // smartComm is always on, regardless of what the entitlements file says -
   // it's the one tool every packaged install should be able to use out of
   // the box per the original ask, so a malformed/missing entitlements file
@@ -102,7 +106,8 @@ function allowedSuitesFor(email) {
 // regardless of whose address was typed into the UI's own "Report Email" field — added 2026-10-02 per user
 // request. Every report sender here (nodemailer's `to`) already accepts a comma-separated address list, so
 // this just appends the owner's address instead of needing a separate CC mechanism.
-const ALWAYS_CC_EMAIL = 'amitmishra@donegalgroup.com';
+// `let` (not const) so an admin can change the owner/CC address from the Admin tab (see applyAdminConfig).
+let ALWAYS_CC_EMAIL = 'amitmishra@donegalgroup.com';
 // Identifies who is submitting/stopping a run, so this shared, single-server tool can let a second,
 // different person in alongside whoever is already running something (see SUITE_MAX_PARALLEL below) and show
 // everyone who currently holds a session — added 2026-10-05 per user request ("tool can only be used by
@@ -113,6 +118,60 @@ function withAlwaysCc(email) {
   if (!typed) return ALWAYS_CC_EMAIL;
   if (typed.toLowerCase() === ALWAYS_CC_EMAIL.toLowerCase()) return typed;
   return `${typed},${ALWAYS_CC_EMAIL}`;
+}
+
+// ── Admin config (shared on the team drive, edited in-app by an admin) ───────
+// ONE shared file on V: (RUNNER_ADMIN_CONFIG, set by electron-app/main.js) holding everything an admin can
+// change without a rebuild: who's an admin, tab access (entitlements), environment URLs, the mail relay, and
+// S3 settings. Read by every installed copy; written only by the Admin tab. Entirely OPTIONAL and
+// backward-compatible: if the file is absent/unreadable (no V:, offline, not set up yet), NOTHING changes -
+// entitlements still come from GitHub, URLs from helpers/envConfig.js, SMTP/S3 from their env defaults. Each
+// field below is applied only when the admin actually set it, so a partial config never blanks a working value.
+const ADMIN_CONFIG_FILE = process.env.RUNNER_ADMIN_CONFIG
+  || path.join(__dirname, '..', 'runtime-data', 'admin-config.json');
+const ADMIN_CONFIG_POLL_MS = 2 * 60 * 1000;
+let adminConfig = {};
+
+function applyAdminConfig() {
+  if (adminConfig.ownerEmail) ALWAYS_CC_EMAIL = String(adminConfig.ownerEmail).trim();
+  // Entitlements are NOT copied into entitlementsCache here - allowedSuitesFor reads them live via
+  // activeEntitlements() so the async GitHub refresh (refreshEntitlements) can never overwrite an admin's grants.
+  // Environment URLs: overlay only the keys the admin actually set onto helpers/envConfig.js's defaults.
+  if (adminConfig.environmentUrls && typeof adminConfig.environmentUrls === 'object') {
+    for (const k of Object.keys(adminConfig.environmentUrls)) {
+      if (adminConfig.environmentUrls[k]) ENV_URLS[k] = adminConfig.environmentUrls[k];
+    }
+  }
+  // SMTP + S3: set the env vars spawned jobs inherit, only when a value was provided.
+  const smtp = adminConfig.smtp || {};
+  if (smtp.host) process.env.EMAIL_SMTP_HOST = String(smtp.host);
+  if (smtp.port) process.env.EMAIL_SMTP_PORT = String(smtp.port);
+  if (smtp.from) process.env.EMAIL_FROM = String(smtp.from);
+  const s3 = adminConfig.s3 || {};
+  if (s3.adminUrl) process.env.SMARTCOMM_S3_ADMIN_URL = String(s3.adminUrl);
+  if (s3.loginEmail) process.env.SMARTCOMM_OKTA_LOGIN_EMAIL = String(s3.loginEmail);
+  if (s3.sessionOwner) process.env.SMARTCOMM_OKTA_SESSION_OWNER = String(s3.sessionOwner);
+}
+
+function loadAdminConfig() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(ADMIN_CONFIG_FILE, 'utf8'));
+    if (parsed && typeof parsed === 'object') { adminConfig = parsed; applyAdminConfig(); }
+  } catch (e) { /* no admin-config yet, or drive unreachable - keep every current default */ }
+}
+
+function adminEmails() {
+  const list = (adminConfig.adminEmails || []).map((e) => String(e || '').trim().toLowerCase()).filter(Boolean);
+  return list.length ? list : [ALWAYS_CC_EMAIL.toLowerCase()];
+}
+function isAdmin(email) {
+  return adminEmails().includes(String(email || '').trim().toLowerCase());
+}
+// Tab access comes from the admin-set config on V: when present (live, authoritative), else the GitHub-sourced
+// cache - read by allowedSuitesFor on every check so no async refresh can clobber an admin's grants.
+function activeEntitlements() {
+  if (adminConfig.entitlements && Array.isArray(adminConfig.entitlements.default)) return adminConfig.entitlements;
+  return entitlementsCache;
 }
 
 const POLICY_DIR = path.join(__dirname, '..');
@@ -187,6 +246,10 @@ fs.mkdirSync(S3_DOWNLOADS_DIR, { recursive: true });
 loadCachedEntitlements();
 refreshEntitlements(); // fire-and-forget on boot, don't delay server startup on a slow/offline GitHub fetch
 setInterval(refreshEntitlements, ENTITLEMENTS_POLL_MS);
+// Shared admin config (V:) is applied AFTER the GitHub entitlements above, so an admin's in-app changes win.
+// Re-read on a timer so one admin's grant/revoke reaches everyone else without an app restart.
+loadAdminConfig();
+setInterval(loadAdminConfig, ADMIN_CONFIG_POLL_MS);
 
 // ── Per-install settings (packaged build only - Settings tab in index.html) ─
 // Persisted name/email/SmartCOMM data dir/credentials for a standalone install. A packaged build never
@@ -411,7 +474,62 @@ app.get('/api/entitlements', (req, res) => {
     allowed: allowedSuitesFor(email),
     comingSoon: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
     ownerEmail: ALWAYS_CC_EMAIL,
+    admin: isAdmin(email), // UI shows the Admin tab only when this is true
   });
+});
+
+// ── Admin console (admin-only): read/write the shared admin config on V: ─────
+// All tools (keys) the Admin tab can grant/revoke, with friendly labels for the UI.
+const SUITE_LABELS = {
+  policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator',
+  jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
+  updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare',
+};
+app.get('/api/admin', (req, res) => {
+  const email = String(req.query.email || '').trim().toLowerCase();
+  if (!isAdmin(email)) return res.status(403).json({ error: 'Admin access only.' });
+  res.json({
+    isAdmin: true,
+    configFile: ADMIN_CONFIG_FILE,
+    suites: SUITES.map((k) => ({ key: k, label: SUITE_LABELS[k] || k })),
+    config: {
+      ownerEmail: adminConfig.ownerEmail || ALWAYS_CC_EMAIL,
+      adminEmails: adminConfig.adminEmails && adminConfig.adminEmails.length ? adminConfig.adminEmails : adminEmails(),
+      entitlements: adminConfig.entitlements || { default: entitlementsCache.default, grants: entitlementsCache.grants || {} },
+      environmentUrls: Object.assign({}, ENV_URLS, adminConfig.environmentUrls || {}),
+      smtp: adminConfig.smtp || { host: process.env.EMAIL_SMTP_HOST || '', port: process.env.EMAIL_SMTP_PORT || '', from: process.env.EMAIL_FROM || '' },
+      s3: adminConfig.s3 || { adminUrl: process.env.SMARTCOMM_S3_ADMIN_URL || '', loginEmail: process.env.SMARTCOMM_OKTA_LOGIN_EMAIL || '', sessionOwner: process.env.SMARTCOMM_OKTA_SESSION_OWNER || '' },
+    },
+  });
+});
+app.post('/api/admin', (req, res) => {
+  const body = req.body || {};
+  const email = String(body.requestedBy || '').trim().toLowerCase();
+  if (!isAdmin(email)) return res.status(403).json({ error: 'Admin access only.' });
+  const next = body.config || {};
+  const cfg = {
+    ownerEmail: (next.ownerEmail && String(next.ownerEmail).trim()) || adminConfig.ownerEmail || ALWAYS_CC_EMAIL,
+    adminEmails: Array.isArray(next.adminEmails) ? next.adminEmails.map((e) => String(e).trim().toLowerCase()).filter(Boolean) : adminEmails(),
+    entitlements: (next.entitlements && Array.isArray(next.entitlements.default))
+      ? { default: next.entitlements.default, grants: next.entitlements.grants || {} }
+      : (adminConfig.entitlements || { default: entitlementsCache.default, grants: entitlementsCache.grants || {} }),
+    environmentUrls: (next.environmentUrls && typeof next.environmentUrls === 'object') ? next.environmentUrls : (adminConfig.environmentUrls || {}),
+    smtp: next.smtp || adminConfig.smtp || {},
+    s3: next.s3 || adminConfig.s3 || {},
+  };
+  // Never let an admin lock themselves out - the person saving stays an admin.
+  if (!cfg.adminEmails.includes(email)) cfg.adminEmails.push(email);
+  try {
+    fs.mkdirSync(path.dirname(ADMIN_CONFIG_FILE), { recursive: true });
+    const tmp = ADMIN_CONFIG_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(cfg, null, 2));
+    fs.renameSync(tmp, ADMIN_CONFIG_FILE);
+  } catch (e) {
+    return res.status(500).json({ error: `Could not save admin config (is the team drive reachable?): ${e.message}` });
+  }
+  adminConfig = cfg;
+  applyAdminConfig();
+  res.json({ ok: true });
 });
 
 // ── Jira Sprint Report: manage custom queries ───────────────────────────────
