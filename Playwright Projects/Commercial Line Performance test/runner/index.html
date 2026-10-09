@@ -318,6 +318,7 @@
   <button class="tab-btn" data-tab="stats">Usage Stats</button>
   <div class="nav-group">Account</div>
   <button class="tab-btn" data-tab="settings">Settings</button>
+  <button class="tab-btn" data-tab="admin" id="adminNavBtn" style="display:none">Admin</button>
 </nav>
 <div class="content">
 
@@ -711,6 +712,50 @@
   </div>
 
   <!-- ── Shared status + output (one queue/process on the server) ─────────── -->
+  <!-- ── Admin tab (owner-only; /api/admin is gated server-side too) ─────────── -->
+  <div class="tab-panel" id="tab-admin">
+    <div class="warn-banner">⚠ Admin settings affect <b>everyone</b> using the tool. They save to the shared team drive and reach all installed copies within a couple of minutes.</div>
+    <div class="card">
+      <h2>Tool access</h2>
+      <div class="hint" style="margin-bottom:10px">Tick the tools each person can use. SmartCOMM is always on for everyone; admins automatically get every tool.</div>
+      <div style="overflow-x:auto"><div id="adminGrants"><span class="stats-empty">Loading…</span></div></div>
+      <div class="field-label">Add a person (email), then tick their tools above</div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <input type="email" id="adminNewUser" placeholder="person@donegalgroup.com" style="max-width:300px" />
+        <button id="adminAddUserBtn" class="chip">Add person</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Admins &amp; owner</h2>
+      <div class="field-label">Admin emails (comma-separated) — these people see this tab and can change access</div>
+      <input type="text" id="adminEmails" style="max-width:560px" />
+      <div class="field-label">Owner / always-CC email — gets a copy of every emailed report</div>
+      <input type="email" id="adminOwnerEmail" style="max-width:360px" />
+    </div>
+    <div class="card">
+      <h2>Environment URLs</h2>
+      <div class="hint" style="margin-bottom:10px">The URLs Policy / Claims runs open per environment. Leave blank to use the built-in default.</div>
+      <div id="adminEnvUrls"></div>
+    </div>
+    <div class="card">
+      <h2>Email relay (SMTP)</h2>
+      <div class="field-label">Host</div><input type="text" id="adminSmtpHost" style="max-width:360px" />
+      <div class="field-label">Port</div><input type="text" id="adminSmtpPort" style="max-width:120px" />
+      <div class="field-label">From address</div><input type="email" id="adminSmtpFrom" style="max-width:360px" />
+    </div>
+    <div class="card">
+      <h2>S3 (SmartCOMM admin tool)</h2>
+      <div class="field-label">Admin URL</div><input type="text" id="adminS3Url" style="max-width:560px" />
+      <div class="field-label">Login email</div><input type="email" id="adminS3Login" style="max-width:360px" />
+      <div class="field-label">Session owner (named in the "session expired" message)</div><input type="text" id="adminS3Owner" style="max-width:360px" />
+    </div>
+    <div class="actions">
+      <button class="run" id="adminSaveBtn">Save admin settings</button>
+      <span id="adminSaveMsg" class="hint"></span>
+    </div>
+  </div>
+
+  <!-- ── Shared status + output (one queue/process on the server) ─────────── -->
   <!-- Hidden on non-run tabs (Settings, Usage Stats, and any locked "blocked" panel) - no run to show there. -->
   <div id="runPanels">
   <div class="card">
@@ -768,8 +813,9 @@
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      setRunPanelsVisible(btn.dataset.tab !== 'settings' && btn.dataset.tab !== 'stats');
+      setRunPanelsVisible(btn.dataset.tab !== 'settings' && btn.dataset.tab !== 'stats' && btn.dataset.tab !== 'admin');
       if (btn.dataset.tab === 'stats') loadStats();
+      if (btn.dataset.tab === 'admin') loadAdmin();
       try { localStorage.setItem('runnerActiveTab', btn.dataset.tab); } catch (_) { /* ignore */ }
     });
   });
@@ -840,6 +886,8 @@
       myAllowedTabs = Array.isArray(d.allowed) ? d.allowed : null;
       myComingSoon = Array.isArray(d.comingSoon) ? d.comingSoon : [];
       ownerEmail = d.ownerEmail || ownerEmail;
+      var adminBtn = document.getElementById('adminNavBtn');
+      if (adminBtn) adminBtn.style.display = d.admin ? 'block' : 'none';
       applyTabLocks();
     }).catch(function () { /* stay with whatever we last knew - network hiccup, not fatal */ });
   }
@@ -852,7 +900,7 @@
   function applyTabLocks() {
     document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
       var tab = btn.dataset.tab;
-      if (tab === 'settings' || tab === 'stats') return; // Settings + Usage Stats are never gated - everyone sees them
+      if (tab === 'settings' || tab === 'stats' || tab === 'admin') return; // Settings/Stats/Admin are never entitlement-gated
       var comingSoon = myComingSoon.indexOf(tab) !== -1;
       var locked = packagedBuild && myAllowedTabs && myAllowedTabs.indexOf(tab) === -1 && !comingSoon;
       btn.classList.toggle('locked', locked);
@@ -984,6 +1032,112 @@
   }
   document.getElementById('statsRefreshBtn').addEventListener('click', loadStats);
 
+  // ── Admin tab (owner-only; reads/writes the shared admin config on V: via /api/admin) ──
+  var adminState = { suites: [], grants: {}, defaultTools: [], envUrls: {} };
+  function loadAdmin() {
+    fetch('/api/admin?email=' + encodeURIComponent(myEmail)).then(function (r) {
+      if (!r.ok) throw new Error('not admin');
+      return r.json();
+    }).then(function (a) {
+      adminState.suites = (a.suites || []).filter(function (s) { return s.key !== 'smartComm'; }); // smartComm is always-on
+      var ent = (a.config && a.config.entitlements) || { default: [], grants: {} };
+      adminState.defaultTools = ent.default || [];
+      adminState.grants = Object.assign({}, ent.grants || {});
+      adminState.envUrls = (a.config && a.config.environmentUrls) || {};
+      var c = a.config || {};
+      document.getElementById('adminEmails').value = (c.adminEmails || []).join(', ');
+      document.getElementById('adminOwnerEmail').value = c.ownerEmail || '';
+      document.getElementById('adminSmtpHost').value = (c.smtp || {}).host || '';
+      document.getElementById('adminSmtpPort').value = (c.smtp || {}).port || '';
+      document.getElementById('adminSmtpFrom').value = (c.smtp || {}).from || '';
+      document.getElementById('adminS3Url').value = (c.s3 || {}).adminUrl || '';
+      document.getElementById('adminS3Login').value = (c.s3 || {}).loginEmail || '';
+      document.getElementById('adminS3Owner').value = (c.s3 || {}).sessionOwner || '';
+      renderAdminGrants();
+      renderAdminEnvUrls();
+    }).catch(function () {
+      document.getElementById('adminGrants').innerHTML = '<span class="stats-empty">Admin access only.</span>';
+    });
+  }
+  function renderAdminGrants() {
+    var cols = adminState.suites;
+    var head = '<tr><th>Person</th>' + cols.map(function (c) { return '<th class="num" style="text-align:center">' + escapeHtml(c.label) + '</th>'; }).join('') + '<th></th></tr>';
+    function row(who, label, tools, removable) {
+      return '<tr data-row="' + escapeHtml(who) + '"><td>' + label + '</td>' +
+        cols.map(function (c) { return '<td style="text-align:center"><input type="checkbox" data-tool="' + c.key + '"' + (tools.indexOf(c.key) !== -1 ? ' checked' : '') + '></td>'; }).join('') +
+        '<td style="text-align:center">' + (removable ? '<button class="chip" data-remove="' + escapeHtml(who) + '">remove</button>' : '') + '</td></tr>';
+    }
+    var body = row('__default__', '<b>Everyone (default)</b>', adminState.defaultTools, false);
+    Object.keys(adminState.grants).forEach(function (email) { body += row(email, escapeHtml(email), adminState.grants[email] || [], true); });
+    var box = document.getElementById('adminGrants');
+    box.innerHTML = '<table class="stats-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+    box.querySelectorAll('button[data-remove]').forEach(function (b) {
+      b.addEventListener('click', function () { syncAdminGrantsFromDom(); delete adminState.grants[b.getAttribute('data-remove')]; renderAdminGrants(); });
+    });
+  }
+  function syncAdminGrantsFromDom() {
+    var def = []; var grants = {};
+    document.querySelectorAll('#adminGrants tr[data-row]').forEach(function (tr) {
+      var who = tr.getAttribute('data-row'); var tools = [];
+      tr.querySelectorAll('input[type=checkbox][data-tool]').forEach(function (cb) { if (cb.checked) tools.push(cb.getAttribute('data-tool')); });
+      if (who === '__default__') def = tools; else grants[who] = tools;
+    });
+    adminState.defaultTools = def; adminState.grants = grants;
+  }
+  function renderAdminEnvUrls() {
+    var keys = Object.keys(adminState.envUrls);
+    var box = document.getElementById('adminEnvUrls');
+    if (!keys.length) { box.innerHTML = '<span class="stats-empty">No environments configured.</span>'; return; }
+    box.innerHTML = keys.map(function (k) {
+      var e = adminState.envUrls[k] || {};
+      return '<div class="admin-env" data-env="' + escapeHtml(k) + '" style="margin-bottom:16px">' +
+        '<div class="field-label" style="color:var(--accent-2);text-transform:uppercase;letter-spacing:.04em">' + escapeHtml(k) + '</div>' +
+        '<div class="field-label">WriteBiz URL</div><input type="text" class="admin-env-wb" value="' + escapeHtml(e.writeBizUrl || '') + '" style="max-width:560px" />' +
+        '<div class="field-label">PolicyCenter URL</div><input type="text" class="admin-env-pc" value="' + escapeHtml(e.policyCenterUrl || '') + '" style="max-width:560px" />' +
+        '</div>';
+    }).join('');
+  }
+  document.getElementById('adminAddUserBtn').addEventListener('click', function () {
+    var inp = document.getElementById('adminNewUser');
+    var email = inp.value.trim().toLowerCase();
+    if (!isValidEmail(email)) { alert('Enter a valid email address.'); return; }
+    syncAdminGrantsFromDom();
+    if (!adminState.grants[email]) adminState.grants[email] = [];
+    inp.value = '';
+    renderAdminGrants();
+  });
+  document.getElementById('adminSaveBtn').addEventListener('click', function () {
+    syncAdminGrantsFromDom();
+    if (!confirm('Save admin settings? This changes access, URLs and email/S3 config for EVERYONE using the tool, across all machines. Continue?')) return;
+    var envUrls = {};
+    document.querySelectorAll('#adminEnvUrls .admin-env').forEach(function (d) {
+      var wb = d.querySelector('.admin-env-wb').value.trim();
+      var pc = d.querySelector('.admin-env-pc').value.trim();
+      var o = {};
+      if (wb) o.writeBizUrl = wb;
+      if (pc) o.policyCenterUrl = pc;
+      if (Object.keys(o).length) envUrls[d.getAttribute('data-env')] = o;
+    });
+    var config = {
+      ownerEmail: document.getElementById('adminOwnerEmail').value.trim(),
+      adminEmails: document.getElementById('adminEmails').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+      entitlements: { default: adminState.defaultTools, grants: adminState.grants },
+      environmentUrls: envUrls,
+      smtp: { host: document.getElementById('adminSmtpHost').value.trim(), port: document.getElementById('adminSmtpPort').value.trim(), from: document.getElementById('adminSmtpFrom').value.trim() },
+      s3: { adminUrl: document.getElementById('adminS3Url').value.trim(), loginEmail: document.getElementById('adminS3Login').value.trim(), sessionOwner: document.getElementById('adminS3Owner').value.trim() },
+    };
+    var msg = document.getElementById('adminSaveMsg');
+    msg.textContent = 'Saving…';
+    fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestedBy: myEmail, config: config }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { msg.textContent = res.d.error || 'Save failed'; return; }
+        msg.textContent = 'Saved. Everyone picks this up within ~2 minutes (or on their next launch).';
+        refreshEntitlements();
+      })
+      .catch(function (e) { msg.textContent = 'Save failed: ' + e.message; });
+  });
+
   // ── Desktop notification when YOUR run finishes (useful for long SmartCOMM sweeps you walk away from) ──
   if ('Notification' in window && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) { /* ignore */ } }
   function notifyRunDone() {
@@ -1015,6 +1169,7 @@
   })();
 
   document.getElementById('settingsSaveBtn').addEventListener('click', function () {
+    if (!confirm('Save your settings? Your credentials are stored only on this machine (your own user profile) and applied to runs you start.')) return;
     var errEl = document.getElementById('settingsError');
     var savedEl = document.getElementById('settingsSavedMsg');
     errEl.textContent = '';
