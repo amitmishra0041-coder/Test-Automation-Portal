@@ -103,7 +103,8 @@
   .chip.disabled { opacity: .4; cursor: not-allowed; }
   .chip.disabled:hover { border-color: var(--border); }
 
-  .tab-btn.locked, .tab-btn.comingSoon { opacity: .55; }
+  /* Tools a user can't use (not granted yet, or not shipped in this build) are hidden via inline display:none
+     in applyTabLocks() - set inline so it always beats the .active rule's specificity. */
 
   input[type=text], input[type=email], input[type=password], select {
     width: 100%;
@@ -893,10 +894,11 @@
   }
 
   var initialTabPicked = false;
-  // Re-labels every tab button with a lock/clock suffix and toggles the classes the click handler and CSS
-  // check, based on the entitlements most recently fetched above. Outside a packaged build (myAllowedTabs
-  // stays null until the first successful fetch, which always reports packagedBuild:false there) every tab
-  // stays fully open, matching this tool's existing shared-dev-server behavior.
+  // Hides every tool the user can't use right now - both tools not granted to them yet AND "coming soon"
+  // tools not shipped in this build - based on the entitlements most recently fetched above, so users see
+  // ONLY the tools they can actually use. A granted tool appears the moment an admin grants it on the next
+  // refresh. Outside a packaged build (myAllowedTabs stays null until the first successful fetch, which always
+  // reports packagedBuild:false there) every tab stays fully open, matching this tool's shared-dev-server use.
   function applyTabLocks() {
     document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
       var tab = btn.dataset.tab;
@@ -905,13 +907,16 @@
       var locked = packagedBuild && myAllowedTabs && myAllowedTabs.indexOf(tab) === -1 && !comingSoon;
       btn.classList.toggle('locked', locked);
       btn.classList.toggle('comingSoon', comingSoon);
-      btn.textContent = btn.dataset.baseLabel + (locked ? ' 🔒' : comingSoon ? ' (soon)' : '');
+      btn.textContent = btn.dataset.baseLabel;
+      // Hidden outright (set inline so it beats the .active rule) whenever the user can't use the tool:
+      // locked = not granted yet (an admin grant un-hides it on the next refresh); comingSoon = not shipped in
+      // this build. '' restores the default display when neither applies.
+      btn.style.display = (locked || comingSoon) ? 'none' : '';
     });
     // First entitlements load on a brand-new install: there's no saved tab, so the app is sitting on the
-    // default Policy tab - which is locked for anyone not granted it, making "needs approval" a new user's
-    // entire first impression. Land them on their primary unlocked tool instead (SmartCOMM is always allowed).
-    // Only on a genuine first run (no saved tab); a returning user whose granted tab was revoked still gets
-    // the blocked panel below.
+    // default Policy tab - which is hidden for anyone not granted it. Land them on their primary usable tool
+    // instead (SmartCOMM is always allowed). Only on a genuine first run (no saved tab); a returning user
+    // whose granted tab was revoked is handled just below.
     if (!initialTabPicked) {
       initialTabPicked = true;
       var hadSavedTab = false;
@@ -922,11 +927,14 @@
         if (scBtn && !scBtn.classList.contains('locked') && !scBtn.classList.contains('comingSoon')) { scBtn.click(); return; }
       }
     }
-    // If the tab the user is currently looking at just became locked/comingSoon (e.g. entitlements changed
-    // under them mid-session), swap them to the blocked panel instead of leaving a now-gated panel showing.
+    // If the tab the user is on is now hidden (grant revoked mid-session, or a saved "coming soon" tab that's
+    // no longer shown), move them to an available tool rather than leaving a dead hidden-tab panel showing.
+    // SmartCOMM is always allowed, so it's the natural landing spot; the blocked panel is only a last resort.
     var activeBtn = document.querySelector('.tab-btn.active');
     if (activeBtn && (activeBtn.classList.contains('locked') || activeBtn.classList.contains('comingSoon'))) {
-      showBlockedPanel(activeBtn);
+      var scBtn2 = document.querySelector('.tab-btn[data-tab="smartComm"]');
+      if (scBtn2 && !scBtn2.classList.contains('locked') && !scBtn2.classList.contains('comingSoon')) scBtn2.click();
+      else showBlockedPanel(activeBtn);
     }
   }
 
