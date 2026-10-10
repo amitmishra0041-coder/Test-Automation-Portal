@@ -139,7 +139,10 @@ function applyAdminConfig() {
   // Environment URLs: overlay only the keys the admin actually set onto helpers/envConfig.js's defaults.
   if (adminConfig.environmentUrls && typeof adminConfig.environmentUrls === 'object') {
     for (const k of Object.keys(adminConfig.environmentUrls)) {
-      if (adminConfig.environmentUrls[k]) ENV_URLS[k] = adminConfig.environmentUrls[k];
+      const v = adminConfig.environmentUrls[k];
+      // Each env is an object { writeBizUrl, policyCenterUrl } - merge so a partial override keeps the other URL,
+      // and a stray string never clobbers the object shape buildPolicyJob depends on.
+      if (v && typeof v === 'object') ENV_URLS[k] = Object.assign({}, ENV_URLS[k], v);
     }
   }
   // SMTP + S3: set the env vars spawned jobs inherit, only when a value was provided.
@@ -187,6 +190,13 @@ const CC_UI_REPORTS_DIR = path.join(CLAIMS_DIR, 'results', 'ccUi');
 const S3_DOWNLOAD_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'downloadSmartCommFile.js');
 const S3_DOWNLOADS_DIR = path.join(CLAIMS_DIR, 'results', 's3Downloads');
 const S3_ESTABLISH_SESSION_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'establishS3Session.js');
+// S3 defaults come from the helper itself (s3AdminService.js), so the Admin tab pre-fills the real values an
+// admin can then tweak - no second copy to drift. Requiring it is side-effect-free (consts + functions only).
+let S3_HELPER_DEFAULTS = { adminUrl: '', loginEmail: '' };
+try {
+  const _s3svc = require(path.join(CLAIMS_DIR, 'helpers', 's3Download', 's3AdminService'));
+  S3_HELPER_DEFAULTS = { adminUrl: _s3svc.S3_ADMIN_URL || '', loginEmail: _s3svc.LOGIN_EMAIL || '' };
+} catch (e) { /* helper not reachable in some dev layouts - the Admin tab just shows blank S3 then */ }
 // Mirrors scripts/jiraReport.js's ALL_TRACK_KEYS/TRACK_DEFS - kept as a
 // separate literal (not required in) so this server has zero dependency on
 // exceljs/axios just to render the tab's chip labels.
@@ -496,9 +506,9 @@ app.get('/api/admin', (req, res) => {
       ownerEmail: adminConfig.ownerEmail || ALWAYS_CC_EMAIL,
       adminEmails: adminConfig.adminEmails && adminConfig.adminEmails.length ? adminConfig.adminEmails : adminEmails(),
       entitlements: adminConfig.entitlements || { default: entitlementsCache.default, grants: entitlementsCache.grants || {} },
-      environmentUrls: Object.assign({}, ENV_URLS, adminConfig.environmentUrls || {}),
-      smtp: adminConfig.smtp || { host: process.env.EMAIL_SMTP_HOST || '', port: process.env.EMAIL_SMTP_PORT || '', from: process.env.EMAIL_FROM || '' },
-      s3: adminConfig.s3 || { adminUrl: process.env.SMARTCOMM_S3_ADMIN_URL || '', loginEmail: process.env.SMARTCOMM_OKTA_LOGIN_EMAIL || '', sessionOwner: process.env.SMARTCOMM_OKTA_SESSION_OWNER || '' },
+      environmentUrls: Object.keys(ENV_URLS).reduce((o, k) => { o[k] = Object.assign({}, ENV_URLS[k]); return o; }, {}),
+      smtp: adminConfig.smtp || { host: process.env.EMAIL_SMTP_HOST || 'smtp.donegalgroup.com', port: process.env.EMAIL_SMTP_PORT || '25', from: process.env.EMAIL_FROM || 'automation@donegalgroup.com' },
+      s3: adminConfig.s3 || { adminUrl: process.env.SMARTCOMM_S3_ADMIN_URL || S3_HELPER_DEFAULTS.adminUrl, loginEmail: process.env.SMARTCOMM_OKTA_LOGIN_EMAIL || S3_HELPER_DEFAULTS.loginEmail, sessionOwner: process.env.SMARTCOMM_OKTA_SESSION_OWNER || 'Amit Mishra (amitmishra@donegalgroup.com)' },
     },
   });
 });
