@@ -206,6 +206,17 @@ const JIRA_TRACKS = {
   SmartComm: { label: 'SmartComm' },
   NautilusOther: { label: 'Nautilus/Other Projects' },
 };
+// Donegal's Jira Cloud site - not a secret (it's in .env.example). Used whenever neither Settings nor .env sets
+// JIRA_SITE, so an installed copy only needs each person's own Jira email + API token (Settings tab).
+const DEFAULT_JIRA_SITE = 'donegalgroup.atlassian.net';
+function jiraConfigured() {
+  return Boolean(process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN);
+}
+// "https://donegalgroup.atlassian.net/jira/..." -> "donegalgroup.atlassian.net" - jiraReport.js builds
+// "https://${JIRA_SITE}/rest/..." itself, so a pasted browser URL would otherwise break every request.
+function normalizeJiraSite(site) {
+  return String(site || '').trim().replace(/^https?:\/\//i, '').replace(/[\/?#].*$/, '');
+}
 // User-added queries (runner's "Add a new query" form) - same file
 // scripts/jiraReport.js reads at fetch time, so a track added here is
 // immediately usable in a run with no server restart needed.
@@ -289,6 +300,10 @@ const SETTINGS_ENV_FIELDS = [
     { field: `wbUser${st}`, env: `WB_USER_${st}` },
     { field: `wbPass${st}`, env: `WB_PASS_${st}`, secret: true },
   ]),
+  // Jira Report tab (scripts/jiraReport.js) - each person's OWN Atlassian login; site falls back to DEFAULT_JIRA_SITE.
+  { field: 'jiraSite', env: 'JIRA_SITE' },
+  { field: 'jiraEmail', env: 'JIRA_EMAIL' },
+  { field: 'jiraApiToken', env: 'JIRA_API_TOKEN', secret: true },
 ];
 
 // Whatever each var was BEFORE Settings touched it - this repo's own .env in dev use, electron-app/main.js's
@@ -437,7 +452,8 @@ app.get('/api/config', (req, res) => {
       scriptFound: fs.existsSync(PDF_COMPARE_SCRIPT),
     },
     jiraReport: {
-      configured: Boolean(process.env.JIRA_SITE && process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN),
+      configured: jiraConfigured(),
+      defaultSite: DEFAULT_JIRA_SITE,
       tracks: getAllJiraTracks(),
     },
   });
@@ -458,6 +474,11 @@ app.post('/api/settings', (req, res) => {
   if (dataDir && (!fs.existsSync(dataDir) || !fs.statSync(dataDir).isDirectory())) {
     return res.status(400).json({ error: `Folder does not exist: ${dataDir}` });
   }
+  settings.jiraSite = normalizeJiraSite(settings.jiraSite);
+  settings.jiraEmail = settings.jiraEmail.toLowerCase();
+  if (settings.jiraEmail && !EMAIL_RE.test(settings.jiraEmail)) {
+    return res.status(400).json({ error: `Jira email "${settings.jiraEmail}" doesn't look like a valid email address` });
+  }
   try {
     fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
@@ -470,7 +491,7 @@ app.post('/api/settings', (req, res) => {
   // folder only reaches the in-app template list if that cached module is dropped - spawned validation
   // runs are fresh processes and pick the new value up on their own either way.
   if (dataDirChanged) delete require.cache[require.resolve(SMARTCOMM_CATALOG_PATH)];
-  res.json({ ok: true });
+  res.json({ ok: true, jiraReportConfigured: jiraConfigured() });
 });
 
 // ── Tab-level entitlements (packaged build only) ─────────────────────────────
@@ -1153,6 +1174,9 @@ function buildJiraReportJob(j) {
   if (!fs.existsSync(JIRA_REPORT_SCRIPT)) {
     throw new Error(`jiraReport.js not found at ${JIRA_REPORT_SCRIPT}`);
   }
+  if (!jiraConfigured()) {
+    throw new Error('Jira isn\'t set up yet - enter your Jira email and API token on the Settings tab (Jira credentials), then Save.');
+  }
   const typedEmail = String(j.reportEmail || '').trim();
   if (typedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(typedEmail)) {
     throw new Error(`"${typedEmail}" doesn't look like a valid email address`);
@@ -1177,7 +1201,7 @@ function buildJiraReportJob(j) {
     args: [JIRA_REPORT_SCRIPT, outPath, tracks.join(',')],
     // jiraReport.js emails the finished workbook to this address (it only
     // sends when this is set, so direct CLI runs stay email-free).
-    env: { JIRA_REPORT_EMAIL_TO: withAlwaysCc(reportEmail) },
+    env: { JIRA_REPORT_EMAIL_TO: withAlwaysCc(reportEmail), JIRA_SITE: process.env.JIRA_SITE || DEFAULT_JIRA_SITE },
     reportUrls: { kind: 'jiraReport', xlsx: `/reports/jira/${outName}` },
   };
 }

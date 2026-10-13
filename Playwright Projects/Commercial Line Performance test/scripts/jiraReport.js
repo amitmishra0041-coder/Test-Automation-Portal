@@ -381,13 +381,18 @@ function escapeHtml(s) {
 // send failure throws so the run exits non-zero instead of looking like the
 // email went out.
 async function sendReportEmail(outputPath, trackSummaries, to) {
-  if (!process.env.SMTP_HOST || !process.env.FROM_EMAIL) {
+  // The installed app (electron-app/main.js) only sets the EMAIL_SMTP_HOST/EMAIL_SMTP_PORT/EMAIL_FROM names the
+  // SmartCOMM tools use - there's no .env in a packaged build - so fall back to those, or every Jira report from
+  // an installed copy silently skips its email.
+  const smtpHost = process.env.SMTP_HOST || process.env.EMAIL_SMTP_HOST;
+  const fromEmail = process.env.FROM_EMAIL || process.env.EMAIL_FROM;
+  if (!smtpHost || !fromEmail) {
     console.log('SMTP_HOST / FROM_EMAIL not set in .env; email skipped (Excel still saved locally)');
     return;
   }
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 25,
+    host: smtpHost,
+    port: Number(process.env.SMTP_PORT || process.env.EMAIL_SMTP_PORT) || 25,
     secure: false,
     tls: { rejectUnauthorized: false },
   });
@@ -416,7 +421,7 @@ async function sendReportEmail(outputPath, trackSummaries, to) {
   const trackLabel = trackSummaries.length === ALL_TRACK_KEYS.length ? 'All Tracks' : trackSummaries.map((t) => t.label).join(', ');
   const subject = `Jira Sprint Report - ${trackLabel} - ${today}`;
   await transporter.sendMail({
-    from: process.env.FROM_EMAIL,
+    from: fromEmail,
     to,
     subject,
     html,
@@ -428,7 +433,7 @@ async function sendReportEmail(outputPath, trackSummaries, to) {
 // options.emailTo - when set, also emails the workbook to this address.
 async function generateReport(outputPath, tracksArg, options = {}) {
   if (!JIRA_SITE || !JIRA_EMAIL || !JIRA_API_TOKEN) {
-    throw new Error('JIRA_SITE, JIRA_EMAIL and JIRA_API_TOKEN must be set in .env (see .env.example).');
+    throw new Error('Jira credentials missing: enter your Jira email + API token on the runner\'s Settings tab, or set JIRA_SITE, JIRA_EMAIL and JIRA_API_TOKEN in .env (see .env.example).');
   }
   const tracks = resolveTracks(tracksArg);
 
