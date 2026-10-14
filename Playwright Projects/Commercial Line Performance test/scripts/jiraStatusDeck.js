@@ -1,6 +1,6 @@
 // Generates the QA Sprint Status deck (PowerPoint) from Jira and, when JIRA_REPORT_EMAIL_TO is set, emails it.
 //
-// Slide 1 "QA Status Summary - ClaimCenter": Functional/Enhancement | SMARTCOMM | OneInc columns (completed this
+// Slide 1 "QA Status Summary - ClaimCenter": ClaimCenter (incl. enhancements) | SMARTCOMM | OneInc columns (completed this
 //   sprint, in progress, spillovers), SmartCOMM's design/execution summary, and the open-defects table.
 // Slide 2 "Sprint N Wrap-up & Sprint N+1 Outlook": per area, completed / remaining (with likely spillover) for the
 //   current sprint and the planned work for the next one.
@@ -33,7 +33,7 @@ const JIRA_EMAIL = process.env.JIRA_EMAIL;
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
 const DEFECTS_JQL = 'project IN (GCCM, GCMDT, GCMDW, GCMR) AND type IN (Bug, Defect) AND status NOT IN (Closed, Rejected) ORDER BY assignee ASC, created DESC';
 const HOURS_PER_DAY = Number(process.env.STATUS_DECK_HOURS_PER_DAY) || 8;
-const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority'];
+const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate'];
 
 async function search(jql) {
   const issues = [];
@@ -58,6 +58,7 @@ async function search(jql) {
       assignee: f.assignee ? f.assignee.displayName : 'Unassigned', priority: f.priority ? f.priority.name : '',
       rem: (f.timeestimate || 0) / 3600, orig: (f.timeoriginalestimate || 0) / 3600, spent: (f.timespent || 0) / 3600,
       sprints: (f.customfield_10020 || []).filter(Boolean).map((s) => ({ name: s.name, state: s.state, start: s.startDate, end: s.endDate })),
+      resolved: f.resolutiondate || null,
     };
   });
 }
@@ -131,10 +132,20 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
 
   // Potential spillover = the impeded work in the current sprint (per the QA lead: what's blocked won't finish).
   const spill = (list) => sum(list.filter(isImpeded));
+  // "This week" = since Monday 00:00 (local time of the machine generating the deck).
+  const weekStart = new Date(NOW); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const inActive = (i) => i.sprints.some((s) => s.state === 'active');
   const area = (key) => {
     const c = items.filter((i) => i.area === key && i.current);
     const n = items.filter((i) => i.area === key && !i.current);
-    return { s5: c, s6: n, d5: doneItems.filter((i) => i.area === key), spill: spill(c), imp: c.filter(isImpeded) };
+    const done = doneItems.filter((i) => i.area === key);
+    const d5 = done.filter(inActive); // completed current-sprint work
+    return {
+      s5: c, s6: n, d5, spill: spill(c), imp: c.filter(isImpeded),
+      week: done.filter((i) => i.resolved && new Date(i.resolved) >= weekStart), // completed this week (any open sprint)
+      // Next-sprint work already picked up: finished early, or in progress / in review now.
+      pickedDone: done.filter((i) => !inActive(i)), pickedProg: n.filter(inProg),
+    };
   };
   const A = { ClaimCenter: area('ClaimCenter'), SmartComm: area('SmartComm'), OneInc: area('OneInc') };
   const curAll = items.filter((i) => i.current); const nextAll = items.filter((i) => !i.current);
@@ -152,7 +163,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
     if (sub) slide.addText(sub, { x: 0.15, y: 0.78, w: 13.0, h: 0.5, fontFace: FONT, fontSize: 12.5, color: 'FFFFFF' });
   };
   const strip = (slide, x, y, w, a) => {
-    const cells = [[`${S} remaining`, h(sum(a.s5)), NAVY], ['Potential spillover (impeded)', h(a.spill), 'C00000'], [`${N} planned`, h(sum(a.s6)), NAVY]];
+    const cells = [[`${S} remaining`, h(sum(a.s5)), NAVY], ['Potential spillover (impeded)', h(a.spill), NAVY], [`${N} planned`, h(sum(a.s6)), NAVY]];
     const cw = w / cells.length;
     cells.forEach(([label, val, c], n) => {
       slide.addText([{ text: val, options: { bold: true, fontSize: 12, color: c, breakLine: true } }, { text: label, options: { fontSize: 8, color: '555555' } }],
@@ -188,12 +199,20 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
   // SmartCOMM lists: every DIG template in one compact bullet ("DIG letter templates (13): 242, 241 ..."),
   // other items one per line — the full list stays readable on one slide.
   const digNo = (i) => { const m = i.summary.match(/^DIG\s*(\d+[A-Z]?)/i); return m ? m[1].toUpperCase() : null; };
-  const compactDigs = (list, color) => {
+  // One line per outstanding item: "(not started)" for To Do, "— impeded" (+ the weekly note's first line) for impeded.
+  const outstanding = (i) => {
+    if (isImpeded(i)) return { t: `${nice(i.summary)} — impeded${noteOf(i) ? `: ${firstLine(noteOf(i))}` : ''}` };
+    return { t: `${nice(i.summary)}${/to do/i.test(i.status) ? ' (not started)' : ''}` };
+  };
+  const compactDigs = (list) => {
     const digs = list.filter(digNo); const rest = list.filter((i) => !digNo(i));
-    const out = rest.map((i) => ({ t: nice(i.summary), color }));
-    if (digs.length) out.push({ t: `DIG letter templates (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}`, color });
+    const out = rest.map(outstanding);
+    const open = digs.filter((i) => !isImpeded(i)); const imp = digs.filter(isImpeded);
+    if (open.length) out.push({ t: `DIG letter templates (${open.length}): ${[...new Set(open.map(digNo))].join(', ')}` });
+    if (imp.length) out.push({ t: `DIG letter templates — impeded (${imp.length}): ${[...new Set(imp.map(digNo))].join(', ')}` });
     return out;
   };
+  const picked = (a) => [...a.pickedDone.map((i) => ({ t: `${nice(i.summary)} — done` })), ...a.pickedProg.map((i) => ({ t: `${nice(i.summary)} — ${i.status.toLowerCase()}` }))];
   const withPhase = (i) => ({ t: `${nice(i.summary)}${phase(i.summary) ? ` (${phase(i.summary).toLowerCase()})` : ''}` });
   const hdr = { bold: true, fill: { color: 'D9E2F3' } };
   const tableOpts = { fontFace: FONT, color: '222222', fill: { color: 'FFFFFF' }, border: { type: 'solid', color: 'BFBFBF', pt: 0.5 } };
@@ -202,35 +221,49 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
   {
     const s = pptx.addSlide();
     titleBar(s, 'QA Status Summary - ClaimCenter',
-      `${S} (ends ${fmtDate(curEnd)}, ${daysLeft} working day(s) left): ${doneItems.length} items completed, ${h(sum(curAll))} remaining (${h(spillAll)} impeded — potential spillover into ${N}). ${N}${future ? ` (${fmtDate(new Date(future.start))}–${fmtDate(new Date(future.end))})` : ''} has ${h(sum(nextAll))} planned across ClaimCenter, SmartCOMM and OneInc.`);
+      `${S} (ends ${fmtDate(curEnd)}, ${daysLeft} working day(s) left): ${A.ClaimCenter.week.length + A.SmartComm.week.length + A.OneInc.week.length} items completed this week, ${h(sum(curAll))} remaining (${h(spillAll)} impeded — potential spillover into ${N}). ${N}${future ? ` (${fmtDate(new Date(future.start))}–${fmtDate(new Date(future.end))})` : ''} has ${h(sum(nextAll))} planned across ClaimCenter, SmartCOMM and OneInc.`);
     const Y = 1.35; const H = 6.05;
 
     const cc = A.ClaimCenter;
-    column(s, 0.08, Y, 4.3, H, 'Functional/Enhancement', COL.ClaimCenter, [
-      { head: `Completed in ${S}:`, lines: cap(cc.d5, 7, withPhase) },
-      { head: 'In progress:', lines: cap(cc.s5.filter((i) => !isImpeded(i)).sort((a, b) => b.rem - a.rem), 6, (i) => ({ t: `${nice(i.summary)}${/to do/i.test(i.status) ? ' (not started)' : ''}` })) },
-      { head: 'Spillovers (impeded):', lines: cap([...cc.imp].sort((a, b) => b.rem - a.rem), 7, (i) => ({ t: noteOf(i) ? `${nice(i.summary)} — ${firstLine(noteOf(i))}` : nice(i.summary), color: 'C00000' })) },
+    column(s, 0.08, Y, 4.3, H, 'ClaimCenter', COL.ClaimCenter, [
+      { head: 'Completed this week:', lines: cc.week.map(withPhase) },
+      { head: `Outstanding work (${S}):`, lines: [...cc.s5].sort((a, b) => Number(isImpeded(a)) - Number(isImpeded(b)) || b.rem - a.rem).map(outstanding) },
+      { head: `Picked up early from ${N}:`, lines: picked(cc) },
     ], 9.5, cc);
 
+    // SmartCOMM overall progress, counted by TEMPLATE (each has a design and an execution task): a DIG letter or a
+    // letterhead is a ClaimCenter template; any other named letter/notice is a BillingCenter template; CC_/BC_/QA_
+    // feature work, requirements prep and governance aren't templates. Retired work is excluded.
     const sc = A.SmartComm;
     const live = scAll.filter((i) => !/retired/i.test(i.status));
-    const sys = (t) => (/^BC_|billing|statement|notice|invoice|dunning|EFT|deposit|bill/i.test(t) ? 'BillingCenter' : 'ClaimCenter');
     const isDone = (i) => /^(done|closed)$/i.test(i.status);
+    const templateOf = (t) => {
+      const m = t.match(/^DIG\s*(\d+[A-Z]*)/i);
+      if (m) return { sys: 'ClaimCenter', id: `DIG${m[1].toUpperCase()}` };
+      if (/^(CC|BC|QA)[_ ]|^QA (Prep|Exec)|smartcomm|^smartcomm-lob/i.test(t)) return null;
+      const id = t.replace(/[_ -]*(Test[_ ]?(Design|Execution|Planning)|QA[_ ]?(Exec|Prep)).*$/i, '').trim();
+      return { sys: /letterhead/i.test(t) ? 'ClaimCenter' : 'BillingCenter', id };
+    };
     const tally = (system) => {
-      const l = live.filter((i) => sys(i.summary) === system);
-      const d = (p) => l.filter((i) => phase(i.summary) === p);
-      return { total: l.length, design: `${d('Design').filter(isDone).length} / ${d('Design').length}`, exec: `${d('Execution').filter(isDone).length} / ${d('Execution').length}` };
+      const byT = new Map();
+      for (const i of live) { const t = templateOf(i.summary); if (!t || t.sys !== system) continue; if (!byT.has(t.id)) byT.set(t.id, []); byT.get(t.id).push(i); }
+      const n = (p) => [...byT.values()].filter((a) => a.some((i) => phase(i.summary) === p)).length;
+      const d = (p) => [...byT.values()].filter((a) => a.some((i) => phase(i.summary) === p && isDone(i))).length;
+      return { total: byT.size, design: `${d('Design')} / ${n('Design')}`, exec: `${d('Execution')} / ${n('Execution')}` };
     };
     const bcT = tally('BillingCenter'); const ccT = tally('ClaimCenter');
     column(s, 4.45, Y, 4.4, H - 1.25, 'SMARTCOMM', COL.SmartComm, [
-      { head: `${S} progress:`, lines: [
-        { t: `Completed ${sc.d5.length} items this sprint — ${sc.d5.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.d5.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
-        { t: `${sc.s5.length} items still open (${h(sum(sc.s5))}); ${sc.imp.length} impeded (${h(sum(sc.imp))}).` },
+      { head: 'Completed this week:', lines: [
+        { t: `${sc.week.length} items — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
       ] },
-      { head: `Still open in ${S}:`, lines: compactDigs(sc.s5.filter((i) => !isImpeded(i)).sort((a, b) => b.rem - a.rem)) },
-      { head: 'Impeded:', lines: compactDigs(sc.imp, 'C00000') },
+      { head: `Outstanding work (${S}):`, lines: compactDigs([...sc.s5].sort((a, b) => b.rem - a.rem)) },
+      { head: `Picked up early from ${N}:`, lines: [['done', sc.pickedDone], ['in progress', sc.pickedProg]].flatMap(([what, list]) => {
+        const digs = list.filter(digNo); const rest = list.filter((i) => !digNo(i));
+        return rest.map((i) => ({ t: `${nice(i.summary)} — ${what}` }))
+          .concat(digs.length ? [{ t: `DIG letter templates ${what} (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}` }] : []);
+      }) },
     ], 9.5, sc);
-    s.addText('Overall Summary (done / total):', { x: 4.55, y: Y + H - 1.22, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: 'FFFFFF' });
+    s.addText('Overall Summary — templates (done / total):',{ x: 4.55, y: Y + H - 1.22, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: 'FFFFFF' });
     s.addTable([
       [{ text: '', options: hdr }, { text: 'Total', options: hdr }, { text: 'Test design', options: hdr }, { text: 'Test execution', options: hdr }],
       ['BillingCenter', String(bcT.total), bcT.design, bcT.exec],
@@ -239,8 +272,10 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
 
     const oi = A.OneInc;
     column(s, 8.92, Y, 4.33, 3.15, 'OneInc', COL.OneInc, [
-      { head: `Completed in ${S}:`, lines: cap(oi.d5, 5, withPhase) },
-      { head: 'Open:', lines: cap([...oi.s5, ...oi.s6.filter((i) => readyQa(i) || inProg(i))].sort((a, b) => b.rem - a.rem), 3, (i) => ({ t: `${nice(i.summary)} — ${i.status}`, color: isImpeded(i) ? 'C00000' : undefined })) },
+      { head: 'Completed this week:', lines: oi.week.map(withPhase) },
+      { head: `Outstanding work (${S}):`, lines: [...oi.s5].sort((a, b) => b.rem - a.rem).map(outstanding) },
+      { head: `Picked up early from ${N}:`, lines: picked(oi) },
+      { head: `Ready for QA (${N}):`, lines: oi.s6.filter(readyQa).map((i) => ({ t: nice(i.summary) })) },
     ], 9, oi);
 
     const prio = (p) => { const t = String(p || '').toLowerCase(); return /must|critical|highest|blocker/.test(t) ? 'Critical' : /high/.test(t) ? 'High' : /medium/.test(t) ? 'Medium' : /low/.test(t) ? 'Low' : 'Unranked'; };
@@ -267,7 +302,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
     const total = doneItems.length + curAll.length;
     titleBar(s, `${S} Wrap-up & ${N} Outlook`,
       `${S}: ${doneItems.length} of ${total} items done (${total ? Math.round((doneItems.length / total) * 100) : 0}%), ${h(sum(curAll))} left with ${daysLeft} working day(s) to go. ${N}: ${h(sum(nextAll))} planned, plus up to ${h(spillAll)} of impeded ${S} work.`);
-    const TITLE = { ClaimCenter: 'Functional/Enhancement', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
+    const TITLE = { ClaimCenter: 'ClaimCenter', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
     ['ClaimCenter', 'SmartComm', 'OneInc'].forEach((k, n) => {
       const a = A[k]; const rq = a.s6.filter(readyQa);
       column(s, 0.08 + n * 4.42, 1.35, 4.33, 5.8, TITLE[k], COL[k], [
@@ -277,7 +312,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
           .concat(rq.length ? [{ t: `${rq.length} item(s) Ready for QA now (${h(sum(rq))})`, color: '2E7D32', bold: true }] : []) },
       ], 10, a);
     });
-    s.addText(`Live from Jira, ${NOW.toLocaleString('en-US', { timeZone: 'America/New_York' })} ET · hours = remaining estimate · potential spillover = impeded ${S} work · OneInc = enhancement items named "OneInc"; other enhancements are under Functional/Enhancement.`,
+    s.addText(`Live from Jira, ${NOW.toLocaleString('en-US', { timeZone: 'America/New_York' })} ET · hours = remaining estimate · potential spillover = impeded ${S} work · OneInc = enhancement items named "OneInc"; other enhancements are under ClaimCenter.`,
       { x: 0.1, y: 7.18, w: 13.1, h: 0.28, fontFace: FONT, fontSize: 8, color: 'C9D3E6' });
   }
 
@@ -286,7 +321,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
     const rowsSrc = curAll.filter((i) => isImpeded(i) || noteOf(i))
       .sort((a, b) => Number(isImpeded(b)) - Number(isImpeded(a)) || a.area.localeCompare(b.area));
     if (rowsSrc.length) {
-      const LABEL = { ClaimCenter: 'Functional/Enh.', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
+      const LABEL = { ClaimCenter: 'ClaimCenter', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
       const hd = (t) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: '2E5597' } } });
       const header = [hd('Area'), hd('Key'), hd('Item'), hd('Status'), hd('Blocker / dependency')];
       // Paginate by estimated height (note lines wrap at ~115 chars in the 6.1-in column) so every page gets the
@@ -306,7 +341,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
         const rows = [header];
         for (const i of page) {
           const red = isImpeded(i);
-          rows.push([LABEL[i.area], i.key, nice(i.summary), { text: i.status, options: { color: red ? 'C00000' : '222222', bold: red } }, noteOf(i) || (red ? '(no note)' : '')]);
+          rows.push([LABEL[i.area], i.key, nice(i.summary), { text: i.status, options: { bold: red } }, noteOf(i) || (red ? '(no note)' : '')]);
         }
         s.addTable(rows, { ...tableOpts, x: 0.15, y: 1.35, w: 13.0, colW: [1.25, 1.05, 3.6, 1.0, 6.1], fontSize: 9, valign: 'top' });
       });
@@ -327,8 +362,8 @@ async function sendEmail(outputPath, sm, to) {
   if (!smtpHost || !fromEmail) { console.log('SMTP_HOST / FROM_EMAIL not set; email skipped (deck still saved locally)'); return; }
   const transporter = nodemailer.createTransport({ host: smtpHost, port: Number(process.env.SMTP_PORT || process.env.EMAIL_SMTP_PORT) || 25, secure: false, tls: { rejectUnauthorized: false } });
   const cell = 'padding:6px 10px;border:1px solid #ddd;';
-  const LABEL = { ClaimCenter: 'Functional/Enhancement', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
-  const rows = Object.entries(sm.areas).map(([k, a]) => `<tr><td style="${cell}">${LABEL[k]}</td><td style="${cell}text-align:right;">${a.done}</td><td style="${cell}text-align:right;">${h(a.left)}</td><td style="${cell}text-align:right;color:#C00000;">${h(a.spill)}</td><td style="${cell}text-align:right;">${h(a.next)}</td></tr>`).join('');
+  const LABEL = { ClaimCenter: 'ClaimCenter', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
+  const rows = Object.entries(sm.areas).map(([k, a]) => `<tr><td style="${cell}">${LABEL[k]}</td><td style="${cell}text-align:right;">${a.done}</td><td style="${cell}text-align:right;">${h(a.left)}</td><td style="${cell}text-align:right;">${h(a.spill)}</td><td style="${cell}text-align:right;">${h(a.next)}</td></tr>`).join('');
   const html = `<div style="font-family:Arial,sans-serif;max-width:720px;">
 <h2 style="color:#1F3864;">QA Sprint Status — ${sm.sprint} / ${sm.next}</h2>
 <p>${sm.sprint}: <b>${sm.done} of ${sm.total} items done</b>, ${h(sm.curHours)} left with ${sm.daysLeft} working day(s) to go (≈ ${h(sm.spill)} likely to spill). ${sm.next}: ${h(sm.nextHours)} planned. Open defects: ${sm.defects}. The full deck is attached.</p>
