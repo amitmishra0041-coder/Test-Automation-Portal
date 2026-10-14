@@ -125,13 +125,8 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
   const curEnd = new Date(active.end);
   const daysLeft = Math.max(0, workDays(NOW, curEnd) - (NOW.getHours() >= 12 ? 0.5 : 0));
 
-  const spill = (list) => {
-    const by = new Map();
-    for (const i of list) { if (!by.has(i.assignee)) by.set(i.assignee, []); by.get(i.assignee).push(i); }
-    let t = 0;
-    for (const [who, a] of by) t += sum(a.filter(isImpeded)) + Math.max(0, sum(a.filter((i) => !isImpeded(i))) - (who === 'Unassigned' ? 0 : daysLeft * HOURS_PER_DAY));
-    return t;
-  };
+  // Potential spillover = the impeded work in the current sprint (per the QA lead: what's blocked won't finish).
+  const spill = (list) => sum(list.filter(isImpeded));
   const area = (key) => {
     const c = items.filter((i) => i.area === key && i.current);
     const n = items.filter((i) => i.area === key && !i.current);
@@ -153,7 +148,7 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
     if (sub) slide.addText(sub, { x: 0.15, y: 0.78, w: 13.0, h: 0.5, fontFace: FONT, fontSize: 12.5, color: 'FFFFFF' });
   };
   const strip = (slide, x, y, w, a) => {
-    const cells = [[`${SS} done`, `${a.d5.length} items`, '548235'], [`${SS} left`, h(sum(a.s5)), NAVY], ['Spillover ≈', h(a.spill), 'C00000'], [N, h(sum(a.s6)), NAVY]];
+    const cells = [[`${S} remaining`, h(sum(a.s5)), NAVY], ['Potential spillover (impeded)', h(a.spill), 'C00000'], [`${N} planned`, h(sum(a.s6)), NAVY]];
     const cw = w / cells.length;
     cells.forEach(([label, val, c], n) => {
       slide.addText([{ text: val, options: { bold: true, fontSize: 12, color: c, breakLine: true } }, { text: label, options: { fontSize: 8, color: '555555' } }],
@@ -164,8 +159,20 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
   const column = (slide, x, y, w, hgt, title, color, sections, fontSize, a) => {
     slide.addShape(pptx.ShapeType.rect, { x, y, w, h: 0.42, fill: { color }, line: { color: 'FFFFFF', width: 1 } });
     slide.addText(title, { x, y, w, h: 0.42, fontFace: FONT, fontSize: 17, bold: true, color: 'FFFFFF', align: 'center' });
+    // Full lists, so pick the largest font (down to 6 pt) whose estimated wrapped height fits the column body.
+    const secs = sections.filter((z) => z.lines.length);
+    const bodyPt = (hgt - 1.07) * 72;
+    const fits = (fs) => {
+      const charsPerLine = Math.max(10, ((w - 0.5) * 72) / (fs * 0.47));
+      let lines = 0;
+      for (const z of secs) { lines += Math.ceil(z.head.length / charsPerLine) + 0.25; for (const l of z.lines) lines += Math.ceil(String(l.t).length / charsPerLine); }
+      return lines * fs * 1.2 <= bodyPt;
+    };
+    let fsz = fontSize;
+    while (fsz > 6 && !fits(fsz)) fsz -= 0.5;
+    fontSize = fsz;
     const runs = [];
-    for (const s of sections.filter((z) => z.lines.length)) {
+    for (const s of secs) {
       runs.push({ text: s.head, options: { bold: true, breakLine: true, fontSize: fontSize + 0.5, color: '000000', paraSpaceBefore: 3 } });
       for (const l of s.lines) runs.push({ text: l.t, options: { bullet: { indent: l.level ? 12 : 10 }, indentLevel: l.level || 0, bold: !!l.bold, color: l.color || '222222', breakLine: true, fontSize } });
     }
@@ -173,7 +180,16 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
     slide.addText(runs.length ? runs : [{ text: 'Nothing to report.', options: { fontSize, color: '666666' } }], { x, y: y + 0.97, w, h: hgt - 0.97, fontFace: FONT, valign: 'top', margin: [2, 6, 4, 6] });
     strip(slide, x + 0.04, y + 0.45, w - 0.08, a);
   };
-  const cap = (list, n, fmt) => list.slice(0, n).map(fmt).concat(list.length > n ? [{ t: `+${list.length - n} more`, level: 1, color: '666666' }] : []);
+  const cap = (list, n, fmt) => list.map(fmt); // full lists (no "+N more") — column() shrinks the text to fit
+  // SmartCOMM lists: every DIG template in one compact bullet ("DIG letter templates (13): 242, 241 ..."),
+  // other items one per line — the full list stays readable on one slide.
+  const digNo = (i) => { const m = i.summary.match(/^DIG\s*(\d+[A-Z]?)/i); return m ? m[1].toUpperCase() : null; };
+  const compactDigs = (list, color) => {
+    const digs = list.filter(digNo); const rest = list.filter((i) => !digNo(i));
+    const out = rest.map((i) => ({ t: nice(i.summary), color }));
+    if (digs.length) out.push({ t: `DIG letter templates (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}`, color });
+    return out;
+  };
   const withPhase = (i) => ({ t: `${nice(i.summary)}${phase(i.summary) ? ` (${phase(i.summary).toLowerCase()})` : ''}` });
   const hdr = { bold: true, fill: { color: 'D9E2F3' } };
   const tableOpts = { fontFace: FONT, color: '222222', fill: { color: 'FFFFFF' }, border: { type: 'solid', color: 'BFBFBF', pt: 0.5 } };
@@ -182,14 +198,14 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
   {
     const s = pptx.addSlide();
     titleBar(s, 'QA Status Summary - ClaimCenter',
-      `${S} (ends ${fmtDate(curEnd)}, ${daysLeft} working day(s) left): ${doneItems.length} items completed, ${h(sum(curAll))} remaining (≈ ${h(spillAll)} expected to spill into ${N}). ${N}${future ? ` (${fmtDate(new Date(future.start))}–${fmtDate(new Date(future.end))})` : ''} has ${h(sum(nextAll))} planned across ClaimCenter, SmartCOMM and OneInc.`);
+      `${S} (ends ${fmtDate(curEnd)}, ${daysLeft} working day(s) left): ${doneItems.length} items completed, ${h(sum(curAll))} remaining (${h(spillAll)} impeded — potential spillover into ${N}). ${N}${future ? ` (${fmtDate(new Date(future.start))}–${fmtDate(new Date(future.end))})` : ''} has ${h(sum(nextAll))} planned across ClaimCenter, SmartCOMM and OneInc.`);
     const Y = 1.35; const H = 6.05;
 
     const cc = A.ClaimCenter;
     column(s, 0.08, Y, 4.3, H, 'Functional/Enhancement', COL.ClaimCenter, [
       { head: `Completed in ${S}:`, lines: cap(cc.d5, 7, withPhase) },
-      { head: 'In progress:', lines: cap(cc.s5.filter((i) => !isImpeded(i)).sort((a, b) => b.rem - a.rem), 6, (i) => ({ t: `${nice(i.summary)} — ${h(i.rem)} left${/to do/i.test(i.status) ? ' (not started)' : ''}` })) },
-      { head: 'Spillovers (impeded):', lines: cap([...cc.imp].sort((a, b) => b.rem - a.rem), 7, (i) => ({ t: `${nice(i.summary)} — ${h(i.rem)}`, color: 'C00000' })) },
+      { head: 'In progress:', lines: cap(cc.s5.filter((i) => !isImpeded(i)).sort((a, b) => b.rem - a.rem), 6, (i) => ({ t: `${nice(i.summary)}${/to do/i.test(i.status) ? ' (not started)' : ''}` })) },
+      { head: 'Spillovers (impeded):', lines: cap([...cc.imp].sort((a, b) => b.rem - a.rem), 7, (i) => ({ t: nice(i.summary), color: 'C00000' })) },
     ], 9.5, cc);
 
     const sc = A.SmartComm;
@@ -207,8 +223,8 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
         { t: `Completed ${sc.d5.length} items this sprint — ${sc.d5.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.d5.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
         { t: `${sc.s5.length} items still open (${h(sum(sc.s5))}); ${sc.imp.length} impeded (${h(sum(sc.imp))}).` },
       ] },
-      { head: `Still open in ${S}:`, lines: cap(sc.s5.filter((i) => !isImpeded(i)).sort((a, b) => b.rem - a.rem), 4, (i) => ({ t: `${nice(i.summary)} — ${h(i.rem)}` })) },
-      { head: 'Impeded:', lines: cap(sc.imp, 5, (i) => ({ t: nice(i.summary), color: 'C00000' })) },
+      { head: `Still open in ${S}:`, lines: compactDigs(sc.s5.filter((i) => !isImpeded(i)).sort((a, b) => b.rem - a.rem)) },
+      { head: 'Impeded:', lines: compactDigs(sc.imp, 'C00000') },
     ], 9.5, sc);
     s.addText('Overall Summary (done / total):', { x: 4.55, y: Y + H - 1.22, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: 'FFFFFF' });
     s.addTable([
@@ -246,18 +262,18 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
     const s = pptx.addSlide();
     const total = doneItems.length + curAll.length;
     titleBar(s, `${S} Wrap-up & ${N} Outlook`,
-      `${S}: ${doneItems.length} of ${total} items done (${total ? Math.round((doneItems.length / total) * 100) : 0}%), ${h(sum(curAll))} left with ${daysLeft} working day(s) to go. ${N}: ${h(sum(nextAll))} planned + ≈ ${h(spillAll)} spillover = ≈ ${h(sum(nextAll) + spillAll)}.`);
+      `${S}: ${doneItems.length} of ${total} items done (${total ? Math.round((doneItems.length / total) * 100) : 0}%), ${h(sum(curAll))} left with ${daysLeft} working day(s) to go. ${N}: ${h(sum(nextAll))} planned, plus up to ${h(spillAll)} of impeded ${S} work.`);
     const TITLE = { ClaimCenter: 'Functional/Enhancement', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
     ['ClaimCenter', 'SmartComm', 'OneInc'].forEach((k, n) => {
       const a = A[k]; const rq = a.s6.filter(readyQa);
       column(s, 0.08 + n * 4.42, 1.35, 4.33, 5.8, TITLE[k], COL[k], [
         { head: `${S} — completed (${a.d5.length} items, ${h(a.d5.reduce((t, i) => t + doneH(i), 0))}):`, lines: groupCounts(a.d5).slice(0, 5).map(([g, c]) => ({ t: `${g} — ${c} item${c === 1 ? '' : 's'}`, color: '2E7D32' })) },
-        { head: `${S} — remaining (${h(sum(a.s5))}, ≈ ${h(a.spill)} will spill):`, lines: groupHours(a.s5).slice(0, 5).map(([g, hr]) => ({ t: `${g} — ${h(hr)}` })) },
+        { head: `${S} — remaining (${h(sum(a.s5))}; ${h(a.spill)} impeded):`, lines: groupHours(a.s5).slice(0, 5).map(([g, hr]) => ({ t: `${g} — ${h(hr)}` })) },
         { head: `${N} — planned (${h(sum(a.s6))}, ${a.s6.length} items):`, lines: groupHours(a.s6).slice(0, 5).map(([g, hr]) => ({ t: `${g} — ${h(hr)}` }))
           .concat(rq.length ? [{ t: `${rq.length} item(s) Ready for QA now (${h(sum(rq))})`, color: '2E7D32', bold: true }] : []) },
       ], 10, a);
     });
-    s.addText(`Live from Jira, ${NOW.toLocaleString('en-US', { timeZone: 'America/New_York' })} ET · hours = remaining estimate · spillover ≈ ${S} work that won't fit in the days left (${HOURS_PER_DAY} h/day; impeded work counts in full) · OneInc = enhancement items named "OneInc"; other enhancements are under Functional/Enhancement.`,
+    s.addText(`Live from Jira, ${NOW.toLocaleString('en-US', { timeZone: 'America/New_York' })} ET · hours = remaining estimate · potential spillover = impeded ${S} work · OneInc = enhancement items named "OneInc"; other enhancements are under Functional/Enhancement.`,
       { x: 0.1, y: 7.18, w: 13.1, h: 0.28, fontFace: FONT, fontSize: 8, color: 'C9D3E6' });
   }
 
