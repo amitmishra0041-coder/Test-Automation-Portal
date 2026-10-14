@@ -837,12 +837,24 @@ function buildClaimsJob(j) {
 // SmartCOMM tool, "ClaimCenter screens" mode: launches ClaimCenter-Automation's scripts/validateCcUi.js
 // (requirement workbook vs the live Create-New-Document screens) instead of the template-content Playwright
 // project. Every value that reaches the shell command line is validated against a strict pattern first.
+// The SmartCOMM "Claim #" override. A SmartCOMM document ID (a GUID, as the S3 download takes) passes a plain
+// letters/digits/dashes check but isn't a claim — 2026-10-14, DIG238 ran with one and ERRORed only after
+// searching ClaimCenter for it. Reject it up front with a message that says what it is.
+function checkClaimNumber(claimNumber) {
+  if (!claimNumber) return;
+  // A whole or trailing part of a GUID (the S3 mode accepts partial keys like "9a-45dd-a4d0-199082294229").
+  if (/-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(claimNumber)) {
+    throw new Error(`"${claimNumber}" is a SmartCOMM document ID, not a claim number — use it in the S3 download mode; Claim # takes a claim like PA-PA-01-26-0000209`);
+  }
+  if (!/^[A-Za-z0-9-]+$/.test(claimNumber)) throw new Error(`"${claimNumber}" doesn't look like a claim number`);
+}
+
 function buildCcUiJob(j) {
   const dig = String(j.templateId || 'DIG52').trim().toUpperCase();
   if (!/^DIG\d+[A-Z]*$/.test(dig)) throw new Error(`"${dig}" is not a valid template ID`);
   if (!SMARTCOMM_TIERS.includes(j.tier)) throw new Error(`Unknown tier "${j.tier}"`);
   const claimNumber = String(j.claimNumber || '').trim();
-  if (claimNumber && !/^[A-Za-z0-9-]+$/.test(claimNumber)) throw new Error(`"${claimNumber}" doesn't look like a claim number`);
+  checkClaimNumber(claimNumber);
   const reportEmail = String(j.reportEmail || '').trim();
   if (reportEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reportEmail)) {
     throw new Error(`"${reportEmail}" doesn't look like a valid email address`);
@@ -968,6 +980,7 @@ function buildSmartCommJob(j) {
   if (!dig) throw new Error('Template is required');
   if (!SMARTCOMM_TIERS.includes(j.tier)) throw new Error(`Unknown tier "${j.tier}"`);
   const claimNumber = String(j.claimNumber || '').trim();
+  checkClaimNumber(claimNumber);
   const reportEmail = String(j.reportEmail || '').trim();
   if (reportEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reportEmail)) {
     throw new Error(`"${reportEmail}" doesn't look like a valid email address`);
