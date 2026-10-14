@@ -587,8 +587,14 @@
       <h2>Sprint / Pending-Work report</h2>
       <p class="hint">Pulls the selected tracks from Jira and emails one Excel workbook.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Pulls the selected track(s) straight from Jira (same JQL as the retired Power Query workbook), tags Track/Sprint, excludes Done &amp; Retired, and writes one Excel workbook — one sheet per selected track (with its own inline "Total Remaining Estimate by Assignee" summary), a combined Data sheet, and two cross-track summary sheets, then emails it as an attachment. Running a subset of tracks writes its own report file, separate from a full run's.</span></span></p>
 
+      <div class="field-label">Report type</div>
+      <div class="chips" id="jiraReportTypeChips"></div>
+      <div class="hint" id="jiraReportTypeHint"></div>
+
+      <div id="jiraReportTrackBlock">
       <div class="field-label">Track (select one or more)</div>
       <div class="chips" id="jiraReportTrackChips"></div>
+      </div>
 
       <div class="field-label">Send report to</div>
       <input type="email" id="jiraReportEmail" placeholder="you@donegalgroup.com" autocomplete="off" style="max-width:400px" />
@@ -853,7 +859,7 @@
   var recon = { tier: null, file: null };
   var uv = { tier: null, file: null };
   var smartComm = { templateId: null, tier: null, mode: 'template', templateIds: new Set() };
-  var jiraReport = { tracks: new Set() }; // populated with all track keys once /api/config loads
+  var jiraReport = { tracks: new Set(), type: 'pending' }; // populated with all track keys once /api/config loads
   var anyRunning = false;
   var pdfScriptFound = true;
   var jiraReportConfigured = true;
@@ -1936,9 +1942,34 @@
     });
   }
 
+  var JIRA_REPORT_TYPES = [
+    { key: 'pending', label: 'Pending work (Excel)', hint: 'One Excel workbook of open work for the selected tracks, by sprint.' },
+    { key: 'statusDeck', label: 'Sprint status deck (PowerPoint)', hint: 'Management deck: Functional/Enhancement, SMARTCOMM and OneInc — completed this sprint, remaining and likely spillover, next sprint planned, open defects. Uses its own fixed queries, so no track selection.' },
+  ];
+  function renderJiraReportTypes() {
+    var box = document.getElementById('jiraReportTypeChips');
+    box.innerHTML = '';
+    JIRA_REPORT_TYPES.forEach(function (t) {
+      var c = chip(t.label, jiraReport.type === t.key);
+      c.addEventListener('click', function () { jiraReport.type = t.key; try { localStorage.setItem('jiraReportType', t.key); } catch (_) { /* ignore */ } renderJiraReportTypes(); updateJiraReportPreview(); });
+      box.appendChild(c);
+    });
+    var cur = JIRA_REPORT_TYPES.filter(function (t) { return t.key === jiraReport.type; })[0];
+    document.getElementById('jiraReportTypeHint').textContent = cur ? cur.hint : '';
+    document.getElementById('jiraReportTrackBlock').style.display = jiraReport.type === 'statusDeck' ? 'none' : '';
+  }
+  try { var savedJiraType = localStorage.getItem('jiraReportType'); if (savedJiraType === 'statusDeck' || savedJiraType === 'pending') jiraReport.type = savedJiraType; } catch (_) { /* ignore */ }
+
   function updateJiraReportPreview() {
     var box = document.getElementById('jiraReportPreview');
     var btn = document.getElementById('jiraReportRunBtn');
+    if (!document.getElementById('jiraReportTypeChips').children.length) renderJiraReportTypes();
+    if (jiraReport.type === 'statusDeck') {
+      var deckEmail = document.getElementById('jiraReportEmail').value.trim();
+      box.innerHTML = '<div class="job-line">node scripts/jiraStatusDeck.js &nbsp;(email to ' + (deckEmail ? deckEmail.replace(/&/g, '&amp;').replace(/</g, '&lt;') : 'default recipient') + ')</div>';
+      btn.disabled = anyRunning || !jiraReportConfigured;
+      return;
+    }
     var tracks = Array.from(jiraReport.tracks);
     if (tracks.length === 0) {
       box.innerHTML = '<span class="empty">Select at least one track.</span>';
@@ -2035,10 +2066,11 @@
 
   document.getElementById('jiraReportRunBtn').addEventListener('click', function () {
     var tracks = Array.from(jiraReport.tracks);
-    if (tracks.length === 0) return;
+    var deck = jiraReport.type === 'statusDeck';
+    if (!deck && tracks.length === 0) return;
     document.getElementById('jiraReportError').textContent = '';
     document.getElementById('jiraReportReportLinks').innerHTML = '';
-    var job = { tracks: tracks };
+    var job = deck ? { reportType: 'statusDeck' } : { tracks: tracks };
     var reportEmail = document.getElementById('jiraReportEmail').value.trim();
     if (reportEmail) job.reportEmail = reportEmail;
     fetch('/api/run', {
@@ -2359,7 +2391,7 @@
     document.getElementById('uvRunBtn').disabled = isRunning || !uvJob();
     document.getElementById('pdfRunBtn').disabled = isRunning || !pdfJob() || !pdfScriptFound;
     document.getElementById('smartCommRunBtn').disabled = isRunning || smartCommJobsToRun().length === 0;
-    document.getElementById('jiraReportRunBtn').disabled = isRunning || !jiraReportConfigured || jiraReport.tracks.size === 0;
+    document.getElementById('jiraReportRunBtn').disabled = isRunning || !jiraReportConfigured || (jiraReport.type !== 'statusDeck' && jiraReport.tracks.size === 0);
     var stopDisabled = mine.length === 0;
     document.getElementById('policyStopBtn').disabled = stopDisabled;
     document.getElementById('claimsStopBtn').disabled = stopDisabled;
@@ -2537,7 +2569,7 @@
           ' · <a href="' + d.reportUrls.json + '" target="_blank">JSON</a>';
       } else if (d.reportUrls.kind === 'jiraReport') {
         document.getElementById('jiraReportReportLinks').innerHTML =
-          'Report: <a href="' + d.reportUrls.xlsx + '">Excel</a> (cache-bust with a fresh click if your browser shows the old file)';
+          (d.reportUrls.pptx ? 'Report: <a href="' + d.reportUrls.pptx + '">PowerPoint</a>' : 'Report: <a href="' + d.reportUrls.xlsx + '">Excel</a>') + ' (cache-bust with a fresh click if your browser shows the old file)';
       } else if (d.reportUrls.html && d.reportUrls.xlsx) {
         document.getElementById('reconReportLinks').innerHTML =
           'Report: <a href="' + d.reportUrls.html + '" target="_blank">HTML</a>' +

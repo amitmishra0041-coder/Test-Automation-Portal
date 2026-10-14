@@ -185,6 +185,7 @@ const RECON_REPORTS_DIR = path.join(RECON_DIR, 'reports');
 const PDF_COMPARE_SCRIPT = path.join(POLICY_DIR, 'tools', 'pdf-compare', 'compare_insurance_pdfs.py');
 const PDF_COMPARE_REPORTS_DIR = path.join(POLICY_DIR, 'reports', 'pdf-compare');
 const JIRA_REPORT_SCRIPT = path.join(POLICY_DIR, 'scripts', 'jiraReport.js');
+const JIRA_STATUS_DECK_SCRIPT = path.join(POLICY_DIR, 'scripts', 'jiraStatusDeck.js');
 const JIRA_REPORTS_DIR = path.join(POLICY_DIR, 'reports', 'jira');
 const CC_UI_REPORTS_DIR = path.join(CLAIMS_DIR, 'results', 'ccUi');
 const S3_DOWNLOAD_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'downloadSmartCommFile.js');
@@ -1195,6 +1196,20 @@ function buildJiraReportJob(j) {
     throw new Error(`"${typedEmail}" doesn't look like a valid email address`);
   }
   const reportEmail = typedEmail || JIRA_DEFAULT_REPORT_EMAIL;
+  // Sprint status deck (PowerPoint for management): its own fixed areas (ClaimCenter + enhancements, OneInc,
+  // SmartCOMM) and defect query — the track chips don't apply. See scripts/jiraStatusDeck.js.
+  if (j.reportType === 'statusDeck') {
+    if (!fs.existsSync(JIRA_STATUS_DECK_SCRIPT)) throw new Error(`jiraStatusDeck.js not found at ${JIRA_STATUS_DECK_SCRIPT}`);
+    const deckName = `QA_Sprint_Status_${new Date().toISOString().slice(0, 10)}.pptx`;
+    return {
+      label: `Jira Sprint Status deck (PowerPoint) · email to ${reportEmail}`,
+      cwd: POLICY_DIR,
+      cmd: 'node',
+      args: [JIRA_STATUS_DECK_SCRIPT, path.join(JIRA_REPORTS_DIR, deckName)],
+      env: { JIRA_REPORT_EMAIL_TO: withAlwaysCc(reportEmail), JIRA_SITE: process.env.JIRA_SITE || DEFAULT_JIRA_SITE },
+      reportUrls: { kind: 'jiraReport', pptx: `/reports/jira/${deckName}` },
+    };
+  }
   const allTracks = getAllJiraTracks();
   const allKeys = Object.keys(allTracks);
   const requested = Array.isArray(j.tracks) && j.tracks.length > 0 ? j.tracks : allKeys;
