@@ -1506,12 +1506,13 @@ function processQueue(suite) {
   processQueue(suite);
 }
 
-// Bound to loopback only - this served no purpose being reachable from other
-// machines on the network (no auth exists here at all, see EMAIL_RE above -
-// that's an identity label, not a password) and nothing about the UI or any
-// job needs LAN access to this server itself.
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`Test runner UI: http://localhost:${PORT}`);
+// Loopback only by default (the installed desktop app has no reason to be reachable from other machines, and
+// there's no auth here - see EMAIL_RE above). The shared web Runner the team opens at http://<this-pc>:3000
+// sets RUNNER_HOST=0.0.0.0 to listen on the network (2026-10-14: the team's URL stopped working when the
+// default became loopback). Never on in the packaged app.
+const HOST = !PACKAGED && process.env.RUNNER_HOST ? process.env.RUNNER_HOST : '127.0.0.1';
+app.listen(PORT, HOST, () => {
+  console.log(`Test runner UI: http://localhost:${PORT}` + (HOST === '127.0.0.1' ? ' (this PC only)' : ` (network: http://${require('os').hostname()}:${PORT})`));
   console.log(`  Policy suite dir: ${POLICY_DIR}`);
   console.log(`  Claims suite dir: ${CLAIMS_DIR}`);
   console.log(`  Reconciliation project dir: ${RECON_DIR}`);
