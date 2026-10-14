@@ -570,6 +570,22 @@ app.post('/api/admin', (req, res) => {
 // file at fetch time, so no restart needed) and immediately shows up as a
 // new chip on the tab. Built-in tracks (Enhancement/ClaimCenter/SmartComm/
 // NautilusOther) live only in code and can't be added/removed here.
+// Weekly blocker / dependency notes for the Sprint status deck (scripts/statusNotes.js): the Jira tab sends the
+// table pasted from the QA lead's status email (as rows of cells when it was an HTML table, else plain text).
+app.get('/api/jiraReport/notes', (req, res) => {
+  const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
+  const d = statusNotes.load();
+  res.json({ savedAt: d.savedAt, savedBy: d.savedBy || '', count: d.count || 0, notes: d.notes || {} });
+});
+app.post('/api/jiraReport/notes', (req, res) => {
+  const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
+  const { rows, text, source, savedBy } = req.body || {};
+  const entries = statusNotes.parse({ rows, text });
+  if (!entries.length) return res.status(400).json({ error: 'No Jira keys found — paste the status table (Key / Summary / Status / Notes) from the email.' });
+  const d = statusNotes.save(entries, { source: String(source || 'pasted').slice(0, 200), savedBy: String(savedBy || '').slice(0, 200) });
+  res.json({ savedAt: d.savedAt, count: d.count, keys: Object.keys(d.notes) });
+});
+
 app.post('/api/jiraReport/tracks', (req, res) => {
   const label = String((req.body || {}).label || '').trim();
   const jql = String((req.body || {}).jql || '').trim();

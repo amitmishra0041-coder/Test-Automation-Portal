@@ -591,6 +591,16 @@
       <div class="chips" id="jiraReportTypeChips"></div>
       <div class="hint" id="jiraReportTypeHint"></div>
 
+      <div id="jiraReportNotesBlock" style="display:none">
+      <div class="field-label">This week's blockers &amp; notes (optional)</div>
+      <textarea id="jiraNotesInput" rows="5" placeholder="Paste the status table from your weekly email here (Key | Summary | Status | Notes) — or upload the email below" style="width:100%;max-width:900px;"></textarea>
+      <div class="actions" style="margin-top:6px;">
+        <input type="file" id="jiraNotesFile" accept=".htm,.html,.eml,.txt" />
+        <button class="run" id="jiraNotesSaveBtn" type="button">Save notes</button>
+      </div>
+      <div class="hint" id="jiraNotesStatus">Notes show next to each impeded / in-progress item in the deck.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Copy the table from your status email (Outlook: select the table, Ctrl+C) and paste it here, or save the email as .htm / .eml and upload it. Each row's Jira key, status and note are picked out and saved; saving replaces last week's notes. The deck shows each note next to its spillover item and lists them all on the Blockers &amp; Dependencies slide.</span></span></div>
+      </div>
+
       <div id="jiraReportTrackBlock">
       <div class="field-label">Track (select one or more)</div>
       <div class="chips" id="jiraReportTrackChips"></div>
@@ -1957,8 +1967,63 @@
     var cur = JIRA_REPORT_TYPES.filter(function (t) { return t.key === jiraReport.type; })[0];
     document.getElementById('jiraReportTypeHint').textContent = cur ? cur.hint : '';
     document.getElementById('jiraReportTrackBlock').style.display = jiraReport.type === 'statusDeck' ? 'none' : '';
+    document.getElementById('jiraReportNotesBlock').style.display = jiraReport.type === 'statusDeck' ? '' : 'none';
+    if (jiraReport.type === 'statusDeck') loadJiraNotesStatus();
   }
   try { var savedJiraType = localStorage.getItem('jiraReportType'); if (savedJiraType === 'statusDeck' || savedJiraType === 'pending') jiraReport.type = savedJiraType; } catch (_) { /* ignore */ }
+
+  // ── Weekly notes (status deck) ──
+  var jiraNotesRows = null; // rows of cells captured from a pasted / uploaded HTML table
+  function tableRowsFromHtml(html) {
+    try {
+      // A parsed (never rendered) document has no innerText layout, so turn line breaks and paragraph ends
+      // (Outlook puts each line of a cell in its own <p>) into newlines before reading textContent.
+      html = String(html).replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n');
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var out = [];
+      doc.querySelectorAll('tr').forEach(function (tr) {
+        var cells = Array.prototype.map.call(tr.querySelectorAll('td,th'), function (td) { return (td.textContent || '').replace(/\n\s*\n/g, '\n').trim(); });
+        if (cells.length) out.push(cells);
+      });
+      return out;
+    } catch (_) { return []; }
+  }
+  function decodeQuotedPrintable(t) {
+    return t.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/gi, function (_, h) { return String.fromCharCode(parseInt(h, 16)); });
+  }
+  function loadJiraNotesStatus() {
+    fetch('/api/jiraReport/notes').then(function (r) { return r.json(); }).then(function (d) {
+      var el = document.getElementById('jiraNotesStatus');
+      if (d.count) el.firstChild.textContent = d.count + ' note(s) saved ' + new Date(d.savedAt).toLocaleString() + (d.savedBy ? ' by ' + d.savedBy : '') + ' — used in the next deck. ';
+    }).catch(function () { /* ignore */ });
+  }
+  document.getElementById('jiraNotesInput').addEventListener('paste', function (e) {
+    var html = e.clipboardData && e.clipboardData.getData('text/html');
+    jiraNotesRows = html && /<tr/i.test(html) ? tableRowsFromHtml(html) : null;
+  });
+  document.getElementById('jiraNotesInput').addEventListener('input', function () { if (!this.value.trim()) jiraNotesRows = null; });
+  document.getElementById('jiraNotesFile').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    f.text().then(function (t) {
+      if (/content-transfer-encoding:\s*quoted-printable/i.test(t)) t = decodeQuotedPrintable(t);
+      var rows = /<tr/i.test(t) ? tableRowsFromHtml(t) : null;
+      jiraNotesRows = rows && rows.length ? rows : null;
+      document.getElementById('jiraNotesInput').value = jiraNotesRows ? jiraNotesRows.map(function (r) { return r.join('\t'); }).join('\n') : t;
+    });
+  });
+  document.getElementById('jiraNotesSaveBtn').addEventListener('click', function () {
+    var text = document.getElementById('jiraNotesInput').value;
+    if (!text.trim()) return;
+    var body = { source: jiraNotesRows ? 'pasted table' : 'pasted text', savedBy: document.getElementById('jiraReportEmail').value.trim() };
+    if (jiraNotesRows) body.rows = jiraNotesRows; else body.text = text;
+    fetch('/api/jiraReport/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        document.getElementById('jiraReportError').textContent = res.ok ? '' : (res.body.error || 'Could not save notes');
+        if (res.ok) { document.getElementById('jiraNotesInput').value = ''; jiraNotesRows = null; loadJiraNotesStatus(); }
+      });
+  });
 
   function updateJiraReportPreview() {
     var box = document.getElementById('jiraReportPreview');

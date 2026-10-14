@@ -26,6 +26,7 @@ const axios = require('axios');
 const nodemailer = require('nodemailer');
 const PptxGenJS = require('pptxgenjs');
 const { TRACK_DEFS } = require('./jiraReport');
+const statusNotes = require('./statusNotes');
 
 const JIRA_SITE = process.env.JIRA_SITE;
 const JIRA_EMAIL = process.env.JIRA_EMAIL;
@@ -112,7 +113,10 @@ async function collect() {
   return { items, doneItems, scAll, bugs };
 }
 
-function buildDeck({ items, doneItems, scAll, bugs }) {
+function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
+  // This week's blocker / dependency notes from the QA lead's status email (statusNotes.js), by Jira key.
+  const noteOf = (i) => (notes[i.key] && notes[i.key].note) || '';
+  const firstLine = (t) => String(t).split('\n')[0];
   const NOW = new Date();
   // Current (active) and next (future) sprint, from the items' own sprint data.
   const all = items.flatMap((i) => i.sprints);
@@ -205,7 +209,7 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
     column(s, 0.08, Y, 4.3, H, 'Functional/Enhancement', COL.ClaimCenter, [
       { head: `Completed in ${S}:`, lines: cap(cc.d5, 7, withPhase) },
       { head: 'In progress:', lines: cap(cc.s5.filter((i) => !isImpeded(i)).sort((a, b) => b.rem - a.rem), 6, (i) => ({ t: `${nice(i.summary)}${/to do/i.test(i.status) ? ' (not started)' : ''}` })) },
-      { head: 'Spillovers (impeded):', lines: cap([...cc.imp].sort((a, b) => b.rem - a.rem), 7, (i) => ({ t: nice(i.summary), color: 'C00000' })) },
+      { head: 'Spillovers (impeded):', lines: cap([...cc.imp].sort((a, b) => b.rem - a.rem), 7, (i) => ({ t: noteOf(i) ? `${nice(i.summary)} — ${firstLine(noteOf(i))}` : nice(i.summary), color: 'C00000' })) },
     ], 9.5, cc);
 
     const sc = A.SmartComm;
@@ -277,6 +281,38 @@ function buildDeck({ items, doneItems, scAll, bugs }) {
       { x: 0.1, y: 7.18, w: 13.1, h: 0.28, fontFace: FONT, fontSize: 8, color: 'C9D3E6' });
   }
 
+  // ── Slide 3: Blockers & Dependencies (impeded work + anything the weekly notes explain) ──
+  {
+    const rowsSrc = curAll.filter((i) => isImpeded(i) || noteOf(i))
+      .sort((a, b) => Number(isImpeded(b)) - Number(isImpeded(a)) || a.area.localeCompare(b.area));
+    if (rowsSrc.length) {
+      const LABEL = { ClaimCenter: 'Functional/Enh.', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
+      const hd = (t) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: '2E5597' } } });
+      const header = [hd('Area'), hd('Key'), hd('Item'), hd('Status'), hd('Blocker / dependency')];
+      // Paginate by estimated height (note lines wrap at ~115 chars in the 6.1-in column) so every page gets the
+      // title bar — pptxgenjs's own autoPage adds bare, untitled slides.
+      const lineCount = (i) => Math.max(1, String(noteOf(i) || 'x').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 115)), 0));
+      const pages = [[]]; let used = 0; const PAGE_IN = 5.45;
+      for (const i of rowsSrc) {
+        const rh = 0.08 + lineCount(i) * 0.17;
+        if (used + rh > PAGE_IN && pages[pages.length - 1].length) { pages.push([]); used = 0; }
+        pages[pages.length - 1].push(i); used += rh;
+      }
+      pages.forEach((page, p) => {
+        const s = pptx.addSlide();
+        titleBar(s, `Blockers & Dependencies — ${S}${pages.length > 1 ? ` (${p + 1}/${pages.length})` : ''}`,
+          `${curAll.filter(isImpeded).length} impeded items (${h(spillAll)} — potential spillover into ${N}), plus in-progress items with open dependencies.`
+          + (Object.keys(notes || {}).length ? ' Notes from the weekly status update.' : ' (No weekly notes uploaded — paste them on the Jira tab to show what each item is waiting on.)'));
+        const rows = [header];
+        for (const i of page) {
+          const red = isImpeded(i);
+          rows.push([LABEL[i.area], i.key, nice(i.summary), { text: i.status, options: { color: red ? 'C00000' : '222222', bold: red } }, noteOf(i) || (red ? '(no note)' : '')]);
+        }
+        s.addTable(rows, { ...tableOpts, x: 0.15, y: 1.35, w: 13.0, colW: [1.25, 1.05, 3.6, 1.0, 6.1], fontSize: 9, valign: 'top' });
+      });
+    }
+  }
+
   const summary = {
     sprint: S, next: N, daysLeft, done: doneItems.length, total: doneItems.length + curAll.length,
     curHours: sum(curAll), spill: spillAll, nextHours: sum(nextAll), defects: bugs.length,
@@ -310,7 +346,9 @@ async function generateStatusDeck(outputPath, { emailTo } = {}) {
   console.log('Pulling from Jira (ClaimCenter, Enhancement, SmartComm queries; completed this sprint; SmartComm progress; open defects)...');
   const data = await collect();
   console.log(`Open items: ${data.items.length}, done this sprint: ${data.doneItems.length}, SmartComm overall: ${data.scAll.length}, open defects: ${data.bugs.length}`);
-  const { pptx, summary } = buildDeck(data);
+  const saved = statusNotes.load();
+  if (saved.count) console.log(`Weekly notes: ${saved.count} item(s), saved ${saved.savedAt}`);
+  const { pptx, summary } = buildDeck({ ...data, notes: saved.notes || {} });
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   await pptx.writeFile({ fileName: outputPath });
   console.log(`Deck written: ${outputPath}`);
