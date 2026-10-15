@@ -275,7 +275,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
       }) },
     ], 9.5, sc, H - scTail);
     const tblTop = Math.min(scTextEnd + 0.1, Y + H - scTail);
-    s.addText('Overall Summary — templates (done / total):',{ x: X2 + 0.08, y: tblTop + 0.04, w: W2 - 0.16, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: '000000' });
+    s.addText('Overall Summary — templates (done / total):',{ x: X2, y: tblTop + 0.04, w: W2, h: 0.22, fontFace: FONT, fontSize: 10, bold: true, color: '000000', margin: [2, 6, 0, 6] });
     s.addTable([
       [{ text: '', options: hdr }, { text: 'Total', options: hdr }, { text: 'Test design', options: hdr }, { text: 'Test execution', options: hdr }],
       ['BillingCenter', String(bcT.total), bcT.design, bcT.exec],
@@ -283,7 +283,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     ], { ...tableOpts, x: X2 + 0.05, y: tblTop + 0.28, w: W2 - 0.1, colW: [1.32, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
     if (scRisk) {
       s.addText([{ text: 'Risk & Dependencies: ', options: { bold: true } }, { text: scRisk }],
-        { x: X2 + 0.05, y: tblTop + 1.12, w: W2 - 0.1, h: 0.64, fontFace: FONT, fontSize: 9.5, color: '222222', valign: 'top', margin: [2, 4, 2, 4] });
+        { x: X2, y: tblTop + 1.12, w: W2, h: 0.64, fontFace: FONT, fontSize: 9.5, color: '222222', valign: 'top', margin: [2, 6, 2, 6] });
     }
 
     const oi = A.OneInc;
