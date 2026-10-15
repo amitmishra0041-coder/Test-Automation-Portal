@@ -577,6 +577,24 @@ app.get('/api/jiraReport/notes', (req, res) => {
   const d = statusNotes.load();
   res.json({ savedAt: d.savedAt, savedBy: d.savedBy || '', count: d.count || 0, notes: d.notes || {}, deckText: d.deckText || {} });
 });
+// SMARTCOMM: QA cards (To Do) whose BA / Dev card is Done -> list, then move the ones the user ticks to Ready for QA
+// (scripts/smartPromoteQa.js). Find is read-only; Move changes Jira only for the keys sent.
+app.post('/api/jiraReport/promote/find', async (req, res) => {
+  if (!jiraConfigured()) return res.status(400).json({ error: 'Jira isn\'t set up yet — enter your Jira email and API token on the Settings tab.' });
+  try { res.json(await require(path.join(POLICY_DIR, 'scripts', 'smartPromoteQa.js')).findCandidates()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/jiraReport/promote/move', async (req, res) => {
+  if (!jiraConfigured()) return res.status(400).json({ error: 'Jira isn\'t set up yet.' });
+  const keys = Array.isArray((req.body || {}).keys) ? req.body.keys.filter((k) => /^SMART-\d+$/.test(String(k))).slice(0, 500) : [];
+  if (!keys.length) return res.status(400).json({ error: 'No SMART cards selected.' });
+  try {
+    const results = await require(path.join(POLICY_DIR, 'scripts', 'smartPromoteQa.js')).moveToReadyForQa(keys);
+    console.log(`[promote] ${(req.body || {}).requestedBy || 'someone'} moved ${results.filter((r) => r.moved).length}/${keys.length} SMART QA card(s) to Ready for QA`);
+    res.json({ results });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // The deck's header objective + per-area "Risk & Dependencies" text (statusNotes.saveDeckText).
 app.post('/api/jiraReport/deckText', (req, res) => {
   const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));

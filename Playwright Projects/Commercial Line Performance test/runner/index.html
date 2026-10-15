@@ -627,6 +627,17 @@
       <div class="error-msg" id="jiraReportError"></div>
       <div class="report-links" id="jiraReportReportLinks"></div>
     </div>
+    <div class="card" id="smartPromoteCard">
+      <h2>SMARTCOMM — move QA cards to Ready for QA</h2>
+      <p class="hint">QA Test Design / Test Execution cards still in <b>To Do</b> whose BA (Requirements) or Dev card is <b>Done</b>. Find lists them (nothing changes); Move updates only the ticked cards. A preview is emailed every Monday.</p>
+      <div class="actions">
+        <button class="run" id="promoteFindBtn" type="button">Find cards</button>
+        <button class="run" id="promoteMoveBtn" type="button" disabled>Move selected to Ready for QA</button>
+        <span class="hint" id="promoteStatus"></span>
+      </div>
+      <div id="promoteList" style="max-height:420px;overflow:auto;margin-top:8px;"></div>
+    </div>
+
 
     <div class="card">
       <h2>Add a new query</h2>
@@ -2046,6 +2057,45 @@
         document.getElementById('jiraReportError').textContent = res.ok ? '' : (res.body.error || 'Could not save notes');
         if (res.ok) { document.getElementById('jiraNotesInput').value = ''; jiraNotesRows = null; loadJiraNotesStatus(); }
       });
+  });
+
+  // ── SMARTCOMM: promote QA cards to Ready for QA ──
+  var promoteRows = [];
+  function escPromote(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function renderPromote() {
+    var box = document.getElementById('promoteList');
+    if (!promoteRows.length) { box.innerHTML = ''; document.getElementById('promoteMoveBtn').disabled = true; return; }
+    var h = '<table style="border-collapse:collapse;width:100%;font-size:12px;"><tr><th><input type="checkbox" id="promoteAll" checked></th><th style="text-align:left">QA card</th><th style="text-align:left">Summary</th><th style="text-align:left">Type</th><th style="text-align:left">BA / Dev card</th><th style="text-align:left">Note</th></tr>';
+    promoteRows.forEach(function (r, i) {
+      h += '<tr><td><input type="checkbox" class="promoteChk" data-i="' + i + '" checked></td><td><a href="https://donegalgroup.atlassian.net/browse/' + r.key + '" target="_blank">' + r.key + '</a></td><td>' + escPromote(r.summary) + '</td><td>' + r.type + '</td><td>' + r.partnerKey + ' — ' + escPromote(r.partnerStatus) + '</td><td>' + escPromote(r.note || '') + '</td></tr>';
+    });
+    box.innerHTML = h + '</table>';
+    document.getElementById('promoteAll').addEventListener('change', function () { var on = this.checked; document.querySelectorAll('.promoteChk').forEach(function (c) { c.checked = on; }); });
+    document.getElementById('promoteMoveBtn').disabled = false;
+  }
+  document.getElementById('promoteFindBtn').addEventListener('click', function () {
+    var st = document.getElementById('promoteStatus'); st.textContent = 'Searching Jira (about 30 seconds)...';
+    document.getElementById('promoteMoveBtn').disabled = true; promoteRows = []; renderPromote();
+    fetch('/api/jiraReport/promote/find', { method: 'POST' }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, b: b }; }); }).then(function (res) {
+      if (!res.ok) { st.textContent = res.b.error || 'Search failed'; return; }
+      promoteRows = res.b.candidates || [];
+      st.textContent = promoteRows.length + ' card(s) can move' + ' · ' + (res.b.notReady || []).length + ' waiting on a BA/Dev card · ' + (res.b.noPartner || []).length + ' with no BA/Dev card';
+      renderPromote();
+    }).catch(function () { st.textContent = 'Search failed'; });
+  });
+  document.getElementById('promoteMoveBtn').addEventListener('click', function () {
+    var keys = []; document.querySelectorAll('.promoteChk').forEach(function (c) { if (c.checked) keys.push(promoteRows[+c.getAttribute('data-i')].key); });
+    if (!keys.length) return;
+    if (!confirm('Move ' + keys.length + ' SMART QA card(s) from To Do to Ready for QA in Jira?')) return;
+    var st = document.getElementById('promoteStatus'); st.textContent = 'Moving ' + keys.length + ' card(s)...'; this.disabled = true;
+    fetch('/api/jiraReport/promote/move', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keys: keys, requestedBy: document.getElementById('jiraReportEmail').value.trim() }) })
+      .then(function (r) { return r.json(); }).then(function (b) {
+        if (b.error) { st.textContent = b.error; return; }
+        var moved = b.results.filter(function (x) { return x.moved; }).length;
+        var other = b.results.filter(function (x) { return !x.moved; }).map(function (x) { return x.key + ': ' + x.outcome; });
+        st.textContent = moved + ' of ' + keys.length + ' moved to Ready for QA' + (other.length ? ' — ' + other.join('; ') : '');
+        promoteRows = promoteRows.filter(function (r) { return keys.indexOf(r.key) < 0; }); renderPromote();
+      }).catch(function () { st.textContent = 'Move failed'; });
   });
 
   function updateJiraReportPreview() {
