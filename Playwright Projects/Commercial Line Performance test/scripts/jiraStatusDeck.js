@@ -171,12 +171,12 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     });
   };
   // Column: coloured header + body (hours strip on top) with bullet sections [{ head, lines: [{ t, level, bold, color }] }].
-  const column = (slide, x, y, w, hgt, title, color, sections, fontSize, a) => {
+  const column = (slide, x, y, w, hgt, title, color, sections, fontSize, a, textHgt = hgt) => {
     slide.addShape(pptx.ShapeType.rect, { x, y, w, h: 0.42, fill: { color }, line: { color: 'FFFFFF', width: 1 } });
     slide.addText(title, { x, y, w, h: 0.42, fontFace: FONT, fontSize: 17, bold: true, color: 'FFFFFF', align: 'center' });
     // Full lists, so pick the largest font (down to 6 pt) whose estimated wrapped height fits the column body.
     const secs = sections.filter((z) => z.lines.length);
-    const bodyPt = (hgt - 1.07) * 72;
+    const bodyPt = (textHgt - 1.07) * 72;
     const fits = (fs) => {
       const charsPerLine = Math.max(10, ((w - 0.5) * 72) / (fs * 0.47));
       let lines = 0;
@@ -192,7 +192,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
       for (const l of s.lines) runs.push({ text: l.t, options: { bullet: l.plain ? false : { indent: l.level ? 12 : 10 }, indentLevel: l.level || 0, bold: !!l.bold, color: l.color || '222222', breakLine: true, fontSize } });
     }
     slide.addShape(pptx.ShapeType.rect, { x, y: y + 0.42, w, h: hgt - 0.42, fill: { color: 'F5F5F5' }, line: { color: 'D0D0D0', width: 0.75 } });
-    slide.addText(runs.length ? runs : [{ text: 'Nothing to report.', options: { fontSize, color: '666666' } }], { x, y: y + 0.97, w, h: hgt - 0.97, fontFace: FONT, valign: 'top', margin: [2, 6, 4, 6] });
+    slide.addText(runs.length ? runs : [{ text: 'Nothing to report.', options: { fontSize, color: '666666' } }], { x, y: y + 0.97, w, h: textHgt - 0.97, fontFace: FONT, valign: 'top', margin: [2, 6, 4, 6] });
     strip(slide, x + 0.04, y + 0.45, w - 0.08, a);
   };
   const cap = (list, n, fmt) => list.map(fmt); // full lists (no "+N more") — column() shrinks the text to fit
@@ -260,7 +260,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     const bcT = tally('BillingCenter'); const ccT = tally('ClaimCenter');
     const scRisk = risk('SmartComm');
     const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
-    column(s, 4.45, Y, 4.4, H - scTail, 'SMARTCOMM', COL.SmartComm, [
+    column(s, 4.45, Y, 4.4, H, 'SMARTCOMM', COL.SmartComm, [
       { head: 'Completed this week:', lines: [
         { t: `${sc.week.length} items — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
       ] },
@@ -270,8 +270,8 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
         return rest.map((i) => ({ t: `${nice(i.summary)} — ${what}` }))
           .concat(digs.length ? [{ t: `DIG letter templates ${what} (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}` }] : []);
       }) },
-    ], 9.5, sc);
-    s.addText('Overall Summary — templates (done / total):',{ x: 4.55, y: Y + H - scTail + 0.04, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: 'FFFFFF' });
+    ], 9.5, sc, H - scTail);
+    s.addText('Overall Summary — templates (done / total):',{ x: 4.55, y: Y + H - scTail + 0.04, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: '000000' });
     s.addTable([
       [{ text: '', options: hdr }, { text: 'Total', options: hdr }, { text: 'Test design', options: hdr }, { text: 'Test execution', options: hdr }],
       ['BillingCenter', String(bcT.total), bcT.design, bcT.exec],
@@ -279,7 +279,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     ], { ...tableOpts, x: 4.5, y: Y + H - scTail + 0.28, w: 4.3, colW: [1.3, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
     if (scRisk) {
       s.addText([{ text: 'Risk & Dependencies: ', options: { bold: true } }, { text: scRisk }],
-        { x: 4.5, y: Y + H - 0.66, w: 4.3, h: 0.64, fontFace: FONT, fontSize: 9.5, color: 'FFFFFF', valign: 'top', margin: [2, 4, 2, 4] });
+        { x: 4.5, y: Y + H - 0.66, w: 4.3, h: 0.64, fontFace: FONT, fontSize: 9.5, color: '222222', valign: 'top', margin: [2, 4, 2, 4] });
     }
 
     const oi = A.OneInc;
