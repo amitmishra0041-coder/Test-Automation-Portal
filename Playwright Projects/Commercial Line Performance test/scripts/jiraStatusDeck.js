@@ -177,12 +177,13 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     // Full lists, so pick the largest font (down to 6 pt) whose estimated wrapped height fits the column body.
     const secs = sections.filter((z) => z.lines.length);
     const bodyPt = (textHgt - 1.07) * 72;
-    const fits = (fs) => {
+    const usedPt = (fs) => {
       const charsPerLine = Math.max(10, ((w - 0.5) * 72) / (fs * 0.47));
       let lines = 0;
       for (const z of secs) { lines += Math.ceil(z.head.length / charsPerLine) + 0.25; for (const l of z.lines) lines += Math.ceil(String(l.t).length / charsPerLine); }
-      return lines * fs * 1.2 <= bodyPt;
+      return lines * fs * 1.2;
     };
+    const fits = (fs) => usedPt(fs) <= bodyPt;
     let fsz = fontSize;
     while (fsz > 6 && !fits(fsz)) fsz -= 0.5;
     fontSize = fsz;
@@ -194,6 +195,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     slide.addShape(pptx.ShapeType.rect, { x, y: y + 0.42, w, h: hgt - 0.42, fill: { color: 'F5F5F5' }, line: { color: 'D0D0D0', width: 0.75 } });
     slide.addText(runs.length ? runs : [{ text: 'Nothing to report.', options: { fontSize, color: '666666' } }], { x, y: y + 0.97, w, h: textHgt - 0.97, fontFace: FONT, valign: 'top', margin: [2, 6, 4, 6] });
     strip(slide, x + 0.04, y + 0.45, w - 0.08, a);
+    return y + 0.97 + usedPt(fontSize) / 72 + 0.08; // estimated bottom of the text (inches)
   };
   const cap = (list, n, fmt) => list.map(fmt); // full lists (no "+N more") — column() shrinks the text to fit
   // SmartCOMM lists: every DIG template in one compact bullet ("DIG letter templates (13): 242, 241 ..."),
@@ -261,7 +263,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     const bcT = tally('BillingCenter'); const ccT = tally('ClaimCenter');
     const scRisk = risk('SmartComm');
     const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
-    column(s, X2, Y, W2, H, 'SMARTCOMM', COL.SmartComm, [
+    const scTextEnd = column(s, X2, Y, W2, H, 'SMARTCOMM', COL.SmartComm, [
       { head: 'Completed this week:', lines: [
         { t: `${sc.week.length} items — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
       ] },
@@ -272,15 +274,16 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
           .concat(digs.length ? [{ t: `DIG letter templates ${what} (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}` }] : []);
       }) },
     ], 9.5, sc, H - scTail);
-    s.addText('Overall Summary — templates (done / total):',{ x: X2 + 0.08, y: Y + H - scTail + 0.04, w: W2 - 0.16, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: '000000' });
+    const tblTop = Math.min(scTextEnd + 0.1, Y + H - scTail);
+    s.addText('Overall Summary — templates (done / total):',{ x: X2 + 0.08, y: tblTop + 0.04, w: W2 - 0.16, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: '000000' });
     s.addTable([
       [{ text: '', options: hdr }, { text: 'Total', options: hdr }, { text: 'Test design', options: hdr }, { text: 'Test execution', options: hdr }],
       ['BillingCenter', String(bcT.total), bcT.design, bcT.exec],
       ['ClaimCenter', String(ccT.total), ccT.design, ccT.exec],
-    ], { ...tableOpts, x: X2 + 0.05, y: Y + H - scTail + 0.28, w: W2 - 0.1, colW: [1.32, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
+    ], { ...tableOpts, x: X2 + 0.05, y: tblTop + 0.28, w: W2 - 0.1, colW: [1.32, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
     if (scRisk) {
       s.addText([{ text: 'Risk & Dependencies: ', options: { bold: true } }, { text: scRisk }],
-        { x: X2 + 0.05, y: Y + H - 0.66, w: W2 - 0.1, h: 0.64, fontFace: FONT, fontSize: 9.5, color: '222222', valign: 'top', margin: [2, 4, 2, 4] });
+        { x: X2 + 0.05, y: tblTop + 1.12, w: W2 - 0.1, h: 0.64, fontFace: FONT, fontSize: 9.5, color: '222222', valign: 'top', margin: [2, 4, 2, 4] });
     }
 
     const oi = A.OneInc;
