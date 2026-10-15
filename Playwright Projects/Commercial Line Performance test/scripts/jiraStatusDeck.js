@@ -63,7 +63,9 @@ async function search(jql) {
   });
 }
 const withoutStatusFilter = (jql) => jql.replace(/\s+AND\s+status\s+NOT\s+IN\s*\([^)]*\)/i, '');
-const doneInOpenSprint = (jql) => `${withoutStatusFilter(jql)} AND status IN (Closed, Done) AND sprint in openSprints()`;
+// Jira's openSprints() means the ACTIVE sprint only — next-sprint work finished early sits in futureSprints() (2026-10-15:
+// nine SMART items done in Sprint 6 were missing from "picked up early" and "completed this week").
+const doneInOpenSprint = (jql) => `${withoutStatusFilter(jql)} AND status IN (Closed, Done) AND (sprint in openSprints() OR sprint in futureSprints())`;
 
 // ── helpers ───────────────────────────────────────────────────────────────────────────────────────────────
 const h = (n) => `${Math.round(n * 10) / 10} h`;
