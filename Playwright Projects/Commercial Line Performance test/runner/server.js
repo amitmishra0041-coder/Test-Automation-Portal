@@ -37,6 +37,8 @@ const { ENV_URLS } = require('../helpers/envConfig');
 // npx/node - nothing changes for normal dev use.
 const PACKAGED = process.env.RUNNER_PACKAGED === '1';
 const BUNDLED_NODE_EXEC = process.env.RUNNER_NODE_EXEC || process.execPath;
+const PACKAGED_NODE_OPTIONS = [process.env.NODE_OPTIONS, '--experimental-require-module', '--disable-warning=ExperimentalWarning']
+  .filter(Boolean).join(' ');
 // Suites that need a 3rd sibling repo (cc-migration-reconciliation) or a
 // bundled Python runtime - deferred to a later release; see buildReconJob/
 // buildUpdateValidationJob/buildPdfCompareJob's own PACKAGED guards below.
@@ -1483,7 +1485,10 @@ function processQueue(suite) {
     // ELECTRON_RUN_AS_NODE makes BUNDLED_NODE_EXEC (Electron's own binary) behave as a plain `node <script>`
     // process instead of launching another full Electron/Chromium GUI instance - without this, every spawned
     // job here would pop a second app window instead of running headless-CLI-style as intended.
-    env: { ...process.env, ...job.env, FORCE_COLOR: '0', ...(PACKAGED ? { ELECTRON_RUN_AS_NODE: '1' } : {}) },
+    // PACKAGED_NODE_OPTIONS: Electron 33's bundled Node is 20.18, which can't require() ESM-only packages
+    // (@faker-js/faker 10 - helpers/randomData.js) without --experimental-require-module; system Node 22.12+
+    // does it by default, which is why dev runs never hit it. Inherited by Playwright's worker processes too.
+    env: { ...process.env, ...job.env, FORCE_COLOR: '0', ...(PACKAGED ? { ELECTRON_RUN_AS_NODE: '1', NODE_OPTIONS: PACKAGED_NODE_OPTIONS } : {}) },
   });
   const entry = { id, proc: child, job, startedAt: Date.now(), progress: { done: 0, total: null } };
   pool.running.push(entry);
