@@ -11,7 +11,7 @@
 //     estimate. Enhancement items named "OneInc"/"One Inc" form the OneInc area; the rest count under ClaimCenter.
 //   - the same JQLs with status Closed/Done in the open sprint — "completed this sprint".
 //   - the SmartComm JQL without its status filter — the overall design/execution progress table.
-//   - DEFECTS_JQL (the QA lead's defect filter) — the open-defects table.
+//   - DEFECTS_JQL (the QA lead's defect filter: GCCM, GCMDT, GCMDW, GCMR + SMART) — the open-defects table.
 // Spillover ≈ current-sprint work that won't fit in the working days left at HOURS_PER_DAY per assignee (computed
 // per assignee but only shown per area); impeded work counts in full.
 //
@@ -31,7 +31,7 @@ const statusNotes = require('./statusNotes');
 const JIRA_SITE = process.env.JIRA_SITE;
 const JIRA_EMAIL = process.env.JIRA_EMAIL;
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
-const DEFECTS_JQL = 'project IN (GCCM, GCMDT, GCMDW, GCMR) AND type IN (Bug, Defect) AND status NOT IN (Closed, Rejected) ORDER BY assignee ASC, created DESC';
+const DEFECTS_JQL = 'project IN (GCCM, GCMDT, GCMDW, GCMR, SMART) AND type IN (Bug, Defect) AND status NOT IN (Closed, Rejected) ORDER BY assignee ASC, created DESC';
 const HOURS_PER_DAY = Number(process.env.STATUS_DECK_HOURS_PER_DAY) || 8;
 const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate'];
 
@@ -302,7 +302,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     const PR = ['Critical', 'High', 'Medium', 'Low', 'Unranked'];
     const statuses = [...new Set(bugs.map((b) => b.status))].sort((a, b) => bugs.filter((x) => x.status === b).length - bugs.filter((x) => x.status === a).length);
     s.addShape(pptx.ShapeType.rect, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fill: { color: 'E8A100' } });
-    s.addText(`Open Defects (ClaimCenter) — ${bugs.length}`, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
+    s.addText(`Open Defects (CC & SmartComm) — ${bugs.length}`, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
     const rows = [[{ text: 'Status', options: hdr }, ...PR.map((p) => ({ text: { Critical: 'Crit.', High: 'High', Medium: 'Med.', Low: 'Low', Unranked: 'None' }[p], options: hdr })), { text: 'Total', options: hdr }]];
     for (const st of statuses.slice(0, 8)) {
       const b = bugs.filter((x) => x.status === st);
