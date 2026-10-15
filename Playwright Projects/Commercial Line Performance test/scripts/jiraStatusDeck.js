@@ -227,10 +227,11 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     const riskSection = (k) => ({ head: 'Risk & Dependencies:', lines: risk(k) ? [{ t: risk(k), plain: true }] : [] });
     titleBar(s, 'QA Status Summary - ClaimCenter', deckText.objective ? fill(deckText.objective) :
       `${S} (ends ${fmtDate(curEnd)}, ${daysLeft} working day(s) left): ${A.ClaimCenter.week.length + A.SmartComm.week.length + A.OneInc.week.length} items completed this week, ${h(sum(curAll))} remaining (${h(spillAll)} impeded — potential spillover into ${N}). ${N}${future ? ` (${fmtDate(new Date(future.start))}–${fmtDate(new Date(future.end))})` : ''} has ${h(sum(nextAll))} planned across ClaimCenter, SmartCOMM and OneInc.`);
-    const Y = 1.2; const H = 6.22;
+    const Y = 1.16; const H = 6.3;
+    const X1 = 0, W1 = 4.3, X2 = 4.36, W2 = 4.42, X3 = 8.84, W3 = 4.46; // ClaimCenter | SMARTCOMM | OneInc
 
     const cc = A.ClaimCenter;
-    column(s, 0.08, Y, 4.3, H, 'ClaimCenter', COL.ClaimCenter, [
+    column(s, X1, Y, W1, H, 'ClaimCenter', COL.ClaimCenter, [
       { head: 'Completed this week:', lines: cc.week.map(withPhase) },
       { head: `Outstanding work (${S}):`, lines: [...cc.s5].sort((a, b) => Number(isImpeded(a)) - Number(isImpeded(b)) || b.rem - a.rem).map(outstanding) },
       { head: `Picked up early from ${N}:`, lines: picked(cc) },
@@ -260,7 +261,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     const bcT = tally('BillingCenter'); const ccT = tally('ClaimCenter');
     const scRisk = risk('SmartComm');
     const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
-    column(s, 4.45, Y, 4.4, H, 'SMARTCOMM', COL.SmartComm, [
+    column(s, X2, Y, W2, H, 'SMARTCOMM', COL.SmartComm, [
       { head: 'Completed this week:', lines: [
         { t: `${sc.week.length} items — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
       ] },
@@ -271,19 +272,19 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
           .concat(digs.length ? [{ t: `DIG letter templates ${what} (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}` }] : []);
       }) },
     ], 9.5, sc, H - scTail);
-    s.addText('Overall Summary — templates (done / total):',{ x: 4.55, y: Y + H - scTail + 0.04, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: '000000' });
+    s.addText('Overall Summary — templates (done / total):',{ x: X2 + 0.08, y: Y + H - scTail + 0.04, w: W2 - 0.16, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: '000000' });
     s.addTable([
       [{ text: '', options: hdr }, { text: 'Total', options: hdr }, { text: 'Test design', options: hdr }, { text: 'Test execution', options: hdr }],
       ['BillingCenter', String(bcT.total), bcT.design, bcT.exec],
       ['ClaimCenter', String(ccT.total), ccT.design, ccT.exec],
-    ], { ...tableOpts, x: 4.5, y: Y + H - scTail + 0.28, w: 4.3, colW: [1.3, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
+    ], { ...tableOpts, x: X2 + 0.05, y: Y + H - scTail + 0.28, w: W2 - 0.1, colW: [1.32, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
     if (scRisk) {
       s.addText([{ text: 'Risk & Dependencies: ', options: { bold: true } }, { text: scRisk }],
-        { x: 4.5, y: Y + H - 0.66, w: 4.3, h: 0.64, fontFace: FONT, fontSize: 9.5, color: '222222', valign: 'top', margin: [2, 4, 2, 4] });
+        { x: X2 + 0.05, y: Y + H - 0.66, w: W2 - 0.1, h: 0.64, fontFace: FONT, fontSize: 9.5, color: '222222', valign: 'top', margin: [2, 4, 2, 4] });
     }
 
     const oi = A.OneInc;
-    column(s, 8.92, Y, 4.33, 3.45, 'OneInc', COL.OneInc, [
+    column(s, X3, Y, W3, 3.45, 'OneInc', COL.OneInc, [
       { head: 'Completed this week:', lines: oi.week.map(withPhase) },
       { head: `Outstanding work (${S}):`, lines: [...oi.s5].sort((a, b) => b.rem - a.rem).map(outstanding) },
       { head: `Picked up early from ${N}:`, lines: picked(oi) },
@@ -295,8 +296,8 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     const prio = (p) => { const t = String(p || '').toLowerCase(); return /must|critical|highest|blocker/.test(t) ? 'Critical' : /high/.test(t) ? 'High' : /medium/.test(t) ? 'Medium' : /low/.test(t) ? 'Low' : 'Unranked'; };
     const PR = ['Critical', 'High', 'Medium', 'Low', 'Unranked'];
     const statuses = [...new Set(bugs.map((b) => b.status))].sort((a, b) => bugs.filter((x) => x.status === b).length - bugs.filter((x) => x.status === a).length);
-    s.addShape(pptx.ShapeType.rect, { x: 8.92, y: Y + 3.5, w: 4.33, h: 0.36, fill: { color: 'E8A100' } });
-    s.addText(`Open Defects (ClaimCenter) — ${bugs.length}`, { x: 8.92, y: Y + 3.5, w: 4.33, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
+    s.addShape(pptx.ShapeType.rect, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fill: { color: 'E8A100' } });
+    s.addText(`Open Defects (ClaimCenter) — ${bugs.length}`, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
     const rows = [[{ text: 'Status', options: hdr }, ...PR.map((p) => ({ text: { Critical: 'Crit.', High: 'High', Medium: 'Med.', Low: 'Low', Unranked: 'None' }[p], options: hdr })), { text: 'Total', options: hdr }]];
     for (const st of statuses.slice(0, 8)) {
       const b = bugs.filter((x) => x.status === st);
@@ -307,7 +308,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
       rows.push(['Other', ...PR.map((p) => { const n = b.filter((x) => prio(x.priority) === p).length; return n ? String(n) : ''; }), String(b.length)]);
     }
     rows.push([{ text: 'Grand Total', options: { bold: true } }, ...PR.map((p) => ({ text: String(bugs.filter((x) => prio(x.priority) === p).length), options: { bold: true } })), { text: String(bugs.length), options: { bold: true } }]);
-    s.addTable(rows, { ...tableOpts, x: 8.92, y: Y + 3.86, w: 4.33, colW: [1.33, 0.5, 0.5, 0.5, 0.45, 0.5, 0.55], fontSize: 8.5, rowH: 0.2 });
+    s.addTable(rows, { ...tableOpts, x: X3, y: Y + 3.86, w: W3, colW: [1.4, 0.5, 0.52, 0.52, 0.47, 0.5, 0.55], fontSize: 9, margin: [1, 5, 1, 5], valign: 'middle', rowH: Math.min(0.3, (H - 3.86 - 0.12) / rows.length) });
   }
 
   // ── Slide 2: Wrap-up & Outlook ──
