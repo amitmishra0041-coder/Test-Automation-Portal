@@ -598,6 +598,13 @@
         <input type="file" id="jiraNotesFile" accept=".htm,.html,.eml,.txt" />
         <button class="run" id="jiraNotesSaveBtn" type="button">Save notes</button>
       </div>
+      <div class="field-label" style="margin-top:12px;">Deck header &amp; Risk &amp; Dependencies (optional)</div>
+      <div class="hint">Your own words for slide 1. Use {sprint} and {next} for the sprint names (e.g. "Sprint 5" / "Sprint 6"). Leave the header blank to show the automatic sprint summary instead.</div>
+      <textarea id="deckObjective" rows="2" placeholder="Header text, e.g. Drive completion of ClaimCenter testing across integrations ... across {sprint} and {next}." style="width:100%;max-width:900px;"></textarea>
+      <textarea id="deckRiskClaimCenter" rows="2" placeholder="ClaimCenter — Risk &amp; Dependencies" style="width:100%;max-width:900px;margin-top:4px;"></textarea>
+      <textarea id="deckRiskSmartComm" rows="2" placeholder="SMARTCOMM — Risk &amp; Dependencies" style="width:100%;max-width:900px;margin-top:4px;"></textarea>
+      <textarea id="deckRiskOneInc" rows="2" placeholder="OneInc — Risk &amp; Dependencies" style="width:100%;max-width:900px;margin-top:4px;"></textarea>
+      <div class="actions" style="margin-top:6px;"><button class="run" id="deckTextSaveBtn" type="button">Save header &amp; risks</button> <span class="hint" id="deckTextStatus"></span></div>
       <div class="hint" id="jiraNotesStatus">Notes show next to each impeded / in-progress item in the deck.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Copy the table from your status email (Outlook: select the table, Ctrl+C) and paste it here, or save the email as .htm / .eml and upload it. Each row's Jira key, status and note are picked out and saved; saving replaces last week's notes. The deck shows each note next to its spillover item and lists them all on the Blockers &amp; Dependencies slide.</span></span></div>
       </div>
 
@@ -1995,8 +2002,24 @@
     fetch('/api/jiraReport/notes').then(function (r) { return r.json(); }).then(function (d) {
       var el = document.getElementById('jiraNotesStatus');
       if (d.count) el.firstChild.textContent = d.count + ' note(s) saved ' + new Date(d.savedAt).toLocaleString() + (d.savedBy ? ' by ' + d.savedBy : '') + ' — used in the next deck. ';
+      var t = d.deckText || {}; var r = t.risks || {};
+      document.getElementById('deckObjective').value = t.objective || '';
+      document.getElementById('deckRiskClaimCenter').value = r.ClaimCenter || '';
+      document.getElementById('deckRiskSmartComm').value = r.SmartComm || '';
+      document.getElementById('deckRiskOneInc').value = r.OneInc || '';
+      document.getElementById('deckTextStatus').textContent = t.savedAt ? 'Saved ' + new Date(t.savedAt).toLocaleString() + (t.savedBy ? ' by ' + t.savedBy : '') : '';
     }).catch(function () { /* ignore */ });
   }
+  document.getElementById('deckTextSaveBtn').addEventListener('click', function () {
+    var body = {
+      objective: document.getElementById('deckObjective').value,
+      risks: { ClaimCenter: document.getElementById('deckRiskClaimCenter').value, SmartComm: document.getElementById('deckRiskSmartComm').value, OneInc: document.getElementById('deckRiskOneInc').value },
+      savedBy: document.getElementById('jiraReportEmail').value.trim(),
+    };
+    fetch('/api/jiraReport/deckText', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); }).then(function () { loadJiraNotesStatus(); })
+      .catch(function () { document.getElementById('deckTextStatus').textContent = 'Could not save'; });
+  });
   document.getElementById('jiraNotesInput').addEventListener('paste', function (e) {
     var html = e.clipboardData && e.clipboardData.getData('text/html');
     jiraNotesRows = html && /<tr/i.test(html) ? tableRowsFromHtml(html) : null;

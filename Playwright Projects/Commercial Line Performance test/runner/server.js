@@ -575,7 +575,14 @@ app.post('/api/admin', (req, res) => {
 app.get('/api/jiraReport/notes', (req, res) => {
   const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
   const d = statusNotes.load();
-  res.json({ savedAt: d.savedAt, savedBy: d.savedBy || '', count: d.count || 0, notes: d.notes || {} });
+  res.json({ savedAt: d.savedAt, savedBy: d.savedBy || '', count: d.count || 0, notes: d.notes || {}, deckText: d.deckText || {} });
+});
+// The deck's header objective + per-area "Risk & Dependencies" text (statusNotes.saveDeckText).
+app.post('/api/jiraReport/deckText', (req, res) => {
+  const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
+  const { objective, risks, savedBy } = req.body || {};
+  const t = statusNotes.saveDeckText({ objective: String(objective || '').slice(0, 1000), risks: risks || {} }, { savedBy: String(savedBy || '').slice(0, 200) });
+  res.json({ savedAt: t.savedAt });
 });
 app.post('/api/jiraReport/notes', (req, res) => {
   const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));

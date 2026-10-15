@@ -63,11 +63,27 @@ function parse({ rows, text } = {}) {
   return out;
 }
 
+// Deck text the QA lead writes each week: the header objective and a "Risk & Dependencies" paragraph per area.
+// Kept in the same file as the notes; saving one never clears the other.
+const AREAS = ['ClaimCenter', 'SmartComm', 'OneInc'];
+function saveDeckText({ objective, risks } = {}, { savedBy = '' } = {}) {
+  const file = notesFile();
+  const data = load();
+  data.deckText = {
+    objective: String(objective || '').trim(),
+    risks: Object.fromEntries(AREAS.map((a) => [a, String((risks || {})[a] || '').trim()])),
+    savedAt: new Date().toISOString(), savedBy,
+  };
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+  return data.deckText;
+}
+
 function save(entries, { source = '', savedBy = '' } = {}) {
   const file = notesFile();
   const byKey = {};
   for (const e of entries) if (e.key) byKey[e.key] = { summary: e.summary || '', status: e.status || '', note: e.note || '' };
-  const data = { savedAt: new Date().toISOString(), savedBy, source, count: Object.keys(byKey).length, notes: byKey };
+  const data = { savedAt: new Date().toISOString(), savedBy, source, count: Object.keys(byKey).length, notes: byKey, deckText: load().deckText };
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
   return data;
@@ -77,4 +93,4 @@ function load() {
   try { return JSON.parse(fs.readFileSync(notesFile(), 'utf8')); } catch (_) { return { savedAt: null, count: 0, notes: {} }; }
 }
 
-module.exports = { parse, save, load, notesFile };
+module.exports = { parse, save, load, saveDeckText, notesFile };

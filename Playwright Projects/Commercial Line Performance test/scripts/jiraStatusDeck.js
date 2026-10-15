@@ -114,7 +114,7 @@ async function collect() {
   return { items, doneItems, scAll, bugs };
 }
 
-function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
+function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} }) {
   // This week's blocker / dependency notes from the QA lead's status email (statusNotes.js), by Jira key.
   const noteOf = (i) => (notes[i.key] && notes[i.key].note) || '';
   const firstLine = (t) => String(t).split('\n')[0];
@@ -158,9 +158,9 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
 
   const titleBar = (slide, title, sub) => {
     slide.background = { color: '1B2A47' };
-    slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.75, fill: { color: '2E5597' } });
-    slide.addText(title, { x: 0, y: 0.02, w: 13.33, h: 0.72, fontFace: FONT, fontSize: 30, bold: true, color: 'FFFFFF', align: 'center' });
-    if (sub) slide.addText(sub, { x: 0.15, y: 0.78, w: 13.0, h: 0.5, fontFace: FONT, fontSize: 12.5, color: 'FFFFFF' });
+    slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.6, fill: { color: '2E5597' } });
+    slide.addText(title, { x: 0, y: 0, w: 13.33, h: 0.6, fontFace: FONT, fontSize: 26, bold: true, color: 'FFFFFF', align: 'center' });
+    if (sub) slide.addText(sub, { x: 0.15, y: 0.62, w: 13.0, h: 0.52, fontFace: FONT, fontSize: 12, color: 'FFFFFF', valign: 'middle' });
   };
   const strip = (slide, x, y, w, a) => {
     const cells = [[`${S} remaining`, h(sum(a.s5)), NAVY], ['Potential spillover (impeded)', h(a.spill), NAVY], [`${N} planned`, h(sum(a.s6)), NAVY]];
@@ -189,7 +189,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
     const runs = [];
     for (const s of secs) {
       runs.push({ text: s.head, options: { bold: true, breakLine: true, fontSize: fontSize + 0.5, color: '000000', paraSpaceBefore: 3 } });
-      for (const l of s.lines) runs.push({ text: l.t, options: { bullet: { indent: l.level ? 12 : 10 }, indentLevel: l.level || 0, bold: !!l.bold, color: l.color || '222222', breakLine: true, fontSize } });
+      for (const l of s.lines) runs.push({ text: l.t, options: { bullet: l.plain ? false : { indent: l.level ? 12 : 10 }, indentLevel: l.level || 0, bold: !!l.bold, color: l.color || '222222', breakLine: true, fontSize } });
     }
     slide.addShape(pptx.ShapeType.rect, { x, y: y + 0.42, w, h: hgt - 0.42, fill: { color: 'F5F5F5' }, line: { color: 'D0D0D0', width: 0.75 } });
     slide.addText(runs.length ? runs : [{ text: 'Nothing to report.', options: { fontSize, color: '666666' } }], { x, y: y + 0.97, w, h: hgt - 0.97, fontFace: FONT, valign: 'top', margin: [2, 6, 4, 6] });
@@ -220,15 +220,21 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
   // ── Slide 1: QA Status Summary ──
   {
     const s = pptx.addSlide();
-    titleBar(s, 'QA Status Summary - ClaimCenter',
+    // Header objective + per-area "Risk & Dependencies" are the QA lead's own words, saved on the Jira tab
+    // (statusNotes.saveDeckText); {sprint} / {next} become the current / next sprint names.
+    const fill = (t) => String(t || '').replace(/\{sprint\}/gi, S).replace(/\{next\}/gi, N);
+    const risk = (k) => fill((deckText.risks || {})[k]);
+    const riskSection = (k) => ({ head: 'Risk & Dependencies:', lines: risk(k) ? [{ t: risk(k), plain: true }] : [] });
+    titleBar(s, 'QA Status Summary - ClaimCenter', deckText.objective ? fill(deckText.objective) :
       `${S} (ends ${fmtDate(curEnd)}, ${daysLeft} working day(s) left): ${A.ClaimCenter.week.length + A.SmartComm.week.length + A.OneInc.week.length} items completed this week, ${h(sum(curAll))} remaining (${h(spillAll)} impeded — potential spillover into ${N}). ${N}${future ? ` (${fmtDate(new Date(future.start))}–${fmtDate(new Date(future.end))})` : ''} has ${h(sum(nextAll))} planned across ClaimCenter, SmartCOMM and OneInc.`);
-    const Y = 1.35; const H = 6.05;
+    const Y = 1.2; const H = 6.22;
 
     const cc = A.ClaimCenter;
     column(s, 0.08, Y, 4.3, H, 'ClaimCenter', COL.ClaimCenter, [
       { head: 'Completed this week:', lines: cc.week.map(withPhase) },
       { head: `Outstanding work (${S}):`, lines: [...cc.s5].sort((a, b) => Number(isImpeded(a)) - Number(isImpeded(b)) || b.rem - a.rem).map(outstanding) },
       { head: `Picked up early from ${N}:`, lines: picked(cc) },
+      riskSection('ClaimCenter'),
     ], 9.5, cc);
 
     // SmartCOMM overall progress, counted by TEMPLATE (each has a design and an execution task): a DIG letter or a
@@ -252,7 +258,9 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
       return { total: byT.size, design: `${d('Design')} / ${n('Design')}`, exec: `${d('Execution')} / ${n('Execution')}` };
     };
     const bcT = tally('BillingCenter'); const ccT = tally('ClaimCenter');
-    column(s, 4.45, Y, 4.4, H - 1.25, 'SMARTCOMM', COL.SmartComm, [
+    const scRisk = risk('SmartComm');
+    const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
+    column(s, 4.45, Y, 4.4, H - scTail, 'SMARTCOMM', COL.SmartComm, [
       { head: 'Completed this week:', lines: [
         { t: `${sc.week.length} items — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
       ] },
@@ -263,26 +271,32 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
           .concat(digs.length ? [{ t: `DIG letter templates ${what} (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}` }] : []);
       }) },
     ], 9.5, sc);
-    s.addText('Overall Summary — templates (done / total):',{ x: 4.55, y: Y + H - 1.22, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: 'FFFFFF' });
+    s.addText('Overall Summary — templates (done / total):',{ x: 4.55, y: Y + H - scTail + 0.04, w: 4.2, h: 0.22, fontFace: FONT, fontSize: 9.5, bold: true, color: 'FFFFFF' });
     s.addTable([
       [{ text: '', options: hdr }, { text: 'Total', options: hdr }, { text: 'Test design', options: hdr }, { text: 'Test execution', options: hdr }],
       ['BillingCenter', String(bcT.total), bcT.design, bcT.exec],
       ['ClaimCenter', String(ccT.total), ccT.design, ccT.exec],
-    ], { ...tableOpts, x: 4.5, y: Y + H - 0.98, w: 4.3, colW: [1.3, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
+    ], { ...tableOpts, x: 4.5, y: Y + H - scTail + 0.28, w: 4.3, colW: [1.3, 0.7, 1.15, 1.15], fontSize: 9.5, rowH: 0.24 });
+    if (scRisk) {
+      s.addText([{ text: 'Risk & Dependencies: ', options: { bold: true } }, { text: scRisk }],
+        { x: 4.5, y: Y + H - 0.66, w: 4.3, h: 0.64, fontFace: FONT, fontSize: 9.5, color: 'FFFFFF', valign: 'top', margin: [2, 4, 2, 4] });
+    }
 
     const oi = A.OneInc;
-    column(s, 8.92, Y, 4.33, 3.15, 'OneInc', COL.OneInc, [
+    column(s, 8.92, Y, 4.33, 3.45, 'OneInc', COL.OneInc, [
       { head: 'Completed this week:', lines: oi.week.map(withPhase) },
       { head: `Outstanding work (${S}):`, lines: [...oi.s5].sort((a, b) => b.rem - a.rem).map(outstanding) },
       { head: `Picked up early from ${N}:`, lines: picked(oi) },
-      { head: `Ready for QA (${N}):`, lines: oi.s6.filter(readyQa).map((i) => ({ t: nice(i.summary) })) },
+      { head: `Ready for QA (${N}):`, lines: oi.s6.filter(readyQa).map((i) => nice(i.summary))
+        .reduce((acc, name, n) => { if (n % 2) acc[acc.length - 1].t += `, ${name}`; else acc.push({ t: name }); return acc; }, []) },
+      riskSection('OneInc'),
     ], 9, oi);
 
     const prio = (p) => { const t = String(p || '').toLowerCase(); return /must|critical|highest|blocker/.test(t) ? 'Critical' : /high/.test(t) ? 'High' : /medium/.test(t) ? 'Medium' : /low/.test(t) ? 'Low' : 'Unranked'; };
     const PR = ['Critical', 'High', 'Medium', 'Low', 'Unranked'];
     const statuses = [...new Set(bugs.map((b) => b.status))].sort((a, b) => bugs.filter((x) => x.status === b).length - bugs.filter((x) => x.status === a).length);
-    s.addShape(pptx.ShapeType.rect, { x: 8.92, y: Y + 3.2, w: 4.33, h: 0.36, fill: { color: 'E8A100' } });
-    s.addText(`Open Defects (ClaimCenter) — ${bugs.length}`, { x: 8.92, y: Y + 3.2, w: 4.33, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
+    s.addShape(pptx.ShapeType.rect, { x: 8.92, y: Y + 3.5, w: 4.33, h: 0.36, fill: { color: 'E8A100' } });
+    s.addText(`Open Defects (ClaimCenter) — ${bugs.length}`, { x: 8.92, y: Y + 3.5, w: 4.33, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
     const rows = [[{ text: 'Status', options: hdr }, ...PR.map((p) => ({ text: { Critical: 'Crit.', High: 'High', Medium: 'Med.', Low: 'Low', Unranked: 'None' }[p], options: hdr })), { text: 'Total', options: hdr }]];
     for (const st of statuses.slice(0, 8)) {
       const b = bugs.filter((x) => x.status === st);
@@ -293,7 +307,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {} }) {
       rows.push(['Other', ...PR.map((p) => { const n = b.filter((x) => prio(x.priority) === p).length; return n ? String(n) : ''; }), String(b.length)]);
     }
     rows.push([{ text: 'Grand Total', options: { bold: true } }, ...PR.map((p) => ({ text: String(bugs.filter((x) => prio(x.priority) === p).length), options: { bold: true } })), { text: String(bugs.length), options: { bold: true } }]);
-    s.addTable(rows, { ...tableOpts, x: 8.92, y: Y + 3.56, w: 4.33, colW: [1.33, 0.5, 0.5, 0.5, 0.45, 0.5, 0.55], fontSize: 8.5, rowH: 0.2 });
+    s.addTable(rows, { ...tableOpts, x: 8.92, y: Y + 3.86, w: 4.33, colW: [1.33, 0.5, 0.5, 0.5, 0.45, 0.5, 0.55], fontSize: 8.5, rowH: 0.2 });
   }
 
   // ── Slide 2: Wrap-up & Outlook ──
@@ -383,7 +397,7 @@ async function generateStatusDeck(outputPath, { emailTo } = {}) {
   console.log(`Open items: ${data.items.length}, done this sprint: ${data.doneItems.length}, SmartComm overall: ${data.scAll.length}, open defects: ${data.bugs.length}`);
   const saved = statusNotes.load();
   if (saved.count) console.log(`Weekly notes: ${saved.count} item(s), saved ${saved.savedAt}`);
-  const { pptx, summary } = buildDeck({ ...data, notes: saved.notes || {} });
+  const { pptx, summary } = buildDeck({ ...data, notes: saved.notes || {}, deckText: saved.deckText || {} });
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   await pptx.writeFile({ fileName: outputPath });
   console.log(`Deck written: ${outputPath}`);
