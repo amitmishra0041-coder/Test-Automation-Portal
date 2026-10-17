@@ -2,8 +2,8 @@
 //
 // Slide 1 "QA Status Summary - ClaimCenter": ClaimCenter (incl. enhancements) | SMARTCOMM | OneInc columns (completed this
 //   sprint, in progress, spillovers), SmartCOMM's design/execution summary, and the open-defects table.
-// Slide 2 "Sprint N Wrap-up & Sprint N+1 Outlook": per area, completed / remaining (with likely spillover) for the
-//   current sprint and the planned work for the next one.
+// Slide 2 "Day-by-Day Progress": per track, the items completed and started on each of the last 5 working days.
+// Slide 3 "Week-by-Week Progress": the same per Friday–Thursday week, the last 6 weeks.
 // No per-person reporting (per the QA lead's direction); Nautilus/Other is not included.
 //
 // Data (read-only):
@@ -103,20 +103,52 @@ const workDays = (from, to) => { let n = 0; const d = new Date(from); d.setHours
 const fmtDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
 const sprintNo = (name) => { const m = String(name || '').match(/sprint\s*(\d+)/i); return m ? Number(m[1]) : null; };
 
+// Status history for the day-by-day / week-by-week slides: every track item touched in the last HISTORY_DAYS, with
+// when it was STARTED (first move into In Progress, or straight into In Review — "Ready for QA" only means ready to
+// start) and when it was COMPLETED (its last move into Done/Closed, counted only while it's still done).
+const HISTORY_DAYS = 45;
+async function searchHistory(jql) {
+  const out = [];
+  let nextPageToken;
+  for (let page = 0; page < 50; page++) {
+    let resp;
+    try {
+      resp = await axios.post(`https://${JIRA_SITE}/rest/api/3/search/jql`, { jql, fields: ['summary', 'status'], expand: 'changelog', maxResults: 100, ...(nextPageToken ? { nextPageToken } : {}) }, {
+        auth: { username: JIRA_EMAIL, password: JIRA_API_TOKEN }, headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      });
+    } catch (e) {
+      throw new Error(`Jira history search failed for JQL "${jql.slice(0, 80)}...": ${e.response ? `${e.response.status} ${JSON.stringify(e.response.data)}` : e.message}`);
+    }
+    for (const i of resp.data.issues || []) {
+      const moves = ((i.changelog && i.changelog.histories) || [])
+        .flatMap((hh) => hh.items.filter((it) => it.field === 'status').map((it) => ({ at: new Date(hh.created), to: it.toString || '' })))
+        .sort((a, b) => a.at - b.at);
+      const startMove = moves.find((m) => /in progress|in review/i.test(m.to));
+      const doneNow = /^(done|closed)$/i.test((i.fields.status && i.fields.status.name) || '');
+      const doneMove = doneNow ? [...moves].reverse().find((m) => /^(done|closed)$/i.test(m.to)) : null;
+      out.push({ key: i.key, summary: i.fields.summary || '', started: startMove ? startMove.at : null, completed: doneMove ? doneMove.at : null });
+    }
+    if (!resp.data.nextPageToken) break;
+    nextPageToken = resp.data.nextPageToken;
+  }
+  return out;
+}
+
 async function collect() {
   const areaOf = (q, i) => (q === 'SmartComm' ? 'SmartComm' : isOneInc(i) ? 'OneInc' : 'ClaimCenter');
-  const items = []; const doneItems = [];
+  const items = []; const doneItems = []; const history = [];
   for (const q of ['ClaimCenter', 'Enhancement', 'SmartComm']) {
     const jql = TRACK_DEFS[q].jql;
     for (const i of await search(jql)) items.push({ ...i, area: areaOf(q, i), current: i.sprints.some((s) => s.state === 'active') });
     for (const i of await search(doneInOpenSprint(jql))) doneItems.push({ ...i, area: areaOf(q, i) });
+    for (const i of await searchHistory(`${withoutStatusFilter(jql)} AND updated >= -${HISTORY_DAYS}d`)) history.push({ ...i, area: areaOf(q, i) });
   }
   const scAll = await search(withoutStatusFilter(TRACK_DEFS.SmartComm.jql));
   const bugs = await search(DEFECTS_JQL);
-  return { items, doneItems, scAll, bugs };
+  return { items, doneItems, scAll, bugs, history };
 }
 
-function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} }) {
+function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, deckText = {} }) {
   // This week's blocker / dependency notes from the QA lead's status email (statusNotes.js), by Jira key.
   const noteOf = (i) => (notes[i.key] && notes[i.key].note) || '';
   const firstLine = (t) => String(t).split('\n')[0];
@@ -178,7 +210,7 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     slide.addText(title, { x, y, w, h: 0.42, fontFace: FONT, fontSize: 17, bold: true, color: 'FFFFFF', align: 'center' });
     // Full lists, so pick the largest font (down to 6 pt) whose estimated wrapped height fits the column body.
     const secs = sections.filter((z) => z.lines.length);
-    const bodyPt = (textHgt - 1.07) * 72;
+    const bodyPt = (textHgt - (a ? 1.07 : 0.57)) * 72;
     const usedPt = (fs) => {
       const charsPerLine = Math.max(10, ((w - 0.5) * 72) / (fs * 0.47));
       let lines = 0;
@@ -195,9 +227,11 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
       for (const l of s.lines) runs.push({ text: l.t, options: { bullet: l.plain ? false : { indent: l.level ? 12 : 10 }, indentLevel: l.level || 0, bold: !!l.bold, color: l.color || '222222', breakLine: true, fontSize } });
     }
     slide.addShape(pptx.ShapeType.rect, { x, y: y + 0.42, w, h: hgt - 0.42, fill: { color: 'F5F5F5' }, line: { color: 'D0D0D0', width: 0.75 } });
-    slide.addText(runs.length ? runs : [{ text: 'Nothing to report.', options: { fontSize, color: '666666' } }], { x, y: y + 0.97, w, h: textHgt - 0.97, fontFace: FONT, valign: 'top', margin: [2, 6, 4, 6] });
-    strip(slide, x + 0.04, y + 0.45, w - 0.08, a);
-    return y + 0.97 + usedPt(fontSize) / 72 + 0.08; // estimated bottom of the text (inches)
+    // No hours strip when `a` is null (the progress slides) — the text starts right under the header.
+    const top = a ? 0.97 : 0.47;
+    slide.addText(runs.length ? runs : [{ text: 'Nothing to report.', options: { fontSize, color: '666666' } }], { x, y: y + top, w, h: textHgt - top, fontFace: FONT, valign: 'top', margin: [2, 6, 4, 6] });
+    if (a) strip(slide, x + 0.04, y + 0.45, w - 0.08, a);
+    return y + top + usedPt(fontSize) / 72 + 0.08; // estimated bottom of the text (inches)
   };
   const cap = (list, n, fmt) => list.map(fmt); // full lists (no "+N more") — column() shrinks the text to fit
   // SmartCOMM lists: every DIG template in one compact bullet ("DIG letter templates (13): 242, 241 ..."),
@@ -316,56 +350,76 @@ function buildDeck({ items, doneItems, scAll, bugs, notes = {}, deckText = {} })
     s.addTable(rows, { ...tableOpts, x: X3, y: Y + 3.86, w: W3, colW: [1.4, 0.5, 0.52, 0.52, 0.47, 0.5, 0.55], fontSize: 9, margin: [1, 5, 1, 5], valign: 'middle', rowH: Math.min(0.3, (H - 3.86 - 0.12) / rows.length) });
   }
 
-  // ── Slide 2: Wrap-up & Outlook ──
+  // ── Slides 2 & 3: day-by-day and week-by-week progress (per the QA lead, 2026-10-17) ──
+  // Per track, what the team COMPLETED and STARTED in each period (see searchHistory), with the previous period's
+  // counts beside it. Days = the last 5 working days; weeks = Friday–Thursday, the last 6 including this one.
   {
-    const s = pptx.addSlide();
-    const total = doneItems.length + curAll.length;
-    titleBar(s, `${S} Wrap-up & ${N} Outlook`,
-      `${S}: ${doneItems.length} of ${total} items done (${total ? Math.round((doneItems.length / total) * 100) : 0}%), ${h(sum(curAll))} left with ${daysLeft} working day(s) to go. ${N}: ${h(sum(nextAll))} planned, plus up to ${h(spillAll)} of impeded ${S} work.`);
-    const TITLE = { ClaimCenter: 'ClaimCenter', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
-    ['ClaimCenter', 'SmartComm', 'OneInc'].forEach((k, n) => {
-      const a = A[k]; const rq = a.s6.filter(readyQa);
-      column(s, 0.08 + n * 4.42, 1.35, 4.33, 5.8, TITLE[k], COL[k], [
-        { head: `${S} — completed (${a.d5.length} items, ${h(a.d5.reduce((t, i) => t + doneH(i), 0))}):`, lines: groupCounts(a.d5).slice(0, 5).map(([g, c]) => ({ t: `${g} — ${c} item${c === 1 ? '' : 's'}`, color: '2E7D32' })) },
-        { head: `${S} — remaining (${h(sum(a.s5))}; ${h(a.spill)} impeded):`, lines: groupHours(a.s5).slice(0, 5).map(([g, hr]) => ({ t: `${g} — ${h(hr)}` })) },
-        { head: `${N} — planned (${h(sum(a.s6))}, ${a.s6.length} items):`, lines: groupHours(a.s6).slice(0, 5).map(([g, hr]) => ({ t: `${g} — ${h(hr)}` }))
-          .concat(rq.length ? [{ t: `${rq.length} item(s) Ready for QA now (${h(sum(rq))})`, color: '2E7D32', bold: true }] : []) },
-      ], 10, a);
-    });
-    s.addText(`Live from Jira, ${NOW.toLocaleString('en-US', { timeZone: 'America/New_York' })} ET · hours = remaining estimate · potential spillover = impeded ${S} work · OneInc = enhancement items named "OneInc"; other enhancements are under ClaimCenter.`,
-      { x: 0.1, y: 7.18, w: 13.1, h: 0.28, fontFace: FONT, fontSize: 8, color: 'C9D3E6' });
-  }
+    const TZ = 'America/New_York';
+    const dayKey = (d) => d.toLocaleDateString('en-CA', { timeZone: TZ }); // YYYY-MM-DD in ET
+    const fromKey = (k) => new Date(`${k}T12:00:00`);
+    const dayLabel = (k) => fromKey(k).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const todayKey = dayKey(NOW);
+    const days = [];
+    for (const d = fromKey(todayKey); days.length < 6; d.setDate(d.getDate() - 1)) if (d.getDay() % 6) days.push(dayKey(d));
+    days.reverse(); // oldest first; the oldest of the 6 is only there as the first shown day's "previous day"
+    // Friday that starts the Fri–Thu week containing a given day key.
+    const weekOf = (k) => { const d = fromKey(k); d.setDate(d.getDate() - ((d.getDay() + 2) % 7)); return dayKey(d); };
+    const weeks = [];
+    for (let w = 0, d = fromKey(weekOf(todayKey)); w < 7; w++, d.setDate(d.getDate() - 7)) weeks.push(dayKey(d));
+    weeks.reverse();
+    const weekLabel = (k) => { const e = fromKey(k); e.setDate(e.getDate() + 6); return `${dayLabel(k)} – ${dayLabel(dayKey(e))}${k === weekOf(todayKey) ? ' (this week so far)' : ''}`; };
 
-  // ── Slide 3: Blockers & Dependencies (impeded work + anything the weekly notes explain) ──
-  {
-    const rowsSrc = curAll.filter((i) => isImpeded(i) || noteOf(i))
-      .sort((a, b) => Number(isImpeded(b)) - Number(isImpeded(a)) || a.area.localeCompare(b.area));
-    if (rowsSrc.length) {
-      const LABEL = { ClaimCenter: 'ClaimCenter', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
-      const hd = (t) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: '2E5597' } } });
-      const header = [hd('Area'), hd('Key'), hd('Item'), hd('Status'), hd('Blocker / dependency')];
-      // Paginate by estimated height (note lines wrap at ~115 chars in the 6.1-in column) so every page gets the
-      // title bar — pptxgenjs's own autoPage adds bare, untitled slides.
-      const lineCount = (i) => Math.max(1, String(noteOf(i) || 'x').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 115)), 0));
-      const pages = [[]]; let used = 0; const PAGE_IN = 5.45;
-      for (const i of rowsSrc) {
-        const rh = 0.08 + lineCount(i) * 0.17;
-        if (used + rh > PAGE_IN && pages[pages.length - 1].length) { pages.push([]); used = 0; }
-        pages[pages.length - 1].push(i); used += rh;
-      }
-      pages.forEach((page, p) => {
-        const s = pptx.addSlide();
-        titleBar(s, `Blockers & Dependencies — ${S}${pages.length > 1 ? ` (${p + 1}/${pages.length})` : ''}`,
-          `${curAll.filter(isImpeded).length} impeded items (${h(spillAll)} — potential spillover into ${N}), plus in-progress items with open dependencies.`
-          + (Object.keys(notes || {}).length ? ' Notes from the weekly status update.' : ' (No weekly notes uploaded — paste them on the Jira tab to show what each item is waiting on.)'));
-        const rows = [header];
-        for (const i of page) {
-          const red = isImpeded(i);
-          rows.push([LABEL[i.area], i.key, nice(i.summary), { text: i.status, options: { bold: red } }, noteOf(i) || (red ? '(no note)' : '')]);
-        }
-        s.addTable(rows, { ...tableOpts, x: 0.15, y: 1.35, w: 13.0, colW: [1.25, 1.05, 3.6, 1.0, 6.1], fontSize: 9, valign: 'top' });
+    // One compact line for a list of items: DIG templates collapsed into one entry, the rest by readable name.
+    const names = (list) => {
+      const digs = [...new Set(list.map(digNo).filter(Boolean))];
+      const rest = list.filter((i) => !digNo(i)).map((i) => nice(i.summary));
+      return [...rest, ...(digs.length ? [`DIG templates (${digs.length}): ${digs.join(', ')}`] : [])];
+    };
+    const TITLE = { ClaimCenter: 'ClaimCenter', SmartComm: 'SMARTCOMM', OneInc: 'OneInc' };
+    // detailPeriods: how many of the newest periods list their items; older ones show just the counts (the weekly
+    // slide lists every item for this week and last week only — six full weeks don't fit legibly).
+    const progressSlide = (title, sub, periods, labelOf, bucketOf, prevWord, detailPeriods = Infinity) => {
+      const s = pptx.addSlide();
+      titleBar(s, title, sub);
+      ['ClaimCenter', 'SmartComm', 'OneInc'].forEach((k, n) => {
+        const mine = history.filter((i) => i.area === k);
+        const sections = [];
+        let prev = null;
+        // Newest period first on the slide, but the comparison is always with the period before it.
+        const rows = periods.map((p) => {
+          const done = mine.filter((i) => i.completed && bucketOf(dayKey(i.completed)) === p);
+          const started = mine.filter((i) => i.started && bucketOf(dayKey(i.started)) === p);
+          const row = { p, done, started, prev };
+          prev = { done: done.length, started: started.length };
+          return row;
+        }).slice(1).reverse(); // drop the comparison-only oldest period
+        const earlier = []; // counts-only lines for periods past detailPeriods
+        rows.forEach((r, idx) => {
+          const vs = r.prev ? ` (${prevWord}: ${r.prev.done} / ${r.prev.started})` : '';
+          const head = `${labelOf(r.p)} — ${r.done.length} completed, ${r.started.length} started${vs}`;
+          if (idx >= detailPeriods) { earlier.push({ t: head, plain: true }); return; }
+          const lines = [];
+          if (r.done.length) lines.push({ t: `Completed: ${names(r.done).join('; ')}`, color: '2E7D32' });
+          if (r.started.length) lines.push({ t: `Started: ${names(r.started).join('; ')}` });
+          if (!lines.length) lines.push({ t: 'No items completed or started.', color: '777777', plain: true });
+          sections.push({ head: `${head}:`, lines });
+        });
+        if (earlier.length) sections.push({ head: 'Earlier weeks (completed / started):', lines: earlier });
+        column(s, 0.08 + n * 4.42, 1.25, 4.33, 5.9, TITLE[k], COL[k], sections, 10, null);
       });
-    }
+      s.addText(`Live from Jira, ${NOW.toLocaleString('en-US', { timeZone: TZ })} ET · started = first move to In Progress / In Review (Ready for QA is not started) · completed = moved to Done / Closed and still done · OneInc = enhancement items named "OneInc".`,
+        { x: 0.1, y: 7.18, w: 13.1, h: 0.28, fontFace: FONT, fontSize: 8, color: 'C9D3E6' });
+    };
+    const total = (bucketOf, p, field) => history.filter((i) => i[field] && bucketOf(dayKey(i[field])) === p).length;
+    const dayBucket = (k) => k;
+    const lastDay = days[days.length - 1]; const prevDay = days[days.length - 2];
+    progressSlide('Day-by-Day Progress',
+      `Last 5 working days, newest first. ${dayLabel(lastDay)}: ${total(dayBucket, lastDay, 'completed')} completed, ${total(dayBucket, lastDay, 'started')} started across all tracks (${dayLabel(prevDay)}: ${total(dayBucket, prevDay, 'completed')} / ${total(dayBucket, prevDay, 'started')}).`,
+      days, dayLabel, dayBucket, 'prev. day');
+    const thisWeek = weeks[weeks.length - 1]; const lastWeek = weeks[weeks.length - 2];
+    progressSlide('Week-by-Week Progress (Friday – Thursday)',
+      `Last 6 weeks, newest first. This week so far: ${total(weekOf, thisWeek, 'completed')} completed, ${total(weekOf, thisWeek, 'started')} started across all tracks (last week: ${total(weekOf, lastWeek, 'completed')} / ${total(weekOf, lastWeek, 'started')}).`,
+      weeks, weekLabel, weekOf, 'prev. week', 2);
   }
 
   const summary = {

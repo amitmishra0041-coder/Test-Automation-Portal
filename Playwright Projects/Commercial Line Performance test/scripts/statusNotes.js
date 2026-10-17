@@ -3,7 +3,7 @@
 // The QA lead's weekly status email has a table: Key | Summary | Status | Notes ("Awaiting vendor switch",
 // "Mail sent to BAs for requirements"...). Jira doesn't hold those explanations, so the runner's Jira tab lets
 // them paste that table (or upload the email) each week; the rows are parsed here and saved, and the deck
-// shows each note next to its item (spillovers on slide 1, all of them on the Blockers & Dependencies slide).
+// shows each note next to its item (beside outstanding items on slide 1).
 //
 // Storage: one JSON file — RUNNER_STATUS_NOTES_FILE, else next to the runner's settings file, else
 // runtime-data/status-notes.json. Saving replaces the previous week's notes.
