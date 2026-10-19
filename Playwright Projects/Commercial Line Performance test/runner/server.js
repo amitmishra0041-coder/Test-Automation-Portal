@@ -1331,6 +1331,37 @@ app.post('/api/run', (req, res) => {
 });
 
 // Team-wide usage stats for the Stats tab (shown to everyone) - aggregates the shared usage log.
+// ── SmartCOMM results (the Results page) — read from ClaimCenter-Automation's results store ─────────────────
+// (helpers/smartComm/resultsStore.js: results/smartComm/bulk + runs). Required per request so a `git pull` of
+// ClaimCenter-Automation is picked up without restarting; an older checkout without the store gets a clear 501.
+function resultsStore() {
+  try { return require(path.join(CLAIMS_DIR, 'helpers', 'smartComm', 'resultsStore')); } catch (e) { return null; }
+}
+const RESULTS_NOT_AVAILABLE = 'Results need a newer ClaimCenter-Automation (git pull in that folder).';
+app.get('/api/results/runs', (req, res) => {
+  const store = resultsStore();
+  if (!store) return res.status(501).json({ error: RESULTS_NOT_AVAILABLE });
+  try {
+    res.json({ runs: store.listRuns({ limit: Math.max(1, Math.min(200, parseInt(req.query.limit, 10) || 50)) }) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/results/runs/:id', (req, res) => {
+  const store = resultsStore();
+  if (!store) return res.status(501).json({ error: RESULTS_NOT_AVAILABLE });
+  try {
+    const run = store.getRun(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+    res.json({ run, compare: store.compareWithPrevious(req.params.id) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/results/runs/:id/pdf', (req, res) => {
+  const store = resultsStore();
+  if (!store) return res.status(501).json({ error: RESULTS_NOT_AVAILABLE });
+  const p = store.pdfPathFor(req.params.id, String(req.query.dig || ''), String(req.query.scenario || ''));
+  if (!p) return res.status(404).json({ error: 'PDF not found (it may have been replaced by a later run)' });
+  res.type('application/pdf').sendFile(p);
+});
+
 app.get('/api/stats', (req, res) => {
   const recs = readUsage();
   const byTool = {};
@@ -1572,12 +1603,36 @@ function processQueue(suite) {
 // sets RUNNER_HOST=0.0.0.0 to listen on the network (2026-10-14: the team's URL stopped working when the
 // default became loopback). Never on in the packaged app.
 const HOST = !PACKAGED && process.env.RUNNER_HOST ? process.env.RUNNER_HOST : '127.0.0.1';
-app.listen(PORT, HOST, () => {
+// Started from source while another Runner still answers on this port (an old window, or one left running for days):
+// on Windows the new listen can still "succeed" while the browser keeps reaching the old server — so check first, and
+// say so instead of looking started. The installed app manages its own server, so this is for source runs only.
+function startListening() {
+  app.listen(PORT, HOST, onListening).on('error', (e) => {
+    if (e.code === 'EADDRINUSE') { console.error(portInUseMessage()); process.exit(1); }
+    throw e;
+  });
+}
+function portInUseMessage() {
+  return `\nPort ${PORT} is already in use — another Runner (or something else) is answering on it, so this one would never be reached.\n` +
+    `Stop it first. In PowerShell:  Get-NetTCPConnection -LocalPort ${PORT} -State Listen | Select-Object OwningProcess\n` +
+    `then:  Stop-Process -Id <that number>   — and run "npm run runner" again. (Or quit the installed ClaimCenter Runner app.)\n`;
+}
+if (PACKAGED) startListening();
+else {
+  const probe = require('http').get({ host: '127.0.0.1', port: PORT, path: '/api/config', timeout: 1500 }, (r) => {
+    r.resume();
+    console.error(portInUseMessage());
+    process.exit(1);
+  });
+  probe.on('timeout', () => probe.destroy());
+  probe.on('error', () => startListening()); // nothing answering: the port is free
+}
+function onListening() {
   console.log(`Test runner UI: http://localhost:${PORT}` + (HOST === '127.0.0.1' ? ' (this PC only)' : ` (network: http://${require('os').hostname()}:${PORT})`));
   console.log(`  Policy suite dir: ${POLICY_DIR}`);
   console.log(`  Claims suite dir: ${CLAIMS_DIR}`);
   console.log(`  Reconciliation project dir: ${RECON_DIR}`);
   if (PACKAGED) console.log(`  Packaged build - bundled Node: ${BUNDLED_NODE_EXEC}`);
-});
+}
 
 module.exports = { app };
