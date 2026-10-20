@@ -65,7 +65,7 @@ class EmailReporter {
 
       console.log(`onTestEnd: suite=${suite}, state=${testState}, runId=${this.runId}, result=${result.status}`);
 
-      const stateFile    = testState ? path.join(RUNTIME_DIR, `test-data-${testState}.json`) : null;
+      const stateFile    = testState ? path.join(RUNTIME_DIR, `test-data-${testState}${process.env.TEST_DATA_TAG ? '-' + process.env.TEST_DATA_TAG : ''}.json`) : null;
       const fallback     = path.join(RUNTIME_DIR, 'test-data.json');
       const testDataFile = stateFile && fs.existsSync(stateFile) ? stateFile : fallback;
 

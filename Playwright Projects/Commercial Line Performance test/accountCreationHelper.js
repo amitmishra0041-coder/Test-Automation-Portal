@@ -5,7 +5,7 @@
  */
 
 require('dotenv').config();
-const { randEmail, randCompany, randAddress, randSSN } = require('./helpers/randomData');
+const { randEmail, randCompany, randAddress, randSSN, random } = require('./helpers/randomData');
 const { randCityForState, randZipForState }            = require('./stateConfig');
 const { stateToZips, zipToCityState }                  = require('./address-helper/dist/zipData');
 
@@ -19,14 +19,14 @@ const STATE_USERS = {
 function getRandomAddressByState(state) {
   const zips = stateToZips[state];
   if (!zips || zips.length === 0) throw new Error('No zips for state: ' + state);
-  const zip = zips[Math.floor(Math.random() * zips.length)];
+  const zip = zips[Math.floor(random() * zips.length)];
   const loc = zipToCityState[zip];
   if (!loc) throw new Error('No city/state for zip: ' + zip);
-  return { street: Math.floor(Math.random() * 900 + 100) + ' Main St', city: loc.city, state: loc.state, zip };
+  return { street: Math.floor(random() * 900 + 100) + ' Main St', city: loc.city, state: loc.state, zip };
 }
 
 function randPhone717() {
-  return '717' + Math.floor(1000000 + Math.random() * 9000000);
+  return '717' + Math.floor(1000000 + random() * 9000000);
 }
 
 // Per user direction: on Training, agency 0000988 / producer Linda D.
@@ -488,8 +488,26 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     }
 
     await page.waitForTimeout(1000);
-    const naicsVal = await naicsInput.inputValue().catch(() => '');
+    let naicsVal = await naicsInput.inputValue().catch(() => '');
     console.log('NAICS field after selection: "' + naicsVal + '"');
+
+    // A committed pick reads "811210 - <description>". Occasionally the row click
+    // doesn't take and the field keeps just "811210", which fails later with
+    // "NAICS Code is required" (Training BOP 2026-10-19, 1 of 23 runs). Re-pick.
+    for (let retry = 1; retry <= 2 && !/\d - \S/.test(naicsVal); retry++) {
+      console.log('NAICS selection not committed - retry ' + retry);
+      await naicsInput.fill('');
+      await page.waitForTimeout(200);
+      await naicsInput.type('811210', { delay: 70 });
+      const row = page.locator('#txtNAICSCode_resultsTable tbody tr').first();
+      if (await row.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
+        await page.waitForTimeout(500);
+        await row.click({ force: true });
+      }
+      await page.waitForTimeout(1000);
+      naicsVal = await naicsInput.inputValue().catch(() => '');
+      console.log('NAICS field after retry ' + retry + ': "' + naicsVal + '"');
+    }
   } else {
     console.log('NAICS input not found or not visible');
   }

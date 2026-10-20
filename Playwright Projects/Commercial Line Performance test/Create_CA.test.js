@@ -7,6 +7,7 @@ const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
+const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
 const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./helpers/coverageHelpers');
 const fs   = require('fs');
 const path = require('path');
@@ -61,7 +62,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     addCoverageTimings: []
   };
 
-  const testDataFile = path.join(RUNTIME_DIR, `test-data-${testState}.json`);
+  const testDataFile = path.join(RUNTIME_DIR, `test-data-${testState}${process.env.TEST_DATA_TAG ? '-' + process.env.TEST_DATA_TAG : ''}.json`);
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
   console.log(`Initialized test data for ${testState}`);
 
@@ -102,11 +103,14 @@ test('CA Submission', async ({ page }, testInfo) => {
   function saveTestData() {
     try {
       fs.writeFileSync(
-        path.join(RUNTIME_DIR, `test-data-${testState}.json`),
+        path.join(RUNTIME_DIR, `test-data-${testState}${process.env.TEST_DATA_TAG ? '-' + process.env.TEST_DATA_TAG : ''}.json`),
         JSON.stringify(global.testData, null, 2)
       );
     } catch (e) { console.log('Could not save test-data.json:', e.message); }
   }
+
+  // Spinner count/time per milestone (see helpers/spinnerTracker.js).
+  const spinTracker = await attachSpinnerTracker(page);
 
   function trackMilestone(name, status = 'PASSED', details = '') {
     const now = new Date();
@@ -115,7 +119,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       const elapsed = now - currentStepStartTime - waitBudgetMs;
       duration = (Math.max(elapsed, 0) / 1000).toFixed(2);
     }
-    global.testData.milestones.push({ name, status, timestamp: now, details, duration: duration ? `${duration}s` : null });
+    global.testData.milestones.push({ name, status, timestamp: now, details, duration: duration ? `${duration}s` : null, ...spinTracker.take() });
     console.log(`${status === 'PASSED' ? 'OK' : 'FAIL'} ${name}${duration ? ` (${duration}s)` : ''}`);
     saveTestData();
     currentStepStartTime = new Date();
@@ -157,6 +161,51 @@ test('CA Submission', async ({ page }, testInfo) => {
       await dumpNavFailureDiagnostic(label);
       await locator.click().catch(e => console.log(`${label}: click failed - ${e.message.split('\n')[0]}`));
     }
+  }
+
+  // Confirmed live on QA (2026-10-19, after the 10/18 deploy): money fields such as
+  // "Original Cost New Of Vehicle" now render a visible "<id>_integerWithCommas"
+  // input next to a hidden raw input, and the label's `for` points at the hidden
+  // one - so getByRole('textbox', { name }) matched nothing and the fill hung 60s.
+  // Training still has the plain labeled input. Fill whichever is on screen.
+  async function fillLabeledAmount(labelText, value, timeout = 30000) {
+    const byRole = page.getByRole('textbox', { name: labelText });
+    const labels = page.locator('label.FieldLabel').filter({ hasText: new RegExp(`^\\s*${labelText}\\s*$`) }).filter({ visible: true });
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      for (const label of await labels.all()) {
+        const forId = await label.getAttribute('for').catch(() => null);
+        const commas = forId ? page.locator(`[id="${forId}_integerWithCommas"]`) : null;
+        if (commas && await commas.isVisible().catch(() => false)) {
+          // The form submits the HIDDEN raw input; a programmatic fill() of the
+          // visible one never synced to it ("Original Cost New Of Vehicle must be
+          // greater than 0" at Next, QA 2026-10-19). Type real keystrokes, then
+          // verify the hidden value and set it directly if the widget didn't.
+          await commas.fill('');
+          await commas.pressSequentially(String(value), { delay: 30 });
+          await commas.press('Tab');
+          const raw = page.locator(`[id="${forId}"]`);
+          const want = String(Number(String(value).replace(/,/g, '')));
+          const got = ((await raw.inputValue().catch(() => '')) || '').replace(/,/g, '');
+          if (got !== want) {
+            await raw.evaluate((el, v) => {
+              el.value = v;
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }, want);
+          }
+          console.log(`${labelText}: filled ${value} (#${forId}_integerWithCommas; hidden #${forId} was "${got}"${got !== want ? `, set to "${want}"` : ''})`);
+          return;
+        }
+      }
+      if (await byRole.first().isVisible().catch(() => false)) {
+        await byRole.first().fill(String(value));
+        return;
+      }
+      await page.waitForTimeout(500);
+    }
+    await dumpNavFailureDiagnostic(labelText);
+    throw new Error(`${labelText}: no visible input found within ${timeout / 1000}s`);
   }
 
   global.testData.retryCount = testInfo.retry || 0;
@@ -253,6 +302,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     for (let attempt = 1; attempt <= 4 && !clicked; attempt++) {
       try {
         await dismissStatusModal();
+        await continueReferralModal();
         await btn.click({ timeout: 10000 });
         clicked = true;
       } catch (e) {
@@ -261,7 +311,31 @@ test('CA Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(500);
       }
     }
-    if (!clicked) await btn.click({ force: true });
+    if (!clicked) {
+      // A forced click "succeeds" even when a dialog covers Next, so the page
+      // never moves on but the next milestone still gets logged as OK (seen on
+      // Training 2026-10-19: Locations -> State Specific Info "passed" while
+      // stuck behind a modal). Name the blocker so a stuck page is visible.
+      const blockers = await page.locator('.modal.show .modal-title').allTextContents().catch(() => []);
+      console.log(`WARNING safeNextClick: Next not clickable after 4 attempts - forcing click; open dialog(s): ${JSON.stringify(blockers.map(s => s.trim()))}`);
+      await btn.click({ force: true });
+    }
+  }
+
+  // "Referral Required - The location address was not verified and we are
+  // proceeding with caution" (geographic-risk check didn't complete). Confirmed
+  // live on Training/DE 2026-10-19 right after "Use Suggested" on the Auto
+  // Location Address dialog; left open it blocks every click behind it.
+  async function continueReferralModal(timeout = 0) {
+    const modal = page.locator('#dgic-modal-commerciallinesaddress_verifygeographicrisk');
+    const visible = timeout
+      ? await modal.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false)
+      : await modal.isVisible().catch(() => false);
+    if (!visible) return false;
+    await page.locator('#CommercialLinesAddress_VerifyGeographicRisk_dialog_btn_0').click();
+    await modal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    console.log('Referral Required (address not verified) - clicked Continue');
+    return true;
   }
 
   async function waitForVisible(locator, timeout = 5000) {
@@ -532,6 +606,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       }
       await suggestedModal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     }
+    await continueReferralModal(5000);
 
     const closeNoAddressModal = async () => {
       const noAddressModal = page.locator('#dgic-modal-validateaddress_noaddressfound').first();
@@ -644,7 +719,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.getByText('Model *').click();
     await page.getByRole('combobox', { name: 'Please select' }).click();
     await clickBsSelect('bs-select-2-1', 'Model (private passenger)');
-    await page.getByRole('textbox', { name: 'Original Cost New Of Vehicle' }).fill('15555');
+    await fillLabeledAmount('Original Cost New Of Vehicle', '15555');
     await safeNextClick();
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
@@ -695,8 +770,8 @@ test('CA Submission', async ({ page }, testInfo) => {
     }
     await page.locator('#txt_GrossCombinedWeight').fill('5000');
     await page.getByRole('textbox', { name: 'Description of Permanently' }).fill('test desc');
-    await page.getByRole('textbox', { name: 'Original Cost New Of Vehicle' }).fill('01555');
-    await page.getByRole('textbox', { name: 'Stated Amount' }).fill('0');
+    await fillLabeledAmount('Original Cost New Of Vehicle', '01555');
+    await fillLabeledAmount('Stated Amount', '0');
     await safeNextClick();
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});

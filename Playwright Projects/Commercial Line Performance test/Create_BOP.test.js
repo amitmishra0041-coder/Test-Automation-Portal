@@ -6,6 +6,7 @@ const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig } = require('./stateConfig');
 const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
+const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
 const { runBopCoverageFlow } = require('./helpers/bopCoverageHelper');
 const fs = require('fs');
 const path = require('path');
@@ -56,7 +57,7 @@ test('BOP Submission', async ({ page }, testInfo) => {
     policyNumber: 'N/A',
   };
 
-  const testDataFile = path.join(RUNTIME_DIR, 'test-data-' + testState + '.json');
+  const testDataFile = path.join(RUNTIME_DIR, `test-data-${testState}${process.env.TEST_DATA_TAG ? '-' + process.env.TEST_DATA_TAG : ''}.json`);
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
 
   page.on('response', async (response) => {
@@ -91,6 +92,9 @@ test('BOP Submission', async ({ page }, testInfo) => {
     try { fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2)); } catch (_) { }
   }
 
+  // Spinner count/time per milestone (see helpers/spinnerTracker.js).
+  const spinTracker = await attachSpinnerTracker(page);
+
   function trackMilestone(name, status = 'PASSED', details = '') {
     const now = new Date();
     let duration = null;
@@ -98,7 +102,7 @@ test('BOP Submission', async ({ page }, testInfo) => {
       const elapsed = now - currentStepStartTime - waitBudgetMs;
       duration = (Math.max(elapsed, 0) / 1000).toFixed(2);
     }
-    global.testData.milestones.push({ name, status, timestamp: now, details, duration: duration ? duration + 's' : null });
+    global.testData.milestones.push({ name, status, timestamp: now, details, duration: duration ? duration + 's' : null, ...spinTracker.take() });
     console.log((status === 'PASSED' ? 'OK' : 'FAIL') + ' ' + name + (duration ? ' (' + duration + 's)' : ''));
     saveTestData();
     currentStepStartTime = new Date();

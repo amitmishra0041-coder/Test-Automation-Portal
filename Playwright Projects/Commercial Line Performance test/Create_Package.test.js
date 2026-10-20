@@ -8,6 +8,7 @@ const { submitPolicyForApproval } = require('./helpers/SFA_SFI_Workflow');
 const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
+const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
 const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./helpers/coverageHelpers');
 const fs = require('fs');
 const path = require('path');
@@ -58,7 +59,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         policyNumber: 'N/A'
     };
 
-    const testDataFile = path.join(RUNTIME_DIR, `test-data-${testState}.json`);
+    const testDataFile = path.join(RUNTIME_DIR, `test-data-${testState}${process.env.TEST_DATA_TAG ? '-' + process.env.TEST_DATA_TAG : ''}.json`);
     fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
     console.log(`Initialized test data for ${testState}`);
 
@@ -99,11 +100,14 @@ test('Package Submission', async ({ page }, testInfo) => {
     function saveTestData() {
         try {
             fs.writeFileSync(
-                path.join(RUNTIME_DIR, `test-data-${testState}.json`),
+                path.join(RUNTIME_DIR, `test-data-${testState}${process.env.TEST_DATA_TAG ? '-' + process.env.TEST_DATA_TAG : ''}.json`),
                 JSON.stringify(global.testData, null, 2)
             );
         } catch (e) { console.log('Could not save test-data.json:', e.message); }
     }
+
+    // Spinner count/time per milestone (see helpers/spinnerTracker.js).
+    const spinTracker = await attachSpinnerTracker(page);
 
     function trackMilestone(name, status = 'PASSED', details = '') {
         const now = new Date();
@@ -112,7 +116,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             const elapsed = now - currentStepStartTime - waitBudgetMs;
             duration = (Math.max(elapsed, 0) / 1000).toFixed(2);
         }
-        global.testData.milestones.push({ name, status, timestamp: now, details, duration: duration ? `${duration}s` : null });
+        global.testData.milestones.push({ name, status, timestamp: now, details, duration: duration ? `${duration}s` : null, ...spinTracker.take() });
         console.log(`${status === 'PASSED' ? 'OK' : 'FAIL'} ${name}${duration ? ` (${duration}s)` : ''}`);
         saveTestData();
         currentStepStartTime = new Date();
@@ -305,7 +309,10 @@ test('Package Submission', async ({ page }, testInfo) => {
             }
         }
         if (!clicked) {
-            console.log('safeNextClick: forcing click after modal kept reappearing');
+            // A forced click "succeeds" behind a dialog without leaving the page, and
+            // the next milestone still logs OK - name the blocker so it's visible.
+            const blockers = await page.locator('.modal.show .modal-title').allTextContents().catch(() => []);
+            console.log(`WARNING safeNextClick: forcing click after modal kept reappearing; open dialog(s): ${JSON.stringify(blockers.map(s => s.trim()))}`);
             await btn.click({ force: true });
         }
     }
@@ -645,7 +652,7 @@ test('Package Submission', async ({ page }, testInfo) => {
     // ── Estimator click ───────────────────────────────────────────────────────
     async function clickEstimatorAndWait() {
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForLoadState('networkidle').catch(() => { });
+        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
         // Shrunk from 3000ms - the Structure Building wait below already polls up to 30s.
         await page.waitForTimeout(500);
 
@@ -889,6 +896,49 @@ test('Package Submission', async ({ page }, testInfo) => {
         await clickIfExists('Accept As-Is');
         await clickIfExists('Continue');
         await clickIfExists('Save');
+
+        // Save only enables once Verify Address finishes its four checks (address,
+        // coastal, earthquake, flood). When the lookup can't match the address plus
+        // "Apt 101" it shows a no-match message (the "Ok" above), the checks stay on
+        // the hourglass and Save stays disabled. Left open, the dialog blocked every
+        // later Next click and the Add-coverage loop kept clicking "Add New Location"
+        // (QA/DE 2026-10-19, 440 MAIN ST TOWNSEND 19734-9021). Retry without Street
+        // Line 2; if it still won't verify, Cancel - the account's location is kept.
+        const locDialog = page.locator('.modal.show').filter({ has: page.locator('h5', { hasText: 'Location Address' }) });
+        // After a normal Save the dialog takes a moment to close - only step in if
+        // it's still open after that (a second Save click on the closing dialog
+        // retried for the full 120s actionTimeout, QA 2026-10-19).
+        await locDialog.waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
+        if (await locDialog.isVisible().catch(() => false)) {
+            const locSave = locDialog.getByRole('button', { name: 'Save' });
+            const saveEnabled = async (timeoutMs = 15000) => {
+                const deadline = Date.now() + timeoutMs;
+                do {
+                    if (await locSave.isEnabled().catch(() => false)) return true;
+                    await page.waitForTimeout(500);
+                } while (Date.now() < deadline);
+                return false;
+            };
+            if (!(await saveEnabled())) {
+                console.log('Location address did not verify with Street Line 2 - retrying without it');
+                await page.locator('#txtLocationStreet2').fill('');
+                await page.keyboard.press('Tab');
+                await page.locator('#btnVerifyAddress').click();
+                await dismissStatusModal();
+                await clickIfExists('Ok');
+                await clickIfExists('Use Suggested');
+                await clickIfExists('Accept As-Is');
+                await clickIfExists('Continue');
+            }
+            if (await saveEnabled()) {
+                await locSave.click({ timeout: 10000 }).catch(e => console.log(`Location dialog Save click failed: ${e.message.slice(0, 150)}`));
+                console.log('Location dialog: Save clicked');
+            } else {
+                console.log('WARNING: location address still not verified - cancelling the edit (existing location kept)');
+                await locDialog.getByRole('button', { name: 'Cancel' }).click();
+            }
+            await locDialog.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+        }
 
         await page.waitForTimeout(200);
         await safeNextClick();
@@ -1346,7 +1396,7 @@ test('Package Submission', async ({ page }, testInfo) => {
             if (page.url() !== urlBefore) {
                 console.log('Next button successful after Attention dialog');
                 await page.waitForLoadState('domcontentloaded');
-                await page.waitForLoadState('networkidle').catch(() => { });
+                await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
             } else {
                 console.log('Next failed, running recovery');
                 await page.locator('#xrgn_CLPropertyBuildingDetails_ConstructionTypeToUseValue')
@@ -1371,7 +1421,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                 await page.waitForTimeout(200);
                 await safeNextClick();
                 await page.waitForLoadState('domcontentloaded');
-                await page.waitForLoadState('networkidle').catch(() => { });
+                await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
                 console.log('Recovery complete, URL:', page.url());
             }
         } catch {
@@ -1420,7 +1470,7 @@ test('Package Submission', async ({ page }, testInfo) => {
                     console.log('Basic Symbol Number selected');
                 }
             }
-            await page.waitForLoadState('networkidle').catch(() => { });
+            await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
             // Per live observation: this Details screen stays on-screen
             // noticeably longer than networkidle alone suggests before it is
             // actually ready for Next to be clicked.
@@ -1436,7 +1486,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         await dismissStatusModal();
         await safeNextClick();
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForLoadState('networkidle').catch(() => { });
+        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
         await page.waitForTimeout(1500);
         await dismissStatusModal();
 
@@ -1640,110 +1690,169 @@ test('Package Submission', async ({ page }, testInfo) => {
         console.log('Waiting for Close button...');
         const closeButton = page.getByRole('button', { name: 'Close' });
 
+        // "Attention - Errors: A critical error has occurred preventing your
+        // transaction from rating!" is a rating-service failure (seen on Training/DE
+        // 2026-10-19). Its own Close button got dismissed as a status modal and the
+        // run went on polling for a quote that was never going to rate - fail fast
+        // with the message instead so the run can simply be retried.
+        const ratingError = page.getByText(/critical error has occurred preventing your transaction from rating/i).first();
+        const failIfRatingError = async () => {
+            if (await ratingError.isVisible().catch(() => false)) {
+                const msg = 'WriteBiz rating error: "A critical error has occurred preventing your transaction from rating!"';
+                trackMilestone('Quote Rated Successfully', 'FAILED', msg);
+                throw new Error(msg);
+            }
+        };
+
+        // Training rates the Package on the spot and lands on Review (quote # in
+        // #lblQuoteNumValue, status Quoted) with no "quote in progress" dialog; QA
+        // rates in the background (Close dialog, then poll the quotes grid until a
+        // premium shows). Seen both ways on 2026-10-19 - handle whichever happens.
+        const inlineQuoteNum = page.locator('#lblQuoteNumValue');
+        let inlineQuoted = false;
         let closeDone = false;
         try {
-            await closeButton.waitFor({ state: 'visible', timeout: 90000 });
-            console.log('Close button visible - clicking immediately...');
+            await closeButton.filter({ visible: true }).or(ratingError).or(inlineQuoteNum.filter({ visible: true })).first().waitFor({ state: 'visible', timeout: 90000 });
+            await failIfRatingError();
+            if (await inlineQuoteNum.isVisible().catch(() => false)) {
+                inlineQuoted = true;
+                console.log('Quote rated immediately - Review page shown, no background rating');
+            } else {
+                console.log('Close button visible - clicking immediately...');
 
-            for (let attempt = 1; attempt <= 4 && !closeDone; attempt++) {
-                try {
-                    await dismissStatusModal();
-                    await closeButton.click({ timeout: 10000 });
-                    closeDone = true;
-                    console.log('Close clicked successfully');
-                } catch (e) {
-                    console.log(`Close click attempt ${attempt} failed: ${e.message.split('\n')[0]}`);
-                    await page.waitForTimeout(500);
+                for (let attempt = 1; attempt <= 4 && !closeDone; attempt++) {
+                    try {
+                        await dismissStatusModal();
+                        await closeButton.click({ timeout: 10000 });
+                        closeDone = true;
+                        console.log('Close clicked successfully');
+                    } catch (e) {
+                        console.log(`Close click attempt ${attempt} failed: ${e.message.split('\n')[0]}`);
+                        await page.waitForTimeout(500);
+                    }
+                }
+                if (!closeDone) {
+                    await closeButton.click({ force: true });
+                    console.log('Close clicked (force)');
                 }
             }
-            if (!closeDone) {
-                await closeButton.click({ force: true });
-                console.log('Close clicked (force)');
-            }
         } catch (e) {
+            if (/^WriteBiz rating error/.test(e.message)) throw e;
             console.log('WARNING: Close button not found after 90s - proceeding to quote table check');
         }
 
-        // Wait for quote table to appear - this is the real signal that rating started
-        await page.waitForLoadState('domcontentloaded').catch(() => { });
-        await dismissStatusModal();
+        let quoteNumber;
+        if (inlineQuoted) {
+            quoteNumber = ((await inlineQuoteNum.textContent({ timeout: 5000 }).catch(() => '')) || '').trim();
+            console.log('Captured Quote Number:', quoteNumber);
+        } else {
+            // Wait for quote table to appear - this is the real signal that rating started
+            await page.waitForLoadState('domcontentloaded').catch(() => { });
+            await failIfRatingError();
+            await dismissStatusModal();
 
-        const quoteTableVisible = await page.locator('#tblQuotes tbody tr').first()
-            .waitFor({ state: 'visible', timeout: 30000 })
-            .then(() => true)
-            .catch(() => false);
+            const quoteTableVisible = await page.locator('#tblQuotes tbody tr').first()
+                .waitFor({ state: 'visible', timeout: 30000 })
+                .then(() => true)
+                .catch(() => false);
 
-        if (!quoteTableVisible) {
-            console.log('Quote table not visible - reloading page...');
-            await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
-            await page.waitForTimeout(3000);
-        }
-
-        // ── Quote polling ─────────────────────────────────────────────────────
-        const quoteNumber = (await page.locator('#tblQuotes tbody tr').first()
-            .locator('td').nth(3).innerText()).trim();
-        console.log('Captured Quote Number:', quoteNumber);
-
-        async function dismissNotification() {
-            try {
-                const btn = page.locator('button.wb-bell-btn-ack');
-                if (await btn.isVisible({ timeout: 2000 })) {
-                    await btn.click();
-                    await btn.waitFor({ state: 'hidden', timeout: 3000 });
-                }
-            } catch { }
-        }
-
-        async function getStatus() {
-            try {
-                await dismissNotification();
-                const row = page.locator(`#tblQuotes tbody tr:has-text("${quoteNumber}")`);
-                await row.waitFor({ state: 'visible', timeout: 5000 });
-                return (await row.locator('td').nth(11).innerText({ timeout: 5000 })).trim();
-            } catch (e) {
-                console.warn(`getStatus() transient error: ${e.message}`);
-                return 'Quote Requested';
+            if (!quoteTableVisible) {
+                console.log('Quote table not visible - reloading page...');
+                await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.waitForTimeout(3000);
             }
+
+            // ── Quote polling ─────────────────────────────────────────────────────
+            quoteNumber = (await page.locator('#tblQuotes tbody tr').first()
+                .locator('td').nth(3).innerText()).trim();
+            console.log('Captured Quote Number:', quoteNumber);
+
+            async function dismissNotification() {
+                try {
+                    const btn = page.locator('button.wb-bell-btn-ack');
+                    if (await btn.isVisible({ timeout: 2000 })) {
+                        await btn.click();
+                        await btn.waitFor({ state: 'hidden', timeout: 3000 });
+                    }
+                } catch { }
+            }
+
+            async function getStatus() {
+                try {
+                    await dismissNotification();
+                    const row = page.locator(`#tblQuotes tbody tr:has-text("${quoteNumber}")`);
+                    await row.waitFor({ state: 'visible', timeout: 5000 });
+                    // Read the status by value, not by column position: after the 10/18
+                    // QA deploy the quotes grid's 12th cell (the old Status column) is an
+                    // unlabeled cell that's blank while rating, and the run failed with
+                    // 'Quote did not reach "Quoted" after 0 attempts. Final: ""'.
+                    // Package rates in the background - it's done once the row shows a
+                    // premium (it reads $0.00 until then), so a premium > 0 means Quoted.
+                    const cells = (await row.locator('td').allTextContents()).map(t => t.trim());
+                    const known = cells.find(t => /^(Quoted|Quote Requested|Draft|Declined|Referred|Approved|Issued)$/i.test(t));
+                    const premiumCell = cells.find(t => /^\$[\d,]+\.\d{2}$/.test(t));
+                    const premium = premiumCell ? Number(premiumCell.replace(/[$,]/g, '')) : 0;
+                    if (known && known !== 'Quote Requested' && known !== 'Draft') return known;
+                    if (premium > 0) { console.log(`Premium available: ${premiumCell}`); return 'Quoted'; }
+                    return known || '';
+                } catch (e) {
+                    console.warn(`getStatus() transient error: ${e.message}`);
+                    return 'Quote Requested';
+                }
+            }
+
+            // Graduated backoff: check quickly at first (rating often finishes
+            // fast), then back off to avoid hammering the server on slow
+            // ratings. Previously a flat 10s between every attempt, so a quote
+            // that was ready 1s after a check still took up to 10s to be noticed.
+            function nextPollDelayMs(attemptNum) {
+                if (attemptNum <= 3) return 3000;
+                if (attemptNum <= 6) return 2000;
+                if (attemptNum <= 10) return 1000;
+                return 10000;
+            }
+
+            let status = await getStatus();
+            let attempts = 0;
+            let seenRequested = status === 'Quote Requested';
+            console.log('Initial Status:', status);
+
+            // "Draft" is a valid transient pre-rating state, same as "Quote
+            // Requested" - the quote row can appear in the table before the
+            // backend has finished transitioning it out of Draft. Treating only
+            // "Quote Requested" as "keep polling" meant a first read landing on
+            // "Draft" (confirmed live: "Quote did not reach 'Quoted' after 0
+            // attempts. Final: 'Draft'") skipped the loop entirely and failed
+            // immediately instead of waiting like it should have.
+            // A blank status (QA grid while rating, see getStatus) is treated as still in progress too.
+            while ((status === 'Quote Requested' || status === 'Draft' || status === '') && attempts < 50) {
+                attempts++;
+                const delay = nextPollDelayMs(attempts);
+                console.log(`Attempt ${attempts}/50: waiting ${delay / 1000}s...`);
+                await page.waitForTimeout(delay);
+                await page.reload();
+                await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
+                await dismissNotification();
+                status = await getStatus();
+                console.log(`Attempt ${attempts} status: "${status}"`);
+                // Background rating failed: WriteBiz posts a notification toast
+                // ("Critical error occurred preventing rating...") and the quote goes
+                // from Quote Requested back to Draft with $0.00 - it will never reach
+                // Quoted (QA 2026-10-19 polled 50 times / ~10 min). Stop right away.
+                if (status === 'Quote Requested') seenRequested = true;
+                const ratingToast = page.getByText(/Critical error occurred preventing rating/i).first();
+                if ((seenRequested && status === 'Draft') || await ratingToast.isVisible().catch(() => false)) {
+                    const msg = 'WriteBiz rating error: "Critical error occurred preventing rating" (quote went back to Draft)';
+                    trackMilestone('Quote Rated Successfully', 'FAILED', msg);
+                    throw new Error(msg);
+                }
+            }
+
+            if (status !== 'Quoted')
+                throw new Error(`Quote did not reach "Quoted" after ${attempts} attempts. Final: "${status}"`);
+
+            console.log('Quote is now Quoted');
         }
-
-        // Graduated backoff: check quickly at first (rating often finishes
-        // fast), then back off to avoid hammering the server on slow
-        // ratings. Previously a flat 10s between every attempt, so a quote
-        // that was ready 1s after a check still took up to 10s to be noticed.
-        function nextPollDelayMs(attemptNum) {
-            if (attemptNum <= 3) return 3000;
-            if (attemptNum <= 6) return 2000;
-            if (attemptNum <= 10) return 1000;
-            return 10000;
-        }
-
-        let status = await getStatus();
-        let attempts = 0;
-        console.log('Initial Status:', status);
-
-        // "Draft" is a valid transient pre-rating state, same as "Quote
-        // Requested" - the quote row can appear in the table before the
-        // backend has finished transitioning it out of Draft. Treating only
-        // "Quote Requested" as "keep polling" meant a first read landing on
-        // "Draft" (confirmed live: "Quote did not reach 'Quoted' after 0
-        // attempts. Final: 'Draft'") skipped the loop entirely and failed
-        // immediately instead of waiting like it should have.
-        while ((status === 'Quote Requested' || status === 'Draft') && attempts < 50) {
-            attempts++;
-            const delay = nextPollDelayMs(attempts);
-            console.log(`Attempt ${attempts}/50: waiting ${delay / 1000}s...`);
-            await page.waitForTimeout(delay);
-            await page.reload();
-            await page.waitForLoadState('networkidle').catch(() => { });
-            await dismissNotification();
-            status = await getStatus();
-            console.log(`Attempt ${attempts} status: "${status}"`);
-        }
-
-        if (status !== 'Quoted')
-            throw new Error(`Quote did not reach "Quoted" after ${attempts} attempts. Final: "${status}"`);
-
-        console.log('Quote is now Quoted');
         trackMilestone('Quote Rated Successfully', 'PASSED', `Quote #: ${quoteNumber}`);
 
         global.testData.quoteNumber = quoteNumber;

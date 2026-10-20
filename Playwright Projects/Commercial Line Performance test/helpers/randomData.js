@@ -1,15 +1,36 @@
 // Reusable test data generators using @faker-js/faker for realistic data.
 const { faker } = require('@faker-js/faker');
 
+// TEST_DATA_SEED=<number> makes every generated value (company, address, contacts,
+// SSN...) repeatable, so the same data can be run in two environments for an
+// apple-to-apple timing comparison. Unset (the default) = fresh random data.
+const SEED = parseInt(process.env.TEST_DATA_SEED, 10);
+let seedState = SEED >>> 0;
+const random = Number.isFinite(SEED)
+  ? () => { // mulberry32
+      seedState = (seedState + 0x6D2B79F5) >>> 0;
+      let t = seedState;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+  : Math.random;
+if (Number.isFinite(SEED)) { faker.seed(SEED); console.log(`Test data seed: ${SEED}`); }
+
 // Counter for generating unique SSNs
 let ssnCounter = 0;
 
 function randAlphaNum(len = 8) {
-  return Math.random().toString(36).slice(2, 2 + len);
+  return random().toString(36).slice(2, 2 + len);
 }
 
+// WriteBiz validates emails with ^[\w.]+@... - a hyphen/apostrophe/plus in the
+// local part (faker's hyphenated surnames, e.g. "Rylee_Yost-Trantow@gmail.com")
+// is accepted on the account page but rejected at Bind and Issue with
+// "Inspection contact email is invalid" (confirmed live, QA BOP 2026-10-19).
 function randEmail() {
-  return faker.internet.email();
+  const [local, domain] = faker.internet.email().split('@');
+  return `${local.replace(/[^\w.]/g, '') || 'user'}@${domain}`;
 }
 
 function randCompany() {
@@ -40,7 +61,7 @@ function randCity() {
 function randState() {
   // Return a US state abbreviation (DE, CA, TX, etc.)
   const states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
-  return states[Math.floor(Math.random() * states.length)];
+  return states[Math.floor(random() * states.length)];
 }
 
 function randZipCode() {
@@ -56,14 +77,14 @@ function randSSN() {
   // Generate area number (001-899, but not 666)
   let area;
   do {
-    area = Math.floor(Math.random() * 899) + 1; // 1-899
+    area = Math.floor(random() * 899) + 1; // 1-899
   } while (area === 666);
   
   // Generate group number (01-99)
-  const group = Math.floor(Math.random() * 99) + 1;
+  const group = Math.floor(random() * 99) + 1;
   
   // Generate serial number (0001-9999) with counter for uniqueness
-  const serial = ((Math.floor(Math.random() * 9000) + 1000) + ssnCounter++) % 10000;
+  const serial = ((Math.floor(random() * 9000) + 1000) + ssnCounter++) % 10000;
   
   // Format as 9-digit string with leading zeros
   const ssn = String(area).padStart(3, '0') + 
@@ -83,15 +104,15 @@ function randDriverLicense(state = 'DE') {
   // Based on actual state DMV requirements - includes alphanumeric formats
   state = state.toUpperCase();
   
-  const randLetter = () => String.fromCharCode(65 + Math.floor(Math.random() * 26)); // A-Z
-  const randDigit = () => Math.floor(Math.random() * 10);
+  const randLetter = () => String.fromCharCode(65 + Math.floor(random() * 26)); // A-Z
+  const randDigit = () => Math.floor(random() * 10);
   const randNum = (len) => faker.string.numeric(len);
   
   const dlFormats = {
     // Alphanumeric formats
     'AZ': () => {
       // Arizona: 1 letter + 8 digits OR 9 digits
-      return Math.random() > 0.5 ? randLetter() + randNum(8) : randNum(9);
+      return random() > 0.5 ? randLetter() + randNum(8) : randNum(9);
     },
     'CO': () => {
       // Colorado: 9 digits OR 1-2 letters + 3-6 digits OR 2 letters + 2-5 digits
@@ -100,17 +121,17 @@ function randDriverLicense(state = 'DE') {
         () => randLetter() + randNum(6),
         () => randLetter() + randLetter() + randNum(5)
       ];
-      return formats[Math.floor(Math.random() * formats.length)]();
+      return formats[Math.floor(random() * formats.length)]();
     },
     'DE': () => randNum(7), // Delaware: 7 digits
     'IL': () => randLetter() + randNum(11), // Illinois: 1 letter + 11 digits
     'IN': () => {
       // Indiana: 10 digits OR 1 letter + 9 digits
-      return Math.random() > 0.5 ? randNum(10) : randLetter() + randNum(9);
+      return random() > 0.5 ? randNum(10) : randLetter() + randNum(9);
     },
     'IA': () => {
       // Iowa: 3 digits + 2 letters + 4 digits OR 9 digits
-      return Math.random() > 0.5 
+      return random() > 0.5 
         ? randNum(3) + randLetter() + randLetter() + randNum(4)
         : randNum(9);
     },
@@ -120,7 +141,7 @@ function randDriverLicense(state = 'DE') {
     'NM': () => randNum(9), // New Mexico: 9 digits
     'OH': () => {
       // Ohio: 2 letters + 6 digits OR 8 digits
-      return Math.random() > 0.5 
+      return random() > 0.5 
         ? randLetter() + randLetter() + randNum(6)
         : randNum(8);
     },
@@ -135,7 +156,7 @@ function randDriverLicense(state = 'DE') {
     'UT': () => randNum(10), // Utah: 4-10 digits (using 10)
     'VA': () => {
       // Virginia: 1 letter + 8 digits OR 9 digits
-      return Math.random() > 0.5 ? randLetter() + randNum(8) : randNum(9);
+      return random() > 0.5 ? randLetter() + randNum(8) : randNum(9);
     },
     'WI': () => {
       // Wisconsin: 1 letter + 13 digits (e.g., H5501798306408)
@@ -150,6 +171,7 @@ function randDriverLicense(state = 'DE') {
 }
 
 module.exports = {
+  random,
   randAlphaNum,
   randEmail,
   randCompany,

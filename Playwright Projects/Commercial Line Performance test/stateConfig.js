@@ -537,21 +537,23 @@ function getStateConfig(stateCode) {
 }
 
 // Get random city for a state
+const { random } = require('./helpers/randomData');
+
 function randCityForState(stateCode) {
   const config = getStateConfig(stateCode);
-  return config.cities[Math.floor(Math.random() * config.cities.length)];
+  return config.cities[Math.floor(random() * config.cities.length)];
 }
 
 // Get random zip code for a state
 function randZipForState(stateCode) {
   const config = getStateConfig(stateCode);
-  return config.zipCodes[Math.floor(Math.random() * config.zipCodes.length)];
+  return config.zipCodes[Math.floor(random() * config.zipCodes.length)];
 }
 
 // Get a valid real address for a state
 function randAddressForState(stateCode) {
   const config = getStateConfig(stateCode);
-  return config.addresses[Math.floor(Math.random() * config.addresses.length)];
+  return config.addresses[Math.floor(random() * config.addresses.length)];
 }
 
 module.exports = {

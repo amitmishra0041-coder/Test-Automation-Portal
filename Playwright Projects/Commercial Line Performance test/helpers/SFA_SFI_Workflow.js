@@ -76,7 +76,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         }
     }
 
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await dismissStatusModal();
     console.log('Review Cart opened, locating submission row...');
@@ -121,10 +121,22 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     // and time-box the whole thing rather than counting fixed attempts, so
     // it exits the instant the row appears instead of always waiting out a
     // per-attempt timeout.
+    // No UW referral -> WriteBiz approves the submission itself and it goes straight
+    // to the Buy Now cart (#tblSubmitForIssuance, status Approved) and never appears
+    // in Request Purchase Approval (seen on Training CA 2026-10-19). Skip the
+    // approval + PolicyCenter steps then, instead of reloading for a row that won't come.
+    let autoApproved = false;
+    const isAutoApproved = async () => {
+        autoApproved = await page.locator('#tblSubmitForIssuance tbody tr')
+            .filter({ hasText: submissionNumber.toString() }).filter({ hasText: 'Approved' })
+            .first().isVisible().catch(() => false);
+        return autoApproved;
+    };
     let submissionRowReady = false;
     const approvalPollDeadline = Date.now() + 15000;
     while (Date.now() < approvalPollDeadline && !submissionRowReady) {
         submissionRowReady = await submissionRow.first().isVisible().catch(() => false);
+        if (!submissionRowReady && await isAutoApproved()) break;
         if (!submissionRowReady) await page.waitForTimeout(1000);
     }
 
@@ -137,7 +149,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
     // instead of actually reloading. Bail out immediately once the page is
     // gone instead of burning the full 90s spinning on a dead page, and cap
     // attempts as a hard safety valve regardless of cause.
-    while (!submissionRowReady && Date.now() < approvalReloadDeadline && reloadAttempt < 20) {
+    while (!submissionRowReady && !autoApproved && Date.now() < approvalReloadDeadline && reloadAttempt < 20) {
         if (!isPageAlive(page)) {
             console.log('Page closed during Submit For Approval reload polling - stopping');
             break;
@@ -148,210 +160,220 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await dismissStatusModal();
         submissionRowReady = await submissionRow.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+        if (!submissionRowReady) await isAutoApproved();
     }
 
-    if (!submissionRowReady) {
-        throw new Error(`Submit For Approval row for ${submissionNumber} never appeared after ${reloadAttempt} reload(s) - the captured quote/submission number may be wrong, or the submission never finished rating.`);
-    }
-    console.log('Submission row found, selecting checkbox...');
-    const rowCheckbox = submissionRow.locator('input[type="checkbox"]').first();
-    await rowCheckbox.check();
-    await page.waitForLoadState('domcontentloaded');
-    // Shrunk from 2000ms - safeClickBtn() below already waits up to 30s for its target.
-    await page.waitForTimeout(400);
-    await dismissStatusModal();
-
-    console.log('Clicking Request Purchase Approval...');
-    await safeClickBtn(page.getByRole('button', { name: 'Request Purchase Approval' }), 'Request Purchase Approval');
-    console.log('Request Purchase Approval submitted, checking Federal ID...');
-    // Shrunk from 1000ms - safeClickBtn() below already waits up to 30s for its target.
-    await page.waitForTimeout(300);
-    await dismissStatusModal();
-
-    // Confirmed live via screenshot: this "Client Information" panel's
-    // Federal ID Number can be blank here even though it was already filled
-    // during account creation - reusing the same dummy-SSN logic
-    // (randSSN(), same as accountCreationHelper.js) rather than leaving it
-    // empty and letting Send's own validation/retry silently eat time.
-    const federalIdInput = page.getByRole('textbox', { name: 'Federal ID Number' });
-    if (await federalIdInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-        const currentFederalId = await federalIdInput.inputValue().catch(() => '');
-        if (!currentFederalId.trim()) {
-            await federalIdInput.fill(randSSN());
-            console.log('Federal ID Number was blank on Request Purchase Approval screen - filled with dummy SSN');
+    let page1 = null;
+    approvalFlow: {
+        if (autoApproved) {
+            console.log(`Submission ${submissionNumber} is already Approved in the Buy Now cart (no UW referral) - skipping Request Purchase Approval and PolicyCenter`);
+            if (trackMilestone) trackMilestone('Submitting for Approval', 'PASSED', 'skipped - auto-approved (no UW referral)');
+            if (trackMilestone) trackMilestone('UW Issues Approved in PolicyCenter', 'PASSED', 'skipped - auto-approved (no UW referral)');
+            break approvalFlow;
         }
-    }
-
-    console.log('Clicking Send...');
-    await safeClickBtn(page.getByRole('button', { name: 'Send' }), 'Send');
-    await page.waitForLoadState('domcontentloaded');
-
-    console.log('WriteBiz submission completed');
-    if (trackMilestone) trackMilestone('Submitting for Approval', 'PASSED');
-
-    // ===== PART 2: PolicyCenter approval =====================================
-    console.log('Step 2: Logging into PolicyCenter in new tab...');
-
-    const context = page.context();
-    const page1 = await context.newPage();
-    page1.setDefaultTimeout(60000);
-    await page1.waitForTimeout(2000);
-
-    console.log(`Submitting number to PolicyCenter: ${submissionNumber}`);
-    const pcUrl = policyCenterUrl || 'http://test-policycenter.donegalgroup.com/pc/PolicyCenter.do';
-    await page1.goto(pcUrl);
-
-    await page1.getByRole('textbox', { name: 'Username' }).waitFor({ state: 'visible', timeout: 10000 });
-    await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
-    await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
-    await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
-    await page1.waitForLoadState('networkidle').catch(() => {});
-    await page1.waitForTimeout(5000);
-
-    try {
-        const errorText = await page1.locator('text=/user configuration|error occurred/i')
-            .first().textContent({ timeout: 5000 });
-        if (errorText && (errorText.includes('error') || errorText.includes('configuration'))) {
-            throw new Error(`PolicyCenter login error: ${errorText}`);
+        if (!submissionRowReady) {
+            throw new Error(`Submit For Approval row for ${submissionNumber} never appeared after ${reloadAttempt} reload(s) - the captured quote/submission number may be wrong, or the submission never finished rating.`);
         }
-    } catch (e) {
-        if (e.message.includes('PolicyCenter login error')) throw e;
-    }
+        console.log('Submission row found, selecting checkbox...');
+        const rowCheckbox = submissionRow.locator('input[type="checkbox"]').first();
+        await rowCheckbox.check();
+        await page.waitForLoadState('domcontentloaded');
+        // Shrunk from 2000ms - safeClickBtn() below already waits up to 30s for its target.
+        await page.waitForTimeout(400);
+        await dismissStatusModal();
 
-    console.log('Opening Policy menu...');
-    await page1.getByRole('menuitem', { name: 'Policy', exact: true }).click();
-    await page1.waitForTimeout(2000);
+        console.log('Clicking Request Purchase Approval...');
+        await safeClickBtn(page.getByRole('button', { name: 'Request Purchase Approval' }), 'Request Purchase Approval');
+        console.log('Request Purchase Approval submitted, checking Federal ID...');
+        // Shrunk from 1000ms - safeClickBtn() below already waits up to 30s for its target.
+        await page.waitForTimeout(300);
+        await dismissStatusModal();
 
-    console.log('Expanding Policy Tab...');
-    // This is a toggle, not a one-way "expand" - all states log in as the
-    // same hardcoded PolicyCenter user, so if this panel was left expanded
-    // by a previous or concurrent run, blindly clicking it here would
-    // collapse it instead, permanently hiding the search box (the PA
-    // failure: fill() retried for the full 60s against a hidden input that
-    // was never going to reappear). Check the actual current state first.
-    const submissionSearchInput = page1.locator('input[name="TabBar-PolicyTab-PolicyTab_SubmissionNumberSearchItem"]');
-    const alreadyExpanded = await submissionSearchInput.isVisible().catch(() => false);
-    if (!alreadyExpanded) {
-        await page1.locator('#TabBar-PolicyTab > .gw-action--expand-button > .gw-icon').click();
-        await submissionSearchInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-    } else {
-        console.log('Policy Tab already expanded, skipping toggle click');
-    }
-
-    console.log(`Searching for submission: ${submissionNumber}...`);
-    await submissionSearchInput.fill(submissionNumber);
-    await page1.getByLabel('Sub #').getByRole('button', { name: 'gw-search-icon' }).click();
-    await page1.waitForLoadState('networkidle').catch(() => {});
-    await page1.waitForTimeout(3000);
-    console.log('Submission search completed');
-
-    const riskAnalysisLocators = [
-        'internal:text="Risk Analysis"i',
-        'internal:text="Risk Analysis"s',
-        'div >> internal:has-text=/^Risk Analysis$/',
-        '#LeftNavContainer >> .gw-action--inner:has-text("Risk Analysis")',
-        '.gw-action--inner:has-text("Risk Analysis")',
-        '.gw-actionable:has-text("Risk Analysis")',
-        'text=/^\\s*Risk Analysis\\s*$/i',
-    ];
-
-    const leftNavSelectors = ['#LeftNavContainer', '.leftNav', '#LeftNav', '.gw-left-nav', '#LeftNavContainer-0'];
-    let foundScope = null;
-    for (const s of leftNavSelectors) {
-        try {
-            if (await page1.locator(s).count() > 0) { foundScope = s; break; }
-        } catch { }
-    }
-
-    const ok = await blinqClick(page1, riskAnalysisLocators, { scope: foundScope || undefined, aggressive: true });
-    if (!ok) throw new Error('Risk Analysis click failed');
-
-    try {
-        await page1.locator('div[id*="RiskAnalysis"], #SubmissionWizard-Job_RiskAnalysisScreen')
-            .first()
-            .waitFor({ state: 'visible', timeout: 15000 })
-            .catch(() => {});
-    } catch { }
-
-    await page1.waitForLoadState('networkidle').catch(() => {});
-    // Wait for a Special Approve row (or confirmation there are none) instead of
-    // a blind 10s sleep - exits as soon as the risk analysis grid has rendered.
-    await page1.waitForFunction(() => {
-        const spinner = document.querySelector('.loading, .spinner, [aria-busy="true"]');
-        if (spinner && getComputedStyle(spinner).display !== 'none') return false;
-        return document.querySelector('[id*="RiskEvaluationPanelSet"]') !== null
-            || document.querySelector('[id$="-UWIssueRowSet-SpecialApprove"]') !== null;
-    }, { timeout: 10000 }).catch(() => {});
-
-    const specialApproveSelectors = [
-        '#SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-1-UWIssueRowSet-SpecialApprove',
-        '[id^="SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-"][id$="-UWIssueRowSet-SpecialApprove"]',
-        '[data-gw-click*="UWIssueRowSet-SpecialApprove"]',
-        '#SubmissionWizard-Job_RiskAnalysisScreen button:has-text("Special Approve")',
-    ];
-
-    async function findSpecialApproveLocator() {
-        let bestLocator = null;
-        let bestCount = 0;
-        for (const sel of specialApproveSelectors) {
-            const loc = page1.locator(sel);
-            const count = await loc.count().catch(() => 0);
-            if (count > bestCount) { bestLocator = loc; bestCount = count; }
-        }
-        return bestLocator ? bestLocator.first() : null;
-    }
-
-    while (true) {
-        const locator = await findSpecialApproveLocator();
-        if (!locator) {
-            try {
-                const ts = new Date().toISOString().replace(/[:.]/g, '-');
-                await page1.screenshot({ path: `test-results/special-approve-not-found-${ts}.png`, fullPage: true });
-            } catch { }
-            break;
-        }
-
-        await locator.scrollIntoViewIfNeeded().catch(() => {});
-        await page1.waitForLoadState('domcontentloaded');
-
-        page1.once('dialog', dialog => {
-            if (dialog.type() === 'confirm' || dialog.type() === 'alert') {
-                dialog.accept().catch(() => {});
-            } else {
-                dialog.dismiss().catch(() => {});
+        // Confirmed live via screenshot: this "Client Information" panel's
+        // Federal ID Number can be blank here even though it was already filled
+        // during account creation - reusing the same dummy-SSN logic
+        // (randSSN(), same as accountCreationHelper.js) rather than leaving it
+        // empty and letting Send's own validation/retry silently eat time.
+        const federalIdInput = page.getByRole('textbox', { name: 'Federal ID Number' });
+        if (await federalIdInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+            const currentFederalId = await federalIdInput.inputValue().catch(() => '');
+            if (!currentFederalId.trim()) {
+                await federalIdInput.fill(randSSN());
+                console.log('Federal ID Number was blank on Request Purchase Approval screen - filled with dummy SSN');
             }
-        });
+        }
 
-        await locator.focus().catch(() => {});
-        await locator.click({ timeout: 10000 }).catch(async (err) => {
-            try {
-                const el = await locator.elementHandle();
-                if (el) await page1.evaluate((node) => node.click(), el);
-            } catch (e2) { throw e2; }
-        });
+        console.log('Clicking Send...');
+        await safeClickBtn(page.getByRole('button', { name: 'Send' }), 'Send');
+        await page.waitForLoadState('domcontentloaded');
 
-        await page1.waitForTimeout(500);
+        console.log('WriteBiz submission completed');
+        if (trackMilestone) trackMilestone('Submitting for Approval', 'PASSED');
+
+        // ===== PART 2: PolicyCenter approval =====================================
+        console.log('Step 2: Logging into PolicyCenter in new tab...');
+
+        const context = page.context();
+        page1 = await context.newPage();
+        page1.setDefaultTimeout(60000);
+        await page1.waitForTimeout(2000);
+
+        console.log(`Submitting number to PolicyCenter: ${submissionNumber}`);
+        const pcUrl = policyCenterUrl || 'http://test-policycenter.donegalgroup.com/pc/PolicyCenter.do';
+        await page1.goto(pcUrl);
+
+        await page1.getByRole('textbox', { name: 'Username' }).waitFor({ state: 'visible', timeout: 10000 });
+        await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
+        await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
+        await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
         await page1.waitForLoadState('networkidle').catch(() => {});
-        await page1.waitForTimeout(1000);
+        await page1.waitForTimeout(5000);
 
         try {
-            const okBtn = page1.getByRole('button', { name: 'OK' });
-            if ((await okBtn.count().catch(() => 0)) > 0) {
-                await okBtn.click({ timeout: 5000 });
-                await page1.waitForLoadState('networkidle').catch(() => {});
-                await page1.waitForTimeout(500);
-                await page1.waitForLoadState('domcontentloaded');
-                await page1.waitForTimeout(2000);
+            const errorText = await page1.locator('text=/user configuration|error occurred/i')
+                .first().textContent({ timeout: 5000 });
+            if (errorText && (errorText.includes('error') || errorText.includes('configuration'))) {
+                throw new Error(`PolicyCenter login error: ${errorText}`);
             }
-        } catch { }
-    }
+        } catch (e) {
+            if (e.message.includes('PolicyCenter login error')) throw e;
+        }
 
-    if (trackMilestone) trackMilestone('UW Issues Approved in PolicyCenter', 'PASSED');
+        console.log('Opening Policy menu...');
+        await page1.getByRole('menuitem', { name: 'Policy', exact: true }).click();
+        await page1.waitForTimeout(2000);
+
+        console.log('Expanding Policy Tab...');
+        // This is a toggle, not a one-way "expand" - all states log in as the
+        // same hardcoded PolicyCenter user, so if this panel was left expanded
+        // by a previous or concurrent run, blindly clicking it here would
+        // collapse it instead, permanently hiding the search box (the PA
+        // failure: fill() retried for the full 60s against a hidden input that
+        // was never going to reappear). Check the actual current state first.
+        const submissionSearchInput = page1.locator('input[name="TabBar-PolicyTab-PolicyTab_SubmissionNumberSearchItem"]');
+        const alreadyExpanded = await submissionSearchInput.isVisible().catch(() => false);
+        if (!alreadyExpanded) {
+            await page1.locator('#TabBar-PolicyTab > .gw-action--expand-button > .gw-icon').click();
+            await submissionSearchInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+        } else {
+            console.log('Policy Tab already expanded, skipping toggle click');
+        }
+
+        console.log(`Searching for submission: ${submissionNumber}...`);
+        await submissionSearchInput.fill(submissionNumber);
+        await page1.getByLabel('Sub #').getByRole('button', { name: 'gw-search-icon' }).click();
+        await page1.waitForLoadState('networkidle').catch(() => {});
+        await page1.waitForTimeout(3000);
+        console.log('Submission search completed');
+
+        const riskAnalysisLocators = [
+            'internal:text="Risk Analysis"i',
+            'internal:text="Risk Analysis"s',
+            'div >> internal:has-text=/^Risk Analysis$/',
+            '#LeftNavContainer >> .gw-action--inner:has-text("Risk Analysis")',
+            '.gw-action--inner:has-text("Risk Analysis")',
+            '.gw-actionable:has-text("Risk Analysis")',
+            'text=/^\\s*Risk Analysis\\s*$/i',
+        ];
+
+        const leftNavSelectors = ['#LeftNavContainer', '.leftNav', '#LeftNav', '.gw-left-nav', '#LeftNavContainer-0'];
+        let foundScope = null;
+        for (const s of leftNavSelectors) {
+            try {
+                if (await page1.locator(s).count() > 0) { foundScope = s; break; }
+            } catch { }
+        }
+
+        const ok = await blinqClick(page1, riskAnalysisLocators, { scope: foundScope || undefined, aggressive: true });
+        if (!ok) throw new Error('Risk Analysis click failed');
+
+        try {
+            await page1.locator('div[id*="RiskAnalysis"], #SubmissionWizard-Job_RiskAnalysisScreen')
+                .first()
+                .waitFor({ state: 'visible', timeout: 15000 })
+                .catch(() => {});
+        } catch { }
+
+        await page1.waitForLoadState('networkidle').catch(() => {});
+        // Wait for a Special Approve row (or confirmation there are none) instead of
+        // a blind 10s sleep - exits as soon as the risk analysis grid has rendered.
+        await page1.waitForFunction(() => {
+            const spinner = document.querySelector('.loading, .spinner, [aria-busy="true"]');
+            if (spinner && getComputedStyle(spinner).display !== 'none') return false;
+            return document.querySelector('[id*="RiskEvaluationPanelSet"]') !== null
+                || document.querySelector('[id$="-UWIssueRowSet-SpecialApprove"]') !== null;
+        }, { timeout: 10000 }).catch(() => {});
+
+        const specialApproveSelectors = [
+            '#SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-1-UWIssueRowSet-SpecialApprove',
+            '[id^="SubmissionWizard-Job_RiskAnalysisScreen-RiskAnalysisCV-RiskEvaluationPanelSet-issueIterator-"][id$="-UWIssueRowSet-SpecialApprove"]',
+            '[data-gw-click*="UWIssueRowSet-SpecialApprove"]',
+            '#SubmissionWizard-Job_RiskAnalysisScreen button:has-text("Special Approve")',
+        ];
+
+        async function findSpecialApproveLocator() {
+            let bestLocator = null;
+            let bestCount = 0;
+            for (const sel of specialApproveSelectors) {
+                const loc = page1.locator(sel);
+                const count = await loc.count().catch(() => 0);
+                if (count > bestCount) { bestLocator = loc; bestCount = count; }
+            }
+            return bestLocator ? bestLocator.first() : null;
+        }
+
+        while (true) {
+            const locator = await findSpecialApproveLocator();
+            if (!locator) {
+                try {
+                    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+                    await page1.screenshot({ path: `test-results/special-approve-not-found-${ts}.png`, fullPage: true });
+                } catch { }
+                break;
+            }
+
+            await locator.scrollIntoViewIfNeeded().catch(() => {});
+            await page1.waitForLoadState('domcontentloaded');
+
+            page1.once('dialog', dialog => {
+                if (dialog.type() === 'confirm' || dialog.type() === 'alert') {
+                    dialog.accept().catch(() => {});
+                } else {
+                    dialog.dismiss().catch(() => {});
+                }
+            });
+
+            await locator.focus().catch(() => {});
+            await locator.click({ timeout: 10000 }).catch(async (err) => {
+                try {
+                    const el = await locator.elementHandle();
+                    if (el) await page1.evaluate((node) => node.click(), el);
+                } catch (e2) { throw e2; }
+            });
+
+            await page1.waitForTimeout(500);
+            await page1.waitForLoadState('networkidle').catch(() => {});
+            await page1.waitForTimeout(1000);
+
+            try {
+                const okBtn = page1.getByRole('button', { name: 'OK' });
+                if ((await okBtn.count().catch(() => 0)) > 0) {
+                    await okBtn.click({ timeout: 5000 });
+                    await page1.waitForLoadState('networkidle').catch(() => {});
+                    await page1.waitForTimeout(500);
+                    await page1.waitForLoadState('domcontentloaded');
+                    await page1.waitForTimeout(2000);
+                }
+            } catch { }
+        }
+
+        if (trackMilestone) trackMilestone('UW Issues Approved in PolicyCenter', 'PASSED');
+    }
 
     // ===== PART 3: Submit for issuance =======================================
     console.log('Step 3: Submitting for issuance in WriteBiz...');
 
-    try {
+    if (page1) try {
         const releaseLock = page1.locator('div[aria-label="Release Lock"]');
         if (await releaseLock.count({ timeout: 2000 }).catch(() => 0)) {
             await releaseLock.click({ timeout: 5000 });
@@ -361,7 +383,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         console.warn(`Release Lock not clicked (continuing): ${e?.message}`);
     }
 
-    await page1.close();
+    if (page1) await page1.close();
     await page.bringToFront();
     await page.waitForLoadState('load').catch(() => {});
     // Poll for the WB tab to actually be ready (was idle during PC approval)
@@ -477,8 +499,23 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         const spinner = document.querySelector('.loading, .spinner, [aria-busy="true"]');
         return !spinner || getComputedStyle(spinner).display === 'none';
     }, { timeout: 60000 }).catch(() => {});
-    await page.waitForLoadState('networkidle').catch(() => {});
+    // WriteBiz networkidle waits are capped at 10s: QA WriteBiz runs a "ppulse"
+    // analytics beacon (/ppulse/events, ~1 request/s) that Training doesn't, so
+    // the network is never idle there and every uncapped wait burned the full
+    // 60s navigationTimeout (confirmed via traces 2026-10-19: ~9 min across 2 QA
+    // BOP runs, 0s on Training).
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(5000);
+
+    // A rejected Bind and Issue leaves the submission pending and shows a red
+    // alert (e.g. "Inspection contact email is invalid...") - without this the
+    // poll below spent its full 10 minutes waiting for a policy that never comes.
+    const bindError = page.locator('#message-display-container .alert-danger');
+    if (await bindError.isVisible().catch(() => false)) {
+        const msg = ((await bindError.textContent().catch(() => '')) || '').replace(/×/g, '').trim();
+        if (trackMilestone) trackMilestone('Policy Issued Successfully', 'FAILED', `Bind and Issue rejected: ${msg}`);
+        throw new Error(`Bind and Issue rejected: ${msg}`);
+    }
     await dismissStatusModal();
 
     const esignButton = page.getByRole('button', { name: 'Esign' });
@@ -552,7 +589,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
 
         try {
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
-            await page.waitForLoadState('networkidle').catch(() => {});
+            await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
             await dismissStatusModal();
 
             const count = await safeCount(policyCell);

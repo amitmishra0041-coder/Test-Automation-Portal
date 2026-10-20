@@ -140,6 +140,9 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       }
       const currentTitle = await btn.getAttribute('title').catch(() => '');
       if (currentTitle && currentTitle.trim() !== '' && currentTitle.trim() !== 'Nothing selected') {
+        // A dropdown left open covers the next field (BOP QA 2026-10-19: Class Group's only
+        // option was already selected, the open menu blocked 'Liability Exposure Base' for 60s).
+        await btn.getAttribute('aria-expanded').then(async (x) => { if (x === 'true') await page.keyboard.press('Escape'); }).catch(() => {});
         console.log(labelText + ' already set: ' + currentTitle);
         return true;
       }
@@ -160,6 +163,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
         }
         console.log(labelText + ': selection did not stick (attempt ' + attempt + ') - retrying after settle');
       } else {
+        await btn.getAttribute('aria-expanded').then(async (x) => { if (x === 'true') await page.keyboard.press('Escape'); }).catch(() => {});
         console.log(labelText + ': dropdown opened but no selectable options found (attempt ' + attempt + ')');
       }
       await page.waitForTimeout(700);
@@ -186,6 +190,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     }
     const currentTitle = await btn.getAttribute('title').catch(() => '');
     if (currentTitle && currentTitle.trim() === preferredText) {
+      await btn.getAttribute('aria-expanded').then(async (x) => { if (x === 'true') await page.keyboard.press('Escape'); }).catch(() => {});
       console.log(labelText + ' already set: ' + currentTitle);
       return true;
     }
@@ -207,6 +212,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
       console.log(labelText + ' selected: ' + finalVal);
       return true;
     }
+    await btn.getAttribute('aria-expanded').then(async (x) => { if (x === 'true') await page.keyboard.press('Escape'); }).catch(() => {});
     console.log(labelText + ': dropdown opened but no selectable options found');
     return false;
   }
@@ -1252,7 +1258,7 @@ async function runBopCoverageFlow(page, { testState, trackMilestone, dismissStat
     // Confirmed live: the button can become visible/clickable before the
     // Class Add'l Cov grid has actually finished rendering right after
     // landing on this sub-tab - give it a beat to settle before submitting.
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(800);
     await saveClassBtn.click();
   } else {

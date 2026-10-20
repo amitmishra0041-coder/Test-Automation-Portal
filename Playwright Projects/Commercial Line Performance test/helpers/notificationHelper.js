@@ -34,7 +34,7 @@ async function waitForQuoteReady(page, quoteNumber, maxAttempts = 50, intervalMs
     console.log(`Attempt ${i}/${maxAttempts}: waiting ${intervalMs / 1000}s...`);
     await page.waitForTimeout(intervalMs);
     await page.reload();
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     await dismissNotification(page);
     status = await getQuoteStatus(page, quoteNumber);
     console.log(`Attempt ${i} status: "${status}"`);
