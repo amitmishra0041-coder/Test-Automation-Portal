@@ -516,6 +516,23 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         if (trackMilestone) trackMilestone('Policy Issued Successfully', 'FAILED', `Bind and Issue rejected: ${msg}`);
         throw new Error(`Bind and Issue rejected: ${msg}`);
     }
+
+    // "Quote Issue Results - The quote has been successfully issued under policy
+    // number N" (with Close / Esign). On a slow issuance (Training 2026-10-20) it
+    // appeared after the Esign/Finish checks below had already run, stayed open
+    // over the page and the Client Summary click timed out - although the policy
+    // WAS issued. Wait for it and take the policy number straight from it.
+    const issueResults = page.locator('.modal.show').filter({ hasText: 'Quote Issue Results' }).first();
+    const issuedText = await issueResults.waitFor({ state: 'visible', timeout: 90000 })
+        .then(() => issueResults.innerText()).catch(() => '');
+    const issuedMatch = /issued under policy number\s*(\d+)/i.exec(issuedText);
+    if (issuedMatch) {
+        const issuedPolicy = issuedMatch[1];
+        console.log(`Policy Number confirmed: ${issuedPolicy} (Quote Issue Results dialog)`);
+        await issueResults.getByRole('button', { name: 'Close' }).click({ timeout: 10000 }).catch(() => {});
+        if (trackMilestone) trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${issuedPolicy}`);
+        return issuedPolicy;
+    }
     await dismissStatusModal();
 
     const esignButton = page.getByRole('button', { name: 'Esign' });

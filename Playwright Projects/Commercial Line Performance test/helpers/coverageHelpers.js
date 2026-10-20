@@ -408,4 +408,39 @@ async function processAllAddCoverageButtons(page) {
   return addCoverageDetails;
 }
 
-module.exports = { processCoverageDropdowns, processAllAddCoverageButtons };
+// Picks the first real option for every ENABLED dropdown WriteBiz itself marks
+// required (data-required="true") that is still blank. Only touches fields that
+// would otherwise block Next, so a passing quote is never changed. Seen 2026-10-20:
+// Package Personal Property "Valuation is required" after processCoverageDropdowns
+// changed Cause of Loss (dependent field reset), and state-specific CA fields
+// (PA "Extraordinary Medical Benefits Rating Basis", MI "Excess PIP").
+async function fillBlankRequiredSelects(page, tag = '') {
+  const ids = await page.evaluate(() => [...document.querySelectorAll('select[data-required="true"]')]
+    .filter(s => !s.disabled && !(s.options[s.selectedIndex] && s.options[s.selectedIndex].value))
+    .filter(s => [...s.options].some(o => o.value))
+    .filter(s => { const box = s.closest('.bootstrap-select') || s; return !!(box.offsetParent || box.getClientRects().length); })
+    .map(s => s.id)).catch(() => []);
+  const filled = [];
+  for (const id of ids) {
+    const sel = page.locator(`[id="${id}"]`);
+    const label = await sel.getAttribute('data-requiredmessage').catch(() => id);
+    const btn = page.locator(`button[data-id="${id}"]`);
+    let picked = '';
+    if (await btn.isVisible().catch(() => false)) {
+      await btn.click().catch(() => {});
+      const menuId = await btn.getAttribute('aria-owns').catch(() => null);
+      const opt = page.locator(menuId ? `#${menuId} [role="option"]` : '.dropdown-menu.show [role="option"]')
+        .filter({ hasNotText: 'Nothing selected' }).first();
+      if (await opt.isVisible({ timeout: 3000 }).catch(() => false)) { picked = (await opt.innerText()).trim(); await opt.click(); }
+      else await page.keyboard.press('Escape');
+    } else {
+      const val = await sel.evaluate(s => ([...s.options].find(o => o.value) || {}).value).catch(() => null);
+      if (val) { await sel.selectOption(val).catch(() => {}); picked = val; }
+    }
+    if (picked) { filled.push(`${(label || id).replace(/ is required$/, '')}=${picked}`); await page.waitForTimeout(600); }
+  }
+  if (filled.length) console.log(`${tag ? tag + ': ' : ''}filled blank required fields ${JSON.stringify(filled)}`);
+  return filled.length;
+}
+
+module.exports = { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequiredSelects };

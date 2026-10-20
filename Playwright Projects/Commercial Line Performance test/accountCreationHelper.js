@@ -17,6 +17,12 @@ const STATE_USERS = {
 };
 
 function getRandomAddressByState(state) {
+  // TEST_ADDRESS="330 Main St|Dover|DE|19904" forces a specific address, e.g. to
+  // reproduce an address-dependent rule such as a high-risk (coastal) location.
+  if (process.env.TEST_ADDRESS) {
+    const [street, city, st, zip] = process.env.TEST_ADDRESS.split('|').map(s => s.trim());
+    return { street, city, state: st || state, zip };
+  }
   const zips = stateToZips[state];
   if (!zips || zips.length === 0) throw new Error('No zips for state: ' + state);
   const zip = zips[Math.floor(random() * zips.length)];

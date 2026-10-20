@@ -9,7 +9,7 @@ const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
 const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
-const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./helpers/coverageHelpers');
+const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequiredSelects } = require('./helpers/coverageHelpers');
 const fs = require('fs');
 const path = require('path');
 
@@ -108,6 +108,8 @@ test('Package Submission', async ({ page }, testInfo) => {
 
     // Spinner count/time per milestone (see helpers/spinnerTracker.js).
     const spinTracker = await attachSpinnerTracker(page);
+    // Set on the Locations step from WriteBiz's geo-risk check; picks the coverage path.
+    let highRiskLocation = false;
 
     function trackMilestone(name, status = 'PASSED', details = '') {
         const now = new Date();
@@ -305,10 +307,23 @@ test('Package Submission', async ({ page }, testInfo) => {
             } catch (e) {
                 console.log(`safeNextClick attempt ${attempt} blocked: ${e.message.split('\n')[0]}`);
                 await dismissStatusModal();
+                await fillBlankRequiredSelects(page, 'safeNextClick');
                 await page.waitForTimeout(500);
             }
         }
         if (!clicked) {
+            // WriteBiz's "Attention" activity-impediments box is an underwriting stop,
+            // e.g. "Location #1 Building #1 is high risk. Building coverage is not
+            // available..." (Training/DE 2026-10-20, address-dependent) - forcing Next
+            // can't get past it, so fail now with WriteBiz's own message.
+            const impediment = (await page.locator('#dgic-modal-activityimpediments [id^="xlbl_Impediment_"]')
+                .allTextContents().catch(() => [])).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ');
+            // Only genuine underwriting stops end the run; other Attention messages (e.g. GL's
+            // "coverage is missing required information: Employment Practices Liability...")
+            // are handled by the flow after this click, as before.
+            if (/high risk|not available|must be less than/i.test(impediment)) {
+                throw new Error(`WriteBiz underwriting stop: ${impediment.slice(0, 300)}`);
+            }
             // A forced click "succeeds" behind a dialog without leaving the page, and
             // the next milestone still logs OK - name the blocker so it's visible.
             const blockers = await page.locator('.modal.show .modal-title').allTextContents().catch(() => []);
@@ -895,6 +910,24 @@ test('Package Submission', async ({ page }, testInfo) => {
         await clickIfExists('Use Suggested');
         await clickIfExists('Accept As-Is');
         await clickIfExists('Continue');
+
+        // Geo-risk results from Verify Address (hidden fields on this dialog):
+        // hidHRM_Coastal "GeoCodeHighRisk" marks a high-risk (coastal) location, where
+        // WriteBiz allows no Building coverage, BPP <= $20,000 and no Special Classes
+        // (Training/DE 2026-10-20, 330 Main St Dover 19904). Read them before Save.
+        const geoRisk = {};
+        const riskDeadline = Date.now() + 10000;
+        do {
+            for (const k of ['Coastal', 'Earthquake', 'FloodRisk']) {
+                geoRisk[k] = await page.locator(`#hidHRM_${k}`).first().inputValue({ timeout: 1000 }).catch(() => '');
+            }
+            if (geoRisk.Coastal) break;
+            await page.waitForTimeout(500);
+        } while (Date.now() < riskDeadline);
+        highRiskLocation = Object.values(geoRisk).some(v => /HighRisk/i.test(v));
+        global.testData.highRiskLocation = highRiskLocation;
+        console.log(`Location geo-risk: ${JSON.stringify(geoRisk)} -> ${highRiskLocation ? 'HIGH RISK' : 'standard'} coverage path`);
+
         await clickIfExists('Save');
 
         // Save only enables once Verify Address finishes its four checks (address,
@@ -955,6 +988,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         //await dismissStatusModal();
 
         await processCoverageDropdowns(page);
+        await fillBlankRequiredSelects(page);
         await page.waitForTimeout(300);
         await dismissStatusModal();
         await safeNextClick();
@@ -1022,214 +1056,248 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(200);
         await page.locator('#txtYearOfConstruction').fill('2015');
         await page.waitForTimeout(1500);
+        if (highRiskLocation) {
+            // "Building coverage is not available" - keep the building (Occupancy and
+            // BPP hang off it) but set its Coverage to "No Coverage"; a blank Building
+            // Limit is rejected ("Please enter a Limit greater than 0").
+            await page.locator('#ddlCoverage').selectOption({ label: 'No Coverage' });
+            await page.waitForTimeout(1000);
+            await dismissStatusModal();
+            console.log('High-risk: Building Coverage set to "No Coverage"');
+        }
         await dismissStatusModal();
         await safeNextClick();
 
-        // ── Estimator ─────────────────────────────────────────────────────────
-        const estimatorOpened = await clickEstimatorAndWait();
+        if (!highRiskLocation) {
+            // ── Estimator ─────────────────────────────────────────────────────────
+            const estimatorOpened = await clickEstimatorAndWait();
 
-        const sourceInput = page.locator('#xtxt_EstimatedReplacementCost');
-        const limit52Input = page.locator('#txt_CP7Limit52_integerWithCommas');
+            const sourceInput = page.locator('#xtxt_EstimatedReplacementCost');
+            const limit52Input = page.locator('#txt_CP7Limit52_integerWithCommas');
 
-        let numericValue = '1000000';
-        if (estimatorOpened) {
-            // The live UI can present EITHER the newer Verisk360 Valuation modal
-            // (generic unlabeled inputs inside #dgic-modal-editverisk360valuation)
-            // OR the older single-page estimator fields
-            // (#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL etc). Detect which one
-            // actually opened instead of assuming the old fields - blindly
-            // skipping the fill-and-close sequence when the Verisk360 modal is
-            // the one open left it sitting on screen with unanswered required
-            // fields, silently blocking every click behind it (including the
-            // Next/Save button on this page) until the 120s wait finally timed
-            // out. Confirmed live via logs/package-PA.log.
-            const verisk360Modal = page.locator('#dgic-modal-editverisk360valuation');
-            const oldEstimatorFld = page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL');
-            // Confirmed live (user watching the real browser, on BOP): the
-            // modal can open and then close itself almost immediately before
-            // any field gets filled - a single isVisible(timeout) check right
-            // after the click can straddle that open/close window and wrongly
-            // report "never opened". Poll for a few seconds and confirm it's
-            // still there a beat later instead of trusting one snapshot.
-            let isVerisk360 = false;
-            let isOldEstimator = false;
-            const detectDeadline = Date.now() + 8000;
-            while (Date.now() < detectDeadline && !isVerisk360 && !isOldEstimator) {
-                const v360 = await verisk360Modal.isVisible().catch(() => false);
-                const old = await oldEstimatorFld.isVisible().catch(() => false);
-                if (v360 || old) { isVerisk360 = v360; isOldEstimator = !v360 && old; break; }
-                await page.waitForTimeout(300);
-            }
-            if (isVerisk360) {
-                await page.waitForTimeout(600);
-                const stillOpen = await verisk360Modal.isVisible().catch(() => false);
-                if (!stillOpen) {
-                    console.log('Verisk360 modal closed itself within ~600ms of opening');
-                    isVerisk360 = false;
-                }
-            }
-
-            if (isVerisk360) {
-                console.log('Verisk360 Valuation modal detected');
-
-                const totalSqFt = verisk360Modal.locator('input').first();
-                await totalSqFt.waitFor({ state: 'visible', timeout: 5000 });
-                const okTotal = await setNumericVerified(totalSqFt, '999', 'Verisk360 Total Sq. Ft.');
-
-                const useInput = verisk360Modal.locator('input').nth(1);
-                await useInput.waitFor({ state: 'visible', timeout: 5000 });
-                const okUse = await selectUseVerified(
-                    useInput, 'Apartment', 'Apartment / Condominium', 'Verisk360 Use'
-                );
-
-                await page.keyboard.press('Escape').catch(() => { });
-                await page.waitForTimeout(600);
-
-                let primarySqFt = verisk360Modal.locator(
-                    'input[placeholder*="Primary" i], input[aria-label*="Primary" i], ' +
-                    'input[id*="Primary" i], input[name*="Primary" i]'
-                ).first();
-                if (!(await primarySqFt.isVisible({ timeout: 2000 }).catch(() => false))) {
-                    primarySqFt = verisk360Modal.locator('input[type="text"]:visible').last();
-                }
-                if (await primarySqFt.isVisible({ timeout: 5000 }).catch(() => false)) {
-                    await setNumericVerified(primarySqFt, '999', 'Verisk360 Primary Sq. Ft.');
-                }
-
-                if (!okTotal || !okUse) {
-                    console.log(`Verisk360 screen-1 fields incomplete - Total:${okTotal} Use:${okUse} - will still try to close`);
-                }
-
-                const continueVerisk = verisk360Modal.locator('button:has-text("CONTINUE"), button:has-text("Continue")').first();
-                if (await continueVerisk.isVisible({ timeout: 10000 }).catch(() => false)) {
-                    await continueVerisk.click();
+            let numericValue = '1000000';
+            if (estimatorOpened) {
+                // The live UI can present EITHER the newer Verisk360 Valuation modal
+                // (generic unlabeled inputs inside #dgic-modal-editverisk360valuation)
+                // OR the older single-page estimator fields
+                // (#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL etc). Detect which one
+                // actually opened instead of assuming the old fields - blindly
+                // skipping the fill-and-close sequence when the Verisk360 modal is
+                // the one open left it sitting on screen with unanswered required
+                // fields, silently blocking every click behind it (including the
+                // Next/Save button on this page) until the 120s wait finally timed
+                // out. Confirmed live via logs/package-PA.log.
+                const verisk360Modal = page.locator('#dgic-modal-editverisk360valuation');
+                const oldEstimatorFld = page.locator('#PRI-XT_COMMERCIAL_SQUARE_FEET_ALL-VAL');
+                // Confirmed live (user watching the real browser, on BOP): the
+                // modal can open and then close itself almost immediately before
+                // any field gets filled - a single isVisible(timeout) check right
+                // after the click can straddle that open/close window and wrongly
+                // report "never opened". Poll for a few seconds and confirm it's
+                // still there a beat later instead of trusting one snapshot.
+                let isVerisk360 = false;
+                let isOldEstimator = false;
+                const detectDeadline = Date.now() + 8000;
+                while (Date.now() < detectDeadline && !isVerisk360 && !isOldEstimator) {
+                    const v360 = await verisk360Modal.isVisible().catch(() => false);
+                    const old = await oldEstimatorFld.isVisible().catch(() => false);
+                    if (v360 || old) { isVerisk360 = v360; isOldEstimator = !v360 && old; break; }
                     await page.waitForTimeout(300);
                 }
-
-                // Screen 2 - "Structure Options": Construction Class defaults to
-                // "Unknown", which CALCULATE NOW rejects with:
-                // "The Estimator returned an Unknown construction type, which
-                // is not a valid selection. Please reopen the Estimator and
-                // select a valid Construction Class before importing."
-                // Confirmed live via screenshot - fix it before proceeding,
-                // and skip the rest of the wizard entirely if it can't be
-                // fixed, since Calculate Now is guaranteed to reproduce the
-                // same error otherwise.
-                const constructionClassOk = await selectConstructionClassVerified();
-
-                let importClicked = false;
-                if (constructionClassOk) {
-                    const calculateBtn = verisk360Modal.locator('button:has-text("CALCULATE NOW"), button:has-text("Calculate Now")').first();
-                    if (await calculateBtn.isVisible({ timeout: 10000 }).catch(() => false)) {
-                        await calculateBtn.click();
-                        await page.waitForTimeout(300);
-                        console.log('Verisk360 CALCULATE NOW clicked');
-                    } else {
-                        console.log('Verisk360 CALCULATE NOW button never appeared - Construction Class selection may not have registered with the app');
+                if (isVerisk360) {
+                    await page.waitForTimeout(600);
+                    const stillOpen = await verisk360Modal.isVisible().catch(() => false);
+                    if (!stillOpen) {
+                        console.log('Verisk360 modal closed itself within ~600ms of opening');
+                        isVerisk360 = false;
                     }
-
-                    // Widened from 15s - confirmed live that Calculate Now's
-                    // own processing (screen 2 -> 3) can take longer than
-                    // that under load; BOP succeeded with the same 15s twice
-                    // in a row, but CP has stalled here at least once.
-                    const finishBtn = verisk360Modal.locator('button:has-text("FINISH"), button:has-text("Finish")').first();
-                    if (await finishBtn.isVisible({ timeout: 25000 }).catch(() => false)) {
-                        await finishBtn.click();
-                        await page.waitForTimeout(300);
-                        console.log('Verisk360 FINISH clicked');
-                    } else {
-                        const modalDiag = await verisk360Modal.evaluate(el => ({
-                            text: (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 400),
-                            buttons: [...el.querySelectorAll('button')]
-                                .filter(b => b.offsetParent !== null)
-                                .map(b => (b.textContent || '').trim()).filter(Boolean),
-                        })).catch(() => ({ text: '(modal not found)', buttons: [] }));
-                        console.log('Verisk360 FINISH button never appeared after CALCULATE NOW - modal state: ' + JSON.stringify(modalDiag));
-                    }
-
-                    const importBtn = page.locator('button:has-text("Import Data")').first();
-                    if (await importBtn.isVisible({ timeout: 10000 }).catch(() => false)) {
-                        await importBtn.click();
-                        importClicked = true;
-                        console.log('Verisk360 Import Data clicked');
-                    } else {
-                        console.log('Verisk360 Import Data button never appeared after FINISH');
-                    }
-                } else {
-                    console.log('Skipping CALCULATE NOW/FINISH/Import Data - Construction Class still invalid, would fail validation');
                 }
 
-                await verisk360Modal.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => { });
+                if (isVerisk360) {
+                    console.log('Verisk360 Valuation modal detected');
 
-                if (importClicked) {
-                    const importedOk = await waitForPropertyInformationFound(45000);
-                    console.log(importedOk
+                    const totalSqFt = verisk360Modal.locator('input').first();
+                    await totalSqFt.waitFor({ state: 'visible', timeout: 5000 });
+                    const okTotal = await setNumericVerified(totalSqFt, '999', 'Verisk360 Total Sq. Ft.');
+
+                    const useInput = verisk360Modal.locator('input').nth(1);
+                    await useInput.waitFor({ state: 'visible', timeout: 5000 });
+                    const okUse = await selectUseVerified(
+                        useInput, 'Apartment', 'Apartment / Condominium', 'Verisk360 Use'
+                    );
+
+                    await page.keyboard.press('Escape').catch(() => { });
+                    await page.waitForTimeout(600);
+
+                    let primarySqFt = verisk360Modal.locator(
+                        'input[placeholder*="Primary" i], input[aria-label*="Primary" i], ' +
+                        'input[id*="Primary" i], input[name*="Primary" i]'
+                    ).first();
+                    if (!(await primarySqFt.isVisible({ timeout: 2000 }).catch(() => false))) {
+                        primarySqFt = verisk360Modal.locator('input[type="text"]:visible').last();
+                    }
+                    if (await primarySqFt.isVisible({ timeout: 5000 }).catch(() => false)) {
+                        await setNumericVerified(primarySqFt, '999', 'Verisk360 Primary Sq. Ft.');
+                    }
+
+                    if (!okTotal || !okUse) {
+                        console.log(`Verisk360 screen-1 fields incomplete - Total:${okTotal} Use:${okUse} - will still try to close`);
+                    }
+
+                    const continueVerisk = verisk360Modal.locator('button:has-text("CONTINUE"), button:has-text("Continue")').first();
+                    if (await continueVerisk.isVisible({ timeout: 10000 }).catch(() => false)) {
+                        await continueVerisk.click();
+                        await page.waitForTimeout(300);
+                    }
+
+                    // Screen 2 - "Structure Options": Construction Class defaults to
+                    // "Unknown", which CALCULATE NOW rejects with:
+                    // "The Estimator returned an Unknown construction type, which
+                    // is not a valid selection. Please reopen the Estimator and
+                    // select a valid Construction Class before importing."
+                    // Confirmed live via screenshot - fix it before proceeding,
+                    // and skip the rest of the wizard entirely if it can't be
+                    // fixed, since Calculate Now is guaranteed to reproduce the
+                    // same error otherwise.
+                    const constructionClassOk = await selectConstructionClassVerified();
+
+                    let importClicked = false;
+                    if (constructionClassOk) {
+                        const calculateBtn = verisk360Modal.locator('button:has-text("CALCULATE NOW"), button:has-text("Calculate Now")').first();
+                        if (await calculateBtn.isVisible({ timeout: 10000 }).catch(() => false)) {
+                            await calculateBtn.click();
+                            await page.waitForTimeout(300);
+                            console.log('Verisk360 CALCULATE NOW clicked');
+                        } else {
+                            console.log('Verisk360 CALCULATE NOW button never appeared - Construction Class selection may not have registered with the app');
+                        }
+
+                        // Widened from 15s - confirmed live that Calculate Now's
+                        // own processing (screen 2 -> 3) can take longer than
+                        // that under load; BOP succeeded with the same 15s twice
+                        // in a row, but CP has stalled here at least once.
+                        const finishBtn = verisk360Modal.locator('button:has-text("FINISH"), button:has-text("Finish")').first();
+                        if (await finishBtn.isVisible({ timeout: 25000 }).catch(() => false)) {
+                            await finishBtn.click();
+                            await page.waitForTimeout(300);
+                            console.log('Verisk360 FINISH clicked');
+                        } else {
+                            const modalDiag = await verisk360Modal.evaluate(el => ({
+                                text: (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 400),
+                                buttons: [...el.querySelectorAll('button')]
+                                    .filter(b => b.offsetParent !== null)
+                                    .map(b => (b.textContent || '').trim()).filter(Boolean),
+                            })).catch(() => ({ text: '(modal not found)', buttons: [] }));
+                            console.log('Verisk360 FINISH button never appeared after CALCULATE NOW - modal state: ' + JSON.stringify(modalDiag));
+                        }
+
+                        const importBtn = page.locator('button:has-text("Import Data")').first();
+                        if (await importBtn.isVisible({ timeout: 10000 }).catch(() => false)) {
+                            await importBtn.click();
+                            importClicked = true;
+                            console.log('Verisk360 Import Data clicked');
+                        } else {
+                            console.log('Verisk360 Import Data button never appeared after FINISH');
+                        }
+                    } else {
+                        console.log('Skipping CALCULATE NOW/FINISH/Import Data - Construction Class still invalid, would fail validation');
+                    }
+
+                    await verisk360Modal.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => { });
+
+                    if (importClicked) {
+                        const importedOk = await waitForPropertyInformationFound(45000);
+                        console.log(importedOk
+                            ? 'Property Information Found - Import Data succeeded'
+                            : 'Property Information still shows Not Found after 45s - Import Data likely failed');
+                    }
+
+                    // Import Data can leave the modal up if any of the buttons above
+                    // were missed - force it closed rather than letting every click
+                    // downstream (including Save Building's Next button) inherit the
+                    // same 120s dead wait.
+                    await closeAnyBlockingDialog();
+                    await dismissStatusModal();
+                    console.log('Verisk360 flow completed');
+
+                } else if (isOldEstimator) {
+                    console.log('Old estimator detected');
+                    await oldEstimatorFld.click({ clickCount: 3 });
+                    await page.keyboard.press('Backspace');
+                    await page.keyboard.type('999');
+                    await page.keyboard.press('Tab');
+                    await page.waitForTimeout(500);
+                    await page.locator('#PRI-XT_TEMPLATE_ID_PRIMARY-VAL').click();
+                    await page.getByText('Apartment / Condominium').click();
+                    await page.getByRole('button', { name: 'Continue' }).click();
+                    await page.getByRole('button', { name: 'Calculate Now' }).click();
+                    await page.getByRole('button', { name: 'Finish' }).click();
+                    await page.waitForTimeout(500);
+                    await page.getByRole('button', { name: 'Import Data' }).click();
+                    await page.waitForTimeout(1000);
+                    const importedOkOld = await waitForPropertyInformationFound(45000);
+                    console.log(importedOkOld
                         ? 'Property Information Found - Import Data succeeded'
                         : 'Property Information still shows Not Found after 45s - Import Data likely failed');
-                }
-
-                // Import Data can leave the modal up if any of the buttons above
-                // were missed - force it closed rather than letting every click
-                // downstream (including Save Building's Next button) inherit the
-                // same 120s dead wait.
-                await closeAnyBlockingDialog();
-                await dismissStatusModal();
-                console.log('Verisk360 flow completed');
-
-            } else if (isOldEstimator) {
-                console.log('Old estimator detected');
-                await oldEstimatorFld.click({ clickCount: 3 });
-                await page.keyboard.press('Backspace');
-                await page.keyboard.type('999');
-                await page.keyboard.press('Tab');
-                await page.waitForTimeout(500);
-                await page.locator('#PRI-XT_TEMPLATE_ID_PRIMARY-VAL').click();
-                await page.getByText('Apartment / Condominium').click();
-                await page.getByRole('button', { name: 'Continue' }).click();
-                await page.getByRole('button', { name: 'Calculate Now' }).click();
-                await page.getByRole('button', { name: 'Finish' }).click();
-                await page.waitForTimeout(500);
-                await page.getByRole('button', { name: 'Import Data' }).click();
-                await page.waitForTimeout(1000);
-                const importedOkOld = await waitForPropertyInformationFound(45000);
-                console.log(importedOkOld
-                    ? 'Property Information Found - Import Data succeeded'
-                    : 'Property Information still shows Not Found after 45s - Import Data likely failed');
-                await closeAnyBlockingDialog();
-                console.log('Old estimator completed');
-            } else {
-                console.log('Estimator link opened but neither Verisk360 modal nor old estimator fields were found - closing anything left open');
-                await closeAnyBlockingDialog();
-            }
-
-            const sourceVisible = await waitForVisible(sourceInput, 5000);
-            if (sourceVisible) {
-                const rawValue = await sourceInput.inputValue();
-                const cleaned = rawValue.replace(/,/g, '').trim();
-                // The field being VISIBLE does not mean the estimator actually
-                // populated it - when Import Data never really ran (e.g. the
-                // modal was force-closed after a stuck validation error), this
-                // read back an empty string, which overwrote the safe fallback
-                // with a BLANK building limit instead of leaving 1000000 in
-                // place. Confirmed live: "Estimated Replacement Cost:  -> " /
-                // "Building Limit set: " (both blank) in logs/cp-fix-verify2.log.
-                if (cleaned && Number(cleaned) > 0) {
-                    numericValue = cleaned;
-                    console.log(`Estimated Replacement Cost: ${rawValue} -> ${numericValue}`);
+                    await closeAnyBlockingDialog();
+                    console.log('Old estimator completed');
                 } else {
-                    console.log(`Estimated Replacement Cost field visible but empty ("${rawValue}") - keeping fallback ${numericValue}`);
+                    console.log('Estimator link opened but neither Verisk360 modal nor old estimator fields were found - closing anything left open');
+                    await closeAnyBlockingDialog();
+                }
+
+                const sourceVisible = await waitForVisible(sourceInput, 5000);
+                if (sourceVisible) {
+                    const rawValue = await sourceInput.inputValue();
+                    const cleaned = rawValue.replace(/,/g, '').trim();
+                    // The field being VISIBLE does not mean the estimator actually
+                    // populated it - when Import Data never really ran (e.g. the
+                    // modal was force-closed after a stuck validation error), this
+                    // read back an empty string, which overwrote the safe fallback
+                    // with a BLANK building limit instead of leaving 1000000 in
+                    // place. Confirmed live: "Estimated Replacement Cost:  -> " /
+                    // "Building Limit set: " (both blank) in logs/cp-fix-verify2.log.
+                    if (cleaned && Number(cleaned) > 0) {
+                        numericValue = cleaned;
+                        console.log(`Estimated Replacement Cost: ${rawValue} -> ${numericValue}`);
+                    } else {
+                        console.log(`Estimated Replacement Cost field visible but empty ("${rawValue}") - keeping fallback ${numericValue}`);
+                    }
+                } else {
+                    console.log(`Estimated Replacement Cost field not visible, using fallback ${numericValue}`);
                 }
             } else {
-                console.log(`Estimated Replacement Cost field not visible, using fallback ${numericValue}`);
+                console.log('Estimator did not open - using fallback limit 1000000');
             }
-        } else {
-            console.log('Estimator did not open - using fallback limit 1000000');
-        }
 
-        await closeAnyBlockingDialog();
-        await limit52Input.waitFor({ state: 'visible', timeout: 10000 });
-        await fillIntegerField(limit52Input, numericValue);
-        console.log(`Building Limit set: ${numericValue}`);
+            await closeAnyBlockingDialog();
+            await limit52Input.waitFor({ state: 'visible', timeout: 10000 });
+            await fillIntegerField(limit52Input, numericValue);
+            console.log(`Building Limit set: ${numericValue}`);
+        } else {
+            // High-risk location: WriteBiz allows no Building coverage ("Building coverage is
+            // not available"), so skip the estimator/limit. Log this page's controls so the
+            // high-risk path can be confirmed, and remove the coverage if the page offers it.
+            const covControls = await page.evaluate(() => {
+                const vis = (el) => !!(el.offsetParent || el.getClientRects().length);
+                return [...document.querySelectorAll('button, a, i, span[title], input[type=checkbox]')].filter(vis)
+                    .filter(e => e.title || e.id || (e.innerText || '').trim())
+                    .map(e => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${e.title ? ' [' + e.title + ']' : ''} ${(e.innerText || '').trim().slice(0, 40)}`)
+                    .slice(0, 150);
+            });
+            console.log(`High-risk building coverage page controls: ${JSON.stringify(covControls)}`);
+            const removeCov = page.locator('[title*="Remove" i], [title*="Delete" i]').filter({ visible: true }).first();
+            if (await removeCov.isVisible().catch(() => false)) {
+                console.log(`High-risk: removing Building coverage via [${await removeCov.getAttribute('title')}]`);
+                await removeCov.click();
+                await page.waitForTimeout(1000);
+                await dismissStatusModal();
+                await clickIfExists('Yes');
+                await clickIfExists('OK');
+            } else {
+                console.log('High-risk: no remove control on the building coverage page - leaving Building Limit empty');
+            }
+        }
 
         await dismissStatusModal();
         await safeNextClick();
@@ -1338,6 +1406,14 @@ test('Package Submission', async ({ page }, testInfo) => {
         await page.locator('#txtOccupancyDescription').waitFor({ state: 'visible', timeout: 15000 });
         await page.locator('#txtOccupancyDescription').fill('occupancy desc');
         await page.locator('#txtSquareFootage').fill('15656');
+        if (highRiskLocation) {
+            // With the building at "No Coverage", the occupancy's coverage form is no
+            // longer pre-filled (Sprinkler then has no options) - BPP sits on this form.
+            await page.locator('#ddlCoverage').selectOption({ label: 'Building and Personal Property Coverage Form' });
+            await page.waitForTimeout(1500);
+            await dismissStatusModal();
+            console.log('High-risk: Occupancy coverage form set to "Building and Personal Property Coverage Form"');
+        }
         await page.getByText('Occupancy Details Location').click();
         await page.locator('button[data-id="ddlSprinkler"]').click();
         await page.locator('.dropdown-menu').getByText('Sprinklered Building, but Not Rated as Sprinklered').click();
@@ -1366,9 +1442,15 @@ test('Package Submission', async ({ page }, testInfo) => {
 
         const limit54Input = page.locator('#txt_CP7Limit54_integerWithCommas');
         await limit54Input.waitFor({ state: 'visible', timeout: 10000 });
-        await fillIntegerField(limit54Input, '156566');
+        // High-risk location: BPP must be <= $20,000.
+        await fillIntegerField(limit54Input, highRiskLocation ? '20000' : '156566');
 
-        await processCoverageDropdowns(page);
+        // High-risk: don't vary this card's dropdowns - changing Cause of Loss makes
+        // WriteBiz refresh the card and reset Valuation, leaving "missing required
+        // information: Personal Property" (Training/DE 2026-10-20). Only fill required blanks.
+        if (!highRiskLocation) await processCoverageDropdowns(page);
+        else await page.waitForTimeout(1500);
+        await fillBlankRequiredSelects(page, highRiskLocation ? 'High-risk BPP' : '');
         await page.waitForTimeout(300);
         await processAllAddCoverageButtons(page);
         await dismissStatusModal();
@@ -1428,84 +1510,96 @@ test('Package Submission', async ({ page }, testInfo) => {
             console.log('Attention dialog not found, skipping');
         }
 
-        // ── Special Classes ───────────────────────────────────────────────────
-        const addSpecialClassOption = page.locator('div.filter-option-inner-inner')
-            .filter({ hasText: /Special Class|Add Special/ }).first();
-        const dropdownVisible = await waitForVisible(addSpecialClassOption, 10000);
-
-        if (!dropdownVisible) {
-            console.log('Add Special Class option not found, skipping');
+        if (highRiskLocation) {
+            // High-risk location: "Special Classes are not available" - add none, go on
+            // from the Special Classes page through Mortgagees to General Liability.
+            console.log('High-risk location: skipping Special Classes');
+            await dismissStatusModal();
+            await safeNextClick();
+            await page.waitForTimeout(200);
+            await dismissStatusModal();
+            await safeContinueClick();
         } else {
-            await addSpecialClassOption.scrollIntoViewIfNeeded();
-            await addSpecialClassOption.click();
-            await page.locator('#bs-select-1-0').click();
-            await page.locator('#txtNewSpecialClassDescription').waitFor({ state: 'visible', timeout: 8000 });
-            await page.locator('#txtNewSpecialClassDescription').fill('Special Class Description');
-            await page.locator('button[data-id="ddlCovForm"]').click();
-            await page.locator('.dropdown-menu.show a[role="option"]')
-                .filter({ hasText: 'Building and Personal Property Coverage Form' })
-                .waitFor({ state: 'visible', timeout: 5000 });
-            await page.locator('.dropdown-menu.show a[role="option"]')
-                .filter({ hasText: 'Building and Personal Property Coverage Form' }).click();
+            // ── Special Classes ───────────────────────────────────────────────────
+            const addSpecialClassOption = page.locator('div.filter-option-inner-inner')
+                .filter({ hasText: /Special Class|Add Special/ }).first();
+            const dropdownVisible = await waitForVisible(addSpecialClassOption, 10000);
 
-            const lookupTrigger = page.locator('#txtSpecialClassesClassificationDescriptions_displayAll');
-            await lookupTrigger.waitFor({ state: 'visible', timeout: 5000 });
-            await lookupTrigger.click();
-            const firstResultRow = page.locator('#txtSpecialClassesClassificationDescriptions_resultsTable tbody tr').first();
-            await firstResultRow.waitFor({ state: 'visible', timeout: 8000 });
-            await firstResultRow.click();
+            if (!dropdownVisible) {
+                console.log('Add Special Class option not found, skipping');
+            } else {
+                await addSpecialClassOption.scrollIntoViewIfNeeded();
+                await addSpecialClassOption.click();
+                await page.locator('#bs-select-1-0').click();
+                await page.locator('#txtNewSpecialClassDescription').waitFor({ state: 'visible', timeout: 8000 });
+                await page.locator('#txtNewSpecialClassDescription').fill('Special Class Description');
+                await page.locator('button[data-id="ddlCovForm"]').click();
+                await page.locator('.dropdown-menu.show a[role="option"]')
+                    .filter({ hasText: 'Building and Personal Property Coverage Form' })
+                    .waitFor({ state: 'visible', timeout: 5000 });
+                await page.locator('.dropdown-menu.show a[role="option"]')
+                    .filter({ hasText: 'Building and Personal Property Coverage Form' }).click();
 
-            const basicSymbolDropdown = page.locator('button[data-id="ddlBasicSymbolNumber"]');
-            if (await basicSymbolDropdown.count() > 0) {
-                const isEnabled = await waitForEnabled(basicSymbolDropdown, 8000);
-                if (!isEnabled) {
-                    console.log('Basic Symbol Number stayed disabled, skipping');
-                } else {
-                    await basicSymbolDropdown.click();
-                    const menuId = await basicSymbolDropdown.getAttribute('aria-owns');
-                    const optionSel = menuId ? `#${menuId} [role="option"]` : '#bs-select-8 [role="option"]';
-                    const firstOpt = page.locator(optionSel).first();
-                    await firstOpt.waitFor({ state: 'visible', timeout: 5000 });
-                    await firstOpt.click();
-                    console.log('Basic Symbol Number selected');
+                const lookupTrigger = page.locator('#txtSpecialClassesClassificationDescriptions_displayAll');
+                await lookupTrigger.waitFor({ state: 'visible', timeout: 5000 });
+                await lookupTrigger.click();
+                const firstResultRow = page.locator('#txtSpecialClassesClassificationDescriptions_resultsTable tbody tr').first();
+                await firstResultRow.waitFor({ state: 'visible', timeout: 8000 });
+                await firstResultRow.click();
+
+                const basicSymbolDropdown = page.locator('button[data-id="ddlBasicSymbolNumber"]');
+                if (await basicSymbolDropdown.count() > 0) {
+                    const isEnabled = await waitForEnabled(basicSymbolDropdown, 8000);
+                    if (!isEnabled) {
+                        console.log('Basic Symbol Number stayed disabled, skipping');
+                    } else {
+                        await basicSymbolDropdown.click();
+                        const menuId = await basicSymbolDropdown.getAttribute('aria-owns');
+                        const optionSel = menuId ? `#${menuId} [role="option"]` : '#bs-select-8 [role="option"]';
+                        const firstOpt = page.locator(optionSel).first();
+                        await firstOpt.waitFor({ state: 'visible', timeout: 5000 });
+                        await firstOpt.click();
+                        console.log('Basic Symbol Number selected');
+                    }
                 }
+                await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
+                // Per live observation: this Details screen stays on-screen
+                // noticeably longer than networkidle alone suggests before it is
+                // actually ready for Next to be clicked.
+                await page.waitForTimeout(1000);
             }
+
+            // ── Special Class Coverages ───────────────────────────────────────────
+            // Widened per live observation: both the Special Class Details ->
+            // Coverages transition and the Coverages screen's own Limit field
+            // consistently need more settle time than a bare 200ms after
+            // networkidle - Guidewire's polling/delayed rendering here is not
+            // fully captured by the networkidle event.
+            await dismissStatusModal();
+            await safeNextClick();
+            await page.waitForLoadState('domcontentloaded');
             await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
-            // Per live observation: this Details screen stays on-screen
-            // noticeably longer than networkidle alone suggests before it is
-            // actually ready for Next to be clicked.
-            await page.waitForTimeout(1000);
+            await page.waitForTimeout(1500);
+            await dismissStatusModal();
+
+            const limit19Input = page.locator('#txt_CP7Limit19_integerWithCommas');
+            await limit19Input.waitFor({ state: 'visible', timeout: 30000 });
+            await fillIntegerField(limit19Input, '165666');
+
+            await processCoverageDropdowns(page);
+            await fillBlankRequiredSelects(page);
+            await page.waitForTimeout(300);
+            await dismissStatusModal();
+            await safeNextClick();
+            await page.waitForTimeout(200);
+            await safeClick(page.locator('#btnNext_CLPackageSpecialClassAdditionalCoverages'));
+            await page.waitForTimeout(200);
+            await dismissStatusModal();
+            await safeNextClick();
+            await page.waitForTimeout(200);
+            await dismissStatusModal();
+            await safeContinueClick();
         }
-
-        // ── Special Class Coverages ───────────────────────────────────────────
-        // Widened per live observation: both the Special Class Details ->
-        // Coverages transition and the Coverages screen's own Limit field
-        // consistently need more settle time than a bare 200ms after
-        // networkidle - Guidewire's polling/delayed rendering here is not
-        // fully captured by the networkidle event.
-        await dismissStatusModal();
-        await safeNextClick();
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
-        await page.waitForTimeout(1500);
-        await dismissStatusModal();
-
-        const limit19Input = page.locator('#txt_CP7Limit19_integerWithCommas');
-        await limit19Input.waitFor({ state: 'visible', timeout: 30000 });
-        await fillIntegerField(limit19Input, '165666');
-
-        await processCoverageDropdowns(page);
-        await page.waitForTimeout(300);
-        await dismissStatusModal();
-        await safeNextClick();
-        await page.waitForTimeout(200);
-        await safeClick(page.locator('#btnNext_CLPackageSpecialClassAdditionalCoverages'));
-        await page.waitForTimeout(200);
-        await dismissStatusModal();
-        await safeNextClick();
-        await page.waitForTimeout(200);
-        await dismissStatusModal();
-        await safeContinueClick();
 
         console.log('Commercial property package data entered successfully.');
         trackMilestone('Commercial Property Package Completed');
@@ -1621,6 +1715,7 @@ test('Package Submission', async ({ page }, testInfo) => {
         await fillIntegerField(imLimit4, '500');
 
         await processCoverageDropdowns(page);
+        await fillBlankRequiredSelects(page);
         await page.waitForTimeout(300);
         await dismissStatusModal();
         await safeNextClick();

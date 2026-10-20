@@ -8,7 +8,7 @@ const { getEnvUrls } = require('./helpers/envConfig');
 const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = require('./stateConfig');
 const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
 const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
-const { processCoverageDropdowns, processAllAddCoverageButtons } = require('./helpers/coverageHelpers');
+const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequiredSelects } = require('./helpers/coverageHelpers');
 const fs   = require('fs');
 const path = require('path');
 
@@ -303,11 +303,25 @@ test('CA Submission', async ({ page }, testInfo) => {
       try {
         await dismissStatusModal();
         await continueReferralModal();
+        const urlBefore = page.url();
         await btn.click({ timeout: 10000 });
         clicked = true;
+        // A post-Next validation box ("Missing required field ...") means the page
+        // didn't move - fix what it names and click Next again. Stops checking as soon
+        // as the page navigates, so normal Next clicks don't pay for this.
+        const impediments = page.locator('#dgic-modal-activityimpediments');
+        let blocked = false;
+        for (const end = Date.now() + 2500; Date.now() < end;) {
+          if (page.url() !== urlBefore) break;
+          if (await impediments.isVisible().catch(() => false)) { blocked = true; break; }
+          await new Promise(r => setTimeout(r, 200));
+        }
+        if (blocked && await fixMissingCoverageFields()) clicked = false;
       } catch (e) {
         console.log(`safeNextClick attempt ${attempt}: ${e.message.split('\n')[0]}`);
         await dismissStatusModal();
+        await fixRequiredFields();
+        await fillBlankRequiredSelects(page, 'safeNextClick');
         await page.waitForTimeout(500);
       }
     }
@@ -319,6 +333,79 @@ test('CA Submission', async ({ page }, testInfo) => {
       const blockers = await page.locator('.modal.show .modal-title').allTextContents().catch(() => []);
       console.log(`WARNING safeNextClick: Next not clickable after 4 attempts - forcing click; open dialog(s): ${JSON.stringify(blockers.map(s => s.trim()))}`);
       await btn.click({ force: true });
+    }
+  }
+
+  // WriteBiz's post-Next "Attention - Errors" box naming a coverage field the flow
+  // never sets, e.g. MI State Specific Additional Coverages: 'Michigan: Coordination
+  // Of Benefits - Excess Personal Injury Protection Coverage - Missing required field
+  // "Excess PIP"' (Training/MI 2026-10-20). Open that coverage's row, set the field,
+  // save. Returns true if it fixed something (caller clicks Next again).
+  async function fixMissingCoverageFields() {
+    const box = page.locator('#dgic-modal-activityimpediments');
+    if (!await box.isVisible().catch(() => false)) return false;
+    const msgs = (await box.locator('[id^="xlbl_Impediment_"]').allTextContents().catch(() => [])).map(s => s.trim());
+    console.log(`Attention after Next: ${JSON.stringify(msgs)}`);
+    const todo = msgs.map(m => /^(?:[A-Za-z ]+:\s*)?(.+?)\s+-\s+Missing required field "(.+?)"/.exec(m)).filter(Boolean);
+    await page.locator('#ActivityImpediments_dialog_btn_0').click({ timeout: 5000 }).catch(() => {});
+    await box.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    let fixed = false;
+    for (const [, coverage, field] of todo) {
+      // Grid rows omit the trailing " Coverage" the error message adds.
+      const row = page.locator('table tbody tr').filter({ hasText: coverage.replace(/\s+Coverage$/i, '').slice(0, 55) }).first();
+      if (!await row.isVisible().catch(() => false)) { console.log(`Missing "${field}": no grid row for "${coverage}"`); continue; }
+      const action = row.locator('[data-action="Edit"], [title*="Edit" i], button, i.fas').first();
+      await action.click({ timeout: 5000 }).catch(() => row.click());
+      const dlg = page.locator('.modal.show').last();
+      await dlg.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+      const controls = await dlg.locator('label, button, select, input:not([type=hidden])').evaluateAll(els => els
+        .filter(e => e.offsetParent).map(e => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''} ${(e.innerText || e.value || e.title || '').trim().slice(0, 40)}`)).catch(() => []);
+      console.log(`Coverage dialog for "${coverage}": ${JSON.stringify(controls.slice(0, 60))}`);
+      const label = dlg.getByText(field, { exact: true }).first();
+      const bsBtn = label.locator('xpath=following::button[contains(@class,"dropdown-toggle")][1]');
+      const sel = label.locator('xpath=following::select[1]');
+      if (await bsBtn.isVisible().catch(() => false)) {
+        await bsBtn.click();
+        const opt = page.locator('.dropdown-menu.show [role="option"]').filter({ hasNotText: 'Nothing selected' }).first();
+        if (await opt.isVisible({ timeout: 3000 }).catch(() => false)) { await opt.click(); fixed = true; }
+      } else if (await sel.count().catch(() => 0)) {
+        await sel.selectOption({ index: 1 }).then(() => { fixed = true; }).catch(() => {});
+      }
+      console.log(`Missing "${field}" on "${coverage}": ${fixed ? 'set' : 'could not set'}`);
+      await dlg.locator('button').filter({ hasText: /Save|OK|Apply|Done/ }).first().click({ timeout: 5000 }).catch(() => {});
+      await dlg.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+      await dismissStatusModal();
+    }
+    return fixed;
+  }
+
+  // State-specific required fields the DE-built flow never fills, e.g. PA State
+  // Specific Coverages: picking "Basic and Added First Party Benefits" makes
+  // "Funeral Expense Benefits Limit" required (left at "Nothing selected"), and Next
+  // shows "An Error has Occured - please try again" (Training/PA 2026-10-20).
+  // Close that box and pick the first real option for each "<Field> is required".
+  async function fixRequiredFields() {
+    const errBox = page.locator('.modal.show').filter({ hasText: 'An Error has Occured' }).first();
+    if (await errBox.isVisible().catch(() => false)) {
+      await errBox.getByRole('button', { name: /Close/ }).click({ timeout: 5000 }).catch(() => {});
+      console.log('Closed "An Error has Occured" dialog');
+    }
+    const msgs = await page.locator('span, div, label').filter({ hasText: /^\s*[^\n]{3,80} is required\s*$/ })
+      .filter({ visible: true }).allTextContents().catch(() => []);
+    for (const field of [...new Set(msgs.map(s => s.trim().replace(/ is required$/, '')))]) {
+      const btn = page.getByText(field, { exact: true }).first()
+        .locator('xpath=following::button[contains(@class,"dropdown-toggle")][1]');
+      if (!await btn.isVisible().catch(() => false)) { console.log(`Required "${field}": no dropdown found next to it`); continue; }
+      await btn.click().catch(() => {});
+      const opt = page.locator('.dropdown-menu.show [role="option"]').filter({ hasNotText: 'Nothing selected' }).first();
+      if (await opt.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await opt.click();
+        await page.waitForTimeout(500);
+        console.log(`Required "${field}": selected "${await btn.getAttribute('title').catch(() => '')}"`);
+      } else {
+        await page.keyboard.press('Escape');
+        console.log(`Required "${field}": dropdown had no options`);
+      }
     }
   }
 
@@ -666,7 +753,14 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
     await dismissStatusModal();
 
-    await processCoverageDropdowns(page);
+    // PA/MI: varying these state PIP coverages (PA Extraordinary Medical Benefits on,
+    // MI Workers Comp Yes->No) makes WriteBiz add a derived, locked field (PA
+    // "Extraordinary Medical Benefits Rating Basis", MI "Excess PIP") that it then
+    // reports as "Missing required field" - disabled fields aren't submitted
+    // (Training 2026-10-20). Keep WriteBiz's defaults there; DE is unchanged.
+    if (testState === 'DE') await processCoverageDropdowns(page);
+    else console.log(`State Specific Coverages: keeping WriteBiz defaults for ${testState}`);
+    await fillBlankRequiredSelects(page);
 
     // Confirmed live on Training: "Number of Employees" is a required plain
     // text input on this Details tab (marked with a red asterisk), which
@@ -687,10 +781,8 @@ test('CA Submission', async ({ page }, testInfo) => {
     } else {
       console.log('Number of Employees field not visible - skipping (may not be required for this LOB/state combo)');
     }
-
     await safeNextClick();
     trackMilestone('State specific info - Coverages');
-
     await safeNextClick();
     trackMilestone('State specific info - Additional coverages');
 
@@ -730,6 +822,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     // unset here, causing rating or a much later Save to fail for what
     // looks like an unrelated reason.
     await processCoverageDropdowns(page);
+    await fillBlankRequiredSelects(page);
     await safeNextClick();
     await dismissStatusModal()
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
@@ -782,6 +875,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     // unset here, causing rating or a much later Save to fail for what
     // looks like an unrelated reason.
     await processCoverageDropdowns(page);
+    await fillBlankRequiredSelects(page);
     await safeNextClick();
     await dismissStatusModal()
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
