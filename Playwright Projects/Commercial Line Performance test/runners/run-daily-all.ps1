@@ -1,10 +1,13 @@
 # runners/run-daily-all.ps1
-# Runs Package, CA, and BOP suites sequentially across all states (DE, PA, MI, WI),
-# headless. Intended to be invoked by a Windows Task Scheduler job (daily, 8 AM);
-# -Env and -States default to 'qa'/'ALL' so unattended invocation is unchanged.
+# Runs Package, CA, and BOP suites sequentially, headless. Intended to be invoked
+# by a Windows Task Scheduler job (daily, 8 AM) with no arguments.
+# Defaults to Training (per QA lead, 2026-10-19: the daily run no longer needs QA).
+# Training's producer is only licensed in DE/PA/MI of our four states - WI is
+# skipped by the tests there - so the default state list leaves WI out.
+# For QA: -Env qa -States ALL
 param(
-  [string]$Env    = 'qa',
-  [string]$States = 'ALL'
+  [string]$Env    = 'training',
+  [string]$States = 'DE,PA,MI'
 )
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
