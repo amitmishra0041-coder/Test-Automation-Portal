@@ -869,17 +869,21 @@
   <div class="tab-panel" id="tab-oneInc">
     <div class="page-head"><h1>OneInc Payments</h1><p>Every test case in the OneInc test-design workbooks (V:\Amit Int\OneInc), with Jira readiness. Run the automated ones against ClaimCenter Cloud. The browser runs <b>visible</b> so you can watch — it opens on the computer running this Runner. Reports, screenshots and the shared claim pool are saved under V:\Amit Int\OneInc\AutomationResults. Every case has a step-by-step review document (Run history › details › "Open step-by-step review document", or <a href="/reports/oneinc/Reports/CaseReviews/index.html" target="_blank">all case reviews</a>) — see the <a href="/reports/oneinc/OneInc_Automation_User_Guide.html" target="_blank">user guide</a>.</p></div>
     <div class="card">
+      <div class="out-toolbar"><h2 style="margin:0">Status by Jira story</h2><span class="muted" style="font-size:12px">latest result of every automated case, from any run</span></div>
+      <div id="oneIncStoryStatus" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
+    </div>
+    <div class="card">
       <div class="field-label">Tier (select one)</div>
       <div class="chips" id="oneIncTierChips"></div>
-      <label class="oi-finish"><input type="checkbox" id="oneIncAllowFinish"> Allow Finish on validation-rule scenarios (TEST only — <b>submits a real payment to OneInc</b> when no error appears)</label>
-      <label class="oi-finish"><input type="checkbox" id="oneIncProvision" checked> Prepare test data first (TEST only — re-checks and builds the declared test data on the pool claims of every claim type the selected scenarios need, and creates new claims (FNOL) until the pool has
-        <select id="oneIncPoolSize" style="width:auto;min-width:0;padding:1px 4px"><option>1</option><option selected>2</option><option>3</option></select> each)</label>
+      <!-- Always on for TEST runs (user direction 2026-10-22): kept as hidden inputs so the job payload is unchanged. -->
+      <input type="checkbox" id="oneIncAllowFinish" checked hidden>
+      <input type="checkbox" id="oneIncProvision" checked hidden>
+      <select id="oneIncPoolSize" hidden><option selected>1</option><option>2</option><option>3</option></select>
+      <div class="oi-finish" id="oneIncTestNote">On TEST every run first <b>prepares the test data</b> the selected cases need (checks/builds the pool claims, creates claims if missing) and <b>may submit small real payments to OneInc TEST</b> when a case presses Finish.</div>
       <label class="oi-finish">Parallel browsers for screen checks
         <select id="oneIncWorkers" style="width:auto;min-width:0;padding:1px 4px"><option>1</option><option selected>2</option><option>3</option></select>
         (payment / Finish scenarios always run one at a time)</label>
 
-      <div class="field-label">Stories <span class="muted" id="oneIncJiraNote"></span></div>
-      <div class="oi-stories" id="oneIncStories"><span class="stats-empty">Loading…</span></div>
 
       <div class="oi-filters">
         <select id="oneIncFStory"><option value="">All stories</option></select>
@@ -900,10 +904,6 @@
       </div>
       <div class="error-msg" id="oneIncError"></div>
       <div class="muted" id="oneIncReportLinks" style="margin-top:8px"></div>
-    </div>
-    <div class="card">
-      <div class="out-toolbar"><h2 style="margin:0">Status by Jira story</h2><span class="muted" style="font-size:12px">latest result of every automated case, from any run</span></div>
-      <div id="oneIncStoryStatus" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
     </div>
     <div class="card">
       <div class="out-toolbar"><h2 style="margin:0">Current run</h2><div><button id="oneIncAllRunsToggle" type="button">Show all runs</button> <button id="oneIncRefreshBtn">Refresh</button></div></div>
@@ -3504,7 +3504,7 @@
       var box = $('oneIncTierChips'); box.innerHTML = '';
       ['test', 'dev'].forEach(function (t) {
         var c = chip(t.toUpperCase(), oi.tier === t);
-        c.addEventListener('click', function () { oi.tier = t; if (t !== 'test') $('oneIncAllowFinish').checked = false; $('oneIncAllowFinish').disabled = t !== 'test'; renderTiers(); });
+        c.addEventListener('click', function () { oi.tier = t; $('oneIncTestNote').style.display = t === 'test' ? '' : 'none'; renderTiers(); });
         box.appendChild(c);
       });
     }
@@ -3526,18 +3526,6 @@
         return (!fs || s.story === fs) && (!fc || s.automation === fc) && (running ? running.has(s.scenarioId) : (!fst || (st ? st.status : 'NOT EXECUTED') === fst)) &&
           (!q || (s.scenarioId + ' ' + s.name).toLowerCase().indexOf(q) >= 0);
       });
-    }
-    function renderStories() {
-      var d = oi.data;
-      $('oneIncJiraNote').textContent = d.jira.available ? '— readiness from Jira (Dev + Test Execution cards)' : '— Jira readiness unavailable: ' + d.jira.reason;
-      $('oneIncStories').innerHTML = d.stories.map(function (s) {
-        var j = s.jira, rd = j ? j.readiness : 'UNKNOWN';
-        var link = function (c) { return c ? '<a href="https://' + esc(d.jira.site) + '/browse/' + esc(c.key) + '" target="_blank">' + esc(c.key) + '</a> ' + esc(c.status) : '—'; };
-        var auto = d.scenarios.filter(function (x) { return x.story === s.story && x.automation === 'AUTOMATED'; }).length;
-        return '<div class="oi-story"><b>' + esc(s.story) + '</b><span class="oi-rd ' + esc(rd) + '">' + esc(rd.replace('_', ' ')) + '</span>' +
-          '<div class="muted">' + esc(s.title) + '</div><div>' + s.cases + ' test cases · ' + auto + ' automated</div>' +
-          '<div class="muted">Dev ' + link(j && j.dev) + ' · Test exec ' + link(j && j.exec) + '</div></div>';
-      }).join('');
     }
     function renderFilters() {
       var d = oi.data;
@@ -3592,7 +3580,7 @@
       if (!id) { el.innerHTML = '<span class="stats-empty">No OneInc runs yet.</span>'; return; }
       if (!run) { el.innerHTML = '<span class="stats-empty">Loading run ' + esc(id) + '…</span>'; return; }
       var lr = (oi.data && oi.data.latestRun) || {};
-      var mine = (run.results || []).filter(function (r) { return r.automation === 'AUTOMATED' && (/^(PASS|FAIL|BLOCKED)$/.test(r.status) || /^Queued/.test(r.reason || '') || oi.live[r.scenarioId]); });
+      var mine = (run.results || []).filter(function (r) { return r.automation === 'AUTOMATED' && (/^(PASS|FAIL|BLOCKED)$/.test(r.status) || /^Queued/.test(r.reason || '')); });
       var done = 0, C = { PASS: 0, FAIL: 0, BLOCKED: 0 };
       var rows = mine.map(function (r) {
         var lv = oi.live[r.scenarioId], st = /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? r.status : (lv && lv.status) || (lr.inProgress ? 'QUEUED' : 'NOT REACHED');
@@ -3674,7 +3662,7 @@
       fetch('/api/oneInc/scenarios' + (refresh ? '?refresh=1' : '')).then(function (r) { return r.json(); }).then(function (d) {
         if (d.error) { $('oneIncError').textContent = d.error; return; }
         oi.data = d; oi.latestRunId = d.latestRunId; oi.live = {}; oi.loaded = true;
-        renderStories(); renderFilters(); renderTable();
+        renderFilters(); renderTable();
         // A run in progress (from this tab, another person, or the command line) — its report file is rewritten after
         // every scenario, so re-read it every 15s while this tab is open.
         var lr = d.latestRun;
@@ -3694,13 +3682,27 @@
     }
     function queue(job) {
       $('oneIncError').textContent = '';
-      job.tier = oi.tier; job.allowFinish = $('oneIncAllowFinish').checked;
+      job.tier = oi.tier; job.allowFinish = oi.tier === 'test'; // always on for TEST (2026-10-22); never on other tiers
       job.provision = oi.tier === 'test' && $('oneIncProvision').checked; job.poolSize = $('oneIncPoolSize').value;
       job.workers = $('oneIncWorkers').value;
-      if (job.allowFinish && !confirm('Allow Finish: validation scenarios that show no error will SUBMIT a real payment on TEST (sent to OneInc). Continue?')) return;
       fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ suite: 'oneInc', jobs: [job], requestedBy: myEmail }) })
         .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
-        .then(function (res) { if (!res.ok) $('oneIncError').textContent = res.body.error || 'Failed to queue run'; });
+        .then(function (res) {
+          if (!res.ok) { $('oneIncError').textContent = res.body.error || 'Failed to queue run'; return; }
+          // Switch the Current run card to the new run as soon as its report file exists (2026-10-22).
+          // The run writes its first status after loading the workbooks + Jira readiness (can take 20–60s): poll every 5s
+          // until a NEW run id appears (max 3 min); from then on the in-progress poll (15s) takes over.
+          oi.live = {};
+          var before = oi.latestRunId, tries = 0;
+          (function waitNew() {
+            if (++tries > 36) return;
+            setTimeout(function () {
+              fetch('/api/oneInc/scenarios').then(function (r) { return r.json(); }).then(function (d) {
+                if (d.latestRunId && d.latestRunId !== before) load(false); else waitNew();
+              }).catch(waitNew);
+            }, 5000);
+          })();
+        });
     }
     $('oneIncTable').addEventListener('change', function (e) {
       var id = e.target.getAttribute && e.target.getAttribute('data-id'); if (!id) return;

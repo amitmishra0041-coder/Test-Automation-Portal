@@ -484,8 +484,11 @@ app.get('/api/oneInc/scenarios', async (req, res) => {
     let latestRun = null;
     if (latest) {
       const queued = latest.results.filter((r) => /^Queued/.test(r.reason || '')).length;
-      const inProgress = latest.run.complete === false
-        || (latest.run.complete === undefined && queued > 0 && Date.now() - Date.parse(latest.run.finishedAt) < 10 * 60 * 1000);
+      // A STOPPED run never writes complete=true — without an age limit it showed RUNNING forever (2026-10-22). The run
+      // file is rewritten after every case and every provisioning step, so 30 min without a write = not running.
+      const age = Date.now() - Date.parse(latest.run.finishedAt || latest.run.startedAt);
+      const inProgress = (latest.run.complete === false && age < 30 * 60 * 1000)
+        || (latest.run.complete === undefined && queued > 0 && age < 10 * 60 * 1000);
       const planned = latest.run.planned || latest.results.filter((r) => r.automation === 'AUTOMATED' && r.reason !== 'Automated, not selected for this run').length;
       latestRun = { runId: latest.run.runId, inProgress, planned, done: latest.run.done != null ? latest.run.done : planned - queued, summary: latest.run.summary };
     }
@@ -1751,6 +1754,8 @@ function processQueue(suite) {
         if (oneRes[4] === 'PASS') stats.passed += 1; else stats.failed += 1;
         continue;
       }
+      const oneRun = /^\[OneInc\] run (OneInc_\d{8}_\d{6}_\w+)/.exec(rawLine);
+      if (oneRun) entry.oneIncRunId = oneRun[1];
       const oneStart = /^\[OneInc\] \((\d+)\/(\d+)\) (\S+) — starting/.exec(rawLine);
       if (oneStart) broadcast('oneinc-result', { id, scenarioId: oneStart[3], status: 'RUNNING', reason: '' });
 
@@ -1777,6 +1782,7 @@ function processQueue(suite) {
 
   child.on('close', (code) => {
     pool.running = pool.running.filter((r) => r.id !== id);
+    if (entry.oneIncRunId) markOneIncRunClosed(entry.oneIncRunId, code);
     broadcast('job-end', {
       id, label: job.label, requestedBy: job.requestedBy, code, stats, reportUrls: job.reportUrls || null,
       queue: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })),
@@ -1792,6 +1798,20 @@ function processQueue(suite) {
   // (since pool.running now includes the job just started) hits the stagger check above, scheduling itself
   // for STAGGER_MS later instead of launching back-to-back.
   processQueue(suite);
+}
+
+// A OneInc run that was stopped (or crashed) never writes complete=true, so the UI kept showing it RUNNING
+// (2026-10-22). When its process exits, mark the run file + its history entry complete (stopped: true if it hadn't).
+function markOneIncRunClosed(runId, code) {
+  try {
+    const root = oneIncResultsDir();
+    for (const f of [path.join(root, 'Reports', `${runId}.json`), path.join(root, 'RunHistory', `${runId}.json`)]) {
+      if (!fs.existsSync(f)) continue;
+      const d = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const r = d.run || d;
+      if (r.complete === false) { r.complete = true; r.stopped = true; r.exitCode = code; fs.writeFileSync(f, JSON.stringify(d, null, 2)); }
+    }
+  } catch (e) { console.warn('[OneInc] could not mark run closed:', e.message); }
 }
 
 // Loopback only by default (the installed desktop app has no reason to be reachable from other machines, and
