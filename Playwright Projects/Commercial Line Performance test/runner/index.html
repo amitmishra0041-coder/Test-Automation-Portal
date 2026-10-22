@@ -884,7 +884,7 @@
       <div class="oi-filters">
         <select id="oneIncFStory"><option value="">All stories</option></select>
         <select id="oneIncFCat"><option value="">All categories</option></select>
-        <select id="oneIncFStatus"><option value="">Any last status</option><option>PASS</option><option>FAIL</option><option>BLOCKED</option><option>NOT EXECUTED</option><option value="RUNNING">Running now</option></select>
+        <select id="oneIncFStatus"><option value="">Any last status</option><option>PASS</option><option>FAIL</option><option>BLOCKED</option><option>NOT EXECUTED</option><option value="RUNNING">In the current run</option></select>
         <input type="search" id="oneIncFText" placeholder="Search id or name">
         <button type="button" id="oneIncSelVisible">Select visible automated</button>
         <button type="button" id="oneIncSelNone">Clear</button>
@@ -3509,11 +3509,21 @@
       });
     }
     function statusOf(s) { return oi.live[s.scenarioId] || (oi.data.last[s.scenarioId] || null); }
+    // Cases selected for the run in progress (any source: this Runner, another person, the command line) — from the
+    // run's report file, which is rewritten after every case (2026-10-22: "Running now" used to see only SSE events of
+    // runs started from this page).
+    function currentRunIds() {
+      var lr = oi.data && oi.data.latestRun, run = lr && lr.inProgress && oi.runDetail[lr.runId];
+      var ids = new Set(Object.keys(oi.live));
+      if (run) (run.results || []).forEach(function (r) { if (r.automation === 'AUTOMATED' && (/^(PASS|FAIL|BLOCKED)$/.test(r.status) || /^Queued/.test(r.reason || ''))) ids.add(r.scenarioId); });
+      return ids;
+    }
     function filtered() {
       var fs = $('oneIncFStory').value, fc = $('oneIncFCat').value, fst = $('oneIncFStatus').value, q = $('oneIncFText').value.toLowerCase();
+      var running = fst === 'RUNNING' ? currentRunIds() : null;
       return oi.data.scenarios.filter(function (s) {
         var st = statusOf(s);
-        return (!fs || s.story === fs) && (!fc || s.automation === fc) && (!fst || (st ? st.status : 'NOT EXECUTED') === fst) &&
+        return (!fs || s.story === fs) && (!fc || s.automation === fc) && (running ? running.has(s.scenarioId) : (!fst || (st ? st.status : 'NOT EXECUTED') === fst)) &&
           (!q || (s.scenarioId + ' ' + s.name).toLowerCase().indexOf(q) >= 0);
       });
     }
