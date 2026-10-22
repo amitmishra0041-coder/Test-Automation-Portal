@@ -377,6 +377,20 @@ async function processAllAddCoverageButtons(page) {
             }
             const saveBtn = modal.locator('button:has-text("Save"), button:has-text("Add")').first();
             if (await saveBtn.count() > 0) { await saveBtn.click({ timeout: 5000 }); await waitForSettle(1000); }
+            // Save left the dialog open: it has required free-text terms (e.g. "Name Of Person Or Organization").
+            // Fill the empty ones and save again; if it still won't close, remove the coverage instead.
+            if (await modal.isVisible({ timeout: 1000 }).catch(() => false)) {
+              const empties = await modal.locator('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="button"]):visible, textarea:visible').all();
+              for (const box of empties) {
+                if (!(await box.inputValue().catch(() => 'x')).trim()) await box.fill('Test').catch(() => {});
+              }
+              const again = modal.locator('button:has-text("Save")').first();
+              if (empties.length && await again.count() > 0) { await again.click({ timeout: 5000 }).catch(() => {}); await waitForSettle(1500); }
+            }
+            if (await modal.isVisible({ timeout: 1000 }).catch(() => false)) {
+              const removeBtn2 = modal.locator('button:has-text("Remove Coverage")').first();
+              if (await removeBtn2.count() > 0) { await removeBtn2.click({ timeout: 5000 }).catch(() => {}); await waitForSettle(1500); console.log('  Dialog would not save - removed the coverage'); }
+            }
             if (await modal.isVisible({ timeout: 1000 }).catch(() => false)) {
               const closeBtn = modal.locator('button:has-text("Close"), button[data-dismiss="modal"]').first();
               if (await closeBtn.count() > 0) { await closeBtn.click({ timeout: 5000 }); await waitForSettle(500); }

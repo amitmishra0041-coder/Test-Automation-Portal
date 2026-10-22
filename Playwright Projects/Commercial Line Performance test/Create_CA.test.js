@@ -9,6 +9,8 @@ const { STATE_CONFIG, getStateConfig, randCityForState, randZipForState } = requ
 const { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES } = require('./accountCreationHelper');
 const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
 const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequiredSelects } = require('./helpers/coverageHelpers');
+const caRefresh = require('./helpers/caRefreshValidator');
+const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
 const fs   = require('fs');
 const path = require('path');
 
@@ -107,6 +109,122 @@ test('CA Submission', async ({ page }, testInfo) => {
         JSON.stringify(global.testData, null, 2)
       );
     } catch (e) { console.log('Could not save test-data.json:', e.message); }
+  }
+
+  // ── CA Refresh project (Runner: Project = "CA Refresh") ───────────────────────
+  // Same policy workflow; additionally snapshots each coverage page, checks the expected coverages from
+  // the CA Refresh precondition + product model, and writes a Word result document. Off unless CA_REFRESH=1.
+  const caRefreshOn  = process.env.CA_REFRESH === '1';
+  const caRefreshLob = process.env.CA_REFRESH_LOB === 'AUTO_DEALERS' ? 'AUTO_DEALERS' : 'BUSINESS_AUTO';
+  const crPool       = [];
+  const crShotDir    = path.join(RUNTIME_DIR, 'ca-refresh', `${testState}-${caRefreshLob}`);
+  if (caRefreshOn) { fs.rmSync(crShotDir, { recursive: true, force: true }); fs.mkdirSync(crShotDir, { recursive: true }); }
+  const crSnap = async (label) => { if (caRefreshOn) await caRefresh.snapshot(page, label, crPool, crShotDir); };
+
+  async function crWriteDoc(status, error) {
+    if (!caRefreshOn) return;
+    try {
+      const validation = caRefresh.evaluate(caRefreshLob, testState, crPool);
+      global.testData.caRefresh = { lob: caRefreshLob, summary: validation.summary, results: validation.results };
+      saveTestData();
+      const lobData = caRefresh.DATA.lobs[caRefreshLob];
+      const caseId  = lobData.testCases[testState] || '';
+      // Missing coverages are reported (run keeps going) but make the run FAIL overall.
+      const s = validation.summary;
+      const overall = status === 'PASS' && s.missing ? 'FAIL' : status;
+      const file = await writeCaRefreshDoc({
+        testCaseId: caseId, testCaseName: lobData.testCaseNames[caseId] || '', lobLabel: caRefresh.LOB_LABELS[caRefreshLob],
+        state: testState, env: envName, quoteNumber: global.testData.quoteNumber, policyNumber: global.testData.policyNumber,
+        executedAt: new Date().toISOString(), status: overall,
+        error: error || (overall !== status ? `${s.missing} expected coverage(s) not found in WriteBiz` : ''),
+        milestones: global.testData.milestones, validation, shots: crPool.map((p) => ({ label: p.label, file: p.shot })),
+      }, path.join(RUNTIME_DIR, 'ca-refresh', `CARefresh_${caRefreshLob}_${testState}_${envName}_${Date.now()}.docx`));
+      console.log(`CA Refresh result document: ${file}`);
+      console.log(`CA Refresh coverage validation: ${JSON.stringify(s)}`);
+      if (overall === 'FAIL' && status === 'PASS') throw new Error(`CA Refresh: ${s.missing} expected coverage(s) missing from WriteBiz - see ${file}`);
+    } catch (e) { if (/^CA Refresh:/.test(e.message)) throw e; console.log(`CA Refresh document failed: ${e.message}`); }
+  }
+
+  // Changing one vehicle coverage (e.g. Losses Covered) reloads its dependent field (Deductible Type), which can come
+  // back blank after the first fill pass and then blocks Save with 'Missing required field'. Let it settle, fill again.
+  async function settleAndRefillRequired() {
+    for (let i = 0; i < 3; i++) {
+      await dismissStatusModal();
+      await page.waitForTimeout(2000);
+      if (!await fillBlankRequiredSelects(page, 'vehicle recheck')) break;
+    }
+  }
+
+  async function addDealerLocation() {
+    await dismissStatusModal();
+    await crSnap('Auto Dealers - Locations');
+    const opts = await page.locator('#ddlAddNewDealer option').allInnerTexts().catch(() => []);
+    console.log(`Dealer location options: ${JSON.stringify(opts)}`);
+    const optValue = await page.locator('#ddlAddNewDealer option').evaluateAll((os) => (os.find((o) => o.value && !/add new/i.test(o.textContent)) || {}).value).catch(() => null);
+    await page.locator('#ddlAddNewDealer').selectOption(optValue).catch((e) => console.log(`Dealer location select failed: ${e.message.split('\n')[0]}`));
+    await page.waitForTimeout(1500);
+    await dismissStatusModal();
+    // Dealer Details: each dropdown reloads the next, so pick the first real option in order.
+    for (const id of ['ddlClassification', 'ddlFranchised', 'ddlCoverageType', 'ddlClassCode']) {
+      await dismissStatusModal();
+      const sel = page.locator(`#${id}`);
+      const val = await sel.evaluate((e) => ([...e.options].find((o) => o.value && !e.disabled) || {}).value).catch(() => null);
+      if (!val) { console.log(`Dealer details ${id}: no selectable option (disabled or empty) - skipping`); continue; }
+      await sel.selectOption(val).catch((e) => console.log(`Dealer details ${id}: ${e.message.split('\n')[0]}`));
+      await page.waitForTimeout(1200);
+      console.log(`Dealer details ${id}: selected ${val}`);
+    }
+    await dismissStatusModal();
+    await crSnap('Auto Dealers - Details');
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      await safeNextClick();
+      await dismissStatusModal();
+      // Intermittent "An error has occurred" on Test right after the class code is chosen - close it and retry once.
+      const errBox = page.locator('.modal.show').filter({ hasText: 'An error has occurred' }).first();
+      if (!await errBox.isVisible({ timeout: 3000 }).catch(() => false)) break;
+      console.log(`Dealer details Next raised "An error has occurred" (attempt ${attempt}) - closing`);
+      await errBox.getByRole('button', { name: /close/i }).click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(1000);
+    }
+    // Dealer Coverages tab, then Dealer Additional Coverages tab (same shape as the line coverage pages).
+    await page.waitForLoadState('domcontentloaded');
+    await fillBlankRequiredSelects(page, 'dealer coverages');
+    await crSnap('Auto Dealers - Coverages');
+    await safeNextClick();
+    await dismissStatusModal();
+    await crSnap('Auto Dealers - Additional Coverages (before adding)');
+    await processAllAddCoverageButtons(page);
+    await crSnap('Auto Dealers - Additional Coverages (after adding)');
+    await safeNextClick();
+    await dismissStatusModal();
+  }
+
+  // A second window opening mid-run (e.g. a dealer location / form popup) steals focus from the flow - make it visible.
+  if (caRefreshOn) {
+    page.context().on('page', async (np) => {
+      await np.waitForLoadState('domcontentloaded').catch(() => {});
+      console.log(`NEW WINDOW opened after "${(global.testData.milestones.slice(-1)[0] || {}).name || 'start'}": ${np.url()} title="${await np.title().catch(() => '')}"`);
+      if (!/writebiz|policycenter/i.test(np.url())) { await np.close().catch(() => {}); console.log('  (closed - not a WriteBiz/PolicyCenter window)'); await page.bringToFront().catch(() => {}); }
+    });
+  }
+
+  // The refreshed product refuses to quote without a driver ("Drivers are required to Quote").
+  async function addDriver() {
+    await dismissStatusModal();
+    await page.getByRole('button', { name: /Add Driver/ }).first().click({ timeout: 15000 });
+    await page.waitForTimeout(1500);
+    await dismissStatusModal();
+    await page.locator('#txtCLAutoDriverDetails_FirstName').fill(randFirstName());
+    await page.locator('#txtCLAutoDriverDetails_LastName').fill(randLastName());
+    await page.locator('#ddlDriverLicenseState').selectOption(testState).catch((e) => console.log(`Driver license state ${testState}: ${e.message.split('\n')[0]}`));
+    await page.locator('#txtCLAutoDriverDetails_DOB').fill('01/15/1980');
+    await page.locator('#txtCLAutoDriverDetails_LicenseNum').fill(String(Math.floor(10000000 + Math.random() * 89999999)));
+    await page.locator('#txtCLAutoDriverDetails_LastName').click();
+    await page.waitForTimeout(500);
+    await page.locator('#CLAutoDriverDetails_dialog_btn_1').click({ timeout: 10000 });
+    await page.locator('#CLAutoDriverDetails_dialog_btn_1').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await dismissStatusModal();
+    console.log('Driver added');
   }
 
   // Spinner count/time per milestone (see helpers/spinnerTracker.js).
@@ -510,9 +628,15 @@ test('CA Submission', async ({ page }, testInfo) => {
       .then(() => true).catch(() => false);
     if (policySelectPresent) {
       try {
-        await policySelect.selectOption({ value: 'Business Auto Coverage Form' });
+        // CA Refresh / Auto Dealers: pick the coverage form whose label mentions dealers; otherwise Business Auto.
+        let formValue = 'Business Auto Coverage Form';
+        if (caRefreshOn && caRefreshLob === 'AUTO_DEALERS') {
+          const dealer = await policySelect.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent })).find((o) => /dealer/i.test(o.t + o.v)));
+          if (dealer) formValue = dealer.v; else console.log('WARNING: no Auto Dealers coverage form option found - using Business Auto');
+        }
+        await policySelect.selectOption({ value: formValue });
         await page.waitForTimeout(500);
-        console.log('Selected Business Auto Coverage Form');
+        console.log(`Selected ${formValue}`);
       } catch (e) { console.log('selectOption failed for #ddlPolicyType:', e.message); }
     } else {
       await dumpNavFailureDiagnostic('#ddlPolicyType (Business Auto Coverage Form)');
@@ -623,6 +747,33 @@ test('CA Submission', async ({ page }, testInfo) => {
       }
     }
     if (!priorCarrierSet) console.log('Prior Carrier: no valid option found, leaving default');
+    if (caRefreshOn) {
+      // CA Refresh test cases need the refresh effective date: IN & IL May 1 2027, every other state Aug 1 2027.
+      // CA_REFRESH_EFFECTIVE_DATE=YYYY-MM-DD overrides it (e.g. when the environment has no rates for the refresh term).
+      const eff = process.env.CA_REFRESH_EFFECTIVE_DATE || caRefresh.DATA.effective[testState] || caRefresh.DATA.effective.default;
+      const [yy, mm, dd] = eff.split('-');
+      const setDate = async (selector, value) => {
+        const field = page.locator(selector);
+        await field.fill(value);
+        await field.press('Tab').catch(() => {});
+        await page.waitForTimeout(1500);
+        await dismissStatusModal();
+        // Changing the dates raises an "Attention" box; log what it says, then accept it.
+        const attn = page.locator('.modal.show').filter({ hasText: 'Attention' }).first();
+        if (await attn.isVisible().catch(() => false)) {
+          console.log(`CA Refresh date change - Attention: ${((await attn.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 400)}`);
+          await attn.getByRole('button', { name: /ok|yes|continue|close/i }).first().click({ timeout: 5000 }).catch(() => {});
+          await attn.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+          await dismissStatusModal();
+        }
+      };
+      await setDate('#txtEffectiveDate', `${mm}/${dd}/${yy}`);
+      await setDate('#txtExpirationDate', `${mm}/${dd}/${Number(yy) + 1}`);
+      const got = [await page.locator('#txtEffectiveDate').inputValue(), await page.locator('#txtExpirationDate').inputValue()];
+      console.log(`CA Refresh effective date set: ${got[0]} - ${got[1]} (wanted ${mm}/${dd}/${yy})`);
+      global.testData.effectiveDate = got[0];
+      await crSnap('Policy Details');
+    }
     await safeNextClick();
     trackMilestone('Policy Details Entered');
 
@@ -661,10 +812,13 @@ test('CA Submission', async ({ page }, testInfo) => {
       }
     } catch (e) { console.log('No Delete Coverage button found, continuing...'); }
 
+    await crSnap('Commercial Auto - Coverage');
     await safeNextClick();
     trackMilestone('Commercial Auto - Coverage');
 
+    await crSnap('Commercial Auto - Additional Coverage (before adding)');
     await processAllAddCoverageButtons(page);
+    await crSnap('Commercial Auto - Additional Coverage (after adding)');
     await safeNextClick();
     trackMilestone('Commercial Auto - Additional Coverage');
 
@@ -748,6 +902,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     // ── State specific info ─────────────────────────────────────────────────────
     await safeNextClick();
     trackMilestone('State specific info - Details tab');
+    await crSnap('State specific info - Details');
 
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
@@ -781,10 +936,18 @@ test('CA Submission', async ({ page }, testInfo) => {
     } else {
       console.log('Number of Employees field not visible - skipping (may not be required for this LOB/state combo)');
     }
+    await crSnap('State specific info - Coverages');
     await safeNextClick();
     trackMilestone('State specific info - Coverages');
+    await crSnap('State specific info - Additional coverages');
     await safeNextClick();
     trackMilestone('State specific info - Additional coverages');
+
+    // Auto Dealers has its own tab (dealer locations: class + coverage type) before Vehicles.
+    if (caRefreshOn && caRefreshLob === 'AUTO_DEALERS') {
+      await addDealerLocation();
+      trackMilestone('Auto Dealers - Location Added');
+    }
 
     // ── Vehicles - Private passenger ────────────────────────────────────────────
     // Confirmed live: this raw .click() with no wait/fallback hung for the
@@ -821,11 +984,17 @@ test('CA Submission', async ({ page }, testInfo) => {
     // does call it) - leaving required vehicle coverage limits/options
     // unset here, causing rating or a much later Save to fail for what
     // looks like an unrelated reason.
-    await processCoverageDropdowns(page);
+    // CA Refresh: varying vehicle coverages (e.g. Losses Covered) leaves the new required "Deductible Type" blank
+    // server-side ("Missing required field" on Next) - keep WriteBiz's defaults there.
+    if (!caRefreshOn) await processCoverageDropdowns(page);
     await fillBlankRequiredSelects(page);
+    await settleAndRefillRequired();
+    await crSnap('Vehicle coverages - Private passenger');
     await safeNextClick();
     await dismissStatusModal()
+    await crSnap('Vehicle additional coverages - Private passenger');
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
+    await crSnap('Vehicles - Private passenger');
     trackMilestone('Vehicles Page: Private passenger Vehicle Added');
 
     // ── Vehicles - Truck ────────────────────────────────────────────────────────
@@ -874,11 +1043,17 @@ test('CA Submission', async ({ page }, testInfo) => {
     // does call it) - leaving required vehicle coverage limits/options
     // unset here, causing rating or a much later Save to fail for what
     // looks like an unrelated reason.
-    await processCoverageDropdowns(page);
+    // CA Refresh: varying vehicle coverages (e.g. Losses Covered) leaves the new required "Deductible Type" blank
+    // server-side ("Missing required field" on Next) - keep WriteBiz's defaults there.
+    if (!caRefreshOn) await processCoverageDropdowns(page);
     await fillBlankRequiredSelects(page);
+    await settleAndRefillRequired();
+    await crSnap('Vehicle coverages - Truck');
     await safeNextClick();
     await dismissStatusModal()
+    await crSnap('Vehicle additional coverages - Truck');
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
+    await crSnap('Vehicles - Truck');
     trackMilestone('Vehicles Page: Truck Vehicle Added');
 
     // ── Drivers and Symbols ─────────────────────────────────────────────────────
@@ -886,14 +1061,26 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
 
+    if (caRefreshOn) await addDriver();
     await safeClick(page.locator('#btn_CLAutoDrivers_Next'));
     trackMilestone('Drivers Page');
+    // Warning box after Drivers ("More power units exist than drivers. Please Review.") - informational, close it.
+    const driversWarn = page.locator('.modal.show').filter({ hasText: 'Attention' }).first();
+    if (await driversWarn.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) {
+      console.log(`Attention after Drivers: ${((await driversWarn.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 200)}`);
+      await driversWarn.getByRole('button', { name: /close|ok/i }).first().click({ timeout: 5000 }).catch(() => {});
+      await driversWarn.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    }
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
 
+    await crSnap('Symbols');
     await safeClick(page.locator('#btn_CLAutoSymbols_Next'));
     trackMilestone('Symbols Page');
 
+    await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 150000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+    await crSnap('Rate');
     // ── Quote number capture ────────────────────────────────────────────────────
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
@@ -923,6 +1110,15 @@ test('CA Submission', async ({ page }, testInfo) => {
     global.testData.quoteNumber = quoteNumber;
     saveTestData();
 
+    if (caRefreshOn) {
+      const rateText = ((crPool.find((x) => x.label === 'Rate') || {}).text) || '';
+      const pm = /Term Premium[\s\S]{0,30}?\$([\d,]+\.\d{2})/.exec(rateText);
+      const premium = pm ? pm[1] : null;
+      console.log(`CA Refresh term premium after rating: ${premium === null ? 'not found' : '$' + premium}`);
+      if (premium !== null && Number(premium.replace(/,/g, '')) === 0) {
+        throw new Error(`Policy not issued: rating returned $0.00 term premium for effective date ${global.testData.effectiveDate} on ${envName} (rates for the refresh term are probably not loaded there); coverage validation was still completed`);
+      }
+    }
     console.log('Starting policy submission workflow...');
     const policyNumber = await submitPolicyForApproval(page, quoteNumber, { policyCenterUrl, trackMilestone });
 
@@ -930,6 +1126,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     global.testData.status = 'PASSED';
     saveTestData();
     console.log('Test completed successfully. Policy:', policyNumber);
+    await crWriteDoc('PASS');
 
   } catch (error) {
     testFailed = true;
@@ -945,6 +1142,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     global.testData.status = 'FAILED';
     global.testData.error  = error.message;
     saveTestData();
+    if (!/^CA Refresh:/.test(error.message)) await crWriteDoc('FAIL', error.message);
     console.log(`Test data written with failure info`);
     throw error;
   }

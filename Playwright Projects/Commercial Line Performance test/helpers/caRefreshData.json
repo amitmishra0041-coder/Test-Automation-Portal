@@ -1,0 +1,2754 @@
+{
+ "source": {
+  "testCases": "ABP-1775_CA Refresh Docs - Batch 2.xlsx",
+  "productModel": "Donegal Commercial Auto Product Model _SBT_OCP_v1.0.xlsx"
+ },
+ "effective": {
+  "IN": "2027-05-01",
+  "IL": "2027-05-01",
+  "default": "2027-08-01"
+ },
+ "lobs": {
+  "BUSINESS_AUTO": {
+   "testCases": {
+    "VA": "001",
+    "PA": "002",
+    "AZ": "003",
+    "CO": "003",
+    "DE": "003",
+    "IA": "004",
+    "MD": "004",
+    "NE": "004",
+    "MI": "005",
+    "NC": "005",
+    "NM": "006",
+    "OH": "006",
+    "TN": "007",
+    "TX": "007",
+    "UT": "007",
+    "WI": "008",
+    "SC": "008",
+    "SD": "008"
+   },
+   "testCaseNames": {
+    "001": "001 - For State: VA, Verify CA Refresh Updates in Business Auto Policy Documents for all the transactions (Initiate from Compraters, WB, Docs, Website, Other Transactions)",
+    "002": "002 - For State: PA, Verify CA Refresh Updates in Business Auto Policy Documents for all the transactions (Initiate from Compraters, WB, Docs, Website, Other Transactions)",
+    "003": "003 - For States: AZ, CO, DE, Verify CA Refresh Updates in Business Auto Policy Documents for all the transactions (Initiate from Compraters, WB, Docs, Website, Other Transactions)",
+    "004": "004 - For States: IA, MD, NE, Verify CA Refresh Updates in Business Auto Policy Documents for NBS (Initiate from Compraters, WB, Docs, Website)",
+    "005": "005 - For States: MI, NC, Verify CA Refresh Updates in Business Auto Policy Documents for NBS (WB, Docs, Website)",
+    "006": "006 - For States: NM, OH, Verify CA Refresh Updates in Business Auto Policy Documents for NBS (Docs, Website)",
+    "007": "007 - For States: TN, TX, UT, Verify CA Refresh Updates in Business Auto Policy Documents for NBS (Docs, Website)",
+    "008": "008 - For State: WI, SC, SD, Verify CA Refresh Updates in Business Auto Policy Documents for NBS (Docs, Website)"
+   },
+   "preconditionIdenticalAcrossStates": true,
+   "sections": [
+    {
+     "category": "Line Additional Coverages",
+     "coverages": [
+      {
+       "name": "Covered Auto Designation Symbol",
+       "code": "CA7CovrdAutoDesignationSymbol",
+       "form": "CA 99 54",
+       "writeBiz": "#NA",
+       "availability": {
+        "AL": "#NA",
+        "AZ": "#NA",
+        "CO": "#NA",
+        "DE": "#NA",
+        "GA": "#NA",
+        "IA": "#NA",
+        "IL": "#NA",
+        "IN": "#NA",
+        "ME": "#NA",
+        "MD": "#NA",
+        "MI": "#NA",
+        "NC": "#NA",
+        "NE": "#NA",
+        "NH": "#NA",
+        "NM": "#NA",
+        "OH": "#NA",
+        "PA": "#NA",
+        "SC": "#NA",
+        "SD": "#NA",
+        "TN": "#NA",
+        "TX": "#NA",
+        "UT": "#NA",
+        "VA": "#NA",
+        "WI": "#NA"
+       }
+      },
+      {
+       "name": "Limited Contractual Liability Coverage For Personal And Advertising Injury",
+       "code": "CA7LmtdContractualLiabCovForPersonalAndAdvertisin2",
+       "form": "CA 25 47",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "E",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "E",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Line Additional Insured Coverages",
+     "coverages": [
+      {
+       "name": "Additional Insured - General Liability Coverages - Controlling Interest",
+       "code": "CA7AdditionalInsuredGeneralLiabCovsControllingInte",
+       "form": "CA 25 30",
+       "writeBiz": "#NA",
+       "availability": {
+        "AL": "#NA",
+        "AZ": "#NA",
+        "CO": "#NA",
+        "DE": "#NA",
+        "GA": "#NA",
+        "IA": "#NA",
+        "IL": "#NA",
+        "IN": "#NA",
+        "ME": "#NA",
+        "MD": "#NA",
+        "MI": "#NA",
+        "NC": "#NA",
+        "NE": "#NA",
+        "NH": "#NA",
+        "NM": "#NA",
+        "OH": "#NA",
+        "PA": "#NA",
+        "SC": "#NA",
+        "SD": "#NA",
+        "TN": "#NA",
+        "TX": "#NA",
+        "UT": "#NA",
+        "VA": "#NA",
+        "WI": "#NA"
+       }
+      },
+      {
+       "name": "Additional Insured - General Liability Coverages - Co-Owner Of Insured Premises",
+       "code": "CA7AdditionalInsuredGeneralLiabCovsCoOwnerOfInsure",
+       "form": "CA 25 46",
+       "writeBiz": "#NA",
+       "availability": {
+        "AL": "#NA",
+        "AZ": "#NA",
+        "CO": "#NA",
+        "DE": "#NA",
+        "GA": "#NA",
+        "IA": "#NA",
+        "IL": "#NA",
+        "IN": "#NA",
+        "ME": "#NA",
+        "MD": "#NA",
+        "MI": "#NA",
+        "NC": "#NA",
+        "NE": "#NA",
+        "NH": "#NA",
+        "NM": "#NA",
+        "OH": "#NA",
+        "PA": "#NA",
+        "SC": "#NA",
+        "SD": "#NA",
+        "TN": "#NA",
+        "TX": "#NA",
+        "UT": "#NA",
+        "VA": "#NA",
+        "WI": "#NA"
+       }
+      },
+      {
+       "name": "Additional Insured - General Liability Coverages - Grantor Of Licenses",
+       "code": "CA7AdditionalInsuredGeneralLiabCovsGrantorOfLicen2",
+       "form": "CA 25 32",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "E",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "E",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Jurisdiction Additional Coverages",
+     "coverages": [
+      {
+       "name": "Illinois Changes - Civil Union",
+       "code": "CA7ChangesCivilUnion",
+       "form": "IL 01 47",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "E U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtection",
+       "form": "CA 22 01",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "E",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Owned Auto",
+     "coverages": [
+      {
+       "name": "Special Types Repossessed Auto Personal Injury Protection Premium To Reach Minimum",
+       "code": "CA7SpecialTypesRepossessedAutoPersonalInjuryProtec",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "E",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "E",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Special Types Repossessed Auto Property Protection Premium To Reach Minimum",
+       "code": "CA7SpecialTypesRepossessedAutoPropertyProtectionPr",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "E",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Non Owned Auto Standard Coverages",
+     "coverages": [
+      {
+       "name": "Non Owned Auto Liability Employees",
+       "code": "CA7NonOwnedAutoLiabEmplsNOA",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Extended Employees",
+       "code": "CA7NonOwnedAutoLiabExtendedEmplsNOA",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       },
+       "terms": {
+        "Extended Coverage For Employees": [
+         "No",
+         "Yes"
+        ]
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Partners",
+       "code": "CA7NonOwnedAutoLiabPartnersNOA",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Premium To Reach Minimum",
+       "code": "CA7NonOwnedAutoLiabPremiumToReachMinNOA",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Volunteers",
+       "code": "CA7NonOwnedAutoLiabVolunteersNOA",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Private Passenger Standard Coverages",
+     "coverages": [
+      {
+       "name": "Private Passenger Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPPPT",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Private Passenger Additional Coverages",
+     "coverages": [
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionPPT",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Private Passenger Original Equipment Manufacturer Replacement Parts",
+       "code": "CA7OEMReplacementPartsPPT_Ext",
+       "form": "CAD 09 47",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "U",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "U",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Special Type Standard Coverages",
+     "coverages": [
+      {
+       "name": "Special Types Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPSPV",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      },
+      {
+       "name": "Special Types Towing Labor",
+       "code": "CA7SpecialTypesTowingLaborSPV",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U R",
+        "AZ": "U R",
+        "CO": "U R",
+        "DE": "U R",
+        "GA": "U R",
+        "IA": "U R",
+        "IL": "U R",
+        "IN": "U R",
+        "ME": "R",
+        "MD": "U R",
+        "MI": "U R",
+        "NC": "U R",
+        "NE": "U R",
+        "NH": "U R",
+        "NM": "U R",
+        "OH": "U R",
+        "PA": "U R",
+        "SC": "U R",
+        "SD": "U R",
+        "TN": "U R",
+        "TX": "U R",
+        "UT": "U R",
+        "VA": "U R",
+        "WI": "U R"
+       },
+       "terms": {
+        "Towing and Labor Limit": [
+         "No Coverage",
+         "50",
+         "100",
+         "200",
+         "300",
+         "700",
+         "1000",
+         "500"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Special Type Additional Coverages",
+     "coverages": [
+      {
+       "name": "Mobile Equipment",
+       "code": "CA7SpecialTypesMobileEquipSPV",
+       "form": "CA 20 43",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "E",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionSPV",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Truck Standard Coverages",
+     "coverages": [
+      {
+       "name": "Truck Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPTTT",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      },
+      {
+       "name": "Truck Towing Labor",
+       "code": "CA7TruckTowingLaborTTT",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U R",
+        "AZ": "U R",
+        "CO": "U R",
+        "DE": "U R",
+        "GA": "U R",
+        "IA": "U R",
+        "IL": "U R",
+        "IN": "U R",
+        "ME": "R",
+        "MD": "U R",
+        "MI": "U R",
+        "NC": "U R",
+        "NE": "U R",
+        "NH": "U R",
+        "NM": "U R",
+        "OH": "U R",
+        "PA": "U R",
+        "SC": "U R",
+        "SD": "U R",
+        "TN": "U R",
+        "TX": "U R",
+        "UT": "U R",
+        "VA": "U R",
+        "WI": "U R"
+       },
+       "terms": {
+        "Towing and Labor Limit": [
+         "No Coverage",
+         "50",
+         "100",
+         "200",
+         "300",
+         "700",
+         "1000",
+         "500"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Truck Additional Coverages",
+     "coverages": [
+      {
+       "name": "Auto Loan/Lease Gap",
+       "code": "CA7TruckAutoLoanLeaseGapTTT",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionTTT",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Truck Original Equipment Manufacturer Replacement Parts",
+       "code": "CA7OEMReplacementPartsTTT_Ext",
+       "form": "CAD 09 47",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "U",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "U",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Public Transportation Standard Coverages",
+     "coverages": [
+      {
+       "name": "Public Transportation Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPPBT",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Public Transportation Additional Coverages",
+     "coverages": [
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionPBT",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Line Exclusions",
+     "coverages": [
+      {
+       "name": "Abuse Or Molestation Exclusion For General Liability"
+      },
+      {
+       "name": "Communicable Disease Exclusion For General Liability"
+      },
+      {
+       "name": "War Exclusion"
+      }
+     ]
+    }
+   ],
+   "mappingForms": [
+    "Virginia Medical Expense And Income Loss Benefits Endorsement (add for all type of vehicles)",
+    "Lessor – Additional Insured And Loss Payee",
+    "CA 20 16 Mobile Homes Contents Coverage – new form with added fields",
+    "CA 20 19 Repossessed Autos – Date added",
+    "CA 20 33 Autos Leased, Hired, Rented Or Borrowed With Drivers – Physical Damage Coverage – Date added",
+    "CA 23 24 Agricultural Produce Trailers – Seasonal – Date added",
+    "CA 99 28 Stated Amount Insurance – Date added",
+    "CA 99 05 (11/20) – Business Interruption Coverage (Named Insured, Endorsement Effective Date)",
+    "CAD 21 06 Pennsylvania Uninsured Motorists Coverage - Stacked",
+    "CAD 21 91 Pennsylvania Underinsured Motorists Coverage - Stacked",
+    "CAD 21 92 Pennsylvania Uninsured Motorists Coverage - Nonstacked",
+    "CAD 21 93 Pennsylvania Underinsured Motorists Coverage - Nonstacked"
+   ]
+  },
+  "AUTO_DEALERS": {
+   "testCases": {
+    "VA": "009",
+    "PA": "010",
+    "AZ": "011",
+    "CO": "011",
+    "DE": "011",
+    "IA": "012",
+    "MD": "012",
+    "NE": "012",
+    "MI": "013",
+    "NC": "013",
+    "NM": "014",
+    "OH": "014",
+    "TN": "015",
+    "TX": "015",
+    "UT": "015",
+    "WI": "016",
+    "SC": "016",
+    "SD": "016"
+   },
+   "testCaseNames": {
+    "009": "009 - For State: VA, Verify CA Refresh Updates in Auto Dealers Policy Documents for all the transactions (Docs, Website, Other Transactions)",
+    "010": "010 - For State: PA, Verify CA Refresh Updates in Auto Dealers Policy Documents for all the transactions (Docs, Website, Other Transactions)",
+    "011": "011 - For States: AZ, CO, DE, Verify CA Refresh Updates in Auto Dealers Policy Documents for all the transactions (Docs, Website)",
+    "012": "012 - For States: IA, MD, NE, Verify CA Refresh Updates in Auto Dealers Policy Documents for NBS (Docs, Website)",
+    "013": "013 - For States: MI, NC, Verify CA Refresh Updates in Auto Dealers Policy Documents for NBS (Docs, Website)",
+    "014": "014 - For States: NM, OH, Verify CA Refresh Updates in Auto Dealers Policy Documents for NBS (Docs, Website)",
+    "015": "015 - For States: TN, TX, UT, Verify CA Refresh Updates in Auto Dealers Policy Documents for NBS (Docs, Website)",
+    "016": "016 - For State: WI, SC, SD, Verify CA Refresh Updates in Auto Dealers Policy Documents for NBS (Docs, Website)"
+   },
+   "preconditionIdenticalAcrossStates": true,
+   "sections": [
+    {
+     "category": "Line Additional Coverages",
+     "coverages": [
+      {
+       "name": "Covered Auto Designation Symbol",
+       "code": "CA7CovrdAutoDesignationSymbol",
+       "form": "CA 99 54",
+       "writeBiz": "#NA",
+       "availability": {
+        "AL": "#NA",
+        "AZ": "#NA",
+        "CO": "#NA",
+        "DE": "#NA",
+        "GA": "#NA",
+        "IA": "#NA",
+        "IL": "#NA",
+        "IN": "#NA",
+        "ME": "#NA",
+        "MD": "#NA",
+        "MI": "#NA",
+        "NC": "#NA",
+        "NE": "#NA",
+        "NH": "#NA",
+        "NM": "#NA",
+        "OH": "#NA",
+        "PA": "#NA",
+        "SC": "#NA",
+        "SD": "#NA",
+        "TN": "#NA",
+        "TX": "#NA",
+        "UT": "#NA",
+        "VA": "#NA",
+        "WI": "#NA"
+       }
+      },
+      {
+       "name": "Limited Contractual Liability Coverage For Personal And Advertising Injury",
+       "code": "CA7LmtdContractualLiabCovForPersonalAndAdvertisin2",
+       "form": "CA 25 47",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "E",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "E",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Line Additional Insured Coverages",
+     "coverages": [
+      {
+       "name": "Additional Insured - General Liability Coverages - Controlling Interest",
+       "code": "CA7AdditionalInsuredGeneralLiabCovsControllingInte",
+       "form": "CA 25 30",
+       "writeBiz": "#NA",
+       "availability": {
+        "AL": "#NA",
+        "AZ": "#NA",
+        "CO": "#NA",
+        "DE": "#NA",
+        "GA": "#NA",
+        "IA": "#NA",
+        "IL": "#NA",
+        "IN": "#NA",
+        "ME": "#NA",
+        "MD": "#NA",
+        "MI": "#NA",
+        "NC": "#NA",
+        "NE": "#NA",
+        "NH": "#NA",
+        "NM": "#NA",
+        "OH": "#NA",
+        "PA": "#NA",
+        "SC": "#NA",
+        "SD": "#NA",
+        "TN": "#NA",
+        "TX": "#NA",
+        "UT": "#NA",
+        "VA": "#NA",
+        "WI": "#NA"
+       }
+      },
+      {
+       "name": "Additional Insured - General Liability Coverages - Co-Owner Of Insured Premises",
+       "code": "CA7AdditionalInsuredGeneralLiabCovsCoOwnerOfInsure",
+       "form": "CA 25 46",
+       "writeBiz": "#NA",
+       "availability": {
+        "AL": "#NA",
+        "AZ": "#NA",
+        "CO": "#NA",
+        "DE": "#NA",
+        "GA": "#NA",
+        "IA": "#NA",
+        "IL": "#NA",
+        "IN": "#NA",
+        "ME": "#NA",
+        "MD": "#NA",
+        "MI": "#NA",
+        "NC": "#NA",
+        "NE": "#NA",
+        "NH": "#NA",
+        "NM": "#NA",
+        "OH": "#NA",
+        "PA": "#NA",
+        "SC": "#NA",
+        "SD": "#NA",
+        "TN": "#NA",
+        "TX": "#NA",
+        "UT": "#NA",
+        "VA": "#NA",
+        "WI": "#NA"
+       }
+      },
+      {
+       "name": "Additional Insured - General Liability Coverages - Grantor Of Licenses",
+       "code": "CA7AdditionalInsuredGeneralLiabCovsGrantorOfLicen2",
+       "form": "CA 25 32",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "E",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "E",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Jurisdiction Additional Coverages",
+     "coverages": [
+      {
+       "name": "Illinois Changes - Civil Union",
+       "code": "CA7ChangesCivilUnion",
+       "form": "IL 01 47",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "E U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtection",
+       "form": "CA 22 01",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "E",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Owned Auto",
+     "coverages": [
+      {
+       "name": "Special Types Repossessed Auto Personal Injury Protection Premium To Reach Minimum",
+       "code": "CA7SpecialTypesRepossessedAutoPersonalInjuryProtec",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "E",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "E",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Special Types Repossessed Auto Property Protection Premium To Reach Minimum",
+       "code": "CA7SpecialTypesRepossessedAutoPropertyProtectionPr",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "E",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Non Owned Auto Standard Coverages",
+     "coverages": [
+      {
+       "name": "Non Owned Auto Liability Employees",
+       "code": "CA7NonOwnedAutoLiabEmplsNOA",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Extended Employees",
+       "code": "CA7NonOwnedAutoLiabExtendedEmplsNOA",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       },
+       "terms": {
+        "Extended Coverage For Employees": [
+         "No",
+         "Yes"
+        ]
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Partners",
+       "code": "CA7NonOwnedAutoLiabPartnersNOA",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Premium To Reach Minimum",
+       "code": "CA7NonOwnedAutoLiabPremiumToReachMinNOA",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      },
+      {
+       "name": "Non Owned Auto Liability Volunteers",
+       "code": "CA7NonOwnedAutoLiabVolunteersNOA",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "R",
+        "AZ": "R",
+        "CO": "R",
+        "DE": "R",
+        "GA": "R",
+        "IA": "R",
+        "IL": "R",
+        "IN": "R",
+        "ME": "U",
+        "MD": "R",
+        "MI": "R",
+        "NC": "R",
+        "NE": "R",
+        "NH": "U",
+        "NM": "R",
+        "OH": "R",
+        "PA": "R",
+        "SC": "R",
+        "SD": "R",
+        "TN": "R",
+        "TX": "R",
+        "UT": "R",
+        "VA": "R",
+        "WI": "R"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Private Passenger Standard Coverages",
+     "coverages": [
+      {
+       "name": "Private Passenger Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPPPT",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Private Passenger Additional Coverages",
+     "coverages": [
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionPPT",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Private Passenger Original Equipment Manufacturer Replacement Parts",
+       "code": "CA7OEMReplacementPartsPPT_Ext",
+       "form": "CAD 09 47",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "U",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "U",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Special Type Standard Coverages",
+     "coverages": [
+      {
+       "name": "Special Types Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPSPV",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      },
+      {
+       "name": "Special Types Towing Labor",
+       "code": "CA7SpecialTypesTowingLaborSPV",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U R",
+        "AZ": "U R",
+        "CO": "U R",
+        "DE": "U R",
+        "GA": "U R",
+        "IA": "U R",
+        "IL": "U R",
+        "IN": "U R",
+        "ME": "R",
+        "MD": "U R",
+        "MI": "U R",
+        "NC": "U R",
+        "NE": "U R",
+        "NH": "U R",
+        "NM": "U R",
+        "OH": "U R",
+        "PA": "U R",
+        "SC": "U R",
+        "SD": "U R",
+        "TN": "U R",
+        "TX": "U R",
+        "UT": "U R",
+        "VA": "U R",
+        "WI": "U R"
+       },
+       "terms": {
+        "Towing and Labor Limit": [
+         "No Coverage",
+         "50",
+         "100",
+         "200",
+         "300",
+         "700",
+         "1000",
+         "500"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Special Type Additional Coverages",
+     "coverages": [
+      {
+       "name": "Mobile Equipment",
+       "code": "CA7SpecialTypesMobileEquipSPV",
+       "form": "CA 20 43",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "E",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionSPV",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Truck Standard Coverages",
+     "coverages": [
+      {
+       "name": "Truck Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPTTT",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      },
+      {
+       "name": "Truck Towing Labor",
+       "code": "CA7TruckTowingLaborTTT",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U R",
+        "AZ": "U R",
+        "CO": "U R",
+        "DE": "U R",
+        "GA": "U R",
+        "IA": "U R",
+        "IL": "U R",
+        "IN": "U R",
+        "ME": "R",
+        "MD": "U R",
+        "MI": "U R",
+        "NC": "U R",
+        "NE": "U R",
+        "NH": "U R",
+        "NM": "U R",
+        "OH": "U R",
+        "PA": "U R",
+        "SC": "U R",
+        "SD": "U R",
+        "TN": "U R",
+        "TX": "U R",
+        "UT": "U R",
+        "VA": "U R",
+        "WI": "U R"
+       },
+       "terms": {
+        "Towing and Labor Limit": [
+         "No Coverage",
+         "50",
+         "100",
+         "200",
+         "300",
+         "700",
+         "1000",
+         "500"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Truck Additional Coverages",
+     "coverages": [
+      {
+       "name": "Auto Loan/Lease Gap",
+       "code": "CA7TruckAutoLoanLeaseGapTTT",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionTTT",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Truck Original Equipment Manufacturer Replacement Parts",
+       "code": "CA7OEMReplacementPartsTTT_Ext",
+       "form": "CAD 09 47",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "E",
+        "AZ": "E",
+        "CO": "E",
+        "DE": "E",
+        "GA": "E",
+        "IA": "E",
+        "IL": "E",
+        "IN": "E",
+        "ME": "U",
+        "MD": "E",
+        "MI": "E",
+        "NC": "E",
+        "NE": "E",
+        "NH": "U",
+        "NM": "E",
+        "OH": "E",
+        "PA": "E",
+        "SC": "E",
+        "SD": "E",
+        "TN": "E",
+        "TX": "E",
+        "UT": "E",
+        "VA": "E",
+        "WI": "E"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Public Transportation Standard Coverages",
+     "coverages": [
+      {
+       "name": "Public Transportation Additional Personal Injury Protection",
+       "code": "CA7VehicleAdditionalPIPPBT",
+       "form": "CA 22 45",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "R U",
+        "VA": "U",
+        "WI": "U"
+       },
+       "terms": {
+        "Added Personal Injury Protection Coverage": [
+         "Not Provided",
+         "Provided"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "category": "Public Transportation Additional Coverages",
+     "coverages": [
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionPBT",
+       "form": null,
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    },
+    {
+     "category": "Line Exclusions",
+     "coverages": [
+      {
+       "name": "Abuse Or Molestation Exclusion For General Liability"
+      },
+      {
+       "name": "Communicable Disease Exclusion For General Liability"
+      },
+      {
+       "name": "War Exclusion"
+      }
+     ]
+    },
+    {
+     "category": "Auto Dealer Exclusions",
+     "coverages": [
+      {
+       "name": "Virginia Pollution Exclusion For Auto Dealers Coverage Form"
+      }
+     ]
+    },
+    {
+     "category": "Auto Dealer Standard Coverages",
+     "coverages": [
+      {
+       "name": "Auto Dealers Auto Medical Expense Benefits",
+       "code": "CA7AutoDealersAutoMedicalExpenseBenefits",
+       "form": "CA 22 46",
+       "writeBiz": "N",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "R",
+        "WI": "U"
+       },
+       "terms": {
+        "Medical Expense Benefits Limit": [
+         "Not Applicable",
+         "500",
+         "1000",
+         "2000",
+         "5000",
+         "10000"
+        ]
+       }
+      },
+      {
+       "name": "Auto Dealers Income Loss Benefits",
+       "code": "CA7AutoDealersIncomeLossBenefits",
+       "form": "CA 22 46",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "R",
+        "WI": "U"
+       },
+       "terms": {
+        "Income Loss Benefits": [
+         "No Coverage",
+         "100"
+        ],
+        "Rating Basis": [
+         "All Others - Per Automobile Or Auto Dealer Rating Unit",
+         "Not Applicable"
+        ]
+       }
+      },
+      {
+       "name": "Auto Dealers 500 Dollar Deductible For Work You Performed"
+      },
+      {
+       "name": "Auto Dealers Acts Errors Or Omissions Liability"
+      },
+      {
+       "name": "Auto Dealers Additional Personal Injury Protection"
+      },
+      {
+       "name": "Auto Dealers Broad Form Products"
+      },
+      {
+       "name": "Auto Dealers Collision"
+      },
+      {
+       "name": "Auto Dealers Excess Attendant Care"
+      },
+      {
+       "name": "Auto Dealers Garagekeepers Coverage Collision"
+      },
+      {
+       "name": "Auto Dealers Garagekeepers Coverage Other Than Collision",
+       "terms": {
+        "Deductible Type": [
+         "Not Applicable",
+         "Per Auto And Per Occurrence Deductible - Applicable To Theft, Mischief And Vandalism",
+         "Per Auto And Per Occurrence Deductible - Applicable To All Perils"
+        ],
+        "Losses Covered": [
+         "No Coverage",
+         "Comprehensive",
+         "Specified Causes Of Loss"
+        ]
+       }
+      },
+      {
+       "name": "Garage Income Loss Benefits",
+       "code": "CA7VehicleIncomeLossBenefitsGRD",
+       "form": "CA 22 46",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "R U",
+        "WI": "U"
+       },
+       "terms": {
+        "Income Loss Benefits": [
+         "No Coverage",
+         "100"
+        ],
+        "Rating Basis": [
+         "All Others - Per Automobile Or Auto Dealer Rating Unit",
+         "Not Applicable"
+        ]
+       }
+      },
+      {
+       "name": "Auto Dealers Liability"
+      },
+      {
+       "name": "Garage Medical Expense Benefits",
+       "code": "CA7GarageMedicalExpenseBenefitsGRD",
+       "form": "CA 22 46",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "U",
+        "VA": "R U",
+        "WI": "U"
+       },
+       "terms": {
+        "Medical Expense Benefits Limit": [
+         "Not Applicable",
+         "500",
+         "1000",
+         "2000",
+         "5000",
+         "250",
+         "750",
+         "3000",
+         "4000",
+         "10000"
+        ]
+       }
+      },
+      {
+       "name": "Auto Dealers Auto Medical Payments"
+      },
+      {
+       "name": "Auto Dealers Locations And Operations Medical Payments"
+      },
+      {
+       "name": "Auto Dealers Other Than Collision",
+       "terms": {
+        "Losses Covered": [
+         "No Coverage",
+         "Fire Only",
+         "Fire and Theft Only",
+         "Limited Specified Causes Of Loss",
+         "Specified Causes Of Loss",
+         "Comprehensive"
+        ],
+        "Deductible Type": [
+         "Not Applicable",
+         "Per Auto And Per Occurrence Deductible - Applicable To Theft, Mischief And Vandalism",
+         "Per Auto And Per Occurrence Deductible - Applicable To All Perils"
+        ]
+       }
+      },
+      {
+       "name": "Auto Dealers Personal Injury Protection Extraordinary Medical Benefits"
+      },
+      {
+       "name": "Auto Dealer Personal Injury Protection Medical Expenses"
+      },
+      {
+       "name": "Auto Dealers Personal Injury Protection"
+      },
+      {
+       "name": "Auto Dealers Pickup Or Delivery Of Autos"
+      },
+      {
+       "name": "Auto Dealers Property Protection"
+      },
+      {
+       "name": "Auto Dealers Underinsured Motorists"
+      },
+      {
+       "name": "Auto Dealers Uninsured Motorists Property Damage"
+      },
+      {
+       "name": "Auto Dealers Uninsured Motorists"
+      }
+     ]
+    },
+    {
+     "category": "Auto Dealer Additional Coverages",
+     "coverages": [
+      {
+       "name": "Auto Dealers Personal Injury Protection Endorsement PIP",
+       "terms": {
+        "Personal Injury Protection For \"Bodily Injury\"": [
+         "Single Limit",
+         "Split Limits"
+        ]
+       }
+      },
+      {
+       "name": "Auto Dealers Tapes Records And Discs Coverage Comprehensive"
+      },
+      {
+       "name": "Named Individuals - Broadened Personal Injury Protection",
+       "code": "CA7NamedIndivsBroadenedPersonalInjuryProtectionGRD",
+       "form": null,
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "U",
+        "UT": "E U",
+        "VA": "U",
+        "WI": "U"
+       }
+      },
+      {
+       "name": "Texas Changes - Mexico Coverage - Broad",
+       "code": "CA7TXChangesMexicoCovBroadGRD",
+       "form": "CA 01 99",
+       "writeBiz": "Y",
+       "availability": {
+        "AL": "U",
+        "AZ": "U",
+        "CO": "U",
+        "DE": "U",
+        "GA": "U",
+        "IA": "U",
+        "IL": "U",
+        "IN": "U",
+        "ME": "U",
+        "MD": "U",
+        "MI": "U",
+        "NC": "U",
+        "NE": "U",
+        "NH": "U",
+        "NM": "U",
+        "OH": "U",
+        "PA": "U",
+        "SC": "U",
+        "SD": "U",
+        "TN": "U",
+        "TX": "E U",
+        "UT": "U",
+        "VA": "U",
+        "WI": "U"
+       }
+      }
+     ]
+    }
+   ],
+   "mappingForms": [
+    "CA 25 31 Additional Insured - General Liability Coverages - Grantor Of Licenses Automatic Status When Required By Licensor (Premium Only)",
+    "CA 20 33 Autos Leased, Hired, Rented Or Borrowed With Drivers – Physical Damage Coverage",
+    "CA 25 45 Addl Insured - Genll Liability Covs - Lessor Of Leased Equipment - Automtc Status When Rqd In Leased Agrmt With You (Premium Only)",
+    "CA 25 51 Exclusion Designated Products",
+    "CA 25 56 Exclusion – Designated Work You Performed",
+    "CA 99 28 Stated Amount Insurance",
+    "Business Interruption Coverage",
+    "CAD 21 06 Pennsylvania Uninsured Motorists Coverage - Stacked",
+    "CAD 21 91 Pennsylvania Underinsured Motorists Coverage - Stacked",
+    "CAD 21 92 Pennsylvania Uninsured Motorists Coverage - Nonstacked",
+    "CAD 21 93 Pennsylvania Underinsured Motorists Coverage - Nonstacked",
+    "CA 20 71 Auto Loan/Lease Gap Coverage",
+    "Virginia Medical Expense And Income Loss Benefits Endorsement (add for all type of vehicles)",
+    "CA 20 01 Lessor – additional Insured And Loss Payee",
+    "CA 20 16 Mobile Homes Contents Coverage",
+    "CA 20 47 Additional Insured – General Liability Coverages – Lessor of Leased Equipment",
+    "CA 20 49 Additional Insured – General Liability Coverages – Grantor Of Franchise",
+    "CA 25 09 Additional Insured – General Liability Coverages – Owners Of Leased Or Rented Land Or Premises",
+    "CA 25 29 Additional Insured – General Liability Coverages – Concessionaires Trading Under Your Name",
+    "CA 25 30 Additional Insured – General Liability Coverages – Controlling Interest",
+    "CA 25 32 Additional Insured – General Liability Coverages – Grantor Of Licenses",
+    "CA 25 46 Additional Insured – General Liability Coverages – Co-Owner Of Insured Premises"
+   ]
+  }
+ },
+ "removed": [
+  {
+   "category": "Line Additional Insured Coverages",
+   "name": "Additional Insured - General Liability Coverages - Grantor Of Licenses"
+  },
+  {
+   "category": "Line Additional Insured Coverages",
+   "name": "Designated Location(s) Products And Work You Performed Aggregate Limit For Certain General Liability"
+  },
+  {
+   "category": "Line Additional Insured Coverages",
+   "name": "Leasing Or Rental Concerns - Contingent"
+  },
+  {
+   "category": "Line Additional Insured Coverages",
+   "name": "Motor Carrier Endorsement"
+  },
+  {
+   "category": "Line Additional Insured Coverages",
+   "name": "Sexual Abuse Or Sexual Molestation Liability"
+  },
+  {
+   "category": "Line Additional Insured Coverages",
+   "name": "Sexual Abuse Or Sexual Molestation Of Any Person Committed By The Insured Liability"
+  },
+  {
+   "category": "Line Additional Insured Coverages",
+   "name": "Trailer Interchange Agreement"
+  },
+  {
+   "category": "Jurisdiction Additional Coverages",
+   "name": "Garagekeepers Coverage For Autos And Watercrafts"
+  },
+  {
+   "category": "Jurisdiction Additional Coverages",
+   "name": "On Hook Coverage Collision"
+  },
+  {
+   "category": "Jurisdiction Additional Coverages",
+   "name": "On Hook Coverage Other Than Collision"
+  },
+  {
+   "category": "Jurisdiction Additional Coverages",
+   "name": "On-Hook"
+  },
+  {
+   "category": "Auto Dealer Standard Coverages",
+   "name": "Auto Dealers Underinsured Motorists Property Damage"
+  },
+  {
+   "category": "Hired Auto Additional Coverages",
+   "name": "Volunteer Hired Autos"
+  },
+  {
+   "category": "Owned Auto",
+   "name": "Gross Receipts Or Mileage Basis Medical Expense Benefits"
+  },
+  {
+   "category": "Owned Auto",
+   "name": "Gross Receipts Or Mileage Basis Medical Payments"
+  },
+  {
+   "category": "Owned Auto",
+   "name": "Motor Carrier Coverage Form Trailer Interchange Coverage Collision"
+  },
+  {
+   "category": "Owned Auto",
+   "name": "Motor Carrier Coverage Form Trailer Interchange Coverage Comprehensive"
+  },
+  {
+   "category": "Owned Auto",
+   "name": "Motor Carrier Coverage Form Trailer Interchange Coverage Specified Causes Of Loss"
+  },
+  {
+   "category": "Non Owned Auto Standard Coverages",
+   "name": "Non Owned Auto Liability Extended Partners"
+  },
+  {
+   "category": "Non Owned Auto Standard Coverages",
+   "name": "Non Owned Auto Liability Extended Volunteers"
+  },
+  {
+   "category": "Non Owned Auto Standard Coverages",
+   "name": "Non-Ownership Liability Coverage For Volunteers"
+  },
+  {
+   "category": "Private Passenger Additional Coverages",
+   "name": "Auto Hacking Expense"
+  },
+  {
+   "category": "Private Passenger Additional Coverages",
+   "name": "Replacement Cost Coverage - Private Passenger Types"
+  },
+  {
+   "category": "Special Type Additional Coverages",
+   "name": "Auto Hacking Expense"
+  },
+  {
+   "category": "Special Type Additional Coverages",
+   "name": "Drive-Away Contractors"
+  },
+  {
+   "category": "Special Type Additional Coverages",
+   "name": "Replacement Cost Coverage - Private Passenger Types"
+  },
+  {
+   "category": "Special Type Additional Coverages",
+   "name": "Volunteer Hired Autos"
+  },
+  {
+   "category": "Truck Additional Coverages",
+   "name": "Auto Hacking Expense"
+  },
+  {
+   "category": "Truck Additional Coverages",
+   "name": "Auto Loan/Lease Gap"
+  },
+  {
+   "category": "Zone Rated Truck Additional Coverages",
+   "name": "Auto Hacking Expense"
+  },
+  {
+   "category": "Zone Rated Truck Additional Coverages",
+   "name": "Named Individuals - Broadened Personal Injury Protection"
+  },
+  {
+   "category": "Zone Rated Truck Additional Coverages",
+   "name": "Zone Rated Truck Additional Personal Injury Protection"
+  },
+  {
+   "category": "Line Conditions",
+   "name": "Amendment Of Personal And Advertising Injury Definition - General Liability"
+  },
+  {
+   "category": "Line Conditions",
+   "name": "Automatic Insured Status For Newly Acquired Or Formed Limited Liability Companies - Other Than Covered Auto"
+  },
+  {
+   "category": "Line Conditions",
+   "name": "Earlier Notice Of Cancellation Provided By Us"
+  },
+  {
+   "category": "Line Conditions",
+   "name": "Waiver Of Transfer Of Rights Of Recovery Against Others To Us (Waiver Of Subrogation) - Automatic When Required By Written Contr"
+  },
+  {
+   "category": "Line Conditions",
+   "name": "Jurisdiction Conditions"
+  },
+  {
+   "category": "Line Conditions",
+   "name": "Virginia Cancellation And Nonrenewal Notice To Designated Person Or Organization"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Abuse Or Molestation Exclusion For Covered Autos Liability Exposure"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Abuse Or Molestation Exclusion For General Liability And Acts, Errors Or Omissions Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Cannabis Exclusion For General Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Cannabis Exclusion With Hemp And Lessor Risk Exception For General Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Cannabis Exclusion With Hemp Exception For General Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Communicable Disease Exclusion For Covered Autos Liability Exposure"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Exclusion - Cross Suits Liability For General Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Limited General Liability Coverage For Designated Unmanned Aircraft"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Limited General Liability Coverage For Designated Unmanned Aircraft - (Bodily Injury And Property Damage Liability Only)"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Limited General Liability Coverage For Designated Unmanned Aircraft - (Personal And Advertising Injury Liability Only)"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Perfluoroalkyl And Polyfluoroalkyl Substances (PFAS) Exclusion For General Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Sexual Abuse Or Sexual Molestation Exclusion For General Liability And Acts, Errors Or Omissions Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Unmanned Aircraft Exclusion For General Liability"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Unmanned Aircraft Exclusion For General Liability Coverages - (Bodily Injury And Property Damage Liability Only)"
+  },
+  {
+   "category": "Line Exclusions",
+   "name": "Unmanned Aircraft Exclusion For General Liability Coverages - (Personal And Advertising Injury Liability Only)"
+  },
+  {
+   "category": "Jurisdiction Exclusions",
+   "name": "Illinois - Exclusion For General Liability Coverages - Viral Or Bacterial Infections - Exception For Designated Infection"
+  },
+  {
+   "category": "Jurisdiction Exclusions",
+   "name": "Illinois Viral Or Bacterial Infections Exclusion For Covered Autos Liability Exposure"
+  }
+ ],
+ "states": [
+  "AZ",
+  "CO",
+  "DE",
+  "IA",
+  "MD",
+  "MI",
+  "NC",
+  "NE",
+  "NM",
+  "OH",
+  "PA",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VA",
+  "WI"
+ ]
+}

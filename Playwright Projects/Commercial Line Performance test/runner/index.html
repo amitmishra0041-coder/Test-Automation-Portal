@@ -607,11 +607,18 @@
     <div class="page-head"><h1>Policy Tests</h1><p>Run the BOP, Package and Commercial Auto policy workflows for the states and environment you pick.</p></div>
     <div class="card">
 
+      <div class="field-label">Project (select one)</div>
+      <div class="chips" id="policyProjectChips"></div>
+
       <div class="field-label">Line of Business (select one or more)</div>
       <div class="chips" id="policyLobChips"></div>
 
       <div class="field-label">State (select one or more)</div>
       <div class="chips" id="policyStateChips"></div>
+      <div class="actions" id="policyStateBulk" style="display:none;margin-top:6px">
+        <button id="policyStateAll" type="button">Select all states</button>
+        <button id="policyStateNone" type="button">Clear states</button>
+      </div>
 
       <div class="field-label">Environment (select one)</div>
       <div class="chips" id="policyEnvChips"></div>
@@ -1242,7 +1249,7 @@
 
   // ── State ──────────────────────────────────────────────────────────────
   var config = null;
-  var policy = { lobs: new Set(), states: new Set(), envs: new Set() };
+  var policy = { project: 'REGRESSION', lobs: new Set(), states: new Set(), envs: new Set() };
   var claims = { lob: null, platform: null, tier: null };
   var recon = { tier: null, file: null };
   var uv = { tier: null, file: null };
@@ -1403,6 +1410,7 @@
   // ── Load config, render controls ─────────────────────────────────────────
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     config = cfg;
+    renderPolicyProjects();
     renderPolicyLobs();
     renderPolicyStates();
     renderPolicyEnvs();
@@ -1938,11 +1946,46 @@
       .catch(function (e) { errEl.textContent = 'Failed to save settings: ' + e.message; });
   });
 
+  function policyIsCaRefresh() { return policy.project === 'CA_REFRESH'; }
+  function policyLobCatalog() { return policyIsCaRefresh() ? config.policy.caRefresh.lobs : config.policy.lobs; }
+  function policyStateList() { return policyIsCaRefresh() ? config.policy.caRefresh.states : config.policy.states; }
+
+  function renderPolicyProjects() {
+    var box = document.getElementById('policyProjectChips');
+    box.innerHTML = '';
+    Object.keys(config.policy.projects).forEach(function (code) {
+      var c = chip(config.policy.projects[code].label, policy.project === code);
+      c.addEventListener('click', function () {
+        if (policy.project === code) return;
+        policy.project = code;
+        policy.lobs.clear();
+        policy.states.clear();
+        renderPolicyProjects();
+        renderPolicyLobs();
+        renderPolicyStates();
+        updatePolicyPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
+  document.getElementById('policyStateAll').addEventListener('click', function () {
+    policyStateList().forEach(function (st) { policy.states.add(st); });
+    renderPolicyStates();
+    updatePolicyPreview();
+  });
+  document.getElementById('policyStateNone').addEventListener('click', function () {
+    policy.states.clear();
+    renderPolicyStates();
+    updatePolicyPreview();
+  });
+
   function renderPolicyLobs() {
     var box = document.getElementById('policyLobChips');
     box.innerHTML = '';
-    Object.keys(config.policy.lobs).forEach(function (code) {
-      var c = chip(config.policy.lobs[code].label, policy.lobs.has(code));
+    var catalog = policyLobCatalog();
+    Object.keys(catalog).forEach(function (code) {
+      var c = chip(catalog[code].label, policy.lobs.has(code));
       c.addEventListener('click', function () {
         if (policy.lobs.has(code)) policy.lobs.delete(code); else policy.lobs.add(code);
         renderPolicyLobs();
@@ -1955,7 +1998,8 @@
   function renderPolicyStates() {
     var box = document.getElementById('policyStateChips');
     box.innerHTML = '';
-    config.policy.states.forEach(function (st) {
+    document.getElementById('policyStateBulk').style.display = policyIsCaRefresh() ? '' : 'none';
+    policyStateList().forEach(function (st) {
       var c = chip(st, policy.states.has(st));
       c.addEventListener('click', function () {
         if (policy.states.has(st)) policy.states.delete(st); else policy.states.add(st);
@@ -2395,7 +2439,7 @@
     policy.lobs.forEach(function (lob) {
       policy.states.forEach(function (state) {
         policy.envs.forEach(function (env) {
-          jobs.push({ lob: lob, state: state, env: env });
+          jobs.push({ project: policy.project, lob: lob, state: state, env: env });
         });
       });
     });
@@ -2412,6 +2456,10 @@
       return;
     }
     box.innerHTML = jobs.map(function (j) {
+      if (j.project === 'CA_REFRESH') {
+        return '<div class="job-line">CA Refresh &middot; ' + config.policy.caRefresh.lobs[j.lob].label + ' &middot; ' + j.state +
+               ' &nbsp;(npx playwright test Create_CA.test.js --project=chromium, TEST_ENV=' + j.env + ' TEST_STATE=' + j.state + ' CA_REFRESH=1)</div>';
+      }
       var f = config.policy.lobs[j.lob].file;
       return '<div class="job-line">npx playwright test ' + f + ' --project=chromium &nbsp;' +
              '(TEST_ENV=' + j.env + ' TEST_STATE=' + j.state + ')</div>';

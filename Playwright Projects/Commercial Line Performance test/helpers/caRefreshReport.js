@@ -1,0 +1,79 @@
+// Word (.docx) test-result document for one CA Refresh run (same idea as the OneInc case reviews):
+// header, milestones, coverage validation table, and the coverage-page screenshots, in one attachable file.
+const fs = require('fs');
+const path = require('path');
+const {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, ImageRun, ShadingType, BorderStyle, HeadingLevel,
+} = require('docx');
+
+const COLORS = { PASS: '17692E', FAIL: '9B1C1C', FOUND: '17692E', MISSING: '9B1C1C', UNEXPECTED: '8A5A00', PC_ONLY: '3B5BA5', NOT_TESTED: '667085', REMOVED_STILL_PRESENT: '8A5A00', NOT_APPLICABLE: '667085' };
+const FILLS = { PASS: 'E3F6E8', FAIL: 'FDE8E8', FOUND: 'E3F6E8', MISSING: 'FDE8E8', UNEXPECTED: 'FFF3D6', REMOVED_STILL_PRESENT: 'FFF3D6' };
+const LINE = { style: BorderStyle.SINGLE, size: 4, color: 'BFC6D0' };
+const MAX_W = 620;
+const MAX_H = 760;
+
+const para = (text, opts = {}) => new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: String(text == null ? '' : text), ...opts })] });
+const heading = (text) => new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 280, after: 100 }, children: [new TextRun({ text, bold: true })] });
+const cell = (text, { w, fill, bold, color } = {}) => new TableCell({
+  width: w ? { size: w, type: WidthType.PERCENTAGE } : undefined,
+  shading: fill ? { type: ShadingType.CLEAR, fill, color: 'auto' } : undefined,
+  margins: { top: 60, bottom: 60, left: 100, right: 100 },
+  borders: { top: LINE, bottom: LINE, left: LINE, right: LINE },
+  children: [new Paragraph({ children: [new TextRun({ text: String(text == null ? '' : text), bold, color })] })],
+});
+const table = (rows) => new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows });
+
+function pngSize(buf) {
+  if (buf.length < 24 || buf.toString('ascii', 1, 4) !== 'PNG') return null;
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
+
+function image(file) {
+  if (!file || !fs.existsSync(file)) return [];
+  const data = fs.readFileSync(file);
+  const sz = pngSize(data);
+  if (!sz) return [];
+  const k = Math.min(1, MAX_W / sz.w, MAX_H / sz.h);
+  return [new Paragraph({ children: [new ImageRun({ type: 'png', data, transformation: { width: Math.round(sz.w * k), height: Math.round(sz.h * k) } })] })];
+}
+
+// run: { testCaseId, testCaseName, lobLabel, state, env, quoteNumber, policyNumber, status, error, milestones[], validation, shots[{label,file}] }
+async function writeCaRefreshDoc(run, outFile) {
+  const v = run.validation || { results: [], summary: {} };
+  const s = v.summary || {};
+  const kids = [
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun({ text: `CA Refresh - ${run.lobLabel} - ${run.state}`, bold: true })] }),
+    table([
+      ['Test case', `${run.testCaseId} - ${run.testCaseName}`],
+      ['Environment', run.env], ['State', run.state], ['Line of business', run.lobLabel],
+      ['Quote #', run.quoteNumber], ['Policy #', run.policyNumber],
+      ['Executed', run.executedAt],
+      ['Result', run.status],
+      ['Coverage validation', `${s.found || 0} found, ${s.missing || 0} missing, ${s.pcOnly || 0} PolicyCenter-only (not shown to agents in WriteBiz), ${s.notTested || 0} not tested (needs a Special Type / Public Transportation vehicle), ${s.unexpected || 0} unexpected, ${s.removedStillPresent || 0} removed-but-present (info), ${s.notApplicable || 0} not applicable in ${run.state}`],
+    ].map(([k, val]) => new TableRow({ children: [cell(k, { w: 22, bold: true, fill: 'F4F6F8' }), k === 'Result' ? cell(val, { w: 78, bold: true, color: COLORS[val], fill: FILLS[val] }) : cell(val, { w: 78 })] }))),
+    para('Scope: policy issued through the standard CA workflow; coverages validated from the test-case precondition and product model. Rewrite, cancel, policy change, renewal, website and ImageRight are not covered.', { italics: true, color: '667085' }),
+  ];
+  if (run.error) kids.push(heading('Error'), para(run.error, { color: COLORS.FAIL }));
+
+  kids.push(heading('Workflow steps'));
+  kids.push(table([new TableRow({ tableHeader: true, children: ['Step', 'Status', 'Duration'].map((h, i) => cell(h, { w: [60, 15, 25][i], bold: true, fill: 'E7EBF0' })) })]
+    .concat((run.milestones || []).map((m) => new TableRow({ children: [cell(m.name, { w: 60 }), cell(m.status, { w: 15, bold: true, color: COLORS[m.status === 'PASSED' ? 'PASS' : 'FAIL'] }), cell(m.duration || '', { w: 25 })] })))));
+
+  kids.push(heading('Coverage validation'));
+  const rows = v.results.filter((r) => r.status !== 'NOT_APPLICABLE').concat(v.results.filter((r) => r.status === 'NOT_APPLICABLE'));
+  kids.push(table([new TableRow({ tableHeader: true, children: ['Category', 'Coverage', 'Code / form', 'Avail.', 'Result', 'Seen on'].map((h, i) => cell(h, { w: [16, 34, 18, 6, 12, 14][i], bold: true, fill: 'E7EBF0' })) })]
+    .concat(rows.map((r) => new TableRow({ children: [
+      cell(r.category, { w: 16 }), cell(r.name, { w: 34 }), cell([r.code, r.form].filter(Boolean).join(' / '), { w: 18 }), cell(r.availability, { w: 6 }),
+      cell(r.status, { w: 12, bold: true, color: COLORS[r.status], fill: FILLS[r.status] }), cell(r.page, { w: 14 })] })))));
+
+  const shots = (run.shots || []).filter((x) => x.file && fs.existsSync(x.file));
+  if (shots.length) kids.push(heading('Screenshots'));
+  for (const sh of shots) kids.push(para(sh.label, { bold: true }), ...image(sh.file));
+
+  const doc = new Document({ sections: [{ children: kids }] });
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  fs.writeFileSync(outFile, await Packer.toBuffer(doc));
+  return outFile;
+}
+
+module.exports = { writeCaRefreshDoc };

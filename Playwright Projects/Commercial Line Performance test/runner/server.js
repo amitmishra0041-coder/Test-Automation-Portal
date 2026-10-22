@@ -367,6 +367,15 @@ const POLICY_LOB = {
   CA:      { label: 'CA',           file: 'Create_CA.test.js' },
 };
 const POLICY_STATES = ['DE', 'WI', 'PA', 'MI'];
+// "CA Refresh" project (Jira ABP-593): the CA policy workflow plus coverage validation from the test-case
+// preconditions + product model, for every state those test cases name. Data: helpers/caRefreshData.json.
+const CA_REFRESH_DATA = require(path.join(POLICY_DIR, 'helpers', 'caRefreshData.json'));
+const CA_REFRESH_STATES = CA_REFRESH_DATA.states;
+const CA_REFRESH_LOB = { BUSINESS_AUTO: { label: 'Business Auto' }, AUTO_DEALERS: { label: 'Auto Dealers' } };
+const POLICY_PROJECTS = {
+  REGRESSION: { label: 'Regression' },
+  CA_REFRESH: { label: 'CA Refresh' },
+};
 // Shown in this order regardless of which are wired up yet; the UI greys out
 // any key missing from helpers/envConfig.js's ENV_URLS so a click can never
 // silently run against the wrong URL (getEnvUrls() falls back to qa).
@@ -564,6 +573,8 @@ app.get('/api/config', (req, res) => {
     policy: {
       lobs: POLICY_LOB,
       states: POLICY_STATES,
+      projects: POLICY_PROJECTS,
+      caRefresh: { states: CA_REFRESH_STATES, lobs: CA_REFRESH_LOB },
       envs: POLICY_ENV_ORDER.map((key) => ({ key, configured: Boolean(ENV_URLS[key]) })),
     },
     claims: {
@@ -964,7 +975,22 @@ function classifySmartCommLine(text) {
   return null;
 }
 
+function buildCaRefreshJob(j) {
+  if (!CA_REFRESH_LOB[j.lob]) throw new Error(`Unknown CA Refresh line of business "${j.lob}"`);
+  if (!CA_REFRESH_STATES.includes(j.state)) throw new Error(`Unknown CA Refresh state "${j.state}"`);
+  const envKey = String(j.env || '').toLowerCase();
+  if (!ENV_URLS[envKey]) throw new Error(`Env "${j.env}" isn't configured yet - add ENV_URLS.${envKey} in helpers/envConfig.js before running it.`);
+  return {
+    label: `CA Refresh · ${CA_REFRESH_LOB[j.lob].label} · ${j.state} · ${envKey.toUpperCase()}`,
+    cwd: POLICY_DIR,
+    cmd: 'npx',
+    args: ['playwright', 'test', POLICY_LOB.CA.file, '--project=chromium'],
+    env: { TEST_ENV: envKey, TEST_STATE: j.state, CA_REFRESH: '1', CA_REFRESH_LOB: j.lob, TEST_DATA_TAG: `CARefresh-${j.lob}` },
+  };
+}
+
 function buildPolicyJob(j) {
+  if (j.project === 'CA_REFRESH') return buildCaRefreshJob(j);
   const lob = POLICY_LOB[j.lob];
   if (!lob) throw new Error(`Unknown LOB "${j.lob}"`);
   if (!POLICY_STATES.includes(j.state)) throw new Error(`Unknown state "${j.state}"`);
