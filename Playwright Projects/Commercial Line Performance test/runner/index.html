@@ -363,7 +363,7 @@
   .oi-table-wrap { max-height: 520px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
   .oi-table td { vertical-align: top; } .oi-table .mono { font-family: var(--mono, Consolas, monospace); font-size: 11.5px; white-space: nowrap; }
   .oi-st { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; color: #fff; background: var(--muted); white-space: nowrap; }
-  .oi-st.PASS { background: var(--green); color: #062; } .oi-st.FAIL { background: var(--red); } .oi-st.BLOCKED { background: #d97706; } .oi-st.RUNNING { background: var(--accent); }
+  .oi-st.PASS { background: var(--green); color: #062; } .oi-st.FAIL { background: var(--red); } .oi-st.BLOCKED { background: #d97706; } .oi-st.RUNNING { background: var(--accent); } .oi-st.QUEUED { background: var(--muted); color: #fff; } .oi-st.NOT-REACHED { background: transparent; border: 1px solid var(--muted); }
   .oi-why { font-size: 11.5px; color: var(--muted); margin-top: 2px; } .oi-dev { font-size: 11.5px; color: #d97706; margin-top: 2px; }
   .oi-det td { background: var(--hover, rgba(127,127,127,.06)); font-size: 12.5px; } .oi-det pre { white-space: pre-wrap; margin: 4px 0; font-size: 12px; }
   .oi-det .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } @media (max-width: 760px) { .oi-det .grid { grid-template-columns: 1fr; } }
@@ -906,8 +906,9 @@
       <div id="oneIncStoryStatus" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
     </div>
     <div class="card">
-      <div class="out-toolbar"><h2 style="margin:0">Run history</h2><button id="oneIncRefreshBtn">Refresh</button></div>
-      <div id="oneIncRuns" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
+      <div class="out-toolbar"><h2 style="margin:0">Current run</h2><div><button id="oneIncAllRunsToggle" type="button">Show all runs</button> <button id="oneIncRefreshBtn">Refresh</button></div></div>
+      <div id="oneIncCurrentRun" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
+      <div id="oneIncRuns" style="margin-top:12px"></div>
     </div>
   </div>
 
@@ -3573,10 +3574,35 @@
     var reportLinks = function (id) {
       return '<a href="/reports/oneinc/Reports/' + esc(id) + '.html" target="_blank">HTML</a> · <a href="/reports/oneinc/Reports/' + esc(id) + '.csv">CSV</a> · <a href="/reports/oneinc/Logs/' + esc(id) + '.log" target="_blank">log</a>';
     };
+    // Current run (2026-10-22, user request): only the scenarios SELECTED for the latest run — queued / running / result —
+    // with the reason and a link to each case's step-by-step review document. Older runs sit behind "Show all runs".
+    function renderCurrentRun() {
+      var el = $('oneIncCurrentRun'); if (!el) return;
+      var id = oi.latestRunId, run = id && oi.runDetail[id];
+      if (!id) { el.innerHTML = '<span class="stats-empty">No OneInc runs yet.</span>'; return; }
+      if (!run) { el.innerHTML = '<span class="stats-empty">Loading run ' + esc(id) + '…</span>'; return; }
+      var lr = (oi.data && oi.data.latestRun) || {};
+      var mine = (run.results || []).filter(function (r) { return r.automation === 'AUTOMATED' && (/^(PASS|FAIL|BLOCKED)$/.test(r.status) || /^Queued/.test(r.reason || '') || oi.live[r.scenarioId]); });
+      var done = 0, C = { PASS: 0, FAIL: 0, BLOCKED: 0 };
+      var rows = mine.map(function (r) {
+        var lv = oi.live[r.scenarioId], st = /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? r.status : (lv && lv.status) || (lr.inProgress ? 'QUEUED' : 'NOT REACHED');
+        var why = /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? r.reason : (lv && lv.reason) || '';
+        if (C[st] !== undefined) { C[st]++; done++; }
+        return '<tr><td><span class="oi-st ' + esc(st.replace(/ /g, '-')) + '">' + esc(st) + '</span></td><td class="mono">' + esc(r.scenarioId) + '</td><td>' + esc(r.name) +
+          (why && st !== 'PASS' ? '<div class="oi-why">' + esc(String(why).slice(0, 260)) + '</div>' : '') + '</td><td class="mono">' + esc(r.claim || '') + '</td>' +
+          '<td class="oi-num">' + (r.durationMs ? (r.durationMs / 1000).toFixed(0) + 's' : '') + '</td><td>' + (r.reviewUrl && /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? '<a href="' + r.reviewUrl + '" target="_blank">review document</a>' : '') + '</td></tr>';
+      }).join('');
+      el.innerHTML = '<div style="margin-bottom:8px"><b class="mono">' + esc(id) + '</b> ' + (lr.inProgress && lr.runId === id ? '<span class="oi-st RUNNING">RUNNING</span>' : '<span class="muted">finished</span>') +
+        ' · ' + done + ' of ' + mine.length + ' done — ' + C.PASS + ' pass, ' + C.FAIL + ' fail, ' + C.BLOCKED + ' blocked · ' + reportLinks(id) + '</div>' +
+        (mine.length ? '<table class="stats-table"><tr><th>Status</th><th>Case</th><th>Name / reason</th><th>Claim</th><th>Time</th><th></th></tr>' + rows + '</table>' : '<span class="stats-empty">This run selected no automated cases.</span>');
+    }
     // Run history: counts = only the scenarios that run actually ran (server-side aggregate).
     function loadRuns() {
+      renderCurrentRun();
       fetch('/api/oneInc/runs').then(function (r) { return r.json(); }).then(function (d) {
         var runs = d.runs || [];
+        $('oneIncAllRunsToggle').textContent = oi.showAllRuns ? 'Hide all runs' : 'Show all runs (' + runs.length + ')';
+        if (!oi.showAllRuns) { $('oneIncRuns').innerHTML = ''; return; }
         $('oneIncRuns').innerHTML = runs.length ? '<table class="stats-table"><tr><th>Run</th><th>Stories</th><th>Scope</th><th>Start</th><th>Duration</th><th>Ran</th><th>Pass</th><th>Fail</th><th>Blocked</th><th>Pass %</th><th>Reports</th></tr>' + runs.map(function (h) {
           var C = h.counts || {}, ran = (C.PASS || 0) + (C.FAIL || 0) + (C.BLOCKED || 0), id = h.runId;
           return '<tr><td class="mono">' + esc(id) + (h.complete ? '' : ' <span class="oi-st RUNNING">RUNNING</span>') + '</td><td>' + esc(Object.keys(h.byStory || {}).join(', ') || '—') + '</td><td>' + esc(String(h.scope || '').slice(0, 80)) + '</td><td>' + esc(new Date(h.startedAt).toLocaleString()) + '</td><td class="oi-num">' + ((h.durationMs || 0) / 60000).toFixed(1) + ' min</td>' +
@@ -3652,7 +3678,7 @@
         } else if (lr) {
           $('oneIncReportLinks').innerHTML = 'Latest run ' + esc(lr.runId) + ' finished — <a href="/reports/oneinc/Reports/' + esc(lr.runId) + '.html" target="_blank">report</a>';
         }
-        if (oi.latestRunId && !oi.runDetail[oi.latestRunId]) fetch('/api/oneInc/runs/' + encodeURIComponent(oi.latestRunId)).then(function (r) { return r.json(); }).then(function (run) { oi.runDetail[oi.latestRunId] = run; renderTable(); });
+        if (oi.latestRunId && !oi.runDetail[oi.latestRunId]) fetch('/api/oneInc/runs/' + encodeURIComponent(oi.latestRunId)).then(function (r) { return r.json(); }).then(function (run) { oi.runDetail[oi.latestRunId] = run; renderTable(); renderCurrentRun(); });
       }).catch(function (e) { $('oneIncError').textContent = 'Could not load OneInc scenarios: ' + e.message; });
       loadRuns();
     }
@@ -3683,15 +3709,16 @@
     $('oneIncRerunBtn').addEventListener('click', function () { queue({ mode: 'rerun', runId: oi.latestRunId }); });
     $('oneIncStopBtn').addEventListener('click', function () { stopAll(); });
     $('oneIncRefreshBtn').addEventListener('click', function () { load(true); });
+    $('oneIncAllRunsToggle').addEventListener('click', function () { oi.showAllRuns = !oi.showAllRuns; loadRuns(); });
     es.addEventListener('oneinc-result', function (ev) {
       var d = JSON.parse(ev.data);
       oi.live[d.scenarioId] = { status: d.status, reason: d.reason };
-      if (oi.loaded) renderTable();
+      if (oi.loaded) { renderTable(); renderCurrentRun(); }
     });
     es.addEventListener('job-end', function (ev) {
       var d = JSON.parse(ev.data);
       if (d.reportUrls && d.reportUrls.kind === 'oneInc') {
-        $('oneIncReportLinks').textContent = 'Run finished — report below in Run history.';
+        $('oneIncReportLinks').textContent = 'Run finished — results below in Current run.';
         oi.runDetail = {}; oi.open = {}; load(false);
       }
     });
