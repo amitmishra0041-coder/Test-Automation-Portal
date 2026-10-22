@@ -543,8 +543,11 @@ app.get('/api/oneInc/runs/:id', (req, res) => {
       // Step-by-step screenshots (2026-10-21): stepShotUrls[i] pairs with stepsExecuted[i] (null when not captured).
       r.stepShotUrls = (r.stepShots || []).map((p) => (p && p.startsWith(root) ? toUrl(p) : null));
       (r.checks || []).forEach((c) => { c.screenshotUrl = c.screenshot && c.screenshot.startsWith(root) ? toUrl(c.screenshot) : null; });
+      // Step-by-step review document of the case's LATEST result (scripts/oneIncCaseReviews.js, 2026-10-22).
+      const review = path.join(root, 'Reports', 'CaseReviews', `${String(r.scenarioId).replace(/[^A-Za-z0-9_-]+/g, '_')}.html`);
+      r.reviewUrl = fs.existsSync(review) ? toUrl(review) : null;
     });
-    run.urls = { html: `/reports/oneinc/Reports/${run.run.runId}.html`, json: `/reports/oneinc/Reports/${run.run.runId}.json`, csv: `/reports/oneinc/Reports/${run.run.runId}.csv`, log: `/reports/oneinc/Logs/${run.run.runId}.log` };
+    run.urls = { html: `/reports/oneinc/Reports/${run.run.runId}.html`, json: `/reports/oneinc/Reports/${run.run.runId}.json`, csv: `/reports/oneinc/Reports/${run.run.runId}.csv`, log: `/reports/oneinc/Logs/${run.run.runId}.log`, caseReviews: '/reports/oneinc/Reports/CaseReviews/index.html' };
     res.json(run);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

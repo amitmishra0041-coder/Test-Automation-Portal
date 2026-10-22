@@ -867,12 +867,12 @@
 
   <!-- ── OneInc Payments tab (ClaimCenter-Automation scripts/runOneInc.js) ───── -->
   <div class="tab-panel" id="tab-oneInc">
-    <div class="page-head"><h1>OneInc Payments</h1><p>Every test case in the OneInc test-design workbooks (V:\Amit Int\OneInc), with Jira readiness. Run the automated ones against ClaimCenter Cloud. The browser runs <b>visible</b> so you can watch — it opens on the computer running this Runner. Reports, screenshots and the shared claim pool are saved under V:\Amit Int\OneInc\AutomationResults.</p></div>
+    <div class="page-head"><h1>OneInc Payments</h1><p>Every test case in the OneInc test-design workbooks (V:\Amit Int\OneInc), with Jira readiness. Run the automated ones against ClaimCenter Cloud. The browser runs <b>visible</b> so you can watch — it opens on the computer running this Runner. Reports, screenshots and the shared claim pool are saved under V:\Amit Int\OneInc\AutomationResults. Every case has a step-by-step review document (Run history › details › "Open step-by-step review document", or <a href="/reports/oneinc/Reports/CaseReviews/index.html" target="_blank">all case reviews</a>) — see the <a href="/reports/oneinc/OneInc_Automation_User_Guide.html" target="_blank">user guide</a>.</p></div>
     <div class="card">
       <div class="field-label">Tier (select one)</div>
       <div class="chips" id="oneIncTierChips"></div>
       <label class="oi-finish"><input type="checkbox" id="oneIncAllowFinish"> Allow Finish on validation-rule scenarios (TEST only — <b>submits a real payment to OneInc</b> when no error appears)</label>
-      <label class="oi-finish"><input type="checkbox" id="oneIncProvision" checked> Create fresh test claims first (TEST only — FNOL for each claim type the selected scenarios need, until the pool has
+      <label class="oi-finish"><input type="checkbox" id="oneIncProvision" checked> Prepare test data first (TEST only — re-checks and builds the declared test data on the pool claims of every claim type the selected scenarios need, and creates new claims (FNOL) until the pool has
         <select id="oneIncPoolSize" style="width:auto;min-width:0;padding:1px 4px"><option>1</option><option selected>2</option><option>3</option></select> each)</label>
       <label class="oi-finish">Parallel browsers for screen checks
         <select id="oneIncWorkers" style="width:auto;min-width:0;padding:1px 4px"><option>1</option><option selected>2</option><option>3</option></select>
@@ -3561,6 +3561,7 @@
       return '<tr class="oi-det"><td></td><td colspan="5"><div class="grid"><div><b>Expected</b><pre>' + esc(r.expected) + '</pre></div><div><b>Actual</b><pre>' + esc(r.actual || r.reason) + '</pre></div></div>' +
         (checks ? '<b>Checks</b><ul>' + checks + '</ul>' : '') + (r.stepsExecuted && r.stepsExecuted.length ? '<b>Steps</b><ol>' + r.stepsExecuted.map(function (x, k) { var u = (r.stepShotUrls || [])[k]; return '<li>' + esc(x) + (u ? ' — <a href="' + u + '" target="_blank">screenshot</a>' : '') + '</li>'; }).join('') + '</ol>' : '') +
         '<div class="muted">Run ' + esc(run.run.runId) + (r.claim ? ' · claim ' + esc(r.claim) : '') + (r.startedAt ? ' · ' + esc(r.startedAt) + ' → ' + esc(r.finishedAt) + ' (' + ((r.durationMs || 0) / 1000).toFixed(1) + 's)' : '') + '</div>' +
+        (r.reviewUrl ? '<div><b><a href="' + r.reviewUrl + '" target="_blank">Open step-by-step review document</a></b> <span class="muted">(latest result of this case: test data, every step with its screenshot, every check)</span></div>' : '') +
         (shots ? '<div>Evidence: ' + shots + '</div>' : '') + (r.error ? '<pre>' + esc(r.stack || r.error) + '</pre>' : '') + '</td></tr>';
     }
     function updateButtons() {
