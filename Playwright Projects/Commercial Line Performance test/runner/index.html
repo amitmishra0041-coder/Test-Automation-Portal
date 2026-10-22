@@ -350,6 +350,31 @@
   .stats-table th { text-align: left; color: var(--muted); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 10px; border-bottom: 1px solid var(--border); }
   .stats-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
   .stats-table tr:last-child td { border-bottom: none; }
+  /* OneInc Payments tab */
+  .oi-finish { display: flex; gap: 8px; align-items: center; font-size: 12.5px; margin: 10px 0 2px; color: var(--muted); }
+  .oi-stories { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+  .oi-story { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+  .oi-story b { font-size: 13px; }
+  .oi-rd { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); margin-left: 6px; }
+  .oi-rd.READY { color: var(--green); } .oi-rd.DEV_PENDING { color: var(--red); } .oi-rd.DEV_DONE { color: var(--accent); } .oi-rd.UNKNOWN { color: var(--muted); }
+  .oi-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0 8px; }
+  #tab-oneInc a { color: var(--accent); }
+  .oi-filters select, .oi-filters input { width: auto; min-width: 150px; font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel, transparent); color: inherit; }
+  .oi-table-wrap { max-height: 520px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .oi-table td { vertical-align: top; } .oi-table .mono { font-family: var(--mono, Consolas, monospace); font-size: 11.5px; white-space: nowrap; }
+  .oi-st { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; color: #fff; background: var(--muted); white-space: nowrap; }
+  .oi-st.PASS { background: var(--green); color: #062; } .oi-st.FAIL { background: var(--red); } .oi-st.BLOCKED { background: #d97706; } .oi-st.RUNNING { background: var(--accent); }
+  .oi-why { font-size: 11.5px; color: var(--muted); margin-top: 2px; } .oi-dev { font-size: 11.5px; color: #d97706; margin-top: 2px; }
+  .oi-det td { background: var(--hover, rgba(127,127,127,.06)); font-size: 12.5px; } .oi-det pre { white-space: pre-wrap; margin: 4px 0; font-size: 12px; }
+  .oi-det .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } @media (max-width: 760px) { .oi-det .grid { grid-template-columns: 1fr; } }
+  .muted { color: var(--muted); }
+  .oi-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; min-width: 120px; background: var(--border); }
+  .oi-bar span { display: block; height: 100%; }
+  .oi-bar .p { background: var(--green); } .oi-bar .f { background: var(--red); } .oi-bar .b { background: #d97706; }
+  .oi-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .oi-story-row { cursor: pointer; } .oi-story-row:hover td { background: var(--hover, rgba(127,127,127,.06)); }
+  .oi-story-det td { background: var(--hover, rgba(127,127,127,.04)); }
+  .oi-story-det table { width: 100%; margin: 6px 0 10px; }
   .stats-table .num { text-align: right; font-family: var(--mono); color: var(--accent-2); white-space: nowrap; }
   .stats-table .when { color: var(--muted); white-space: nowrap; }
   .stats-empty { color: var(--muted); font-size: 12.5px; }
@@ -531,6 +556,7 @@
   <div class="nav-group">Documents</div>
   <button class="tab-btn" data-tab="pdfCompare" title="PDF Compare"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h7l4 4v10H8zM5 7v14h10"/></svg><span class="tab-label">PDF Compare</span></button>
   <button class="tab-btn" data-tab="smartComm" title="SmartCOMM Validator"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM9 14l2 2 4-4"/></svg><span class="tab-label">SmartCOMM Validator</span></button>
+  <button class="tab-btn" data-tab="oneInc" title="OneInc Payments"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18v10H3zM3 11h18M7 15h3"/></svg><span class="tab-label">OneInc Payments</span></button>
   <div class="nav-group">Reporting</div>
   <button class="tab-btn" data-tab="jiraReport" title="Jira Sprint Report"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/></svg><span class="tab-label">Jira Sprint Report</span></button>
   <button class="tab-btn" data-tab="stats" title="Usage Stats"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/></svg><span class="tab-label">Usage Stats</span></button>
@@ -839,6 +865,52 @@
     </div>
   </div>
 
+  <!-- ── OneInc Payments tab (ClaimCenter-Automation scripts/runOneInc.js) ───── -->
+  <div class="tab-panel" id="tab-oneInc">
+    <div class="page-head"><h1>OneInc Payments</h1><p>Every test case in the OneInc test-design workbooks (V:\Amit Int\OneInc), with Jira readiness. Run the automated ones against ClaimCenter Cloud. The browser runs <b>visible</b> so you can watch — it opens on the computer running this Runner. Reports, screenshots and the shared claim pool are saved under V:\Amit Int\OneInc\AutomationResults.</p></div>
+    <div class="card">
+      <div class="field-label">Tier (select one)</div>
+      <div class="chips" id="oneIncTierChips"></div>
+      <label class="oi-finish"><input type="checkbox" id="oneIncAllowFinish"> Allow Finish on validation-rule scenarios (TEST only — <b>submits a real payment to OneInc</b> when no error appears)</label>
+      <label class="oi-finish"><input type="checkbox" id="oneIncProvision" checked> Create fresh test claims first (TEST only — FNOL for each claim type the selected scenarios need, until the pool has
+        <select id="oneIncPoolSize" style="width:auto;min-width:0;padding:1px 4px"><option>1</option><option selected>2</option><option>3</option></select> each)</label>
+      <label class="oi-finish">Parallel browsers for screen checks
+        <select id="oneIncWorkers" style="width:auto;min-width:0;padding:1px 4px"><option>1</option><option selected>2</option><option>3</option></select>
+        (payment / Finish scenarios always run one at a time)</label>
+
+      <div class="field-label">Stories <span class="muted" id="oneIncJiraNote"></span></div>
+      <div class="oi-stories" id="oneIncStories"><span class="stats-empty">Loading…</span></div>
+
+      <div class="oi-filters">
+        <select id="oneIncFStory"><option value="">All stories</option></select>
+        <select id="oneIncFCat"><option value="">All categories</option></select>
+        <select id="oneIncFStatus"><option value="">Any last status</option><option>PASS</option><option>FAIL</option><option>BLOCKED</option><option>NOT EXECUTED</option><option value="RUNNING">Running now</option></select>
+        <input type="search" id="oneIncFText" placeholder="Search id or name">
+        <button type="button" id="oneIncSelVisible">Select visible automated</button>
+        <button type="button" id="oneIncSelNone">Clear</button>
+        <span class="muted" id="oneIncCount"></span>
+      </div>
+      <div class="oi-table-wrap"><table class="stats-table oi-table" id="oneIncTable"><thead><tr><th></th><th>Scenario</th><th>Name</th><th>Category</th><th>Last status</th><th></th></tr></thead><tbody><tr><td colspan="6"><span class="stats-empty">Loading…</span></td></tr></tbody></table></div>
+
+      <div class="actions">
+        <button class="run" id="oneIncRunBtn" disabled>Run selected</button>
+        <button class="run" id="oneIncRunAllBtn" disabled>Run all automated</button>
+        <button class="run" id="oneIncRerunBtn" disabled>Re-run failed/blocked</button>
+        <button class="stop" id="oneIncStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="oneIncError"></div>
+      <div class="muted" id="oneIncReportLinks" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="out-toolbar"><h2 style="margin:0">Status by Jira story</h2><span class="muted" style="font-size:12px">latest result of every automated case, from any run</span></div>
+      <div id="oneIncStoryStatus" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
+    </div>
+    <div class="card">
+      <div class="out-toolbar"><h2 style="margin:0">Run history</h2><button id="oneIncRefreshBtn">Refresh</button></div>
+      <div id="oneIncRuns" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
+    </div>
+  </div>
+
   <!-- ── Jira Sprint Report tab ─────────────────────────────────────────────── -->
   <div class="tab-panel" id="tab-jiraReport">
     <div class="page-head"><h1>Jira Sprint Report</h1><p>Pull the selected tracks from Jira and email the sprint / pending-work workbook or status deck.</p></div>
@@ -1144,6 +1216,7 @@
       if (btn.dataset.tab === 'results') loadResults();
       if (btn.dataset.tab === 'stats') loadStats();
       if (btn.dataset.tab === 'admin') loadAdmin();
+      if (btn.dataset.tab === 'oneInc' && window.__loadOneInc) window.__loadOneInc();
       try { localStorage.setItem('runnerActiveTab', btn.dataset.tab); } catch (_) { /* ignore */ }
     });
   });
@@ -3215,6 +3288,7 @@
     document.getElementById('pdfStopBtn').disabled = stopDisabled;
     document.getElementById('smartCommStopBtn').disabled = stopDisabled;
     document.getElementById('jiraReportStopBtn').disabled = stopDisabled;
+    if (window.__oneIncSetRunning) window.__oneIncSetRunning(isRunning, stopDisabled);
     if (!list.length) progressWrap.classList.remove('show', 'indeterminate');
     renderSessionBanner(list, queueLabels, emailOk);
   }
@@ -3416,6 +3490,216 @@
     var d = JSON.parse(ev.data);
     appendLine('✋ Stopped: ' + d.label, 'stop');
   });
+
+  // ── OneInc Payments tab ──────────────────────────────────────────────────
+  // Lists every OneInc test case (GET /api/oneInc/scenarios: workbook inventory + automation category + Jira
+  // readiness + the latest run's status), runs the selected automated ones (suite 'oneInc'), shows each scenario's
+  // live status from the 'oneinc-result' SSE event, and the run history with expected/actual + evidence links.
+  (function () {
+    var oi = { tier: 'test', data: null, selected: new Set(), live: {}, open: {}, latestRunId: null, runDetail: {}, loaded: false };
+    var $ = function (id) { return document.getElementById(id); };
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function renderTiers() {
+      var box = $('oneIncTierChips'); box.innerHTML = '';
+      ['test', 'dev'].forEach(function (t) {
+        var c = chip(t.toUpperCase(), oi.tier === t);
+        c.addEventListener('click', function () { oi.tier = t; if (t !== 'test') $('oneIncAllowFinish').checked = false; $('oneIncAllowFinish').disabled = t !== 'test'; renderTiers(); });
+        box.appendChild(c);
+      });
+    }
+    function statusOf(s) { return oi.live[s.scenarioId] || (oi.data.last[s.scenarioId] || null); }
+    function filtered() {
+      var fs = $('oneIncFStory').value, fc = $('oneIncFCat').value, fst = $('oneIncFStatus').value, q = $('oneIncFText').value.toLowerCase();
+      return oi.data.scenarios.filter(function (s) {
+        var st = statusOf(s);
+        return (!fs || s.story === fs) && (!fc || s.automation === fc) && (!fst || (st ? st.status : 'NOT EXECUTED') === fst) &&
+          (!q || (s.scenarioId + ' ' + s.name).toLowerCase().indexOf(q) >= 0);
+      });
+    }
+    function renderStories() {
+      var d = oi.data;
+      $('oneIncJiraNote').textContent = d.jira.available ? '— readiness from Jira (Dev + Test Execution cards)' : '— Jira readiness unavailable: ' + d.jira.reason;
+      $('oneIncStories').innerHTML = d.stories.map(function (s) {
+        var j = s.jira, rd = j ? j.readiness : 'UNKNOWN';
+        var link = function (c) { return c ? '<a href="https://' + esc(d.jira.site) + '/browse/' + esc(c.key) + '" target="_blank">' + esc(c.key) + '</a> ' + esc(c.status) : '—'; };
+        var auto = d.scenarios.filter(function (x) { return x.story === s.story && x.automation === 'AUTOMATED'; }).length;
+        return '<div class="oi-story"><b>' + esc(s.story) + '</b><span class="oi-rd ' + esc(rd) + '">' + esc(rd.replace('_', ' ')) + '</span>' +
+          '<div class="muted">' + esc(s.title) + '</div><div>' + s.cases + ' test cases · ' + auto + ' automated</div>' +
+          '<div class="muted">Dev ' + link(j && j.dev) + ' · Test exec ' + link(j && j.exec) + '</div></div>';
+      }).join('');
+    }
+    function renderFilters() {
+      var d = oi.data;
+      var fs = $('oneIncFStory'), fc = $('oneIncFCat');
+      if (fs.options.length <= 1) d.stories.forEach(function (s) { var o = document.createElement('option'); o.value = s.story; o.textContent = s.story; fs.appendChild(o); });
+      if (fc.options.length <= 1) Array.from(new Set(d.scenarios.map(function (s) { return s.automation; }))).sort().forEach(function (a) { var o = document.createElement('option'); o.value = a; o.textContent = a; fc.appendChild(o); });
+    }
+    function renderTable() {
+      if (!oi.data) return;
+      var rows = filtered();
+      var tbody = $('oneIncTable').querySelector('tbody');
+      $('oneIncCount').textContent = rows.length + ' shown · ' + oi.selected.size + ' selected';
+      tbody.innerHTML = rows.slice(0, 600).map(function (s) {
+        var st = statusOf(s), status = st ? st.status : 'NOT EXECUTED';
+        var auto = s.automation === 'AUTOMATED';
+        var why = auto ? (st && st.reason ? st.reason : '') : s.reason;
+        var det = oi.open[s.scenarioId] ? detailRow(s) : '';
+        return '<tr><td>' + (auto ? '<input type="checkbox" data-id="' + esc(s.scenarioId) + '"' + (oi.selected.has(s.scenarioId) ? ' checked' : '') + '>' : '') + '</td>' +
+          '<td class="mono">' + esc(s.scenarioId) + '</td><td title="' + esc(s.description) + '">' + esc(s.name) +
+          (why ? '<div class="oi-why">' + esc(String(why).slice(0, 260)) + '</div>' : '') + (st && st.devNote ? '<div class="oi-dev">' + esc(st.devNote) + '</div>' : '') + '</td>' +
+          '<td>' + esc(s.automation) + '</td><td><span class="oi-st ' + esc(status.replace(' ', '-')) + '">' + esc(status) + '</span></td>' +
+          '<td>' + (oi.latestRunId ? '<button type="button" data-det="' + esc(s.scenarioId) + '">' + (oi.open[s.scenarioId] ? 'hide' : 'details') + '</button>' : '') + '</td></tr>' + det;
+      }).join('') || '<tr><td colspan="6"><span class="stats-empty">No scenarios match.</span></td></tr>';
+      updateButtons();
+    }
+    function detailRow(s) {
+      var run = oi.runDetail[oi.latestRunId];
+      var r = run && run.results.filter(function (x) { return x.scenarioId === s.scenarioId; })[0];
+      if (!r) return '<tr class="oi-det"><td></td><td colspan="5">Loading…</td></tr>';
+      var shots = (r.evidenceUrls || []).filter(function (u) { return /\.png$/i.test(u); }).map(function (u, i) { return '<a href="' + u + '" target="_blank">shot ' + (i + 1) + '</a>'; }).join(' · ');
+      var checks = (r.checks || []).map(function (c) { return '<li><span class="oi-st ' + esc(c.result) + '">' + esc(c.result) + '</span> ' + esc(c.description) + ' — expected ' + esc(c.expected) + '; actual ' + esc(c.actual) + (c.screenshotUrl ? ' — <a href="' + c.screenshotUrl + '" target="_blank">screenshot</a>' : '') + '</li>'; }).join('');
+      return '<tr class="oi-det"><td></td><td colspan="5"><div class="grid"><div><b>Expected</b><pre>' + esc(r.expected) + '</pre></div><div><b>Actual</b><pre>' + esc(r.actual || r.reason) + '</pre></div></div>' +
+        (checks ? '<b>Checks</b><ul>' + checks + '</ul>' : '') + (r.stepsExecuted && r.stepsExecuted.length ? '<b>Steps</b><ol>' + r.stepsExecuted.map(function (x, k) { var u = (r.stepShotUrls || [])[k]; return '<li>' + esc(x) + (u ? ' — <a href="' + u + '" target="_blank">screenshot</a>' : '') + '</li>'; }).join('') + '</ol>' : '') +
+        '<div class="muted">Run ' + esc(run.run.runId) + (r.claim ? ' · claim ' + esc(r.claim) : '') + (r.startedAt ? ' · ' + esc(r.startedAt) + ' → ' + esc(r.finishedAt) + ' (' + ((r.durationMs || 0) / 1000).toFixed(1) + 's)' : '') + '</div>' +
+        (shots ? '<div>Evidence: ' + shots + '</div>' : '') + (r.error ? '<pre>' + esc(r.stack || r.error) + '</pre>' : '') + '</td></tr>';
+    }
+    function updateButtons() {
+      var running = anyRunning;
+      $('oneIncRunBtn').disabled = running || oi.selected.size === 0;
+      $('oneIncRunAllBtn').disabled = running || !oi.data;
+      $('oneIncRerunBtn').disabled = running || !oi.latestRunId;
+    }
+    var reportLinks = function (id) {
+      return '<a href="/reports/oneinc/Reports/' + esc(id) + '.html" target="_blank">HTML</a> · <a href="/reports/oneinc/Reports/' + esc(id) + '.csv">CSV</a> · <a href="/reports/oneinc/Logs/' + esc(id) + '.log" target="_blank">log</a>';
+    };
+    // Run history: counts = only the scenarios that run actually ran (server-side aggregate).
+    function loadRuns() {
+      fetch('/api/oneInc/runs').then(function (r) { return r.json(); }).then(function (d) {
+        var runs = d.runs || [];
+        $('oneIncRuns').innerHTML = runs.length ? '<table class="stats-table"><tr><th>Run</th><th>Stories</th><th>Scope</th><th>Start</th><th>Duration</th><th>Ran</th><th>Pass</th><th>Fail</th><th>Blocked</th><th>Pass %</th><th>Reports</th></tr>' + runs.map(function (h) {
+          var C = h.counts || {}, ran = (C.PASS || 0) + (C.FAIL || 0) + (C.BLOCKED || 0), id = h.runId;
+          return '<tr><td class="mono">' + esc(id) + (h.complete ? '' : ' <span class="oi-st RUNNING">RUNNING</span>') + '</td><td>' + esc(Object.keys(h.byStory || {}).join(', ') || '—') + '</td><td>' + esc(String(h.scope || '').slice(0, 80)) + '</td><td>' + esc(new Date(h.startedAt).toLocaleString()) + '</td><td class="oi-num">' + ((h.durationMs || 0) / 60000).toFixed(1) + ' min</td>' +
+            '<td class="oi-num">' + ran + '</td><td class="oi-num">' + (C.PASS || 0) + '</td><td class="oi-num">' + (C.FAIL || 0) + '</td><td class="oi-num">' + (C.BLOCKED || 0) + '</td><td class="oi-num">' + (ran ? Math.round((C.PASS || 0) * 100 / ran) + '%' : '—') + '</td>' +
+            '<td>' + reportLinks(id) + '</td></tr>';
+        }).join('') + '</table>' : '<span class="stats-empty">No OneInc runs yet.</span>';
+      }).catch(function () { $('oneIncRuns').innerHTML = '<span class="stats-empty">Could not load run history.</span>'; });
+      loadStoryStatus();
+    }
+
+    // Status by Jira story: one row per story with the latest result of each automated case (from any run).
+    var storyOpen = {};
+    var storyData = null;
+    function loadStoryStatus() {
+      fetch('/api/oneInc/storyStatus').then(function (r) { return r.json(); }).then(function (d) {
+        if (d.error) { $('oneIncStoryStatus').innerHTML = '<span class="stats-empty">' + esc(d.error) + '</span>'; return; }
+        storyData = d; renderStoryStatus();
+      }).catch(function () { $('oneIncStoryStatus').innerHTML = '<span class="stats-empty">Could not load story status.</span>'; });
+    }
+    function renderStoryStatus() {
+      var d = storyData;
+      var jl = function (c) { return c ? '<a href="https://' + esc(d.jiraSite) + '/browse/' + esc(c.key) + '" target="_blank">' + esc(c.key) + '</a> ' + esc(c.status) : '—'; };
+      $('oneIncStoryStatus').innerHTML = '<table class="stats-table"><tr><th>Story</th><th>Readiness</th><th>Automated: latest result</th><th></th><th class="oi-num">Pass</th><th class="oi-num">Fail</th><th class="oi-num">Blocked</th><th class="oi-num">Not run yet</th><th class="oi-num">Manual / needs data</th><th>Last tested</th><th></th></tr>' +
+        d.stories.map(function (s) {
+          var L = s.latest, n = s.automated || 1, tested = L.PASS + L.FAIL + L.BLOCKED;
+          var manual = Object.keys(s.notAutomated).reduce(function (a, k) { return a + s.notAutomated[k]; }, 0);
+          var rd = s.jira ? s.jira.readiness : 'UNKNOWN';
+          var row = '<tr class="oi-story-row" data-story="' + esc(s.story) + '"><td><b>' + esc(s.story) + '</b><div class="muted" style="font-size:11.5px">' + esc(s.title) + '</div></td>' +
+            '<td><span class="oi-rd ' + esc(rd) + '">' + esc(rd.replace('_', ' ')) + '</span></td>' +
+            '<td><div class="oi-bar" title="' + L.PASS + ' pass, ' + L.FAIL + ' fail, ' + L.BLOCKED + ' blocked, ' + L.NEVER + ' not run"><span class="p" style="width:' + (L.PASS * 100 / n) + '%"></span><span class="f" style="width:' + (L.FAIL * 100 / n) + '%"></span><span class="b" style="width:' + (L.BLOCKED * 100 / n) + '%"></span></div></td>' +
+            '<td class="oi-num muted">' + (tested ? Math.round(L.PASS * 100 / tested) + '% pass' : '') + '</td>' +
+            '<td class="oi-num">' + L.PASS + '</td><td class="oi-num">' + L.FAIL + '</td><td class="oi-num">' + L.BLOCKED + '</td><td class="oi-num">' + L.NEVER + '</td><td class="oi-num" title="' + esc(JSON.stringify(s.notAutomated)) + '">' + manual + '</td>' +
+            '<td class="oi-num">' + (s.lastTested ? esc(new Date(s.lastTested).toLocaleString()) : '—') + '</td>' +
+            '<td>' + (s.automated ? '<button type="button" data-runstory="' + esc(s.story) + '">Run this story</button>' : '') + '</td></tr>';
+          if (!storyOpen[s.story]) return row;
+          var cases = s.cases.map(function (c) {
+            return '<tr><td><span class="oi-st ' + esc(c.status.replace(/ /g, '-')) + '">' + esc(c.status) + '</span></td><td class="mono">' + esc(c.scenarioId) + '</td><td>' + esc(c.name) +
+              (c.reason && c.status !== 'PASS' ? '<div class="oi-why">' + esc(c.reason.slice(0, 220)) + '</div>' : '') + (c.devNote ? '<div class="oi-dev">' + esc(c.devNote) + '</div>' : '') + '</td>' +
+              '<td class="oi-num">' + (c.at ? esc(new Date(c.at).toLocaleString()) : '—') + '</td><td>' + (c.runId ? '<a href="/reports/oneinc/Reports/' + esc(c.runId) + '.html" target="_blank">report</a>' : '') + '</td></tr>';
+          }).join('');
+          var runs = s.runs.slice(0, 15).map(function (r) {
+            return '<tr><td class="mono">' + esc(r.runId) + '</td><td class="oi-num">' + esc(new Date(r.startedAt).toLocaleString()) + '</td><td class="oi-num">' + r.counts.PASS + ' pass · ' + r.counts.FAIL + ' fail · ' + r.counts.BLOCKED + ' blocked</td><td>' + reportLinks(r.runId) + '</td></tr>';
+          }).join('');
+          var na = Object.keys(s.notAutomated).map(function (k) { return k + ' ' + s.notAutomated[k]; }).join(' · ');
+          return row + '<tr class="oi-story-det"><td colspan="11">' +
+            '<div class="muted">Dev ' + jl(s.jira && s.jira.dev) + ' · Test Execution ' + jl(s.jira && s.jira.exec) + ' · ' + s.totalCases + ' test cases: ' + s.automated + ' automated' + (na ? ' · ' + esc(na) : '') + '</div>' +
+            (cases ? '<table class="stats-table"><tr><th>Latest</th><th>Scenario</th><th>Name</th><th>When</th><th></th></tr>' + cases + '</table>' : '<div class="muted">No automated cases.</div>') +
+            (runs ? '<b>This story\'s runs</b><table class="stats-table">' + runs + '</table>' : '') + '</td></tr>';
+        }).join('') + '</table>';
+    }
+    $('oneIncStoryStatus').addEventListener('click', function (e) {
+      var rs = e.target.getAttribute && e.target.getAttribute('data-runstory');
+      if (rs) { e.stopPropagation(); if (confirm('Run all automated cases of ' + rs + ' on ' + oi.tier.toUpperCase() + '?')) queue({ mode: 'story', stories: [rs] }); return; }
+      var row = e.target.closest && e.target.closest('tr.oi-story-row');
+      if (!row || e.target.tagName === 'A') return;
+      var st = row.getAttribute('data-story'); storyOpen[st] = !storyOpen[st]; renderStoryStatus();
+    });
+    function load(refresh) {
+      fetch('/api/oneInc/scenarios' + (refresh ? '?refresh=1' : '')).then(function (r) { return r.json(); }).then(function (d) {
+        if (d.error) { $('oneIncError').textContent = d.error; return; }
+        oi.data = d; oi.latestRunId = d.latestRunId; oi.live = {}; oi.loaded = true;
+        renderStories(); renderFilters(); renderTable();
+        // A run in progress (from this tab, another person, or the command line) — its report file is rewritten after
+        // every scenario, so re-read it every 15s while this tab is open.
+        var lr = d.latestRun;
+        clearTimeout(oi.pollTimer);
+        if (lr && lr.inProgress) {
+          var S = lr.summary || {};
+          $('oneIncReportLinks').innerHTML = '<b>Run ' + esc(lr.runId) + ' in progress</b> — ' + lr.done + ' of ' + lr.planned + ' done (' + (S.passed || 0) + ' pass, ' + (S.failed || 0) + ' fail, ' + (S.blocked || 0) + ' blocked) · ' +
+            '<a href="/reports/oneinc/Reports/' + esc(lr.runId) + '.html" target="_blank">partial report</a> · <a href="/reports/oneinc/Logs/' + esc(lr.runId) + '.log" target="_blank">live log</a> · refreshing every 15s';
+          delete oi.runDetail[lr.runId];
+          oi.pollTimer = setTimeout(function () { if ($('tab-oneInc').classList.contains('active')) load(false); }, 15000);
+        } else if (lr) {
+          $('oneIncReportLinks').innerHTML = 'Latest run ' + esc(lr.runId) + ' finished — <a href="/reports/oneinc/Reports/' + esc(lr.runId) + '.html" target="_blank">report</a>';
+        }
+        if (oi.latestRunId && !oi.runDetail[oi.latestRunId]) fetch('/api/oneInc/runs/' + encodeURIComponent(oi.latestRunId)).then(function (r) { return r.json(); }).then(function (run) { oi.runDetail[oi.latestRunId] = run; renderTable(); });
+      }).catch(function (e) { $('oneIncError').textContent = 'Could not load OneInc scenarios: ' + e.message; });
+      loadRuns();
+    }
+    function queue(job) {
+      $('oneIncError').textContent = '';
+      job.tier = oi.tier; job.allowFinish = $('oneIncAllowFinish').checked;
+      job.provision = oi.tier === 'test' && $('oneIncProvision').checked; job.poolSize = $('oneIncPoolSize').value;
+      job.workers = $('oneIncWorkers').value;
+      if (job.allowFinish && !confirm('Allow Finish: validation scenarios that show no error will SUBMIT a real payment on TEST (sent to OneInc). Continue?')) return;
+      fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ suite: 'oneInc', jobs: [job], requestedBy: myEmail }) })
+        .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+        .then(function (res) { if (!res.ok) $('oneIncError').textContent = res.body.error || 'Failed to queue run'; });
+    }
+    $('oneIncTable').addEventListener('change', function (e) {
+      var id = e.target.getAttribute && e.target.getAttribute('data-id'); if (!id) return;
+      if (e.target.checked) oi.selected.add(id); else oi.selected.delete(id); renderTable();
+    });
+    $('oneIncTable').addEventListener('click', function (e) {
+      var id = e.target.getAttribute && e.target.getAttribute('data-det'); if (!id) return;
+      oi.open[id] = !oi.open[id]; renderTable();
+    });
+    ['oneIncFStory', 'oneIncFCat', 'oneIncFStatus'].forEach(function (id) { $(id).addEventListener('change', renderTable); });
+    $('oneIncFText').addEventListener('input', renderTable);
+    $('oneIncSelVisible').addEventListener('click', function () { filtered().forEach(function (s) { if (s.automation === 'AUTOMATED') oi.selected.add(s.scenarioId); }); renderTable(); });
+    $('oneIncSelNone').addEventListener('click', function () { oi.selected.clear(); renderTable(); });
+    $('oneIncRunBtn').addEventListener('click', function () { queue({ mode: 'ids', ids: Array.from(oi.selected) }); });
+    $('oneIncRunAllBtn').addEventListener('click', function () { queue({ mode: 'all' }); });
+    $('oneIncRerunBtn').addEventListener('click', function () { queue({ mode: 'rerun', runId: oi.latestRunId }); });
+    $('oneIncStopBtn').addEventListener('click', function () { stopAll(); });
+    $('oneIncRefreshBtn').addEventListener('click', function () { load(true); });
+    es.addEventListener('oneinc-result', function (ev) {
+      var d = JSON.parse(ev.data);
+      oi.live[d.scenarioId] = { status: d.status, reason: d.reason };
+      if (oi.loaded) renderTable();
+    });
+    es.addEventListener('job-end', function (ev) {
+      var d = JSON.parse(ev.data);
+      if (d.reportUrls && d.reportUrls.kind === 'oneInc') {
+        $('oneIncReportLinks').textContent = 'Run finished — report below in Run history.';
+        oi.runDetail = {}; oi.open = {}; load(false);
+      }
+    });
+    window.__oneIncSetRunning = function (isRunning, stopDisabled) { $('oneIncStopBtn').disabled = stopDisabled; if (oi.loaded) updateButtons(); };
+    window.__loadOneInc = function () { if (!oi.loaded) load(false); else loadRuns(); };
+    renderTiers();
+    // The saved-tab restore clicks the tab before this block exists — load now if we're already on it.
+    if ($('tab-oneInc').classList.contains('active')) load(false);
+  })();
 
 })();
 </script>

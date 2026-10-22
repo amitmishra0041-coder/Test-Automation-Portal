@@ -193,6 +193,12 @@ const CC_UI_REPORTS_DIR = path.join(CLAIMS_DIR, 'results', 'ccUi');
 const S3_DOWNLOAD_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'downloadSmartCommFile.js');
 const S3_DOWNLOADS_DIR = path.join(CLAIMS_DIR, 'results', 's3Downloads');
 const S3_ESTABLISH_SESSION_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'establishS3Session.js');
+// OneInc payment test designs (ClaimCenter-Automation's helpers/oneInc + scripts/runOneInc.js). The workbooks and
+// the AutomationResults folder live under ONEINC_DIR (default V:\Amit Int\OneInc, the team share).
+const ONEINC_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'runOneInc.js');
+const ONEINC_TIERS = ['test', 'dev'];
+function oneIncModule(name) { return require(path.join(CLAIMS_DIR, 'helpers', 'oneInc', name)); }
+function oneIncResultsDir() { try { return oneIncModule('reportService').RESULTS_DIR; } catch (e) { return null; } }
 // S3 defaults come from the helper itself (s3AdminService.js), so the Admin tab pre-fills the real values an
 // admin can then tweak - no second copy to drift. Requiring it is side-effect-free (consts + functions only).
 let S3_HELPER_DEFAULTS = { adminUrl: '', loginEmail: '' };
@@ -424,6 +430,124 @@ app.use('/reports/pdf-compare', express.static(PDF_COMPARE_REPORTS_DIR));
 app.use('/reports/jira', express.static(JIRA_REPORTS_DIR));
 app.use('/reports/cc-ui', express.static(CC_UI_REPORTS_DIR));
 app.use('/reports/s3-download', express.static(S3_DOWNLOADS_DIR));
+// OneInc AutomationResults (Reports/Screenshots/Logs/Evidence/...) — the HTML reports link to their screenshots with
+// relative paths, so serving the whole folder keeps those links working from the browser.
+app.use('/reports/oneinc', (req, res, next) => {
+  const dir = oneIncResultsDir();
+  if (!dir || !fs.existsSync(dir)) return res.status(404).send('No OneInc results yet');
+  return express.static(dir)(req, res, next);
+});
+
+// ── OneInc: scenario inventory (workbooks + classification + Jira readiness + last status) and run history ───
+let oneIncInventoryCache = null;
+// Workbook inventory + classification + Jira readiness, cached 5 minutes (refresh forces a reload).
+async function loadOneIncInventory(refresh) {
+    if (!oneIncInventoryCache || refresh || Date.now() - oneIncInventoryCache.at > 5 * 60 * 1000) {
+      // Drop the cached OneInc modules (recipes, recipe/profile extension files, reportService's results cache) so new
+      // recipes and the latest results show without restarting the Runner (2026-10-21: parallel workers add recipes).
+      const oneIncDir = path.join(CLAIMS_DIR, 'helpers', 'oneInc') + path.sep;
+      for (const k of Object.keys(require.cache)) if (k.startsWith(oneIncDir)) delete require.cache[k];
+      const inv = oneIncModule('inventoryService').loadInventory();
+      const readiness = await oneIncModule('jiraReadiness').loadReadiness();
+      const { classify } = oneIncModule('classifier');
+      const { RECIPES } = oneIncModule('scenarioRecipes');
+      oneIncInventoryCache = {
+        at: Date.now(),
+        data: {
+          dir: inv.dir,
+          jira: { available: readiness.available, reason: readiness.reason, site: process.env.JIRA_SITE || DEFAULT_JIRA_SITE },
+          stories: inv.workbooks.map((w) => ({ story: w.story, title: w.meta.description || w.fileName, file: w.fileName, cases: w.sheets.reduce((a, s) => a + s.cases, 0), jira: readiness.stories[w.story] || null })),
+          scenarios: inv.cases.map((tc) => {
+            const cls = classify(tc, { readiness });
+            return { scenarioId: tc.scenarioId, story: tc.story, sheet: tc.sheet, tcId: tc.tcId, name: tc.name, description: tc.description, priority: tc.priority,
+              automation: cls.automation, reason: cls.reason, profile: RECIPES[tc.scenarioId] ? RECIPES[tc.scenarioId].profile : null };
+          }),
+        },
+      };
+    }
+  return oneIncInventoryCache.data;
+}
+
+app.get('/api/oneInc/scenarios', async (req, res) => {
+  try {
+    const data = await loadOneIncInventory(Boolean(req.query.refresh));
+    const rs = oneIncModule('reportService');
+    // Last status = each case's newest ATTEMPTED result from ANY run (not just the newest run, where cases that
+    // weren't selected used to look "NOT EXECUTED"). Non-automated cases keep their category reason.
+    const agg = rs.aggregate();
+    const last = {};
+    for (const [id, l] of Object.entries(agg.latest)) last[id] = { status: l.status, reason: l.reason, devNote: l.devNote, runId: l.runId, at: l.at };
+    const runs = rs.listRuns(undefined, 1);
+    const latest = runs.length ? rs.loadRun(runs[0].runId) : null;
+    // In progress: the run file says so (complete === false), or — for a run written before that flag existed —
+    // scenarios are still "Queued" and the file was rewritten in the last 10 minutes.
+    let latestRun = null;
+    if (latest) {
+      const queued = latest.results.filter((r) => /^Queued/.test(r.reason || '')).length;
+      const inProgress = latest.run.complete === false
+        || (latest.run.complete === undefined && queued > 0 && Date.now() - Date.parse(latest.run.finishedAt) < 10 * 60 * 1000);
+      const planned = latest.run.planned || latest.results.filter((r) => r.automation === 'AUTOMATED' && r.reason !== 'Automated, not selected for this run').length;
+      latestRun = { runId: latest.run.runId, inProgress, planned, done: latest.run.done != null ? latest.run.done : planned - queued, summary: latest.run.summary };
+    }
+    res.json({ ...data, last, latestRunId: latest ? latest.run.runId : null, latestRun });
+  } catch (e) {
+    res.status(500).json({ error: `OneInc inventory unavailable: ${e.message}` });
+  }
+});
+app.get('/api/oneInc/runs', (req, res) => {
+  try {
+    // Counts per run = only the scenarios that run attempted (reportService.aggregate), not the dev-pending /
+    // not-selected rows every run report lists.
+    const limit = Math.max(1, Math.min(200, parseInt(req.query.limit, 10) || 30));
+    const agg = oneIncModule('reportService').aggregate();
+    res.json({ runs: agg.runs.slice(0, limit) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Status by Jira story: for every story, the LATEST attempted result of each automated case across all runs, the
+// manual / needs-data counts, Jira readiness, and that story's own run history.
+app.get('/api/oneInc/storyStatus', async (req, res) => {
+  try {
+    const data = await loadOneIncInventory(Boolean(req.query.refresh));
+    const agg = oneIncModule('reportService').aggregate();
+    const stories = data.stories.map((st) => {
+      const sc = data.scenarios.filter((s) => s.story === st.story);
+      const auto = sc.filter((s) => s.automation === 'AUTOMATED');
+      const latest = { PASS: 0, FAIL: 0, BLOCKED: 0, NEVER: 0 };
+      let lastTested = '';
+      const cases = auto.map((s) => {
+        const l = agg.latest[s.scenarioId];
+        latest[l ? l.status : 'NEVER']++;
+        if (l && l.at > lastTested) lastTested = l.at;
+        return { scenarioId: s.scenarioId, name: s.name, status: l ? l.status : 'NEVER RUN', reason: l ? l.reason : '', devNote: l ? l.devNote : '',
+          runId: l ? l.runId : null, at: l ? l.at : null, claim: l ? l.claim : '' };
+      });
+      const notAuto = {};
+      sc.filter((s) => s.automation !== 'AUTOMATED').forEach((s) => { notAuto[s.automation] = (notAuto[s.automation] || 0) + 1; });
+      const runs = agg.runs.filter((r) => r.byStory[st.story]).map((r) => ({ runId: r.runId, startedAt: r.startedAt, counts: r.byStory[st.story] }));
+      return { story: st.story, title: st.title, jira: st.jira, totalCases: sc.length, automated: auto.length, latest, notAutomated: notAuto, lastTested, cases, runs };
+    });
+    stories.sort((a, b) => Number(a.story.replace(/\D/g, '')) - Number(b.story.replace(/\D/g, '')));
+    res.json({ stories, jiraSite: data.jira.site });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/oneInc/runs/:id', (req, res) => {
+  try {
+    const run = oneIncModule('reportService').loadRun(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+    const root = oneIncResultsDir();
+    // Evidence paths become /reports/oneinc/... URLs so the UI can open them.
+    const toUrl = (p) => '/reports/oneinc/' + path.relative(root, p).split(path.sep).map(encodeURIComponent).join('/');
+    run.results.forEach((r) => {
+      r.evidenceUrls = (r.evidence || []).filter((p) => p.startsWith(root)).map(toUrl);
+      // Step-by-step screenshots (2026-10-21): stepShotUrls[i] pairs with stepsExecuted[i] (null when not captured).
+      r.stepShotUrls = (r.stepShots || []).map((p) => (p && p.startsWith(root) ? toUrl(p) : null));
+      (r.checks || []).forEach((c) => { c.screenshotUrl = c.screenshot && c.screenshot.startsWith(root) ? toUrl(c.screenshot) : null; });
+    });
+    run.urls = { html: `/reports/oneinc/Reports/${run.run.runId}.html`, json: `/reports/oneinc/Reports/${run.run.runId}.json`, csv: `/reports/oneinc/Reports/${run.run.runId}.csv`, log: `/reports/oneinc/Logs/${run.run.runId}.log` };
+    res.json(run);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 app.get('/api/config', (req, res) => {
   res.json({
@@ -517,7 +641,7 @@ app.get('/api/entitlements', (req, res) => {
 const SUITE_LABELS = {
   policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator',
   jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
-  updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare',
+  updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
 };
 app.get('/api/admin', (req, res) => {
   const email = String(req.query.email || '').trim().toLowerCase();
@@ -718,7 +842,7 @@ app.get('/api/stream', (req, res) => {
 // up held by 2 DIFFERENT people instead of one person's own backlog hogging both (added 2026-10-05).
 const SUITE_MAX_PARALLEL = 2;
 const STAGGER_MS = 60000;
-const SUITES = ['policy', 'claims', 'reconciliation', 'updateValidation', 'pdfCompare', 'smartComm', 'jiraReport'];
+const SUITES = ['policy', 'claims', 'reconciliation', 'updateValidation', 'pdfCompare', 'smartComm', 'jiraReport', 'oneInc'];
 
 function makePool() { return { queue: [], running: [], staggerTimer: null }; }
 const pools = {};
@@ -1218,6 +1342,58 @@ function buildPdfCompareJob(j) {
 // rerunnable. Each distinct track selection writes its own output file (see
 // jiraReportFileName below) so running just one track doesn't clobber - or
 // get confused with - a prior full run's report.
+// OneInc Payments tab: runs ClaimCenter-Automation's scripts/runOneInc.js (cloud only). mode = 'all' | 'ids' |
+// 'story' | 'rerun'. Scenario ids go through a temp file (a full selection is ~120 ids — too long to trust to a
+// shell command line) and every value is pattern-checked first, since it ends up on that command line.
+const ONEINC_ID_RE = /^GCCM-\d+\/[A-Za-z0-9-]+\/TC-?\d+(#\d+)?$/;
+function buildOneIncJob(j) {
+  if (!fs.existsSync(ONEINC_SCRIPT)) throw new Error(`runOneInc.js not found at ${ONEINC_SCRIPT} — git pull ClaimCenter-Automation`);
+  const tier = String(j.tier || 'test').toLowerCase();
+  if (!ONEINC_TIERS.includes(tier)) throw new Error(`Unknown tier "${j.tier}"`);
+  const mode = String(j.mode || 'ids');
+  const args = [ONEINC_SCRIPT];
+  let what;
+  if (mode === 'all') { args.push('--all'); what = 'all automated scenarios'; }
+  else if (mode === 'story') {
+    const stories = (Array.isArray(j.stories) ? j.stories : []).map((s) => String(s).trim().toUpperCase());
+    if (!stories.length || !stories.every((s) => /^GCCM-\d+$/.test(s))) throw new Error('Pick at least one story (GCCM-###)');
+    args.push('--story', stories.join(',')); what = stories.join(', ');
+  } else if (mode === 'rerun') {
+    const runId = String(j.runId || '');
+    if (!/^OneInc_[\w-]+$/.test(runId)) throw new Error('No previous run to re-run');
+    args.push('--rerun-failed', runId); what = `failed/blocked of ${runId}`;
+  } else {
+    const ids = (Array.isArray(j.ids) ? j.ids : []).map((s) => String(s).trim());
+    if (!ids.length) throw new Error('Select at least one automated scenario');
+    const bad = ids.find((s) => !ONEINC_ID_RE.test(s));
+    if (bad) throw new Error(`"${bad}" is not a OneInc scenario id`);
+    const listFile = path.join(require('os').tmpdir(), `oneinc-ids-${Date.now()}.txt`);
+    fs.writeFileSync(listFile, ids.join('\n'));
+    args.push('--ids-file', listFile); what = `${ids.length} scenario(s)`;
+  }
+  const allowFinish = Boolean(j.allowFinish);
+  if (allowFinish && tier !== 'test') throw new Error('Submitting payments (Finish) is only allowed on the TEST tier');
+  // Create fresh claims (FNOL) for the selected scenarios' claim profiles before executing — TEST only.
+  const provision = Boolean(j.provision);
+  if (provision && tier !== 'test') throw new Error('Creating claims upfront is only allowed on the TEST tier');
+  if (provision) {
+    const poolSize = Math.max(1, Math.min(5, parseInt(j.poolSize, 10) || 1));
+    args.push('--provision', '--pool-size', String(poolSize));
+    what += ` · fresh claims ×${poolSize}`;
+  }
+  // Parallel browsers for the screen checks (payment scenarios always run one at a time — see runOneInc.js).
+  const workers = Math.max(1, Math.min(3, parseInt(j.workers, 10) || 1));
+  if (workers > 1) { args.push('--workers', String(workers)); what += ` · ${workers} workers`; }
+  return {
+    label: `OneInc · ${what} · cloud/${tier}` + (allowFinish ? ' · Finish ENABLED' : ''),
+    cwd: CLAIMS_DIR,
+    cmd: 'node',
+    args,
+    env: { CC_ENV: 'cloud', CC_TIER: tier, ONEINC_ALLOW_FINISH: allowFinish ? '1' : '' },
+    reportUrls: { kind: 'oneInc' },
+  };
+}
+
 function jiraReportFileName(tracks, allKeys) {
   const allSelected = tracks.length === allKeys.length;
   return allSelected ? 'Sprint_Pending_Work_Report.xlsx' : `Sprint_Pending_Work_Report_${tracks.join('-')}.xlsx`;
@@ -1304,6 +1480,7 @@ app.post('/api/run', (req, res) => {
         : suite === 'pdfCompare' ? buildPdfCompareJob(j)
         : suite === 'smartComm' ? buildSmartCommJob(j)
         : suite === 'jiraReport' ? buildJiraReportJob(j)
+        : suite === 'oneInc' ? buildOneIncJob(j)
         : buildPolicyJob(j)
     ));
   } catch (e) {
@@ -1380,7 +1557,7 @@ app.get('/api/stats', (req, res) => {
   const toolLabels = {
     policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator',
     jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
-    updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare',
+    updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
   };
   res.json({
     totalRuns: recs.length,
@@ -1557,6 +1734,22 @@ function processQueue(suite) {
         broadcast('progress', { id, label: job.label, ...entry.progress });
         continue;
       }
+
+      // OneInc (scripts/runOneInc.js): "[OneInc] TOTAL n" up front, then "[OneInc] (i/n) <id>: STATUS — reason" per
+      // scenario — drives the progress bar and the OneInc tab's live status column.
+      const oneTotal = /^\[OneInc\] TOTAL (\d+)$/.exec(rawLine);
+      if (oneTotal) { entry.progress.total = parseInt(oneTotal[1], 10); broadcast('progress', { id, label: job.label, ...entry.progress }); continue; }
+      const oneRes = /^\[OneInc\] \((\d+)\/(\d+)\) (\S+): (PASS|FAIL|BLOCKED)(?: — (.*))?$/.exec(rawLine);
+      if (oneRes) {
+        entry.progress.done = parseInt(oneRes[1], 10);
+        entry.progress.total = parseInt(oneRes[2], 10);
+        broadcast('progress', { id, label: job.label, ...entry.progress });
+        broadcast('oneinc-result', { id, scenarioId: oneRes[3], status: oneRes[4], reason: oneRes[5] || '' });
+        if (oneRes[4] === 'PASS') stats.passed += 1; else stats.failed += 1;
+        continue;
+      }
+      const oneStart = /^\[OneInc\] \((\d+)\/(\d+)\) (\S+) — starting/.exec(rawLine);
+      if (oneStart) broadcast('oneinc-result', { id, scenarioId: oneStart[3], status: 'RUNNING', reason: '' });
 
       if (rawLine.trimStart().startsWith('📁')) {
         entry.progress.done += 1;
