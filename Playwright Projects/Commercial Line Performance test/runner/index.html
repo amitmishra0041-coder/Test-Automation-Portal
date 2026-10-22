@@ -867,7 +867,7 @@
 
   <!-- ── OneInc Payments tab (ClaimCenter-Automation scripts/runOneInc.js) ───── -->
   <div class="tab-panel" id="tab-oneInc">
-    <div class="page-head"><h1>OneInc Payments</h1><p>Every test case in the OneInc test-design workbooks (V:\Amit Int\OneInc), with Jira readiness. Run the automated ones against ClaimCenter Cloud. The browser runs <b>visible</b> so you can watch — it opens on the computer running this Runner. Reports, screenshots and the shared claim pool are saved under V:\Amit Int\OneInc\AutomationResults. Every case has a step-by-step review document (Run history › details › "Open step-by-step review document", or <a href="/reports/oneinc/Reports/CaseReviews/index.html" target="_blank">all case reviews</a>) — see the <a href="/reports/oneinc/OneInc_Automation_User_Guide.html" target="_blank">user guide</a>.</p></div>
+    <div class="page-head"><h1>OneInc Payments</h1><p>Every test case in the OneInc test-design workbooks (V:\Amit Int\OneInc), with Jira readiness. Run the automated ones against ClaimCenter Cloud. The browser runs <b>visible</b> so you can watch — it opens on the computer running this Runner. Reports, screenshots and the shared claim pool are saved under V:\Amit Int\OneInc\AutomationResults. Every case has a step-by-step Word document (Current run / details › "Download step-by-step Word document", or <a href="/reports/oneinc/Reports/CaseReviews/index.html" target="_blank">all case documents</a>) — see the <a href="/reports/oneinc/OneInc_Automation_User_Guide.html" target="_blank">user guide</a>.</p></div>
     <div class="card">
       <div class="out-toolbar"><h2 style="margin:0">Status by Jira story</h2><span class="muted" style="font-size:12px">latest result of every automated case, from any run</span></div>
       <div id="oneIncStoryStatus" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
@@ -3560,7 +3560,7 @@
       return '<tr class="oi-det"><td></td><td colspan="5"><div class="grid"><div><b>Expected</b><pre>' + esc(r.expected) + '</pre></div><div><b>Actual</b><pre>' + esc(r.actual || r.reason) + '</pre></div></div>' +
         (checks ? '<b>Checks</b><ul>' + checks + '</ul>' : '') + (r.stepsExecuted && r.stepsExecuted.length ? '<b>Steps</b><ol>' + r.stepsExecuted.map(function (x, k) { var u = (r.stepShotUrls || [])[k]; return '<li>' + esc(x) + (u ? ' — <a href="' + u + '" target="_blank">screenshot</a>' : '') + '</li>'; }).join('') + '</ol>' : '') +
         '<div class="muted">Run ' + esc(run.run.runId) + (r.claim ? ' · claim ' + esc(r.claim) : '') + (r.startedAt ? ' · ' + esc(r.startedAt) + ' → ' + esc(r.finishedAt) + ' (' + ((r.durationMs || 0) / 1000).toFixed(1) + 's)' : '') + '</div>' +
-        (r.reviewUrl ? '<div><b><a href="' + r.reviewUrl + '" target="_blank">Open step-by-step review document</a></b> <span class="muted">(latest result of this case: test data, every step with its screenshot, every check)</span></div>' : '') +
+        (r.reviewUrl ? '<div><b><a href="' + r.reviewUrl + '" target="_blank">Download step-by-step Word document</a></b> <span class="muted">(.docx, latest result of this case: test data, every step with its screenshot, every check — attach it in qTest)</span></div>' : '') +
         (shots ? '<div>Evidence: ' + shots + '</div>' : '') + (r.error ? '<pre>' + esc(r.stack || r.error) + '</pre>' : '') + '</td></tr>';
     }
     function updateButtons() {
@@ -3588,7 +3588,7 @@
         if (C[st] !== undefined) { C[st]++; done++; }
         return '<tr><td><span class="oi-st ' + esc(st.replace(/ /g, '-')) + '">' + esc(st) + '</span></td><td class="mono">' + esc(r.scenarioId) + '</td><td>' + esc(r.name) +
           (why && st !== 'PASS' ? '<div class="oi-why">' + esc(String(why).slice(0, 260)) + '</div>' : '') + '</td><td class="mono">' + esc(r.claim || '') + '</td>' +
-          '<td class="oi-num">' + (r.durationMs ? (r.durationMs / 1000).toFixed(0) + 's' : '') + '</td><td>' + (r.reviewUrl && /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? '<a href="' + r.reviewUrl + '" target="_blank">review document</a>' : '') + '</td></tr>';
+          '<td class="oi-num">' + (r.durationMs ? (r.durationMs / 1000).toFixed(0) + 's' : '') + '</td><td>' + (r.reviewUrl && /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? '<a href="' + r.reviewUrl + '" target="_blank">Word document</a>' : '') + '</td></tr>';
       }).join('');
       el.innerHTML = '<div style="margin-bottom:8px"><b class="mono">' + esc(id) + '</b> ' + (lr.inProgress && lr.runId === id ? '<span class="oi-st RUNNING">RUNNING</span>' : '<span class="muted">finished</span>') +
         ' · ' + done + ' of ' + mine.length + ' done — ' + C.PASS + ' pass, ' + C.FAIL + ' fail, ' + C.BLOCKED + ' blocked · ' + reportLinks(id) + '</div>' +
