@@ -636,7 +636,7 @@
 
   <div class="card" id="caRefreshHistoryCard" style="display:none;margin-top:16px">
     <div class="out-toolbar"><h2 style="margin:0">CA Refresh results</h2><button id="caRefreshHistoryRefresh" type="button">Refresh</button></div>
-    <p class="stats-empty" style="margin:6px 0 10px">Every run's Word result document, grouped per test (line of business and state) with the history of earlier runs. Click a result to download its document.</p>
+    <p class="stats-empty" style="margin:6px 0 10px">The Word result document of the latest run of each test (line of business and state) with its pass / fail result. Click the document link to download it.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <select id="caRefreshFLob" style="width:auto"><option value="">All lines</option></select>
       <select id="caRefreshFState" style="width:auto"><option value="">All states</option></select>
@@ -2046,19 +2046,15 @@
     order = order.filter(function (k) { return !ft || groups[k][0].status === ft; });
     if (!order.length) { box.innerHTML = '<span class="stats-empty">No CA Refresh runs yet.</span>'; return; }
     order.sort();
-    var html = '<table class="grid" style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Test</th><th align="left">Latest</th><th align="left">When</th><th align="left">Details</th><th align="left">History (newest first)</th></tr></thead><tbody>';
+    var html = '<table class="grid" style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Test</th><th align="left">Latest</th><th align="left">When</th><th align="left">Details</th></tr></thead><tbody>';
     order.forEach(function (k) {
       var runs = groups[k], r = runs[0];
       var link = function (x, label) { return '<a href="/reports/caRefresh/' + encodeURIComponent(x.doc) + '" title="' + caEsc(x.time + ' ' + (x.env || '') + ' ' + (x.error || '')) + '">' + caEsc(label) + '</a>'; };
-      var pills = runs.slice(0, 12).map(function (x) {
-        var c = x.status === 'PASS' ? '#17692e' : x.status === 'FAIL' ? '#9b1c1c' : '#667085';
-        return '<span style="display:inline-block;margin:0 4px 2px 0;padding:1px 6px;border-radius:9px;border:1px solid ' + c + ';font-size:11px">' + link(x, x.status + ' ' + String(x.time).slice(5, 10)) + '</span>';
-      }).join('');
       var color = r.status === 'PASS' ? '#17692e' : r.status === 'FAIL' ? '#9b1c1c' : '#667085';
       html += '<tr style="border-top:1px solid #8883"><td><b>' + caEsc(caLobLabel(r.lob)) + '</b> &middot; ' + caEsc(r.state) + (r.testCase ? ' <span class="stats-empty">(TC ' + caEsc(r.testCase) + ')</span>' : '') + '</td>' +
         '<td><b style="color:' + color + '">' + caEsc(r.status) + '</b> ' + link(r, 'Word document') + '</td>' +
         '<td>' + caEsc(new Date(r.time).toLocaleString()) + '<br><span class="stats-empty">' + caEsc((r.env || '').toUpperCase()) + (r.policy && r.policy !== 'N/A' ? ' &middot; policy ' + caEsc(r.policy) : r.quote && r.quote !== 'N/A' ? ' &middot; quote ' + caEsc(r.quote) : '') + '</span></td>' +
-        '<td class="stats-empty">' + caEsc(caSummaryText(r.summary)) + (r.error ? '<br>' + caEsc(String(r.error).slice(0, 140)) : '') + '</td><td>' + pills + '</td></tr>';
+        '<td class="stats-empty">' + caEsc(caSummaryText(r.summary)) + (r.error ? '<br>' + caEsc(String(r.error).slice(0, 140)) : '') + '</td></tr>';
     });
     box.innerHTML = html + '</tbody></table>';
   }
