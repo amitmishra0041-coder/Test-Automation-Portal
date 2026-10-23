@@ -950,13 +950,23 @@ test('CA Submission', async ({ page }, testInfo) => {
       await statusModalAddr.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
 
     const suggestedModal = page.locator('#dgic-modal-validateaddress_suggestedaddress');
-    if (await suggestedModal.isVisible().catch(() => false)) {
+    // CA Refresh runs: the Address Validation box can open a few seconds after Verify Address returns - wait for it.
+    const suggestedUp = caRefreshOn
+      ? await suggestedModal.waitFor({ state: 'visible', timeout: 12000 }).then(() => true).catch(() => false)
+      : await suggestedModal.isVisible().catch(() => false);
+    if (suggestedUp) {
       const useSuggestedBtn = page.locator('#ValidateAddress_SuggestedAddress_dialog_btn_1');
       if (await useSuggestedBtn.isVisible().catch(() => false) && await useSuggestedBtn.isEnabled().catch(() => false)) {
         await useSuggestedBtn.click();
         console.log('Clicked Use Suggested');
       }
       await suggestedModal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+      // Still open (Use Suggested not enabled / no match): take the address as entered.
+      if (await suggestedModal.isVisible().catch(() => false)) {
+        await suggestedModal.getByRole('button', { name: /Accept As-Is/ }).click({ timeout: 5000 }).catch(() => {});
+        await suggestedModal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+        console.log('Address Validation: clicked Accept As-Is');
+      }
     }
     await continueReferralModal(5000);
 
