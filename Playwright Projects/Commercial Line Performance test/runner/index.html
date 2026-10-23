@@ -1907,15 +1907,15 @@
   // Policy's WriteBiz login is one username+password PER STATE (matches accountCreationHelper.js's
   // STATE_USERS/WB_USER_<state>/WB_PASS_<state> convention) - built once from a plain list rather than
   // hand-repeating 4 near-identical field pairs in the markup above.
-  var WB_STATES = ['DE', 'PA', 'MI', 'WI'];
+  var WB_STATES = ['', 'DE', 'PA', 'MI', 'WI']; // '' = the generic login used for every state without its own
   (function renderWbFields() {
     var box = document.getElementById('settingsWbFields');
     WB_STATES.forEach(function (st) {
       var wrap = document.createElement('div');
       wrap.innerHTML =
-        '<div class="field-label">' + st + ' username</div>' +
+        '<div class="field-label">' + (st || 'All states (generic login)') + ' username</div>' +
         '<input type="text" id="settingsWbUser' + st + '" autocomplete="off" style="max-width:360px" />' +
-        '<div class="field-label">' + st + ' password</div>' +
+        '<div class="field-label">' + (st || 'All states (generic login)') + ' password</div>' +
         '<input type="password" id="settingsWbPass' + st + '" autocomplete="off" style="max-width:360px" />';
       box.appendChild(wrap);
     });

@@ -135,9 +135,13 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   const state = testState;
   console.log('createAccountAndQualify: state=' + state);
 
-  const creds = STATE_USERS[state] || STATE_USERS.DE;
+  // The state's own login (WB_USER_<state>/WB_PASS_<state>) wins; otherwise the generic WB_USER/WB_PASS that works for
+  // every state; the DE login stays as the last resort (old behaviour for states with no entry).
+  const own = { username: process.env['WB_USER_' + state], password: process.env['WB_PASS_' + state] };
+  const generic = { username: process.env.WB_USER, password: process.env.WB_PASS };
+  const creds = (own.username && own.password) ? own : (generic.username && generic.password) ? generic : (STATE_USERS[state] || STATE_USERS.DE);
   if (!creds.username || !creds.password)
-    throw new Error('Missing credentials for ' + state + '. Set WB_USER_' + state + ' / WB_PASS_' + state + ' in .env');
+    throw new Error('Missing credentials for ' + state + '. Set WB_USER / WB_PASS (one login for all states) or WB_USER_' + state + ' / WB_PASS_' + state + ' in .env or the Settings tab');
 
   let helperAddress = null;
   try { helperAddress = getRandomAddressByState(state); }
