@@ -63,6 +63,7 @@ function getAgencyConfig(testState, writeBizUrl) {
   }
   if (['CO', 'IL', 'IN'].includes(testState)) return { agencyCode: '4501307', producerName: 'JEFFERY S. REYNOLDS' };
   if (testState === 'AZ') return { agencyCode: '9000325', producerName: 'CHRISTINA M. BOWER' };
+  if (testState === 'MD') return { agencyCode: '0000988', producerName: 'CHRISTOPHER I. MCCULLOUGH' };
   return { agencyCode: '0000988', producerName: 'CHRISTINA M. BOWER' };
 }
 
@@ -276,19 +277,49 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     producerItems = page.locator('div.dropdown.bootstrap-select:has(button[data-id="ddlProducer"]) .dropdown-menu.show .dropdown-item');
   }
 
-  const allProducers = await producerItems.allTextContents();
+  const allProducers = (await producerItems.allTextContents()).map((p) => p.trim());
   console.log('Producers available: ' + JSON.stringify(allProducers));
-  const producerIdx = allProducers.findIndex(p => p === producerName);
-  if (producerIdx === -1) throw new Error('Producer "' + producerName + '" not found in dropdown');
 
-  const producerItem = producerItems.filter({ hasText: producerName }).first();
-  await producerItem.waitFor({ state: 'visible', timeout: 15000 });
-  await producerItem.click({ force: true });
+  // Click one producer in the dropdown (the jQuery-UI menu, or the bootstrap-select toggle when the menu is closed).
+  const pickProducer = async (name) => {
+    let items = page.locator('.ui-menu.ui-widget:visible .ui-menu-item, .ui-menu.ui-widget:visible a');
+    if (await items.count() === 0) {
+      const toggle = page.locator('button[data-id="ddlProducer"]').first();
+      await toggle.waitFor({ state: 'visible', timeout: 10000 });
+      await toggle.click({ force: true });
+      await page.waitForTimeout(500);
+      items = page.locator('div.dropdown.bootstrap-select:has(button[data-id="ddlProducer"]) .dropdown-menu.show .dropdown-item');
+    }
+    const item = items.filter({ hasText: name }).first();
+    await item.waitFor({ state: 'visible', timeout: 15000 });
+    await item.click({ force: true });
+    const sel = page.locator('#ddlProducer');
+    if (await sel.count() > 0) await sel.selectOption({ label: name }).catch(() => {});
+    await page.waitForTimeout(1200);
+  };
+  // The red line under the producer ("Agency/Producer License State(s): MD, PA") lists the states that producer can write.
+  const licenseStates = async () => page.evaluate(() => {
+    const m = /License State\(s\):\s*([A-Z, ]+)/.exec(document.body.innerText);
+    return m ? m[1].split(',').map((x) => x.trim()).filter(Boolean) : null;
+  }).catch(() => null);
 
-  const producerSelect = page.locator('#ddlProducer');
-  if (await producerSelect.count() > 0) {
-    await producerSelect.selectOption({ label: producerName }).catch(() => {});
+  // The configured producer first, then every other producer in the dropdown until one is licensed for the state.
+  const preferred = allProducers.find((p) => p === producerName) || allProducers.find((p) => p.toUpperCase() === producerName.toUpperCase());
+  const order = [preferred, ...allProducers.filter((p) => p !== preferred)].filter(Boolean);
+  if (!order.length) throw new Error('Producer "' + producerName + '" not found in dropdown');
+  const tried = [];
+  let chosenProducer = null;
+  for (const name of order) {
+    await pickProducer(name);
+    const states = await licenseStates();
+    tried.push(name + ' [' + (states ? states.join(',') : 'license states not shown') + ']');
+    if (!states || states.includes(testState)) { chosenProducer = name; break; } // no line shown = keep the old behaviour
+    console.log('Producer ' + name + ' is not licensed for ' + testState + ' (' + states.join(',') + ') - trying the next one');
   }
+  if (!chosenProducer) {
+    throw new Error('PRODUCER_STATE_UNSUPPORTED: ' + testState + ' - no producer under agency ' + agencyCode + ' is licensed for it. Tried: ' + tried.join('; '));
+  }
+  if (chosenProducer !== producerName) console.log('Producer used for ' + testState + ': ' + chosenProducer);
 
   await page.waitForTimeout(500);
   await safeNextClick(page);
