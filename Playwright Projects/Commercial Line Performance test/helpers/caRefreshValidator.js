@@ -123,7 +123,8 @@ const wbVisible = (cov) => cov.form || !cov.writeBiz || /^y/i.test(cov.writeBiz)
 
 // The workflow only creates a Private Passenger and a Truck vehicle, so coverages that live on other vehicle
 // types can't be seen - say so instead of calling them missing.
-const needsOtherVehicle = (cov) => /^(Special Type|Public Transportation|Zone Rated)/i.test(cov.category);
+const NO_PRIVATE_PASSENGER_STATES = ['NC']; // WriteBiz: "Private Passengers may not be written in the state of NC"
+const needsOtherVehicle = (cov, state) => /^(Special Type|Public Transportation|Zone Rated)/i.test(cov.category) || (NO_PRIVATE_PASSENGER_STATES.includes(state) && /^Private Passenger/i.test(cov.category));
 
 // Compare each coverage term's options as seen in WriteBiz with the product model's options for the state.
 const normOpt = (o) => norm(String(o).replace(/,/g, ''));
@@ -179,7 +180,7 @@ function evaluate(lob, state, pool) {
     let status;
     if (!cov.expected) status = hit ? 'UNEXPECTED' : 'NOT_APPLICABLE';
     else if (hit) status = 'FOUND';
-    else if (needsOtherVehicle(cov)) status = 'NOT_TESTED';
+    else if (needsOtherVehicle(cov, state)) status = 'NOT_TESTED';
     else status = wbVisible(cov) ? 'MISSING' : 'PC_ONLY';
     return { category: cov.category, name: cov.name, code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
   });

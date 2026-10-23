@@ -1059,6 +1059,9 @@ test('CA Submission', async ({ page }, testInfo) => {
       console.log('Vehicle Prefill dialog not visible after 20s - continuing without it');
     }
     await dismissStatusModal();
+    // WriteBiz rejects the quote in NC ("Private Passengers may not be written in the state of NC"): truck only there.
+    const skipPrivatePassenger = ['NC'].includes(testState);
+    if (!skipPrivatePassenger) {
     await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (private passenger)');
     await clickBsSelect('bs-select-2-1', 'Vehicle Type (private passenger)');
     await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
@@ -1092,6 +1095,9 @@ test('CA Submission', async ({ page }, testInfo) => {
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
     await crSnap('Vehicles - Private passenger');
     trackMilestone('Vehicles Page: Private passenger Vehicle Added');
+    } else {
+      console.log(`${testState}: Private Passenger vehicles may not be written in ${testState} - adding the Truck only`);
+    }
 
     // ── Vehicles - Truck ────────────────────────────────────────────────────────
     await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (truck)');
