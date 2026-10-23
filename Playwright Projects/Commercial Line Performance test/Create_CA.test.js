@@ -125,25 +125,33 @@ test('CA Submission', async ({ page }, testInfo) => {
     if (!caRefreshOn) return;
     try {
       const validation = caRefresh.evaluate(caRefreshLob, testState, crPool);
-      global.testData.caRefresh = { lob: caRefreshLob, summary: validation.summary, results: validation.results };
+      global.testData.caRefresh = { lob: caRefreshLob, summary: validation.summary, results: validation.results, termChecks: validation.termChecks };
       saveTestData();
       const lobData = caRefresh.DATA.lobs[caRefreshLob];
       const caseId  = lobData.testCases[testState] || '';
       // Missing coverages are reported (run keeps going) but make the run FAIL overall.
       const s = validation.summary;
-      const overall = status === 'PASS' && s.missing ? 'FAIL' : status;
+      const overall = status === 'PASS' && (s.missing || s.termMismatches) ? 'FAIL' : status;
       const file = await writeCaRefreshDoc({
         testCaseId: caseId, testCaseName: lobData.testCaseNames[caseId] || '', lobLabel: caRefresh.LOB_LABELS[caRefreshLob],
         state: testState, env: envName, quoteNumber: global.testData.quoteNumber, policyNumber: global.testData.policyNumber,
         executedAt: new Date().toISOString(), status: overall,
-        error: error || (overall !== status ? `${s.missing} expected coverage(s) not found in WriteBiz` : ''),
+        error: error || (overall !== status ? `${s.missing} expected coverage(s) not found in WriteBiz, ${s.termMismatches} term/option mismatch(es) vs the product model` : ''),
         milestones: global.testData.milestones, validation, shots: crPool.map((p) => ({ label: p.label, file: p.shot })),
       }, path.join(RUNTIME_DIR, 'ca-refresh', `CARefresh_${caRefreshLob}_${testState}_${envName}_${Date.now()}.docx`));
       console.log(`CA Refresh result document: ${file}`);
       console.log(`CA Refresh coverage validation: ${JSON.stringify(s)}`);
-      if (overall === 'FAIL' && status === 'PASS') throw new Error(`CA Refresh: ${s.missing} expected coverage(s) missing from WriteBiz - see ${file}`);
+      if (overall === 'FAIL' && status === 'PASS') throw new Error(`CA Refresh: ${s.missing} expected coverage(s) missing from WriteBiz, ${s.termMismatches} term/option mismatch(es) - see ${file}`);
     } catch (e) { if (/^CA Refresh:/.test(e.message)) throw e; console.log(`CA Refresh document failed: ${e.message}`); }
   }
+
+  // Add-coverage dialog opened from the "+" button: record its terms/options under the grid row's coverage name.
+  const crCaptureModal = async (rowName, modal) => {
+    if (!caRefreshOn) return;
+    const cards = await caRefresh.readCards(page, '.modal.show');
+    const text = await modal.innerText().catch(() => '');
+    crPool.push({ label: `Add coverage: ${rowName}`, text, norm: caRefresh.norm(text), shot: '', cards: cards.map((c) => ({ ...c, title: rowName })) });
+  };
 
   // Changing one vehicle coverage (e.g. Losses Covered) reloads its dependent field (Deductible Type), which can come
   // back blank after the first fill pass and then blocks Save with 'Missing required field'. Let it settle, fill again.
@@ -193,7 +201,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await safeNextClick();
     await dismissStatusModal();
     await crSnap('Auto Dealers - Additional Coverages (before adding)');
-    await processAllAddCoverageButtons(page);
+    await processAllAddCoverageButtons(page, { onModal: crCaptureModal });
     await crSnap('Auto Dealers - Additional Coverages (after adding)');
     await safeNextClick();
     await dismissStatusModal();
@@ -218,13 +226,35 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.locator('#txtCLAutoDriverDetails_LastName').fill(randLastName());
     await page.locator('#ddlDriverLicenseState').selectOption(testState).catch((e) => console.log(`Driver license state ${testState}: ${e.message.split('\n')[0]}`));
     await page.locator('#txtCLAutoDriverDetails_DOB').fill('01/15/1980');
-    await page.locator('#txtCLAutoDriverDetails_LicenseNum').fill(String(Math.floor(10000000 + Math.random() * 89999999)));
-    await page.locator('#txtCLAutoDriverDetails_LastName').click();
-    await page.waitForTimeout(500);
-    await page.locator('#CLAutoDriverDetails_dialog_btn_1').click({ timeout: 10000 });
-    await page.locator('#CLAutoDriverDetails_dialog_btn_1').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    // Every state validates the license number's format ("Invalid Driver License Number. The format for Arizona is ...").
+    // Known formats first (L = letter, 9 = digit); on a rejection try the common alternatives, then skip the driver.
+    const L = () => String.fromCharCode(65 + Math.floor(Math.random() * 26));
+    const D = (n) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
+    const LICENSE_FORMATS = {
+      AZ: () => L() + D(8), CO: () => D(9), DE: () => D(7), IA: () => D(9), MD: () => L() + D(12), MI: () => L() + D(12),
+      NC: () => D(8), NE: () => L() + D(8), NM: () => D(9), OH: () => L() + L() + D(6), PA: () => D(8), SC: () => D(9),
+      SD: () => D(8), TN: () => D(9), TX: () => D(8), UT: () => D(9), VA: () => L() + D(8), WI: () => L() + D(13),
+    };
+    const candidates = [(LICENSE_FORMATS[testState] || (() => D(9))), () => D(9), () => L() + D(8), () => D(8), () => L() + D(12)];
+    const saveBtn = page.locator('#CLAutoDriverDetails_dialog_btn_1');
+    let saved = false;
+    for (const make of candidates) {
+      const lic = make();
+      await page.locator('#txtCLAutoDriverDetails_LicenseNum').fill(lic);
+      await page.locator('#txtCLAutoDriverDetails_LastName').click();
+      await page.waitForTimeout(400);
+      await saveBtn.click({ timeout: 10000 });
+      await page.waitForTimeout(1500);
+      if (await saveBtn.isHidden().catch(() => true)) { saved = true; console.log(`Driver license ${lic} accepted for ${testState}`); break; }
+      const err = ((await page.locator('.modal.show .alert, .modal.show [class*="error"]').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 160);
+      console.log(`Driver license ${lic} rejected for ${testState}: ${err}`);
+    }
+    if (!saved) {
+      console.log(`WARNING: no accepted license format for ${testState} - skipping the driver (quote may be blocked)`);
+      await page.locator('#CLAutoDriverDetails_dialog_btn_2').click({ timeout: 5000 }).catch(() => {});
+    }
     await dismissStatusModal();
-    console.log('Driver added');
+    console.log(saved ? 'Driver added' : 'Driver skipped');
   }
 
   // Spinner count/time per milestone (see helpers/spinnerTracker.js).
@@ -817,7 +847,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     trackMilestone('Commercial Auto - Coverage');
 
     await crSnap('Commercial Auto - Additional Coverage (before adding)');
-    await processAllAddCoverageButtons(page);
+    await processAllAddCoverageButtons(page, { onModal: crCaptureModal });
     await crSnap('Commercial Auto - Additional Coverage (after adding)');
     await safeNextClick();
     trackMilestone('Commercial Auto - Additional Coverage');

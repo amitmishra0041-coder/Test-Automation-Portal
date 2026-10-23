@@ -277,7 +277,7 @@ async function processCoverageDropdowns(page) {
 }
 
 
-async function processAllAddCoverageButtons(page) {
+async function processAllAddCoverageButtons(page, { onModal } = {}) {
   console.log('Processing all Add coverage buttons...');
   const addCoverageDetails = [];
   const MAX_ITERATIONS     = 15;
@@ -346,6 +346,8 @@ async function processAllAddCoverageButtons(page) {
           if (!await button.isEnabled().catch(() => false)) continue;
 
           const label = ((await button.textContent().catch(() => '')) || await button.getAttribute('title').catch(() => '') || 'Unknown').trim();
+          // The grid row's coverage name (the button itself only says "Add the Coverage").
+          const rowName = await button.evaluate((b) => { const tr = b.closest('tr'); const td = tr ? tr.querySelectorAll('td') : []; return (td.length > 2 ? td[2] : tr || b).textContent.replace(/\s+/g, ' ').trim(); }).catch(() => label);
           console.log(`  Clicking: "${label}"`);
 
           await button.click({ timeout: 5000, force: true });
@@ -366,6 +368,7 @@ async function processAllAddCoverageButtons(page) {
           const modalVisible = await modal.isVisible({ timeout: 2000 }).catch(() => false);
           if (modalVisible) {
             console.log('  Modal opened');
+            if (onModal) await onModal(rowName, modal).catch((e) => console.log(`  onModal failed: ${e.message.split('\n')[0]}`));
             const opts = await modal.locator('select, input[type="checkbox"], li').all();
             if (opts.length > 0) {
               const tag = await opts[0].evaluate(el => el.tagName.toLowerCase()).catch(() => '');

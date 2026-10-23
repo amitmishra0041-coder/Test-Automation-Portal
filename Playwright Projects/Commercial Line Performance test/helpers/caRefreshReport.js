@@ -6,8 +6,8 @@ const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, ImageRun, ShadingType, BorderStyle, HeadingLevel,
 } = require('docx');
 
-const COLORS = { PASS: '17692E', FAIL: '9B1C1C', FOUND: '17692E', MISSING: '9B1C1C', UNEXPECTED: '8A5A00', PC_ONLY: '3B5BA5', NOT_TESTED: '667085', REMOVED_STILL_PRESENT: '8A5A00', NOT_APPLICABLE: '667085' };
-const FILLS = { PASS: 'E3F6E8', FAIL: 'FDE8E8', FOUND: 'E3F6E8', MISSING: 'FDE8E8', UNEXPECTED: 'FFF3D6', REMOVED_STILL_PRESENT: 'FFF3D6' };
+const COLORS = { PASS: '17692E', FAIL: '9B1C1C', FOUND: '17692E', MISSING: '9B1C1C', MISMATCH: '9B1C1C', MATCH: '17692E', NOT_OBSERVED: '667085', PARTIAL: '8A5A00', NO_MODEL_DATA: '667085', UNEXPECTED: '8A5A00', PC_ONLY: '3B5BA5', NOT_TESTED: '667085', REMOVED_STILL_PRESENT: '8A5A00', NOT_APPLICABLE: '667085' };
+const FILLS = { PASS: 'E3F6E8', FAIL: 'FDE8E8', FOUND: 'E3F6E8', MATCH: 'E3F6E8', PARTIAL: 'FFF3D6', MISMATCH: 'FDE8E8', MISSING: 'FDE8E8', UNEXPECTED: 'FFF3D6', REMOVED_STILL_PRESENT: 'FFF3D6' };
 const LINE = { style: BorderStyle.SINGLE, size: 4, color: 'BFC6D0' };
 const MAX_W = 620;
 const MAX_H = 760;
@@ -65,6 +65,17 @@ async function writeCaRefreshDoc(run, outFile) {
     .concat(rows.map((r) => new TableRow({ children: [
       cell(r.category, { w: 16 }), cell(r.name, { w: 34 }), cell([r.code, r.form].filter(Boolean).join(' / '), { w: 18 }), cell(r.availability, { w: 6 }),
       cell(r.status, { w: 12, bold: true, color: COLORS[r.status], fill: FILLS[r.status] }), cell(r.page, { w: 14 })] })))));
+
+  const tc = v.termChecks || [];
+  kids.push(heading('Coverage term and option validation'));
+  kids.push(para(`${s.termsChecked || 0} term(s) compared with the product model for ${run.state} (options taken from the WriteBiz dropdowns and Add-coverage dialogs); ${s.termMismatches || 0} mismatch(es) (WriteBiz offers an option the model does not list), ${s.termsPartial || 0} partial (model options not shown - usually a dropdown filtered by another selection), ${s.termsNoModelData || 0} with no model options for this state.`, { italics: true, color: '667085' }));
+  if (tc.length) {
+    kids.push(table([new TableRow({ tableHeader: true, children: ['Coverage', 'Term', 'Product model options', 'WriteBiz options', 'Missing / extra', 'Result'].map((h, i) => cell(h, { w: [18, 16, 20, 20, 16, 10][i], bold: true, fill: 'E7EBF0' })) })]
+      .concat(tc.map((t) => new TableRow({ children: [
+        cell(t.coverage, { w: 18 }), cell(t.term, { w: 16 }), cell(t.expected.join(', '), { w: 20 }), cell(t.observed.join(', '), { w: 20 }),
+        cell([t.missing.length ? `missing: ${t.missing.join(', ')}` : '', t.extra.length ? `extra: ${t.extra.join(', ')}` : ''].filter(Boolean).join(' | '), { w: 16 }),
+        cell(t.status, { w: 10, bold: true, color: COLORS[t.status], fill: FILLS[t.status] })] })))));
+  }
 
   const shots = (run.shots || []).filter((x) => x.file && fs.existsSync(x.file));
   if (shots.length) kids.push(heading('Screenshots'));

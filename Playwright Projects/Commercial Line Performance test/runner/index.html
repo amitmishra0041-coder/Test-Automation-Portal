@@ -1946,14 +1946,15 @@
       .catch(function (e) { errEl.textContent = 'Failed to save settings: ' + e.message; });
   });
 
-  function policyIsCaRefresh() { return policy.project === 'CA_REFRESH'; }
+  // An older server (not restarted since CA Refresh was added) has no projects/caRefresh in /api/config - fall back to Regression only.
+  function policyIsCaRefresh() { return policy.project === 'CA_REFRESH' && !!(config.policy && config.policy.caRefresh); }
   function policyLobCatalog() { return policyIsCaRefresh() ? config.policy.caRefresh.lobs : config.policy.lobs; }
   function policyStateList() { return policyIsCaRefresh() ? config.policy.caRefresh.states : config.policy.states; }
 
   function renderPolicyProjects() {
     var box = document.getElementById('policyProjectChips');
     box.innerHTML = '';
-    Object.keys(config.policy.projects).forEach(function (code) {
+    Object.keys(config.policy.projects || {}).forEach(function (code) {
       var c = chip(config.policy.projects[code].label, policy.project === code);
       c.addEventListener('click', function () {
         if (policy.project === code) return;

@@ -74,16 +74,19 @@ for r in cov_rows[2:]:
     cov_index[key] = r
     cov_index.setdefault((None, norm(r[4])), r)
 
-opt_rows = list(pm['Coverage Term Options'].iter_rows(values_only=True, max_col=16))
-terms = {}  # (category, coverage) -> {term: [options]}
+TARGET_STATES = {st for c in cases for st in c['states']}
+opt_rows = list(pm['Coverage Term Options'].iter_rows(values_only=True, max_col=40))
+ohdr = opt_rows[1]
+OPT_STATE_COLS = {ohdr[i]: i for i in range(15, 39) if ohdr[i]}
+terms = {}  # (category, coverage) -> {term: [{"option", "code", "states": [...], "wb": "Y/N", "default": bool}]}
 for r in opt_rows[2:]:
-    if not r[4] or not r[6]:
+    if not r[4] or not r[6] or not r[9]:
         continue
-    t = terms.setdefault((norm(r[3]), norm(r[4])), {})
-    if r[9]:
-        t.setdefault(clean(r[6]), [])
-        if clean(r[9]) not in t[clean(r[6])]:
-            t[clean(r[6])].append(clean(r[9]))
+    t = terms.setdefault((norm(r[3]), norm(r[4])), {}).setdefault(clean(r[6]), [])
+    # a cell can hold several lines (Y then N) when the sheet differs by effective date - any Y counts as offered
+    states = [st for st, c in OPT_STATE_COLS.items() if st in TARGET_STATES and r[c] and 'Y' in str(r[c]).upper()]
+    t.append({'option': clean(r[9]), 'code': clean(r[8]) or None, 'value': clean(r[10]) or None,
+              'default': str(r[12] or '').strip().upper().startswith('Y'), 'wb': clean(r[13]) or None, 'states': states})
 
 
 def enrich(category, name):
@@ -114,7 +117,16 @@ for r in wb2['Coverage Lists'].iter_rows(min_row=4, values_only=True):
     else:
         removed.append({'category': cur, 'name': t})
 
+# Every product-model coverage that has term options (not only the precondition list): lets the run compare the options
+# of ANY coverage card WriteBiz shows against the model.
+model_terms = []
+for (ncat, ncov), tmap in terms.items():
+    row = cov_index.get((ncat, ncov)) or cov_index.get((None, ncov))
+    name = clean(row[4]) if row else ncov
+    model_terms.append({'category': clean(row[3]) if row else ncat, 'name': name, 'terms': tmap})
+
 data = {
+    'modelTerms': model_terms,
     'source': {'testCases': os.path.basename(TC), 'productModel': os.path.basename(PM)},
     'effective': {'IN': '2027-05-01', 'IL': '2027-05-01', 'default': '2027-08-01'},
     'lobs': {},

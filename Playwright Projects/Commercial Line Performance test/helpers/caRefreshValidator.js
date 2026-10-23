@@ -32,6 +32,30 @@ function expectedFor(lob, state) {
   return list;
 }
 
+// Every coverage card on the page (title + each term's label and its dropdown options). The options come straight
+// from the page's <select> elements, i.e. exactly what the agent gets when opening the dropdown.
+async function readCards(page, rootSelector) {
+  return page.evaluate((rootSel) => {
+    const root = rootSel ? document.querySelector(rootSel) : document;
+    if (!root) return [];
+    const clean = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+    const termsOf = (el) => [...el.querySelectorAll('.FieldSpacing')].map((fs) => {
+      const label = clean((fs.querySelector('.FieldLabel') || {}).textContent);
+      const sel = fs.querySelector('select');
+      const input = fs.querySelector('input:not([type=hidden]):not([type=checkbox])');
+      return { label, options: sel ? [...sel.options].map((o) => clean(o.textContent)).filter((o) => o && !/^nothing selected$/i.test(o)) : [],
+        selected: sel && sel.selectedOptions[0] ? clean(sel.selectedOptions[0].textContent) : (input ? clean(input.value) : ''), kind: sel ? 'select' : (input ? 'input' : 'text') };
+    }).filter((t) => t.label);
+    const cards = [...root.querySelectorAll('[id^="xacc_Card_"]')].map((c) => ({ title: clean((c.querySelector('.xaccordion-sectionheader') || {}).textContent).replace(/\s+Save$/i, ''), terms: termsOf(c) }));
+    if (!cards.length) {
+      const title = clean((root.querySelector('.modal-title, .modal-header, h1, h2') || {}).textContent);
+      const terms = termsOf(root);
+      if (terms.length) cards.push({ title, terms });
+    }
+    return cards;
+  }, rootSelector || null).catch(() => []);
+}
+
 // Text a coverage page shows: visible text plus every <select> option / label, since WriteBiz renders many
 // coverages as dropdown rows or "Add Coverage" menu entries rather than plain text.
 async function snapshot(page, label, pool, shotDir) {
@@ -52,8 +76,13 @@ async function snapshot(page, label, pool, shotDir) {
       shot = path.join(shotDir, `${pool.length + 1}-${label.replace(/[^A-Za-z0-9]+/g, '_')}.png`);
       await page.screenshot({ path: shot, fullPage: true }).catch(() => { shot = ''; });
     }
+    if (shotDir) {
+      const html = await page.evaluate(() => document.body.innerHTML).catch(() => '');
+      fs.writeFileSync(path.join(shotDir, `${pool.length + 1}-${label.replace(/[^A-Za-z0-9]+/g, '_')}.html`), html);
+    }
     if (shotDir) fs.writeFileSync(shot ? shot.replace(/\.png$/, '.txt') : path.join(shotDir, `${pool.length + 1}.txt`), text);
-    pool.push({ label, text, norm: norm(text), shot });
+    const cards = await readCards(page);
+    pool.push({ label, text, norm: norm(text), shot, cards });
   } catch (e) { console.log(`CA Refresh snapshot "${label}" failed: ${e.message.split('\n')[0]}`); }
 }
 
@@ -96,6 +125,49 @@ const wbVisible = (cov) => cov.form || !cov.writeBiz || /^y/i.test(cov.writeBiz)
 // types can't be seen - say so instead of calling them missing.
 const needsOtherVehicle = (cov) => /^(Special Type|Public Transportation|Zone Rated)/i.test(cov.category);
 
+// Compare each coverage term's options as seen in WriteBiz with the product model's options for the state.
+const normOpt = (o) => norm(String(o).replace(/,/g, ''));
+const jaccard = (a, b) => { const ta = new Set(tokens(a)); const tb = new Set(tokens(b)); const u = new Set([...ta, ...tb]); return u.size ? [...ta].filter((t) => tb.has(t)).length / u.size : 0; };
+const overlap = (a, b) => { const ta = tokens(a); const tb = tokens(b); return ta.length ? ta.filter((t) => tb.includes(t)).length / ta.length : 0; };
+
+const modelByName = new Map();
+for (const m of DATA.modelTerms || []) { const k = norm(m.name); (modelByName.get(k) || modelByName.set(k, []).get(k)).push(m); }
+
+// Every coverage card / Add-coverage dialog captured from WriteBiz that maps to a product-model coverage with term
+// options gets its dropdown options compared with the model's options offered in this state.
+function checkAllCards(state, pool) {
+  const out = [];
+  const done = new Set();
+  for (const p of pool) {
+    for (const card of p.cards || []) {
+      let cands = modelByName.get(norm(card.title));
+      if (!cands) cands = (DATA.modelTerms || []).filter((m) => overlap(m.name, card.title) >= 0.9 && overlap(card.title, m.name) >= 0.9);
+      if (!cands.length) continue;
+      const selects = card.terms.filter((x) => x.kind === 'select');
+      const score = (m) => Object.keys(m.terms).filter((tn) => selects.some((x) => overlap(tn, x.label) >= 0.6)).length;
+      const m = cands.slice().sort((a, b) => score(b) - score(a))[0];
+      for (const [term, opts] of Object.entries(m.terms)) {
+        const t = selects.slice().sort((x, y) => jaccard(term, y.label) - jaccard(term, x.label))[0];
+        const expected = opts.filter((o) => o.states.includes(state) && o.wb !== 'N').map((o) => o.option);
+        const base = { coverage: card.title, term, expected, page: p.label };
+        if (!t || jaccard(term, t.label) < 0.6) { continue; } // term not shown for this card/state - nothing to compare
+        const key = `${norm(card.title)}|${norm(term)}|${t.options.join('~')}`;
+        if (done.has(key)) continue;
+        done.add(key);
+        const seen = new Set(t.options.map(normOpt));
+        const want = new Set(expected.map(normOpt));
+        const missing = expected.filter((o) => !seen.has(normOpt(o)));
+        const extra = t.options.filter((o) => !want.has(normOpt(o)));
+        // Options WriteBiz offers that the model does not list = MISMATCH. Model options not on screen = PARTIAL (many
+        // dropdowns are filtered by another selection, so only a subset is visible). No options for this state = no data.
+        const status = !expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : 'MATCH';
+        out.push({ ...base, observed: t.options, missing, extra, status });
+      }
+    }
+  }
+  return out;
+}
+
 function evaluate(lob, state, pool) {
   const results = expectedFor(lob, state).map((cov) => {
     let hit = pool.find((p) => matchers(cov).some((m) => p.norm.includes(m)));
@@ -109,8 +181,10 @@ function evaluate(lob, state, pool) {
     else if (hit) status = 'FOUND';
     else if (needsOtherVehicle(cov)) status = 'NOT_TESTED';
     else status = wbVisible(cov) ? 'MISSING' : 'PC_ONLY';
-    return { category: cov.category, name: cov.name, code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page };
+    return { category: cov.category, name: cov.name, code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
   });
+  const termChecks = checkAllCards(state, pool);
+  results.forEach((r) => { delete r.cov; });
   // Informational only: the sheet's "Removed" column is ambiguous (removed from the product vs. from test scope).
   const stillThere = DATA.removed.filter((r) => norm(r.name).length > 12 && pool.some((p) => p.norm.includes(norm(r.name))))
     .map((r) => ({ category: r.category, name: r.name, code: '', form: '', availability: '', status: 'REMOVED_STILL_PRESENT', page: '' }));
@@ -118,8 +192,9 @@ function evaluate(lob, state, pool) {
   const count = (st) => all.filter((r) => r.status === st).length;
   return {
     results: all,
-    summary: { found: count('FOUND'), missing: count('MISSING'), pcOnly: count('PC_ONLY'), notTested: count('NOT_TESTED'), unexpected: count('UNEXPECTED'), removedStillPresent: count('REMOVED_STILL_PRESENT'), notApplicable: count('NOT_APPLICABLE') },
+    termChecks,
+    summary: { termMismatches: termChecks.filter((t) => t.status === 'MISMATCH').length, termsChecked: termChecks.length, termsPartial: termChecks.filter((t) => t.status === 'PARTIAL').length, termsNoModelData: termChecks.filter((t) => t.status === 'NO_MODEL_DATA').length, found: count('FOUND'), missing: count('MISSING'), pcOnly: count('PC_ONLY'), notTested: count('NOT_TESTED'), unexpected: count('UNEXPECTED'), removedStillPresent: count('REMOVED_STILL_PRESENT'), notApplicable: count('NOT_APPLICABLE') },
   };
 }
 
-module.exports = { DATA, LOB_LABELS, snapshot, evaluate, expectedFor };
+module.exports = { DATA, LOB_LABELS, snapshot, evaluate, expectedFor, readCards, norm };
