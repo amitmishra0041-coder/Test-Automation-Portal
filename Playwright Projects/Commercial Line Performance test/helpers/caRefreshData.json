@@ -10720,7 +10720,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -10774,7 +10774,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -10855,7 +10855,7 @@
       "code": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "value": null,
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -14347,7 +14347,7 @@
       "code": "EmployeeBenefitsPrograms",
       "value": "EmployeeBenefitsPrograms",
       "default": true,
-      "wb": "Y",
+      "wb": null,
       "states": []
      }
     ],
@@ -20798,7 +20798,7 @@
       "code": "10000",
       "value": "10000",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -27559,7 +27559,7 @@
       "code": "100",
       "value": "100",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -27586,7 +27586,7 @@
       "code": "250",
       "value": "250",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -29010,7 +29010,7 @@
       "code": "FullCoverage",
       "value": "FullCoverage",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -29226,7 +29226,7 @@
       "code": "50",
       "value": "50",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -29253,7 +29253,7 @@
       "code": "100",
       "value": "100",
       "default": true,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -36358,7 +36358,7 @@
       "code": "510000",
       "value": "510000",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "MI"
       ]
@@ -39620,7 +39620,7 @@
       "code": "500",
       "value": "500",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -42238,7 +42238,7 @@
       "code": "500",
       "value": "500",
       "default": true,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -42913,7 +42913,7 @@
       "code": "NotApplicable",
       "value": "NotApplicable",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -42940,7 +42940,7 @@
       "code": "No",
       "value": "No",
       "default": true,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -42967,7 +42967,7 @@
       "code": "Yes",
       "value": "Yes",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -43023,7 +43023,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -43075,7 +43075,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -43156,7 +43156,7 @@
       "code": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "value": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -48559,7 +48559,7 @@
       "code": "NotProvided",
       "value": "NotProvided",
       "default": true,
-      "wb": "N",
+      "wb": null,
       "states": []
      },
      {
@@ -48567,7 +48567,7 @@
       "code": "Provided",
       "value": "Provided",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      }
     ],
@@ -48577,7 +48577,7 @@
       "code": "NotApplicable",
       "value": "NotApplicable",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      },
      {
@@ -48585,7 +48585,7 @@
       "code": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "value": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      },
      {
@@ -48593,7 +48593,7 @@
       "code": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "value": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      }
     ],
@@ -50517,7 +50517,7 @@
       "code": "500",
       "value": "500",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -53123,7 +53123,7 @@
       "code": "100/500",
       "value": "100/500",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -53285,7 +53285,7 @@
       "code": "500",
       "value": "500",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -53613,7 +53613,7 @@
       "code": "PerAutoAndPerOccurrenceDeductible_ApplicableToTheftMischiefAndVandalism",
       "value": null,
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -53667,7 +53667,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -53746,7 +53746,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -53800,7 +53800,7 @@
       "code": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "value": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -54388,7 +54388,7 @@
       "code": "NotProvided",
       "value": "NotProvided",
       "default": true,
-      "wb": "Y",
+      "wb": null,
       "states": []
      },
      {
@@ -54396,7 +54396,7 @@
       "code": "Provided",
       "value": "Provided",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      }
     ],
@@ -54406,7 +54406,7 @@
       "code": "NotApplicable",
       "value": "NotApplicable",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      },
      {
@@ -54414,7 +54414,7 @@
       "code": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "value": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      },
      {
@@ -54422,7 +54422,7 @@
       "code": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "value": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      }
     ],
@@ -62791,7 +62791,7 @@
       "code": "500",
       "value": "500",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -66039,7 +66039,7 @@
       "code": "500",
       "value": "500",
       "default": false,
-      "wb": "Y N",
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -66321,7 +66321,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -66373,7 +66373,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -66454,7 +66454,7 @@
       "code": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "value": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "default": false,
-      "wb": "Y N",
+      "wb": null,
       "states": [
        "AZ",
        "CO",
@@ -67297,7 +67297,7 @@
       "code": "NotProvided",
       "value": "NotProvided",
       "default": true,
-      "wb": "Y",
+      "wb": null,
       "states": []
      },
      {
@@ -67305,7 +67305,7 @@
       "code": "Provided",
       "value": "Provided",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      }
     ],
@@ -67315,7 +67315,7 @@
       "code": "NotApplicable",
       "value": "NotApplicable",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      },
      {
@@ -67323,7 +67323,7 @@
       "code": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "value": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      },
      {
@@ -67331,7 +67331,7 @@
       "code": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "value": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "default": false,
-      "wb": "Y",
+      "wb": null,
       "states": []
      }
     ],
@@ -72240,7 +72240,7 @@
       "code": "NotProvided",
       "value": "NotProvided",
       "default": true,
-      "wb": "N",
+      "wb": null,
       "states": []
      },
      {
@@ -72248,7 +72248,7 @@
       "code": "Provided",
       "value": "Provided",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      }
     ],
@@ -72258,7 +72258,7 @@
       "code": "NotApplicable",
       "value": "NotApplicable",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      },
      {
@@ -72266,7 +72266,7 @@
       "code": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "value": "NotPrincipallyOperatedByEmployees/NotCoveredByWorkers'Compensation",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      },
      {
@@ -72274,7 +72274,7 @@
       "code": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "value": "PrincipallyOperatedByEmployees/CoveredByWorkers'Compensation",
       "default": false,
-      "wb": "N",
+      "wb": null,
       "states": []
      }
     ],

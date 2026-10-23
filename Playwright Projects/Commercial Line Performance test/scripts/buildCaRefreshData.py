@@ -16,6 +16,21 @@ PM = sys.argv[2] if len(sys.argv) > 2 else os.path.join(SRC, 'Donegal Commercial
 OUT = os.path.join(HERE, '..', 'helpers', 'caRefreshData.json')
 
 
+from openpyxl.cell.rich_text import CellRichText, TextBlock
+
+
+def effective(c):
+    """A cell's value without struck-through text; a fully struck cell is no longer valid (empty)."""
+    v = c.value
+    if v is None:
+        return None
+    if getattr(c.font, 'strike', False):
+        return ''
+    if isinstance(v, CellRichText):
+        return ''.join(p if isinstance(p, str) else (p.text if not p.font.strike else '') for p in v).strip()
+    return v
+
+
 def norm(s):
     return re.sub(r'[^a-z0-9]+', ' ', str(s or '').lower()).strip()
 
@@ -63,7 +78,25 @@ def parse_pre(pre):
 
 # ── Product model lookups ────────────────────────────────────────────────────
 pm = openpyxl.load_workbook(PM, read_only=True)
-cov_rows = list(pm['Coverages'].iter_rows(values_only=True, max_col=40))
+pmr = openpyxl.load_workbook(PM, read_only=True, rich_text=True)
+
+
+def wb_overrides(sheet, col, maxr):
+    """row number -> availability text with struck-through parts removed (col is 1-based)."""
+    return {row[0].row: effective(row[0]) for row in pmr[sheet].iter_rows(min_row=3, max_row=maxr, min_col=col, max_col=col) if row[0].value is not None}
+
+
+def apply_wb(rows, over, idx):
+    out = []
+    for k, r in enumerate(rows):
+        if (k + 1) in over:
+            r = list(r)
+            r[idx] = over[k + 1]
+        out.append(r)
+    return out
+
+
+cov_rows = apply_wb(list(pm['Coverages'].iter_rows(values_only=True, max_col=40)), wb_overrides('Coverages', 11, 600), 10)
 hdr = cov_rows[1]
 STATE_COLS = {hdr[i]: i for i in range(15, 39) if hdr[i]}
 cov_index = {}
@@ -75,7 +108,7 @@ for r in cov_rows[2:]:
     cov_index.setdefault((None, norm(r[4])), r)
 
 TARGET_STATES = {st for c in cases for st in c['states']}
-opt_rows = list(pm['Coverage Term Options'].iter_rows(values_only=True, max_col=40))
+opt_rows = apply_wb(list(pm['Coverage Term Options'].iter_rows(values_only=True, max_col=40)), wb_overrides('Coverage Term Options', 14, 6000), 13)
 ohdr = opt_rows[1]
 OPT_STATE_COLS = {ohdr[i]: i for i in range(15, 39) if ohdr[i]}
 terms = {}  # (category, coverage) -> {term: [{"option", "code", "states": [...], "wb": "Y/N", "default": bool}]}
@@ -128,7 +161,7 @@ for (ncat, ncov), tmap in terms.items():
 # ── "SBT Update" = yes on the Coverages / Conditions / Exclusions tabs: the full CA Refresh set (the test-case
 #    precondition only lists some of it) ───────────────────────────────────────────────────────────────────────────
 def sbt_rows(sheet, kind, name_i, cat_i, code_i, wb_i, form_i, state0, sbt_i, maxc):
-    rows = list(pm[sheet].iter_rows(values_only=True, max_col=maxc))
+    rows = apply_wb(list(pm[sheet].iter_rows(values_only=True, max_col=maxc)), wb_overrides(sheet, wb_i + 1, 4000), wb_i)
     hdr = rows[1]
     scols = {hdr[i]: i for i in range(state0, state0 + 24) if hdr[i] in TARGET_STATES}
     out = []

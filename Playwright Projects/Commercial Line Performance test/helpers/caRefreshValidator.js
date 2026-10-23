@@ -22,16 +22,18 @@ function isExpectedIn(cov, state) {
 // Policy type each clause is offered on (Clause Availability Rules 2025: CA7LinePolicyType = ...). A Business Auto policy
 // is not expected to carry Auto Dealers clauses and vice versa, so those are left out instead of reported missing.
 const POLICY_TYPE = { BUSINESS_AUTO: 'Business Auto Coverage Form', AUTO_DEALERS: 'Auto Dealers Coverage Form' };
-function lobApplicable(cov, lob) {
+// 'this' = classified for this policy type, 'other' = classified for the other one, 'unknown' = no rule found.
+function classify(cov, lob) {
   const r = cov.code && (DATA.clauseRules || {})[cov.code];
   const t = POLICY_TYPE[lob];
   if (r) {
-    if (r.deny.includes(t)) return false;
-    if (r.allow.length && !r.allow.includes(t)) return false;
+    if (r.deny.includes(t)) return 'other';
+    if (r.allow.length) return r.allow.includes(t) ? 'this' : 'other';
   }
-  if (lob === 'BUSINESS_AUTO' && /^(Auto Dealer|Garage)/i.test(cov.category || '')) return false;
-  return true;
+  if (/^(Auto Dealer|Garage)/i.test(cov.category || '')) return lob === 'AUTO_DEALERS' ? 'this' : 'other';
+  return 'unknown';
 }
+const lobApplicable = (cov, lob) => classify(cov, lob) !== 'other';
 
 function expectedFor(lob, state) {
   const d = DATA.lobs[lob];
@@ -48,9 +50,13 @@ function expectedFor(lob, state) {
   // policy type and state - the precondition only lists some of the CA Refresh set.
   const seen = new Set(list.map((c) => norm(c.name)));
   for (const e of DATA.sbt || []) {
-    if (seen.has(norm(e.name)) || !lobApplicable(e, lob) || !isExpectedIn(e, state)) continue;
+    // only coverages marked Y for WriteBiz (struck-through values already removed), offered in the state, and not classified for the other policy type
+    if (seen.has(norm(e.name)) || !/y/i.test(e.writeBiz || '') || !isExpectedIn(e, state)) continue;
+    const kind = classify(e, lob);
+    if (kind === 'other') continue;
     seen.add(norm(e.name));
-    list.push({ ...e, source: 'SBT Update', expected: true });
+    // no clause rule found: still validated if it shows up on screen, but not reported missing when it does not
+    list.push({ ...e, source: 'SBT Update', expected: true, optional: kind === 'unknown' });
   }
   return list;
 }
@@ -206,9 +212,11 @@ function evaluate(lob, state, pool) {
     else if (hit) status = 'FOUND';
     else if (needsOtherVehicle(cov, state)) status = 'NOT_TESTED';
     else status = wbVisible(cov) ? 'MISSING' : 'PC_ONLY';
+    if (cov.optional && !hit) return null; // unclassified and not on screen: nothing to report
     return { category: cov.category, name: cov.name, source: cov.source || '', code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
   });
   const termChecks = checkAllCards(state, pool);
+  for (let k = results.length - 1; k >= 0; k--) if (results[k] === null) results.splice(k, 1);
   results.forEach((r) => { delete r.cov; });
   // Informational only: the sheet's "Removed" column is ambiguous (removed from the product vs. from test scope).
   const stillThere = DATA.removed.filter((r) => norm(r.name).length > 12 && pool.some((p) => p.norm.includes(norm(r.name))))
