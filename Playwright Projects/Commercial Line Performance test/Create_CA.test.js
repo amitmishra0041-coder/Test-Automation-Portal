@@ -338,6 +338,62 @@ test('CA Submission', async ({ page }, testInfo) => {
     await dlg.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
   }
 
+  // CA Refresh: the additional coverages that depend on them only show once Hired Auto Coverage and Non-Owned Auto Coverage are
+  // on the policy (State-Specific Info > Details), so turn both on wherever the fields exist.
+  async function crSetHiredNonOwned() {
+    if (!caRefreshOn) return;
+    const idAfter = (label, tag, anchorId) => page.evaluate(([label, tag, anchorId]) => {
+      const want = label.toLowerCase();
+      const start = anchorId ? document.getElementById(anchorId) : null;
+      const nodes = [...document.querySelectorAll('label, span, div, td, th, b, strong')].filter((e) => e.offsetParent !== null
+        && (e.textContent || '').trim().toLowerCase().startsWith(want) && (e.textContent || '').trim().length < want.length + 25);
+      for (const n of nodes) {
+        const hit = [...document.querySelectorAll(tag)].find((x) => (n.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING) && !n.contains(x) && x.offsetParent !== null);
+        if (hit) return hit.id || null;
+      }
+      return null;
+    }, [label, tag, anchorId]).catch(() => null);
+    const choose = async (label, want) => {
+      const id = await idAfter(label, 'select');
+      if (!id) { console.log(`State-specific: "${label}" not on this page`); return null; }
+      const sel = page.locator(`[id="${id}"]`);
+      const val = await sel.evaluate((e, w) => { const o = [...e.options].find((x) => x.value && (w instanceof RegExp ? false : x.textContent.trim().toLowerCase() === w)); return o ? o.value : null; }, want.toLowerCase()).catch(() => null);
+      if (val) { await sel.selectOption(val).catch(() => {}); await page.waitForTimeout(1500); await dismissStatusModal(); console.log(`State-specific: ${label} = ${want}`); }
+      return id;
+    };
+    // The flow lands on the Coverages sub-tab; Hired / Non-Owned live on Details. Open it, then come back.
+    let openedDetails = false;
+    if (!await idAfter('Hired Auto Coverage', 'select')) {
+      const sub = page.getByRole('link', { name: 'Details', exact: true }).or(page.getByText('Details', { exact: true })).first();
+      if (await sub.isVisible().catch(() => false)) {
+        await sub.click({ timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(1500);
+        await dismissStatusModal();
+        openedDetails = true;
+      }
+    }
+    await choose('Hired Auto Coverage', 'Yes');
+    await choose('Non-Owned Auto Coverage', 'Yes');
+    const riskId = await idAfter('Non-Ownership Risk Type', 'select');
+    if (riskId) {
+      const risk = page.locator(`[id="${riskId}"]`);
+      const pickRe = caRefreshLob === 'AUTO_DEALERS' ? 'dealer' : '';
+      const v = await risk.evaluate((e, re) => { const o = [...e.options].find((x) => x.value && !/nothing selected|^select/i.test(x.textContent) && (!re || new RegExp(re, 'i').test(x.textContent))) || [...e.options].find((x) => x.value && !/nothing selected|^select/i.test(x.textContent)); return o ? o.value : null; }, pickRe).catch(() => null);
+      if (v) { await risk.selectOption(v).catch(() => {}); await page.waitForTimeout(1200); console.log('State-specific: Non-Ownership Risk Type chosen'); }
+      // the three counts that follow it: employees, volunteers, partners
+      const counts = await page.evaluate((rid) => { const r = document.getElementById(rid); return [...document.querySelectorAll('input[type="text"], input:not([type])')].filter((x) => (r.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING) && x.offsetParent !== null).slice(0, 3).map((x) => x.id); }, riskId).catch(() => []);
+      for (const [k, id] of counts.entries()) if (id) await page.locator(`[id="${id}"]`).fill(['10', '23', '5'][k]).catch(() => {});
+    }
+    await dismissStatusModal();
+    if (openedDetails) {
+      await crSnap('State specific info - Details sub-tab');
+      const back = page.getByRole('link', { name: 'Coverages', exact: true }).or(page.getByText('Coverages', { exact: true })).first();
+      await back.click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(1500);
+      await dismissStatusModal();
+    }
+  }
+
   // Spinner count/time per milestone (see helpers/spinnerTracker.js).
   const spinTracker = await attachSpinnerTracker(page);
 
@@ -1024,6 +1080,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await safeNextClick();
     trackMilestone('State specific info - Details tab');
     await crSnap('State specific info - Details');
+    await crSetHiredNonOwned();
 
     await page.waitForLoadState('domcontentloaded');
     await page.locator('text=Coverage').first().waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});

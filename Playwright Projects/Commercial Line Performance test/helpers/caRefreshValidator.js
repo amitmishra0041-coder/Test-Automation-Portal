@@ -19,16 +19,39 @@ function isExpectedIn(cov, state) {
   return Boolean(a) && !/^(U|N|#NA)$/i.test(a.trim());
 }
 
+// Policy type each clause is offered on (Clause Availability Rules 2025: CA7LinePolicyType = ...). A Business Auto policy
+// is not expected to carry Auto Dealers clauses and vice versa, so those are left out instead of reported missing.
+const POLICY_TYPE = { BUSINESS_AUTO: 'Business Auto Coverage Form', AUTO_DEALERS: 'Auto Dealers Coverage Form' };
+function lobApplicable(cov, lob) {
+  const r = cov.code && (DATA.clauseRules || {})[cov.code];
+  const t = POLICY_TYPE[lob];
+  if (r) {
+    if (r.deny.includes(t)) return false;
+    if (r.allow.length && !r.allow.includes(t)) return false;
+  }
+  if (lob === 'BUSINESS_AUTO' && /^(Auto Dealer|Garage)/i.test(cov.category || '')) return false;
+  return true;
+}
+
 function expectedFor(lob, state) {
   const d = DATA.lobs[lob];
   if (!d) throw new Error(`No CA Refresh data for LOB "${lob}"`);
   const list = [];
   for (const sec of d.sections) {
     for (const c of sec.coverages) {
-      list.push({ category: sec.category, ...c, expected: isExpectedIn(c, state) });
+      if (!lobApplicable({ ...c, category: sec.category }, lob)) continue;
+      list.push({ category: sec.category, ...c, source: 'precondition', expected: isExpectedIn(c, state) });
     }
   }
-  for (const f of d.mappingForms) list.push({ category: 'Forms from mapping', name: f, expected: true, form: true });
+  for (const f of d.mappingForms) list.push({ category: 'Forms from mapping', name: f, source: 'precondition', expected: true, mappingForm: true });
+  // Everything else the product model flags "SBT Update = yes" (coverages, conditions, exclusions) that applies to this
+  // policy type and state - the precondition only lists some of the CA Refresh set.
+  const seen = new Set(list.map((c) => norm(c.name)));
+  for (const e of DATA.sbt || []) {
+    if (seen.has(norm(e.name)) || !lobApplicable(e, lob) || !isExpectedIn(e, state)) continue;
+    seen.add(norm(e.name));
+    list.push({ ...e, source: 'SBT Update', expected: true });
+  }
   return list;
 }
 
@@ -119,7 +142,8 @@ function similarLine(cov, pool) {
 
 // Coverages the product model marks as not available to agents in WriteBiz can't appear on WriteBiz pages;
 // they belong to PolicyCenter, so they're reported as PC_ONLY instead of MISSING.
-const wbVisible = (cov) => cov.form || !cov.writeBiz || /^y/i.test(cov.writeBiz);
+// column K "Donegal WriteBiz Availability For Agents": any Y = applies to WriteBiz; otherwise PolicyCenter-only (counts as pass)
+const wbVisible = (cov) => cov.mappingForm || !cov.writeBiz || /y/i.test(cov.writeBiz);
 
 // The workflow only creates a Private Passenger and a Truck vehicle, so coverages that live on other vehicle
 // types can't be seen - say so instead of calling them missing.
@@ -182,7 +206,7 @@ function evaluate(lob, state, pool) {
     else if (hit) status = 'FOUND';
     else if (needsOtherVehicle(cov, state)) status = 'NOT_TESTED';
     else status = wbVisible(cov) ? 'MISSING' : 'PC_ONLY';
-    return { category: cov.category, name: cov.name, code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
+    return { category: cov.category, name: cov.name, source: cov.source || '', code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
   });
   const termChecks = checkAllCards(state, pool);
   results.forEach((r) => { delete r.cov; });

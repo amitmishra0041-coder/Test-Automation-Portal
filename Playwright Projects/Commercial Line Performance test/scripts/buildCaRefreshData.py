@@ -125,7 +125,42 @@ for (ncat, ncov), tmap in terms.items():
     name = clean(row[4]) if row else ncov
     model_terms.append({'category': clean(row[3]) if row else ncat, 'name': name, 'terms': tmap})
 
+# ── "SBT Update" = yes on the Coverages / Conditions / Exclusions tabs: the full CA Refresh set (the test-case
+#    precondition only lists some of it) ───────────────────────────────────────────────────────────────────────────
+def sbt_rows(sheet, kind, name_i, cat_i, code_i, wb_i, form_i, state0, sbt_i, maxc):
+    rows = list(pm[sheet].iter_rows(values_only=True, max_col=maxc))
+    hdr = rows[1]
+    scols = {hdr[i]: i for i in range(state0, state0 + 24) if hdr[i] in TARGET_STATES}
+    out = []
+    for r in rows[2:]:
+        if len(r) <= sbt_i or not r[sbt_i] or 'yes' not in str(r[sbt_i]).lower() or not r[name_i]:
+            continue
+        out.append({'kind': kind, 'category': clean(r[cat_i]), 'name': clean(r[name_i]), 'code': clean(r[code_i]) or None,
+                    'form': clean(r[form_i]) or None, 'writeBiz': clean(r[wb_i]) or None,
+                    'availability': {st: clean(r[i]) for st, i in scols.items() if r[i] not in (None, '')}})
+    return out
+
+sbt = (sbt_rows('Coverages', 'coverage', 4, 3, 5, 10, 12, 15, 48, 50)
+       + sbt_rows('Conditions', 'condition', 4, 3, 5, 9, 11, 14, 44, 50)
+       + sbt_rows('Exclusions', 'exclusion', 4, 3, 5, 9, 11, 14, 44, 50))
+
+# Clause Availability Rules 2025: which policy types (CA7LinePolicyType = ...) each clause code is offered on
+clause = {}
+cur = None
+for r in pm['Clause Availability Rules 2025'].iter_rows(min_row=5, values_only=True, max_col=8):
+    if r[0]:
+        cur = clean(r[0])
+    if cur and r[4] and str(r[4]).endswith('/CA7LinePolicyType') and r[6]:
+        c = clause.setdefault(cur, {'allow': [], 'deny': []})
+        (c['deny'] if str(r[5]).strip() in ('!=', '<>') else c['allow']).append(clean(r[6]))
+codes = {c['code'] for c in sbt if c['code']} | {c.get('code') for lob in ('BUSINESS_AUTO', 'AUTO_DEALERS')
+         for sec in (parse_pre([c0 for c0 in cases if c0['lob'] == lob][0]['pre'])[0] if [c0 for c0 in cases if c0['lob'] == lob] else [])
+         for c in [enrich(sec['category'], n) for n in sec['coverages']]}
+clause = {k: v for k, v in clause.items() if k in codes}
+
 data = {
+    'sbt': sbt,
+    'clauseRules': clause,
     'modelTerms': model_terms,
     'source': {'testCases': os.path.basename(TC), 'productModel': os.path.basename(PM)},
     'effective': {'IN': '2027-05-01', 'IL': '2027-05-01', 'default': '2027-08-01'},
@@ -153,4 +188,4 @@ for lob, d in data['lobs'].items():
     n = sum(len(s['coverages']) for s in d['sections'])
     hit = sum(1 for s in d['sections'] for c in s['coverages'] if c.get('code'))
     print(f"{lob}: {len(d['testCases'])} states, {n} coverages ({hit} matched in product model), {len(d['mappingForms'])} forms, identical={d['preconditionIdenticalAcrossStates']}")
-print('states:', ' '.join(data['states']), '| removed:', len(removed))
+print('states:', ' '.join(data['states']), '| removed:', len(removed), '| SBT rows:', len(sbt), '| clause rules:', len(clause))
