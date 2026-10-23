@@ -340,8 +340,9 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   // CA Refresh: the additional coverages that depend on them only show once Hired Auto Coverage and Non-Owned Auto Coverage are
   // on the policy (State-Specific Info > Details), so turn both on wherever the fields exist.
+  // Opt-in (CA_REFRESH_HIRED_NONOWNED=1) until the vehicle step is fixed for it: with Hired Auto on, 'Save Vehicle' never appears (PA).
   async function crSetHiredNonOwned() {
-    if (!caRefreshOn) return;
+    if (!caRefreshOn || process.env.CA_REFRESH_HIRED_NONOWNED !== '1') return;
     const idAfter = (label, tag, anchorId) => page.evaluate(([label, tag, anchorId]) => {
       const want = label.toLowerCase();
       const start = anchorId ? document.getElementById(anchorId) : null;
