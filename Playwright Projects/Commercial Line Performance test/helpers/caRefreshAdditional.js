@@ -27,6 +27,14 @@ async function fillDialog(modal, effectiveDate) {
     const cur = await sel.inputValue().catch(() => '');
     if (val && !cur) await sel.selectOption(val).catch(() => {});
   }
+  await modal.page().waitForTimeout(900); // choosing a dropdown value re-renders the dialog and clears typed text - fill text after it settles
+  // Checkbox groups ("Coverages" on a scheduled item) need at least one ticked.
+  const ticks = modal.locator('input[type="checkbox"]:visible');
+  if (await ticks.count() > 0) {
+    let any = false;
+    for (const c of await ticks.all()) if (await c.isChecked().catch(() => false)) any = true;
+    if (!any) await ticks.first().check({ force: true }).catch(() => {});
+  }
   for (const box of await modal.locator('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="button"]):visible, textarea:visible').all()) {
     if ((await box.inputValue().catch(() => 'x')).trim()) continue;
     const hint = `${await box.getAttribute('id').catch(() => '')} ${await box.getAttribute('name').catch(() => '')} ${await box.getAttribute('aria-label').catch(() => '')}`;
@@ -35,6 +43,35 @@ async function fillDialog(modal, effectiveDate) {
     const value = /date/i.test(text) ? effectiveDate : /limit|amount|premium|number|cost|value|\$/i.test(text) ? '1000' : 'Test';
     await box.fill(value).catch(() => {});
   }
+}
+
+// "Add Additional Insured Contact" / loss payee contact form: a Name plus "Select existing location" (fills the address).
+async function createContact(page) {
+  const dlg = page.locator('.modal.show').filter({ hasText: /Add .*Contact/i }).last();
+  if (!await dlg.waitFor({ state: 'visible', timeout: 4000 }).then(() => true).catch(() => false)) { console.log('  Add New: no contact dialog appeared; modals: ' + (await page.locator('.modal.show .modal-title, .modal.show .modal-header').allInnerTexts().catch(() => [])).join(' | ').slice(0, 200)); return false; }
+  for (const sel of await dlg.locator('select:visible').all()) {
+    const hasExisting = await sel.evaluate((e) => [...e.options].some((o) => /existing location/i.test(o.textContent))).catch(() => false);
+    if (hasExisting) { await sel.selectOption({ index: 1 }).catch(() => {}); await page.waitForTimeout(800); }
+  }
+  // Name goes in after the address (picking an existing location re-renders the form). It is the input next to the "Name" label.
+  const nameBox = dlg.locator('xpath=.//*[normalize-space(text())="Name"]/following::input[not(@type="hidden")][1]');
+  await nameBox.fill('Test Company').catch(async () => { await dlg.locator('input[type="text"]:visible').first().fill('Test Company').catch(() => {}); });
+  await nameBox.press('Tab').catch(() => {});
+  await dlg.locator('button:has-text("Save")').first().click({ timeout: 5000 }).catch(() => {});
+  const closed = await dlg.waitFor({ state: 'hidden', timeout: 8000 }).then(() => true).catch(() => false);
+  console.log(`  contact dialog ${closed ? 'saved' : 'did NOT close: ' + ((await dlg.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 300)}`);
+  await page.waitForTimeout(800);
+  return true;
+}
+
+// Fill a coverage / scheduled-item dialog: create the contact it asks for (Add New), then the remaining terms.
+async function completeDialog(page, modal, effectiveDate) {
+  const addNew = modal.locator('button:has-text("Add New")').first();
+  if (await addNew.count() > 0 && await addNew.isVisible().catch(() => false)) {
+    await addNew.click({ timeout: 4000 }).catch(() => {});
+    await createContact(page);
+  }
+  await fillDialog(modal, effectiveDate);
 }
 
 // Close every open dialog (nested scheduled-item dialog first) so a coverage that cannot be added never blocks the page.
@@ -70,7 +107,7 @@ async function addExpectedFromGrid(page, opts) {
         await page.waitForTimeout(500);
         const cards = await readCards(page, '.modal.show');
         pool.push({ label: `Add coverage: ${row.name}`, text: await modal.innerText().catch(() => ''), norm: norm(row.name), shot: '', cards: cards.map((c) => ({ ...c, title: row.name })) });
-        await fillDialog(modal, effectiveDate);
+        await completeDialog(page, modal, effectiveDate);
         await modal.locator('button:has-text("Save")').first().click({ timeout: 5000 }).catch(() => {});
         await page.waitForTimeout(1200);
         // Dialogs such as the Additional Insured forms need at least one scheduled item before they will save.
@@ -80,11 +117,20 @@ async function addExpectedFromGrid(page, opts) {
             await addItem.click({ timeout: 4000 }).catch(() => {});
             await page.waitForTimeout(1200);
             const top = page.locator('.modal.show').last();
-            await fillDialog(top, effectiveDate);
-            await top.locator('button:has-text("Save"), button:has-text("OK"), button:has-text("Add")').first().click({ timeout: 4000 }).catch(() => {});
-            await page.waitForTimeout(1200);
-            await page.locator('.modal.show').first().locator('button:has-text("Save")').first().click({ timeout: 4000 }).catch(() => {});
-            await page.waitForTimeout(1500);
+            for (let attempt = 0; attempt < 3; attempt++) {
+              await completeDialog(page, top, effectiveDate);
+              await top.locator('button:has-text("Save")').first().click({ timeout: 4000 }).catch(() => {});
+              if (await top.waitFor({ state: 'hidden', timeout: 5000 }).then(() => true).catch(() => false)) break;
+            }
+            // wait for the scheduled-item dialog to actually close before saving the coverage dialog behind it
+            await top.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+            if (await top.isVisible().catch(() => false)) {
+              entry.detail = 'scheduled item: ' + (((await top.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 220));
+            } else {
+              await page.waitForTimeout(500);
+              await page.locator('.modal.show').first().locator('button:has-text("Save")').first().click({ timeout: 4000 }).catch(() => {});
+              await page.waitForTimeout(1500);
+            }
           }
         }
         if (await modal.isVisible().catch(() => false)) {
