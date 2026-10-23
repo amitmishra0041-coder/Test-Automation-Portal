@@ -11,6 +11,7 @@ const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
 const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequiredSelects } = require('./helpers/coverageHelpers');
 const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
+const { addExpectedFromGrid } = require('./helpers/caRefreshAdditional');
 const fs   = require('fs');
 const path = require('path');
 
@@ -117,6 +118,7 @@ test('CA Submission', async ({ page }, testInfo) => {
   const caRefreshOn  = process.env.CA_REFRESH === '1';
   const caRefreshLob = process.env.CA_REFRESH_LOB === 'AUTO_DEALERS' ? 'AUTO_DEALERS' : 'BUSINESS_AUTO';
   const crPool       = [];
+  const crAdditions  = [];
   const crShotDir    = path.join(RUNTIME_DIR, 'ca-refresh', `${testState}-${caRefreshLob}`);
   if (caRefreshOn) { fs.rmSync(crShotDir, { recursive: true, force: true }); fs.mkdirSync(crShotDir, { recursive: true }); }
   const crSnap = async (label) => { if (caRefreshOn) await caRefresh.snapshot(page, label, crPool, crShotDir); };
@@ -125,18 +127,21 @@ test('CA Submission', async ({ page }, testInfo) => {
     if (!caRefreshOn) return;
     try {
       const validation = caRefresh.evaluate(caRefreshLob, testState, crPool);
-      global.testData.caRefresh = { lob: caRefreshLob, summary: validation.summary, results: validation.results, termChecks: validation.termChecks };
+      validation.additions = crAdditions;
+      validation.summary.additionsAdded = crAdditions.filter((a) => a.status === 'ADDED' || a.status === 'ALREADY_SELECTED').length;
+      validation.summary.additionsFailed = crAdditions.filter((a) => a.status === 'ADD_FAILED' || a.status === 'NO_ADD_BUTTON').length;
+      global.testData.caRefresh = { lob: caRefreshLob, summary: validation.summary, results: validation.results, termChecks: validation.termChecks, additions: crAdditions };
       saveTestData();
       const lobData = caRefresh.DATA.lobs[caRefreshLob];
       const caseId  = lobData.testCases[testState] || '';
       // Missing coverages are reported (run keeps going) but make the run FAIL overall.
       const s = validation.summary;
-      const overall = status === 'PASS' && (s.missing || s.termMismatches) ? 'FAIL' : status;
+      const overall = status === 'PASS' && (s.missing || s.termMismatches || s.additionsFailed) ? 'FAIL' : status;
       const file = await writeCaRefreshDoc({
         testCaseId: caseId, testCaseName: lobData.testCaseNames[caseId] || '', lobLabel: caRefresh.LOB_LABELS[caRefreshLob],
         state: testState, env: envName, quoteNumber: global.testData.quoteNumber, policyNumber: global.testData.policyNumber,
         executedAt: new Date().toISOString(), status: overall,
-        error: error || (overall !== status ? `${s.missing} expected coverage(s) not found in WriteBiz, ${s.termMismatches} term/option mismatch(es) vs the product model` : ''),
+        error: error || (overall !== status ? `${s.missing} expected coverage(s) not found in WriteBiz, ${s.termMismatches} term/option mismatch(es) vs the product model, ${s.additionsFailed} additional coverage(s) that could not be added` : ''),
         milestones: global.testData.milestones, validation, shots: crPool.map((p) => ({ label: p.label, file: p.shot })),
       }, path.join(RUNTIME_DIR, 'ca-refresh', `CARefresh_${caRefreshLob}_${testState}_${envName}_${Date.now()}.docx`));
       console.log(`CA Refresh result document: ${file}`);
@@ -144,6 +149,34 @@ test('CA Submission', async ({ page }, testInfo) => {
       if (overall === 'FAIL' && status === 'PASS') throw new Error(`CA Refresh: ${s.missing} expected coverage(s) missing from WriteBiz, ${s.termMismatches} term/option mismatch(es) - see ${file}`);
     } catch (e) { if (/^CA Refresh:/.test(e.message)) throw e; console.log(`CA Refresh document failed: ${e.message}`); }
   }
+
+  // Adds the precondition's additional coverages / forms / exclusions that have a row in the Additional Coverages grid
+  // on the current page (click +, record terms, fill required terms, Save, confirm selected).
+  async function crAddExpected(label) {
+    if (!caRefreshOn) return;
+    await dismissStatusModal();
+    const already = new Set(crAdditions.map((a) => a.coverage)); // each coverage is tried once per run, whatever the outcome
+    let expected = caRefresh.expectedFor(caRefreshLob, testState).filter((c) => c.expected && !already.has(c.name));
+    // Rating rule seen live: the Tapes, Records And Discs form "cannot be attached if there is no Other Than Collision
+    // Coverage provided"; switching that on makes Inventory Value / Reporting Basis required, so it is recorded as skipped.
+    const tapes = expected.filter((c) => /Tapes Records And Discs/i.test(c.name));
+    for (const c of tapes) crAdditions.push({ coverage: c.name, gridRow: '', page: label, status: 'SKIPPED_RULE', detail: 'requires Other Than Collision coverage (not provided in this workflow)' });
+    expected = expected.filter((c) => !tapes.includes(c));
+    // OEM Replacement Parts is not available for vehicles older than 10 years, so CA Refresh runs use 2019 model-year VINs (valid for the 2027 effective date).
+    const effDate = global.testData.effectiveDate || '';
+    await addExpectedFromGrid(page, { expected, effectiveDate: effDate, pool: crPool, shotDir: crShotDir, label, record: (e) => { crAdditions.push(e); console.log(`CA Refresh additional coverage: ${e.status} - ${e.coverage} (grid "${e.gridRow}" on ${label}) ${e.detail || ''}`); } });
+    await dismissStatusModal();
+  }
+
+
+  // Debug: log the visible form fields (id, value, required, label) on the current page.
+  const dumpFields = async (tag) => {
+    const rows = await page.evaluate(() => [...document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]), select, textarea')]
+      .filter((e) => (e.closest('.bootstrap-select') || e).getClientRects().length)
+      .map((e) => { const fs = e.closest('.FieldSpacing, tr, .form-group'); const v = e.value || (e.options && e.options[e.selectedIndex] && e.options[e.selectedIndex].text) || '';
+        return e.tagName + '#' + e.id + '[' + v + '] req=' + (e.dataset.required || '') + ' :: ' + (fs ? fs.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : ''); })).catch(() => []);
+    console.log('DEALERDUMP ' + tag + '\n' + rows.join('\n'));
+  };
 
   // Add-coverage dialog opened from the "+" button: record its terms/options under the grid row's coverage name.
   const crCaptureModal = async (rowName, modal) => {
@@ -183,7 +216,12 @@ test('CA Submission', async ({ page }, testInfo) => {
       console.log(`Dealer details ${id}: selected ${val}`);
     }
     await dismissStatusModal();
+    // Rating rejects a dealer with no plates / no employees ("must be greater than 0").
+    await page.locator('#txtTotalDealerPlates').fill('2').catch(() => {});
+    await page.locator('#txtNumOtherFullTime').fill('2').catch(() => {});
+    await page.locator('#txtNumOfficersFullTime').fill('1').catch(() => {});
     await crSnap('Auto Dealers - Details');
+    await dumpFields('details');
     for (let attempt = 1; attempt <= 2; attempt++) {
       await safeNextClick();
       await dismissStatusModal();
@@ -198,13 +236,30 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.waitForLoadState('domcontentloaded');
     await fillBlankRequiredSelects(page, 'dealer coverages');
     await crSnap('Auto Dealers - Coverages');
+    await dumpFields('coverages');
     await safeNextClick();
     await dismissStatusModal();
     await crSnap('Auto Dealers - Additional Coverages (before adding)');
-    await processAllAddCoverageButtons(page, { onModal: crCaptureModal });
+    await crAddExpected('Auto Dealers - Additional Coverages');
     await crSnap('Auto Dealers - Additional Coverages (after adding)');
-    await safeNextClick();
-    await dismissStatusModal();
+    // This last dealer tab ends with a green "Save Auto Dealers" button (no Next); saving moves on to Vehicles.
+    const saveDealers = page.getByRole('button', { name: /Save Auto Dealers/ });
+    if (await saveDealers.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await saveDealers.click({ timeout: 10000 });
+      await page.waitForLoadState('domcontentloaded');
+      await dismissStatusModal();
+      console.log('Auto Dealers saved');
+    } else {
+      await safeNextClick();
+      await dismissStatusModal();
+    }
+    // Vehicles tab (if saving did not already land there)
+    if (!/CLAutoVehicles/i.test(page.url())) {
+      await page.getByRole('link', { name: 'Vehicles' }).or(page.locator('a:has-text("Vehicles"), li:has-text("Vehicles")')).first().click({ timeout: 8000 }).catch(() => {});
+      await page.waitForLoadState('domcontentloaded');
+      await dismissStatusModal();
+    }
+    console.log(`After Auto Dealers: ${page.url()}`);
   }
 
   // A second window opening mid-run (e.g. a dealer location / form popup) steals focus from the flow - make it visible.
@@ -847,7 +902,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     trackMilestone('Commercial Auto - Coverage');
 
     await crSnap('Commercial Auto - Additional Coverage (before adding)');
-    await processAllAddCoverageButtons(page, { onModal: crCaptureModal });
+    if (caRefreshOn) await crAddExpected('Commercial Auto - Additional Coverage'); else await processAllAddCoverageButtons(page, { onModal: crCaptureModal });
     await crSnap('Commercial Auto - Additional Coverage (after adding)');
     await safeNextClick();
     trackMilestone('Commercial Auto - Additional Coverage');
@@ -970,6 +1025,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await safeNextClick();
     trackMilestone('State specific info - Coverages');
     await crSnap('State specific info - Additional coverages');
+    await crAddExpected('State specific info - Additional coverages');
     await safeNextClick();
     trackMilestone('State specific info - Additional coverages');
 
@@ -1000,7 +1056,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await clickBsSelect('bs-select-3-1', 'Garaging Location (private passenger)');
     await page.getByRole('button', { name: 'Confirm' }).click();
     await dismissStatusModal();
-    await page.locator('#txt_Vin').fill('1GBJ6C1BX8F416705');
+    await page.locator('#txt_Vin').fill(caRefreshOn ? '1HGCV1F39KA012345' : '1GBJ6C1BX8F416705');
     await page.getByText('Model *').click();
     await page.getByRole('combobox', { name: 'Please select' }).click();
     await clickBsSelect('bs-select-2-1', 'Model (private passenger)');
@@ -1023,6 +1079,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await safeNextClick();
     await dismissStatusModal()
     await crSnap('Vehicle additional coverages - Private passenger');
+    await crAddExpected('Vehicle additional coverages - Private passenger');
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
     await crSnap('Vehicles - Private passenger');
     trackMilestone('Vehicles Page: Private passenger Vehicle Added');
@@ -1034,7 +1091,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await clickBsSelect('bs-select-3-1', 'Garaging Location (truck)');
     await page.getByRole('button', { name: 'Confirm' }).click();
     await dismissStatusModal();
-    await page.locator('#txt_Vin').fill('1FDXX46F93EA79961');
+    await page.locator('#txt_Vin').fill(caRefreshOn ? '1FTEW1EP4KFA12345' : '1FDXX46F93EA79961');
     await page.locator('#xrgn_CLAutoVehiclesDetails_LeftColumn').click();
     await page.locator('#xrgn_BusinessUseClass_Trucks_Dropdown').getByRole('combobox', { name: 'Nothing selected' }).click();
     await clickBsSelect('bs-select-3-0', 'Business Use Class');
@@ -1082,6 +1139,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await safeNextClick();
     await dismissStatusModal()
     await crSnap('Vehicle additional coverages - Truck');
+    await crAddExpected('Vehicle additional coverages - Truck');
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
     await crSnap('Vehicles - Truck');
     trackMilestone('Vehicles Page: Truck Vehicle Added');

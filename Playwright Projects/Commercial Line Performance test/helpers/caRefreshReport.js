@@ -6,8 +6,8 @@ const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, ImageRun, ShadingType, BorderStyle, HeadingLevel,
 } = require('docx');
 
-const COLORS = { PASS: '17692E', FAIL: '9B1C1C', FOUND: '17692E', MISSING: '9B1C1C', MISMATCH: '9B1C1C', MATCH: '17692E', NOT_OBSERVED: '667085', PARTIAL: '8A5A00', NO_MODEL_DATA: '667085', UNEXPECTED: '8A5A00', PC_ONLY: '3B5BA5', NOT_TESTED: '667085', REMOVED_STILL_PRESENT: '8A5A00', NOT_APPLICABLE: '667085' };
-const FILLS = { PASS: 'E3F6E8', FAIL: 'FDE8E8', FOUND: 'E3F6E8', MATCH: 'E3F6E8', PARTIAL: 'FFF3D6', MISMATCH: 'FDE8E8', MISSING: 'FDE8E8', UNEXPECTED: 'FFF3D6', REMOVED_STILL_PRESENT: 'FFF3D6' };
+const COLORS = { PASS: '17692E', FAIL: '9B1C1C', FOUND: '17692E', MISSING: '9B1C1C', MISMATCH: '9B1C1C', MATCH: '17692E', NOT_OBSERVED: '667085', PARTIAL: '8A5A00', ADDED: '17692E', ALREADY_SELECTED: '17692E', ADD_FAILED: '9B1C1C', SKIPPED_RULE: '667085', NO_ADD_BUTTON: '9B1C1C', NO_MODEL_DATA: '667085', UNEXPECTED: '8A5A00', PC_ONLY: '3B5BA5', NOT_TESTED: '667085', REMOVED_STILL_PRESENT: '8A5A00', NOT_APPLICABLE: '667085' };
+const FILLS = { PASS: 'E3F6E8', FAIL: 'FDE8E8', FOUND: 'E3F6E8', MATCH: 'E3F6E8', PARTIAL: 'FFF3D6', ADDED: 'E3F6E8', ALREADY_SELECTED: 'E3F6E8', ADD_FAILED: 'FDE8E8', NO_ADD_BUTTON: 'FDE8E8', MISMATCH: 'FDE8E8', MISSING: 'FDE8E8', UNEXPECTED: 'FFF3D6', REMOVED_STILL_PRESENT: 'FFF3D6' };
 const LINE = { style: BorderStyle.SINGLE, size: 4, color: 'BFC6D0' };
 const MAX_W = 620;
 const MAX_H = 760;
@@ -65,6 +65,14 @@ async function writeCaRefreshDoc(run, outFile) {
     .concat(rows.map((r) => new TableRow({ children: [
       cell(r.category, { w: 16 }), cell(r.name, { w: 34 }), cell([r.code, r.form].filter(Boolean).join(' / '), { w: 18 }), cell(r.availability, { w: 6 }),
       cell(r.status, { w: 12, bold: true, color: COLORS[r.status], fill: FILLS[r.status] }), cell(r.page, { w: 14 })] })))));
+
+  const ad = v.additions || [];
+  kids.push(heading('Additional coverages added'));
+  kids.push(para(`${s.additionsAdded || 0} added / already selected, ${s.additionsFailed || 0} could not be added. Each was added with the "+" button, its dialog terms were recorded and filled where required, and the grid row was checked for the selected mark.`, { italics: true, color: '667085' }));
+  if (ad.length) {
+    kids.push(table([new TableRow({ tableHeader: true, children: ['Precondition coverage', 'WriteBiz row', 'Page', 'Result', 'Detail'].map((h, i) => cell(h, { w: [28, 24, 20, 10, 18][i], bold: true, fill: 'E7EBF0' })) })]
+      .concat(ad.map((x) => new TableRow({ children: [cell(x.coverage, { w: 28 }), cell(x.gridRow, { w: 24 }), cell(x.page, { w: 20 }), cell(x.status, { w: 10, bold: true, color: COLORS[x.status], fill: FILLS[x.status] }), cell(x.detail, { w: 18 })] })))));
+  }
 
   const tc = v.termChecks || [];
   kids.push(heading('Coverage term and option validation'));
