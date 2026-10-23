@@ -284,11 +284,15 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   const pickProducer = async (name) => {
     let items = page.locator('.ui-menu.ui-widget:visible .ui-menu-item, .ui-menu.ui-widget:visible a');
     if (await items.count() === 0) {
-      const toggle = page.locator('button[data-id="ddlProducer"]').first();
-      await toggle.waitFor({ state: 'visible', timeout: 10000 });
-      await toggle.click({ force: true });
-      await page.waitForTimeout(500);
-      items = page.locator('div.dropdown.bootstrap-select:has(button[data-id="ddlProducer"]) .dropdown-menu.show .dropdown-item');
+      const openItems = page.locator('div.dropdown.bootstrap-select:has(button[data-id="ddlProducer"]) .dropdown-menu.show .dropdown-item');
+      // the menu may already be open (clicking the toggle again would close it)
+      if (await openItems.count() === 0) {
+        const toggle = page.locator('button[data-id="ddlProducer"]').first();
+        await toggle.waitFor({ state: 'visible', timeout: 10000 });
+        await toggle.click({ force: true });
+        await page.waitForTimeout(500);
+      }
+      items = openItems;
     }
     const item = items.filter({ hasText: name }).first();
     await item.waitFor({ state: 'visible', timeout: 15000 });
