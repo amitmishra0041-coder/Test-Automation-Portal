@@ -564,6 +564,31 @@ app.get('/api/oneInc/runs/:id', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── CA Refresh results (Policy tab): one history line per run + the Word result document of each run ──────────────
+const CA_REFRESH_DIR = path.join(POLICY_DIR, 'runtime-data', 'ca-refresh');
+app.use('/reports/caRefresh', express.static(CA_REFRESH_DIR, {
+  setHeaders: (res, file) => { if (/\.docx$/i.test(file)) res.setHeader('Content-Disposition', `attachment; filename="${path.basename(file)}"`); },
+}));
+app.get('/api/caRefresh/runs', (req, res) => {
+  try {
+    const runs = [];
+    const known = new Set();
+    try {
+      for (const line of fs.readFileSync(path.join(CA_REFRESH_DIR, 'history.jsonl'), 'utf8').split(String.fromCharCode(10))) {
+        if (!line.trim()) continue;
+        try { const r = JSON.parse(line); runs.push(r); known.add(r.doc); } catch (e) { /* skip a damaged line */ }
+      }
+    } catch (e) { /* no history yet */ }
+    // Documents written before the history file existed: list them too (result unknown).
+    for (const f of fs.existsSync(CA_REFRESH_DIR) ? fs.readdirSync(CA_REFRESH_DIR) : []) {
+      const m = /^CARefresh_([A-Z_]+)_([A-Z]{2})_([a-z]+)_(\d+)\.docx$/.exec(f);
+      if (m && !known.has(f)) runs.push({ time: new Date(Number(m[4])).toISOString(), lob: m[1], state: m[2], env: m[3], status: 'UNKNOWN', doc: f });
+    }
+    runs.sort((a, b) => String(b.time).localeCompare(String(a.time)));
+    res.json({ runs });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/config', (req, res) => {
   res.json({
     packagedBuild: PACKAGED,

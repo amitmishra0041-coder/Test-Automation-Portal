@@ -634,6 +634,17 @@
     </div>
   </div>
 
+  <div class="card" id="caRefreshHistoryCard" style="display:none;margin-top:16px">
+    <div class="out-toolbar"><h2 style="margin:0">CA Refresh results</h2><button id="caRefreshHistoryRefresh" type="button">Refresh</button></div>
+    <p class="stats-empty" style="margin:6px 0 10px">Every run's Word result document, grouped per test (line of business and state) with the history of earlier runs. Click a result to download its document.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <select id="caRefreshFLob" style="width:auto"><option value="">All lines</option></select>
+      <select id="caRefreshFState" style="width:auto"><option value="">All states</option></select>
+      <select id="caRefreshFStatus" style="width:auto"><option value="">All results</option><option>PASS</option><option>FAIL</option><option>UNKNOWN</option></select>
+    </div>
+    <div id="caRefreshHistory"><span class="stats-empty">Loading...</span></div>
+  </div>
+
   <!-- ── Claims tab ─────────────────────────────────────────────────────── -->
   <div class="tab-panel" id="tab-claims">
     <div class="page-head"><h1>Claims (ClaimCenter)</h1><p>Run a ClaimCenter test on a policy number, by line of business, platform and tier.</p></div>
@@ -1414,6 +1425,7 @@
     renderPolicyLobs();
     renderPolicyStates();
     renderPolicyEnvs();
+    loadCaRefreshHistory();
     renderClaimsLobs();
     renderClaimsPlatforms();
     renderClaimsTiers();
@@ -1965,6 +1977,7 @@
         renderPolicyLobs();
         renderPolicyStates();
         updatePolicyPreview();
+        loadCaRefreshHistory();
       });
       box.appendChild(c);
     });
@@ -2010,6 +2023,60 @@
       box.appendChild(c);
     });
   }
+
+
+  // ── CA Refresh results history (Policy tab, project "CA Refresh") ───────────────────────────────────────────
+  var caRefreshRuns = [];
+  function caEsc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function caLobLabel(l) { var m = config && config.policy && config.policy.caRefresh && config.policy.caRefresh.lobs[l]; return m ? m.label : l; }
+  function caSummaryText(s) {
+    if (!s) return '';
+    return (s.found || 0) + ' found, ' + (s.missing || 0) + ' missing, ' + (s.termMismatches || 0) + ' term mismatch, ' + (s.additionsAdded || 0) + ' added' + (s.additionsFailed ? ', ' + s.additionsFailed + ' not added' : '');
+  }
+  function renderCaRefreshHistory() {
+    var box = document.getElementById('caRefreshHistory');
+    var fl = document.getElementById('caRefreshFLob').value, fs = document.getElementById('caRefreshFState').value, ft = document.getElementById('caRefreshFStatus').value;
+    var groups = {}, order = [];
+    caRefreshRuns.forEach(function (r) {
+      if ((fl && r.lob !== fl) || (fs && r.state !== fs)) return;
+      var k = r.lob + '|' + r.state;
+      if (!groups[k]) { groups[k] = []; order.push(k); }
+      groups[k].push(r);
+    });
+    order = order.filter(function (k) { return !ft || groups[k][0].status === ft; });
+    if (!order.length) { box.innerHTML = '<span class="stats-empty">No CA Refresh runs yet.</span>'; return; }
+    order.sort();
+    var html = '<table class="grid" style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Test</th><th align="left">Latest</th><th align="left">When</th><th align="left">Details</th><th align="left">History (newest first)</th></tr></thead><tbody>';
+    order.forEach(function (k) {
+      var runs = groups[k], r = runs[0];
+      var link = function (x, label) { return '<a href="/reports/caRefresh/' + encodeURIComponent(x.doc) + '" title="' + caEsc(x.time + ' ' + (x.env || '') + ' ' + (x.error || '')) + '">' + caEsc(label) + '</a>'; };
+      var pills = runs.slice(0, 12).map(function (x) {
+        var c = x.status === 'PASS' ? '#17692e' : x.status === 'FAIL' ? '#9b1c1c' : '#667085';
+        return '<span style="display:inline-block;margin:0 4px 2px 0;padding:1px 6px;border-radius:9px;border:1px solid ' + c + ';font-size:11px">' + link(x, x.status + ' ' + String(x.time).slice(5, 10)) + '</span>';
+      }).join('');
+      var color = r.status === 'PASS' ? '#17692e' : r.status === 'FAIL' ? '#9b1c1c' : '#667085';
+      html += '<tr style="border-top:1px solid #8883"><td><b>' + caEsc(caLobLabel(r.lob)) + '</b> &middot; ' + caEsc(r.state) + (r.testCase ? ' <span class="stats-empty">(TC ' + caEsc(r.testCase) + ')</span>' : '') + '</td>' +
+        '<td><b style="color:' + color + '">' + caEsc(r.status) + '</b> ' + link(r, 'Word document') + '</td>' +
+        '<td>' + caEsc(new Date(r.time).toLocaleString()) + '<br><span class="stats-empty">' + caEsc((r.env || '').toUpperCase()) + (r.policy && r.policy !== 'N/A' ? ' &middot; policy ' + caEsc(r.policy) : r.quote && r.quote !== 'N/A' ? ' &middot; quote ' + caEsc(r.quote) : '') + '</span></td>' +
+        '<td class="stats-empty">' + caEsc(caSummaryText(r.summary)) + (r.error ? '<br>' + caEsc(String(r.error).slice(0, 140)) : '') + '</td><td>' + pills + '</td></tr>';
+    });
+    box.innerHTML = html + '</tbody></table>';
+  }
+  function loadCaRefreshHistory() {
+    var card = document.getElementById('caRefreshHistoryCard');
+    if (!policyIsCaRefresh()) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    fetch('/api/caRefresh/runs').then(function (r) { return r.json(); }).then(function (b) {
+      caRefreshRuns = b.runs || [];
+      var lobSel = document.getElementById('caRefreshFLob'), stSel = document.getElementById('caRefreshFState');
+      if (lobSel.options.length <= 1) Object.keys(config.policy.caRefresh.lobs).forEach(function (l) { var o = document.createElement('option'); o.value = l; o.textContent = caLobLabel(l); lobSel.appendChild(o); });
+      if (stSel.options.length <= 1) config.policy.caRefresh.states.forEach(function (st) { var o = document.createElement('option'); o.value = st; o.textContent = st; stSel.appendChild(o); });
+      renderCaRefreshHistory();
+    }).catch(function (e) { document.getElementById('caRefreshHistory').innerHTML = '<span class="stats-empty">Could not load results: ' + caEsc(e.message) + '</span>'; });
+  }
+  ['caRefreshFLob', 'caRefreshFState', 'caRefreshFStatus'].forEach(function (id) { document.getElementById(id).addEventListener('change', renderCaRefreshHistory); });
+  document.getElementById('caRefreshHistoryRefresh').addEventListener('click', loadCaRefreshHistory);
+  setInterval(function () { if (document.getElementById('caRefreshHistoryCard').style.display !== 'none') loadCaRefreshHistory(); }, 30000);
 
   function renderPolicyEnvs() {
     var box = document.getElementById('policyEnvChips');

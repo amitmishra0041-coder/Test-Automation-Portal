@@ -144,6 +144,15 @@ test('CA Submission', async ({ page }, testInfo) => {
         error: error || (overall !== status ? `${s.missing} expected coverage(s) not found in WriteBiz, ${s.termMismatches} term/option mismatch(es) vs the product model, ${s.additionsFailed} additional coverage(s) that could not be added` : ''),
         milestones: global.testData.milestones, validation, shots: crPool.map((p) => ({ label: p.label, file: p.shot })),
       }, path.join(RUNTIME_DIR, 'ca-refresh', `CARefresh_${caRefreshLob}_${testState}_${envName}_${Date.now()}.docx`));
+      // One line per run for the Runner's CA Refresh results history (newest last).
+      try {
+        fs.appendFileSync(path.join(RUNTIME_DIR, 'ca-refresh', 'history.jsonl'), JSON.stringify({
+          time: new Date().toISOString(), lob: caRefreshLob, state: testState, env: envName, testCase: caseId, status: overall,
+          quote: global.testData.quoteNumber, policy: global.testData.policyNumber, effectiveDate: global.testData.effectiveDate || '',
+          summary: s, error: error || (overall !== status ? `${s.missing} missing coverage(s), ${s.termMismatches} term mismatch(es), ${s.additionsFailed} not added` : ''),
+          doc: path.basename(file),
+        }) + String.fromCharCode(10));
+      } catch (e) { console.log(`CA Refresh history not written: ${e.message}`); }
       console.log(`CA Refresh result document: ${file}`);
       console.log(`CA Refresh coverage validation: ${JSON.stringify(s)}`);
       if (overall === 'FAIL' && status === 'PASS') throw new Error(`CA Refresh: ${s.missing} expected coverage(s) missing from WriteBiz, ${s.termMismatches} term/option mismatch(es) - see ${file}`);
