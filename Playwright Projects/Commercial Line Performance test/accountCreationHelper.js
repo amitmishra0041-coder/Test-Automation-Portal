@@ -324,7 +324,9 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
     }
   }
 
-  if (!stateSet) throw new Error('Unable to select state: ' + testState);
+  // The State dropdown only lists the states the selected producer/agency is licensed in; if it will not take the state,
+  // the producer does not support it (a producer code for that state has to be supplied) - callers skip the state.
+  if (!stateSet) throw new Error('PRODUCER_STATE_UNSUPPORTED: ' + testState + ' - the State dropdown has no ' + testState + ' for producer ' + producerName + ' (agency ' + agencyCode + ')');
   await page.waitForTimeout(800);
 
   // ── Phone ────────────────────────────────────────────────────────────────────

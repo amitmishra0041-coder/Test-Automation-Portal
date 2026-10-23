@@ -1239,7 +1239,20 @@ test('CA Submission', async ({ page }, testInfo) => {
     global.testData.status = 'FAILED';
     global.testData.error  = error.message;
     saveTestData();
-    if (!/^CA Refresh:/.test(error.message)) await crWriteDoc('FAIL', error.message);
+    if (/^PRODUCER_STATE_UNSUPPORTED/.test(error.message)) {
+      // Not a failure of the product: record the state so a producer code can be supplied later, and move on.
+      try {
+        const dir = path.join(RUNTIME_DIR, 'ca-refresh');
+        fs.mkdirSync(dir, { recursive: true });
+        const file = path.join(dir, 'producer-unsupported.json');
+        let list = {};
+        try { list = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { /* first one */ }
+        list[testState] = { reason: error.message, lob: caRefreshLob, env: envName, time: new Date().toISOString() };
+        fs.writeFileSync(file, JSON.stringify(list, null, 2));
+        fs.appendFileSync(path.join(dir, 'history.jsonl'), JSON.stringify({ time: new Date().toISOString(), lob: caRefreshLob, state: testState, env: envName, status: 'SKIPPED', error: error.message, doc: '' }) + String.fromCharCode(10));
+      } catch (e) { console.log(`Could not record unsupported state: ${e.message}`); }
+      console.log(`SKIPPED ${testState}: ${error.message}`);
+    } else if (!/^CA Refresh:/.test(error.message)) await crWriteDoc('FAIL', error.message);
     console.log(`Test data written with failure info`);
     throw error;
   }

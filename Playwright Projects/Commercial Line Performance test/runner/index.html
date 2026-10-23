@@ -638,7 +638,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <select id="caRefreshFLob" style="width:auto"><option value="">All lines</option></select>
       <select id="caRefreshFState" style="width:auto"><option value="">All states</option></select>
-      <select id="caRefreshFStatus" style="width:auto"><option value="">All results</option><option>PASS</option><option>FAIL</option><option>UNKNOWN</option></select>
+      <select id="caRefreshFStatus" style="width:auto"><option value="">All results</option><option>PASS</option><option>FAIL</option><option>SKIPPED</option><option>UNKNOWN</option></select>
     </div>
     <div id="caRefreshHistory"><span class="stats-empty">Loading...</span></div>
   </div>
@@ -2048,7 +2048,7 @@
     var html = '<table class="grid" style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Test</th><th align="left">Latest</th><th align="left">When</th><th align="left">Details</th></tr></thead><tbody>';
     order.forEach(function (k) {
       var runs = groups[k], r = runs[0];
-      var link = function (x, label) { return '<a href="/reports/caRefresh/' + encodeURIComponent(x.doc) + '" title="' + caEsc(x.time + ' ' + (x.env || '') + ' ' + (x.error || '')) + '">' + caEsc(label) + '</a>'; };
+      var link = function (x, label) { if (!x.doc) return ''; return '<a href="/reports/caRefresh/' + encodeURIComponent(x.doc) + '" title="' + caEsc(x.time + ' ' + (x.env || '') + ' ' + (x.error || '')) + '">' + caEsc(label) + '</a>'; };
       var color = r.status === 'PASS' ? '#17692e' : r.status === 'FAIL' ? '#9b1c1c' : '#667085';
       html += '<tr style="border-top:1px solid #8883"><td><b>' + caEsc(caLobLabel(r.lob)) + '</b> &middot; ' + caEsc(r.state) + (r.testCase ? ' <span class="stats-empty">(TC ' + caEsc(r.testCase) + ')</span>' : '') + '</td>' +
         '<td><b style="color:' + color + '">' + caEsc(r.status) + '</b> ' + link(r, 'Word document') + '</td>' +
