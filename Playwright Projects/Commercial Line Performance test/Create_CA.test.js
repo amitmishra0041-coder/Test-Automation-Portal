@@ -329,6 +329,15 @@ test('CA Submission', async ({ page }, testInfo) => {
     console.log(saved ? 'Driver added' : 'Driver skipped');
   }
 
+  // "Vehicle Prefill" (no match found) can open late and then blocks every click behind it - cancel it whenever it is up.
+  async function closeVehiclePrefill() {
+    const dlg = page.locator('.modal.show').filter({ hasText: 'Vehicle Prefill' }).first();
+    if (!await dlg.isVisible().catch(() => false)) return;
+    console.log('Vehicle Prefill dialog open - cancelling it');
+    await dlg.getByRole('button', { name: /Cancel/ }).click({ timeout: 5000 }).catch(() => {});
+    await dlg.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+  }
+
   // Spinner count/time per milestone (see helpers/spinnerTracker.js).
   const spinTracker = await attachSpinnerTracker(page);
 
@@ -1058,7 +1067,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     // than that to render), with no diagnostic to tell whether it was a
     // timing issue or the dialog being genuinely absent this run.
     const vehiclePrefillBtn = page.locator('#CLAutoVehiclePrefill_dialog_btn_1');
-    const vehiclePrefillVisible = await vehiclePrefillBtn.waitFor({ state: 'visible', timeout: 20000 })
+    const vehiclePrefillVisible = await vehiclePrefillBtn.waitFor({ state: 'visible', timeout: caRefreshLob === 'AUTO_DEALERS' ? 60000 : 20000 }) // Auto Dealers shows it later
       .then(() => true).catch(() => false);
     if (vehiclePrefillVisible) {
       await vehiclePrefillBtn.click();
@@ -1070,6 +1079,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     // WriteBiz rejects the quote in NC ("Private Passengers may not be written in the state of NC"): truck only there.
     const skipPrivatePassenger = ['NC'].includes(testState);
     if (!skipPrivatePassenger) {
+    await closeVehiclePrefill();
     await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (private passenger)');
     await clickBsSelect('bs-select-2-1', 'Vehicle Type (private passenger)');
     await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
@@ -1108,6 +1118,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     }
 
     // ── Vehicles - Truck ────────────────────────────────────────────────────────
+    await closeVehiclePrefill();
     await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (truck)');
     await clickBsSelect('bs-select-2-3', 'Vehicle Type (truck)');
     await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
