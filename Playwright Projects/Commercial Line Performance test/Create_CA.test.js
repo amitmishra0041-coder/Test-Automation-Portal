@@ -127,6 +127,14 @@ test('CA Submission', async ({ page }, testInfo) => {
     if (!caRefreshOn) return;
     try {
       const validation = caRefresh.evaluate(caRefreshLob, testState, crPool);
+      // A coverage that was added through its "+" button (and shows selected) is present, even when the page does not
+      // print the form number / wording the precondition uses.
+      for (const r of validation.results) {
+        const hit = crAdditions.find((x) => x.coverage === r.name && (x.status === 'ADDED' || x.status === 'ALREADY_SELECTED'));
+        if (hit && (r.status === 'MISSING' || r.status === 'PC_ONLY')) { r.status = 'FOUND'; r.page = `added via + (${hit.gridRow})`; }
+      }
+      const cnt = (st) => validation.results.filter((r) => r.status === st).length;
+      Object.assign(validation.summary, { found: cnt('FOUND'), missing: cnt('MISSING'), pcOnly: cnt('PC_ONLY') });
       validation.additions = crAdditions;
       validation.summary.additionsAdded = crAdditions.filter((a) => a.status === 'ADDED' || a.status === 'ALREADY_SELECTED').length;
       validation.summary.additionsFailed = crAdditions.filter((a) => a.status === 'ADD_FAILED' || a.status === 'NO_ADD_BUTTON').length;
