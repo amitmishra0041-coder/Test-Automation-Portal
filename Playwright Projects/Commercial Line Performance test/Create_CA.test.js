@@ -476,6 +476,8 @@ test('CA Submission', async ({ page }, testInfo) => {
   async function crSetHiredNonOwned() {
     if (!caRefreshOn || process.env.CA_REFRESH_HIRED_NONOWNED === '0') return;
     const idAfter = (label, tag, anchorId) => page.evaluate(([label, tag, anchorId]) => {
+      const known = { 'hired auto coverage': 'ddlHiredAutoCoverage', 'non-owned auto coverage': 'ddlNonOwnedOtherThan', 'non-ownership risk type': 'ddlNonOwnershipRiskType' }[label.toLowerCase()];
+      if (known && document.getElementById(known)) return known; // stable ids on the Details form; the label walk below picked a neighbouring (disabled) select on dealers
       const want = label.toLowerCase();
       const start = anchorId ? document.getElementById(anchorId) : null;
       const nodes = [...document.querySelectorAll('label, span, div, td, th, b, strong')].filter((e) => e.offsetParent !== null
@@ -490,8 +492,40 @@ test('CA Submission', async ({ page }, testInfo) => {
       const id = await idAfter(label, 'select');
       if (!id) { console.log(`State-specific: "${label}" not on this page`); return null; }
       const sel = page.locator(`[id="${id}"]`);
+      if (await sel.isDisabled().catch(() => false)) { console.log(`State-specific: "${label}" is disabled on this form - left as is`); return null; }
       const val = await sel.evaluate((e, w) => { const o = [...e.options].find((x) => x.value && (w instanceof RegExp ? false : x.textContent.trim().toLowerCase() === w)); return o ? o.value : null; }, want.toLowerCase()).catch(() => null);
       if (val) { await sel.selectOption(val).catch(() => {}); await page.waitForTimeout(1500); await dismissStatusModal(); console.log(`State-specific: ${label} = ${want}`); }
+      // The hidden <select> change alone left the bootstrap dropdown (and showhideZip) on "No" on the dealer form: drive the real control.
+      const shown = await sel.evaluate((e) => (e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '')).catch(() => '');
+      const btn = page.locator(`button[data-id="${id}"]`);
+      const btnText = ((await btn.getAttribute('title').catch(() => '')) || '').trim();
+      if ((shown !== want || btnText !== want) && await btn.isVisible().catch(() => false)) {
+        await btn.click({ timeout: 5000 }).catch(() => {});
+        await page.locator('.dropdown-menu.show a[role="option"]').filter({ hasText: new RegExp('^\\s*' + want + '\\s*$', 'i') }).first().click({ timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(1500);
+        console.log(`State-specific: ${label} set through the dropdown control -> ${await btn.getAttribute('title').catch(() => '?')}`);
+      }
+      // Still No after the control click on dealers: drive bootstrap-select + the page's own handler directly, then report what is visible.
+      if (/^Hired Auto/.test(label)) {
+        const st = await page.evaluate(([id, w]) => {
+          const el = document.getElementById(id); const $j = window.jQuery || window.$;
+          el.value = w;
+          if ($j) { $j(el).selectpicker && $j(el).selectpicker('val', w); $j(el).selectpicker && $j(el).selectpicker('refresh'); $j(el).trigger('change'); }
+          else el.dispatchEvent(new Event('change', { bubbles: true }));
+          if (typeof window.showhideZip === 'function') window.showhideZip(el);
+          const z = document.getElementById('txtZipCode');
+          return { value: el.value, zipVisible: !!(z && z.offsetParent), jq: !!$j };
+        }, [id, want]).catch((e) => ({ err: String(e) }));
+        await page.waitForTimeout(1500); await dismissStatusModal();
+        console.log(`State-specific: Hired Auto direct set -> ${JSON.stringify(st)}; button=${await btn.getAttribute('title').catch(() => '?')}`);
+      }
+      // Hired Auto = Yes reveals a Zip Code field (showhideZip); saved empty, WriteBiz drops Hired Auto back to No.
+      const zip = page.locator('#txtZipCode');
+      if (/^Hired Auto/.test(label) && await zip.isVisible().catch(() => false)) {
+        if (!(await zip.inputValue().catch(() => '')).trim()) await zip.fill(String((stateConfig.zipCodes || ['17101'])[0])).catch(() => {});
+        await zip.press('Tab').catch(() => {});
+        console.log(`State-specific: Hired Auto zip = ${await zip.inputValue().catch(() => '?')}`);
+      }
       return id;
     };
     // The flow lands on the Coverages sub-tab; Hired / Non-Owned live on Details. Open it, then come back.
@@ -525,6 +559,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       await safeNextClick();
       await page.waitForLoadState('domcontentloaded').catch(() => {});
       await dismissStatusModal();
+      await crSnap('State specific info - Details after Next');
       for (let round = 1; round <= 2; round++) {
         const det = page.getByRole('link', { name: 'Details', exact: true }).or(page.getByText('Details', { exact: true })).first();
         await det.click({ timeout: 5000 }).catch(() => {});
