@@ -456,7 +456,11 @@ async function fillBlankRequiredSelects(page, tag = '') {
       const val = await sel.evaluate(s => ([...s.options].find(o => o.value) || {}).value).catch(() => null);
       if (val) { await sel.selectOption(val).catch(() => {}); picked = val; }
     }
-    if (picked) { filled.push(`${(label || id).replace(/ is required$/, '')}=${picked}`); await page.waitForTimeout(600); }
+    if (picked) {
+      filled.push(`${(label || id).replace(/ is required$/, '')}=${picked}`);
+      await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(process.env.CA_REFRESH === '1' ? 1500 : 600);
+    }
   }
   if (filled.length) console.log(`${tag ? tag + ': ' : ''}filled blank required fields ${JSON.stringify(filled)}`);
   return filled.length;

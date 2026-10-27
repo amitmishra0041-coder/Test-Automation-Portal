@@ -85,6 +85,32 @@ async function closeAllModals(page) {
   await page.keyboard.press('Escape').catch(() => {});
 }
 
+// Wait until WriteBiz has finished reacting to a change (status overlay gone, network quiet), close an "An error has
+// occurred" box if one pops up, then leave a short margin. Changing dropdowns faster than this leaves dependants blank.
+async function settle(page, extra = 1200) {
+  await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+  const err = page.locator('.modal.show').filter({ hasText: 'An error has occurred' }).first();
+  if (await err.isVisible().catch(() => false)) {
+    console.log('  "An error has occurred" box after a dropdown change - closing it');
+    await err.getByRole('button', { name: /close/i }).click({ timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(500);
+  }
+  await page.waitForTimeout(extra);
+}
+
+// Put a dropdown back to the option it started on and prove it (several tries, each with a full settle).
+async function restoreSelect(page, sel, info) {
+  for (let k = 0; k < 4; k++) {
+    await sel.selectOption({ label: info.curText }).catch(() => sel.selectOption(info.cur).catch(() => {}));
+    await settle(page, 1500);
+    const now = await sel.evaluate((e) => (e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '')).catch(() => '');
+    if (now === info.curText) return true;
+  }
+  console.log(`  could not restore "${info.label}" to "${info.curText}"`);
+  return false;
+}
+
 // Select each option of every (small) dropdown in the dialog, record the terms/options it then shows, put the default back.
 async function exerciseDialog(page, modal, pool, rowName) {
   const sels = await modal.locator('select:visible').all();
@@ -98,12 +124,11 @@ async function exerciseDialog(page, modal, pool, rowName) {
     for (const o of info.opts) {
       if (o.v === info.cur) continue;
       await sel.selectOption(o.v).catch(() => {});
-      await page.waitForTimeout(1000);
+      await settle(page, 1200);
       const cards = await readCards(page, '.modal.show');
       pool.push({ label: `Add coverage: ${rowName}`, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: rowName })) });
     }
-    await sel.selectOption({ label: info.curText }).catch(() => sel.selectOption(info.cur).catch(() => {}));
-    await page.waitForTimeout(800);
+    await restoreSelect(page, sel, info);
   }
 }
 
@@ -127,12 +152,11 @@ async function exerciseCards(page, pool, label, maxCards = 14) {
     for (const o of info.opts) {
       if (o.v === info.cur || /^no coverage$/i.test(o.t)) continue;
       await sel.selectOption(o.v).catch(() => {});
-      await page.waitForTimeout(1500);
+      await settle(page, 1800);
       const cards = await readCards(page, `#${id}`);
       pool.push({ label, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: title.replace(/\s+Save$/i, '').trim() })) });
     }
-    await sel.selectOption({ label: info.curText }).catch(() => sel.selectOption(info.cur).catch(() => {}));
-    await page.waitForTimeout(1200);
+    await restoreSelect(page, sel, info);
   }
 }
 
