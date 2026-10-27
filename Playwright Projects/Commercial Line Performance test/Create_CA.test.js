@@ -301,6 +301,26 @@ test('CA Submission', async ({ page }, testInfo) => {
     for (let k = 0; k < 3; k++) { await dismissStatusModal(); await page.waitForTimeout(1500); if (!await fillBlankRequiredSelects(page, 'dealer OTC')) break; }
 
     await crFillRequiredInputs('dealer OTC');
+    // Turning Other Than Collision on makes "Inventory Value" required on the dealer Details sub-tab (already passed):
+    // open Details, fill it, save with Next (back to Coverages).
+    const det = page.getByRole('link', { name: 'Details', exact: true }).or(page.getByText('Details', { exact: true })).first();
+    if (await det.isVisible().catch(() => false)) {
+      await det.click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(1500);
+      await dismissStatusModal();
+      const inv = page.locator('xpath=//*[normalize-space(text())="Inventory Value"]/following::input[not(@type="hidden")][1]');
+      if (await inv.isVisible().catch(() => false)) {
+        if (!(await inv.inputValue().catch(() => '')).trim()) await inv.fill('50000').catch(() => {});
+        console.log(`Dealer details: Inventory Value = ${await inv.inputValue().catch(() => '?')}`);
+      } else console.log('Dealer details: Inventory Value field not shown');
+      await fillBlankRequiredSelects(page, 'dealer details');
+      await crFillRequiredInputs('dealer details');
+      await crSnap('Auto Dealers - Details (after Other Than Collision)');
+      await safeNextClick();
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await dismissStatusModal();
+      for (let k = 0; k < 2; k++) { await page.waitForTimeout(1200); if (!await fillBlankRequiredSelects(page, 'dealer OTC (after details)')) break; }
+    }
   }
 
   // Add-coverage dialog opened from the "+" button: record its terms/options under the grid row's coverage name.
@@ -498,11 +518,28 @@ test('CA Submission', async ({ page }, testInfo) => {
     }
     await dismissStatusModal();
     if (openedDetails) {
+      // Root cause of "Hired Auto Coverage still No": leaving the Details sub-tab through the "Coverages" link does NOT save
+      // the Details form. Leave with Next (posts and saves), then re-open Details to prove the server kept Yes.
       await crSnap('State specific info - Details sub-tab');
-      const back = page.getByRole('link', { name: 'Coverages', exact: true }).or(page.getByText('Coverages', { exact: true })).first();
-      await back.click({ timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(1500);
+      await safeNextClick();
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
       await dismissStatusModal();
+      for (let round = 1; round <= 2; round++) {
+        const det = page.getByRole('link', { name: 'Details', exact: true }).or(page.getByText('Details', { exact: true })).first();
+        await det.click({ timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(1500);
+        await dismissStatusModal();
+        const read = async (label) => { const id = await idAfter(label, 'select'); return id ? page.locator(`[id="${id}"]`).evaluate((e) => (e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '')).catch(() => '') : null; };
+        const hired = await read('Hired Auto Coverage');
+        const nonOwned = await read('Non-Owned Auto Coverage');
+        console.log(`State-specific (after save, round ${round}): Hired Auto Coverage = ${hired}, Non-Owned Auto Coverage = ${nonOwned}`);
+        const ok = (hired === null || hired === 'Yes') && (nonOwned === null || nonOwned === 'Yes');
+        if (!ok && round === 1) { await choose('Hired Auto Coverage', 'Yes'); await choose('Non-Owned Auto Coverage', 'Yes'); }
+        await safeNextClick(); // save Details (again) and go on to Coverages
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+        await dismissStatusModal();
+        if (ok) break;
+      }
     }
   }
 
