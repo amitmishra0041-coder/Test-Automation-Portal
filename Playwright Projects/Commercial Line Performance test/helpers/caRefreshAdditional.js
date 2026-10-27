@@ -134,7 +134,8 @@ async function exerciseDialog(page, modal, pool, rowName) {
 
 // Page-level coverage cards: for the first (controlling) dropdown of each card, select every option except "No Coverage",
 // record the terms/options that appear, then restore the default. e.g. Collision / Other Than Collision "Coverage Type".
-async function exerciseCards(page, pool, label, maxCards = 14) {
+async function exerciseCards(page, pool, label, maxCards = 14, opts = {}) {
+  const touched = [];
   const ids = await page.evaluate(() => [...document.querySelectorAll('[id^="xacc_Card_"]')].filter((c) => c.offsetParent !== null && c.querySelector('select')).map((c) => c.id)).catch(() => []);
   let n = 0;
   for (const id of ids) {
@@ -157,7 +158,39 @@ async function exerciseCards(page, pool, label, maxCards = 14) {
       pool.push({ label, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: title.replace(/\s+Save$/i, '').trim() })) });
     }
     await restoreSelect(page, sel, info);
+    touched.push({ id, label: info.label, curText: info.curText, title: title.replace(/\s+Save$/i, '').trim() });
   }
+  if (touched.length) await verifyAgainstServer(page, touched, opts.rerender);
+  return touched;
+}
+
+// Root cause of the dealer "Coverage Type left on Blanket Collision / Limit Of Liability with blank dependants" failure:
+// the restore is posted to WriteBiz (coverageOnChangeEvent -> AjaxInvoke_UpdateCoverageTermsWithoutReload). When that post
+// fails ("An error has occurred, please try again") the SERVER keeps the exercised value while the browser's <select> already
+// shows the restored one, so a check of the <select> passes. The next full re-render (e.g. turning Other Than Collision on)
+// brings the server value back with its required terms empty. So: re-render the page from the server and compare THAT,
+// redoing every dropdown that is not back on its starting option.
+async function verifyAgainstServer(page, touched, rerender) {
+  const readNow = async (t) => page.locator(`[id="${t.id}"] select`).first()
+    .evaluate((e) => (e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '')).catch(() => null);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await (rerender ? rerender() : page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {}));
+    await settle(page, 1500);
+    const wrong = [];
+    for (const t of touched) {
+      const now = await readNow(t);
+      if (now !== null && now !== t.curText) wrong.push({ ...t, now });
+    }
+    if (!wrong.length) { console.log(`  exercise: all ${touched.length} exercised dropdown(s) confirmed back on their defaults after a server re-render`); return true; }
+    console.log(`  exercise: server kept ${wrong.length} exercised value(s) (attempt ${attempt}): ${wrong.map((w) => `${w.title}: ${w.label} = ${w.now} (want ${w.curText})`).join('; ')}`);
+    for (const w of wrong) {
+      const sel = page.locator(`[id="${w.id}"] select`).first();
+      await sel.selectOption({ label: w.curText }).catch(() => {});
+      await settle(page, 2500);
+    }
+  }
+  console.log('  exercise: WARNING - could not get every exercised dropdown back to its default');
+  return false;
 }
 
 // opts: { expected: [{name, category}], effectiveDate, pool, record(entry), label }

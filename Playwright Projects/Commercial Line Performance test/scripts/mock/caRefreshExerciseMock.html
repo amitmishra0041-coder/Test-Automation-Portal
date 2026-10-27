@@ -1,0 +1,34 @@
+<!doctype html>
+<!-- Offline reproduction of the WriteBiz coverage-card behaviour behind the dealer "stuck on Blanket Collision" failure:
+     each dropdown change is "posted" to a fake server (localStorage) behind a status overlay; ?failRestore=1 makes the
+     first post that sets a card back to "No Coverage" fail with WriteBiz's "An error has occurred" box (server keeps the old
+     value, browser shows the new one). The "Coverages" link re-renders every card from the server, like WriteBiz does. -->
+<html><head><meta charset="utf-8"><title>Mock coverages</title>
+<style>.modal{display:none}.modal.show{display:block;border:1px solid #333;padding:8px}#dgic-status-message{display:none}</style></head>
+<body>
+<a href="#" id="tabCoverages" onclick="location.reload();return false;">Coverages</a>
+<div id="dgic-status-message">Please wait...</div>
+<div id="cards"></div>
+<div class="modal" id="err"><span>An error has occurred, please try again</span> <button onclick="this.parentElement.classList.remove('show')">Close</button></div>
+<script>
+const P = new URLSearchParams(location.search);
+const CARDS = { CollisionGRD: ['No Coverage', 'Blanket Collision'], GKOTC: ['No Coverage', 'Limit Of Liability', 'Direct Coverage'] };
+const server = JSON.parse(localStorage.getItem('srv') || '{"CollisionGRD":"No Coverage","GKOTC":"No Coverage"}');
+let failsLeft = Number(localStorage.getItem('fails') ?? (P.get('failRestore') || 0));
+function render() {
+  document.getElementById('cards').innerHTML = Object.entries(CARDS).map(([k, opts]) =>
+    `<div id="xacc_Card_${k}"><h3 class="xaccordion-sectionheader">${k}</h3><div class="FieldSpacing"><span class="FieldLabel">${k} Coverage Type</span>
+     <select onchange="post('${k}', this)">${opts.map((o, i) => `<option value="v${i}_${Math.random().toString(36).slice(2, 6)}" ${server[k] === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>
+     ${server[k] !== 'No Coverage' ? '<div class="FieldSpacing"><span class="FieldLabel">Deductible</span><select><option value="">Nothing selected</option><option value="d1">500</option></select></div>' : ''}</div>`).join('');
+}
+function post(k, sel) {
+  const want = sel.selectedOptions[0].textContent;
+  const st = document.getElementById('dgic-status-message'); st.style.display = 'block';
+  setTimeout(() => {
+    st.style.display = 'none';
+    if (want === 'No Coverage' && failsLeft > 0) { failsLeft--; localStorage.setItem('fails', failsLeft); document.getElementById('err').classList.add('show'); return; }
+    server[k] = want; localStorage.setItem('srv', JSON.stringify(server));
+  }, 400);
+}
+render();
+</script></body></html>

@@ -200,7 +200,15 @@ test('CA Submission', async ({ page }, testInfo) => {
   async function crExercise(label) {
     if (!caRefreshOn || process.env.CA_REFRESH_EXERCISE === '0') return;
     try {
-      await exerciseCards(page, crPool, label);
+      // re-render from the server by re-opening the current Coverages sub-tab (a browser reload would re-post the form)
+      const rerender = async () => {
+        const tab = page.getByRole('link', { name: 'Coverages', exact: true }).or(page.getByText('Coverages', { exact: true })).first();
+        if (await tab.isVisible().catch(() => false)) await tab.click({ timeout: 8000 }).catch(() => {});
+        else await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+        await dismissStatusModal();
+      };
+      await exerciseCards(page, crPool, label, 14, { rerender });
       await dismissStatusModal();
       await fillBlankRequiredSelects(page);
       await settleAndRefillRequired();
