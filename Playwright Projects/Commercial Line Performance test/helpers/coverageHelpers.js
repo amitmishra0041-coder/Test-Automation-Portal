@@ -432,11 +432,13 @@ async function processAllAddCoverageButtons(page, { onModal } = {}) {
 // changed Cause of Loss (dependent field reset), and state-specific CA fields
 // (PA "Extraordinary Medical Benefits Rating Basis", MI "Excess PIP").
 async function fillBlankRequiredSelects(page, tag = '') {
-  const ids = await page.evaluate(() => [...document.querySelectorAll('select[data-required="true"]')]
+  // CA Refresh runs: every visible dropdown must have a value before Next, not only the ones marked data-required.
+  const sel = process.env.CA_REFRESH === '1' ? 'select' : 'select[data-required="true"]';
+  const ids = await page.evaluate((sel) => [...document.querySelectorAll(sel)]
     .filter(s => !s.disabled && !(s.options[s.selectedIndex] && s.options[s.selectedIndex].value))
     .filter(s => [...s.options].some(o => o.value))
     .filter(s => { const box = s.closest('.bootstrap-select') || s; return !!(box.offsetParent || box.getClientRects().length); })
-    .map(s => s.id)).catch(() => []);
+    .map(s => s.id), sel).catch(() => []);
   const filled = [];
   for (const id of ids) {
     const sel = page.locator(`[id="${id}"]`);

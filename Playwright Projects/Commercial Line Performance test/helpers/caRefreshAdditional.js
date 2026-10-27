@@ -91,7 +91,7 @@ async function exerciseDialog(page, modal, pool, rowName) {
   for (const sel of sels.slice(0, 6)) {
     const info = await sel.evaluate((e) => {
       const fs = e.closest('.FieldSpacing'); const l = fs && fs.querySelector('.FieldLabel');
-      return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, cur: e.value,
+      return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, cur: e.value, curText: e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '',
         opts: [...e.options].filter((o) => o.value && !/nothing selected|^select/i.test(o.textContent)).map((o) => ({ v: o.value, t: o.textContent.trim() })) };
     }).catch(() => null);
     if (!info || info.opts.length < 2 || info.opts.length > 8) continue;
@@ -102,7 +102,7 @@ async function exerciseDialog(page, modal, pool, rowName) {
       const cards = await readCards(page, '.modal.show');
       pool.push({ label: `Add coverage: ${rowName}`, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: rowName })) });
     }
-    await sel.selectOption(info.cur).catch(() => {});
+    await sel.selectOption({ label: info.curText }).catch(() => sel.selectOption(info.cur).catch(() => {}));
     await page.waitForTimeout(800);
   }
 }
@@ -118,7 +118,7 @@ async function exerciseCards(page, pool, label, maxCards = 14) {
     const sel = card.locator('select').first();
     const info = await sel.evaluate((e) => {
       const fs = e.closest('.FieldSpacing'); const l = fs && fs.querySelector('.FieldLabel');
-      return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, cur: e.value, disabled: e.disabled,
+      return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, cur: e.value, curText: e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '', disabled: e.disabled,
         opts: [...e.options].filter((o) => o.value && !/nothing selected|^select/i.test(o.textContent)).map((o) => ({ v: o.value, t: o.textContent.trim() })) };
     }).catch(() => null);
     if (!info || info.disabled || info.opts.length < 2 || info.opts.length > 8) continue;
@@ -130,7 +130,7 @@ async function exerciseCards(page, pool, label, maxCards = 14) {
       const cards = await readCards(page, `#${id}`);
       pool.push({ label, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: title.replace(/\s+Save$/i, '').trim() })) });
     }
-    await sel.selectOption(info.cur).catch(() => {});
+    await sel.selectOption({ label: info.curText }).catch(() => sel.selectOption(info.cur).catch(() => {}));
     await page.waitForTimeout(1200);
   }
 }
