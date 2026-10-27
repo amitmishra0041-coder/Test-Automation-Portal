@@ -1221,6 +1221,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     }
     await crSnap('State specific info - Coverages');
     await crExercise('State specific info - Coverages');
+    await crSetHiredNonOwned(); // re-assert Hired Auto / Non-Owned = Yes after anything above touched the page
     await safeNextClick();
     trackMilestone('State specific info - Coverages');
     await crSnap('State specific info - Additional coverages');

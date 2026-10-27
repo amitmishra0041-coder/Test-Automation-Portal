@@ -122,6 +122,7 @@ async function exerciseCards(page, pool, label, maxCards = 14) {
         opts: [...e.options].filter((o) => o.value && !/nothing selected|^select/i.test(o.textContent)).map((o) => ({ v: o.value, t: o.textContent.trim() })) };
     }).catch(() => null);
     if (!info || info.disabled || info.opts.length < 2 || info.opts.length > 8) continue;
+    if (info.opts.every((o) => /^(yes|no)$/i.test(o.t))) continue; // Yes/No switches (e.g. Hired Auto Coverage) are set by the flow, never toggled here
     const title = await card.locator('.xaccordion-sectionheader').first().innerText().catch(() => id);
     for (const o of info.opts) {
       if (o.v === info.cur || /^no coverage$/i.test(o.t)) continue;
