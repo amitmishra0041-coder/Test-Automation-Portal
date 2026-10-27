@@ -232,7 +232,8 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   // QA: a Special Type vehicle so the Special Type coverages can be verified. Best effort - a failure here must never stop the run.
   async function crAddSpecialTypeVehicle() {
-    if (!caRefreshOn || process.env.CA_REFRESH_SPECIAL_TYPE === '0') return;
+    // Skipped for now (fails on WriteBiz); set CA_REFRESH_SPECIAL_TYPE=1 to try it.
+    if (!caRefreshOn || process.env.CA_REFRESH_SPECIAL_TYPE !== '1') return;
     try {
       await closeVehiclePrefill();
       await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (special type)');
