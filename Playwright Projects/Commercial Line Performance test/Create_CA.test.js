@@ -279,13 +279,19 @@ test('CA Submission', async ({ page }, testInfo) => {
   // QA: Tapes, Records And Discs needs Other Than Collision provided (then Inventory Value / Reporting Basis are required).
   async function crDealerOtcForTapes() {
     if (!caRefreshOn || caRefreshLob !== 'AUTO_DEALERS' || process.env.CA_REFRESH_TAPES === '0') return;
-    const otc = page.locator('[id^="xacc_Card_"]').filter({ hasText: /Garage Other Than Collision/ }).first();
-    const sel = otc.locator('select').first();
-    if (await sel.count() === 0) { console.log('Dealer Other Than Collision card not found'); return; }
+    // the "Other Than Collision Coverage Type" dropdown of the dealer's own card (not the Garagekeepers one)
+    const id = await page.evaluate(() => {
+      const l = [...document.querySelectorAll('.FieldLabel, label, span')].find((e) => e.offsetParent !== null && /^Other Than Collision Coverage Type$/i.test(e.textContent.replace(/\s+/g, ' ').trim()));
+      if (!l) return null;
+      const fs = l.closest('.FieldSpacing') || l.parentElement; const sel = fs && fs.querySelector('select');
+      return sel ? sel.id : null;
+    }).catch(() => null);
+    if (!id) { console.log('Dealer Other Than Collision dropdown not found'); return; }
+    const sel = page.locator(`[id="${id}"]`);
     const v = await sel.evaluate((e) => ([...e.options].find((o) => o.value && !/no coverage|nothing selected/i.test(o.textContent)) || {}).value).catch(() => null);
     if (v) { await sel.selectOption(v).catch(() => {}); await page.waitForTimeout(1800); console.log('Dealer Other Than Collision turned on (for Tapes, Records And Discs)'); }
-    await dismissStatusModal();
-    await fillBlankRequiredSelects(page, 'dealer OTC');
+    for (let k = 0; k < 3; k++) { await dismissStatusModal(); await page.waitForTimeout(1500); if (!await fillBlankRequiredSelects(page, 'dealer OTC')) break; }
+
     await crFillRequiredInputs('dealer OTC');
   }
 
