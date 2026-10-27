@@ -122,13 +122,83 @@ for r in opt_rows[2:]:
               'default': str(r[12] or '').strip().upper().startswith('Y'), 'wb': clean(r[13]) or None, 'states': states})
 
 
+# Conditions + Exclusions rows in the same tuple shape as the Coverages rows, so one lookup covers all three sheets
+# (the precondition also lists exclusions such as War Exclusion, which are not on the Coverages tab).
+def _synthetic(sheet, wb_i, form_i, state0, maxr=4000):
+    rows = apply_wb(list(pm[sheet].iter_rows(values_only=True, max_col=60)), wb_overrides(sheet, wb_i + 1, maxr), wb_i)
+    hdr = rows[1]
+    scols = {hdr[k]: k for k in range(state0, state0 + 24) if hdr[k]}
+    out = []
+    for r in rows[2:]:
+        if not r[4]:
+            continue
+        row = [None] * 40
+        row[3], row[4], row[5], row[10], row[12] = r[3], r[4], r[5], r[wb_i], r[form_i]
+        for st, k in scols.items():
+            if st in STATE_COLS:
+                row[STATE_COLS[st]] = r[k]
+        out.append(row)
+    return out
+
+
+import re as _re
+_all_rows = [r for r in cov_rows[2:] if r[4]] + _synthetic('Conditions', 9, 11, 14) + _synthetic('Exclusions', 9, 11, 14)
+_by_name = {}
+_by_form = {}
+for _r in _all_rows:
+    for _nm in str(_r[4]).split(chr(10)):
+        if _nm.strip():
+            _by_name.setdefault(norm(_nm), []).append(_r)
+    _fm = _re.search(r'\b(CAD?)\s?(\d{2})\s?(\d{2})\b', str(_r[12] or '') + ' ' + str(_r[4]), _re.I)
+    if _fm:
+        _by_form.setdefault((_fm.group(1) + _fm.group(2) + _fm.group(3)).upper(), []).append(_r)
+
+
+def canon(name):
+    n = norm(name)
+    n = _re.sub(r'^auto dealers? ', 'garage ', n)          # precondition says "Auto Dealers X", the model says "Garage X"
+    return _re.sub(r'^(cad?) ?\d{2} ?\d{2} ', '', n)         # drop a leading form number
+
+
+_by_canon = {}
+for _r in _all_rows:
+    for _nm in str(_r[4]).split(chr(10)):
+        if _nm.strip():
+            _by_canon.setdefault(canon(_nm), []).append(_r)
+
+
+def _jacc(a, b):
+    ta, tb = set(a.split()), set(b.split())
+    return len(ta & tb) / len(ta | tb) if ta | tb else 0
+
+
+def _pick(rows, category):
+    """Among several rows for the same coverage (one per effective date / category) prefer the same category, then any WriteBiz=Y."""
+    same = [r for r in rows if norm(r[3]) == norm(category)] or rows
+    return next((r for r in same if r[10] and 'y' in str(r[10]).lower()), same[0])
+
+
+def find_model_row(category, name):
+    rows = _by_name.get(norm(name)) or _by_canon.get(canon(name))
+    if not rows:
+        fm = _re.search(r'\b(CAD?)\s?(\d{2})\s?(\d{2})\b', name, _re.I)
+        if fm:
+            rows = _by_form.get((fm.group(1) + fm.group(2) + fm.group(3)).upper())
+    if not rows:
+        c = canon(name)
+        best = max(_by_canon, key=lambda k: _jacc(c, k), default=None)
+        if best and _jacc(c, best) >= 0.8:
+            rows = _by_canon[best]
+    return _pick(rows, category) if rows else None
+
+
 def enrich(category, name):
-    row = cov_index.get((norm(category), norm(name))) or cov_index.get((None, norm(name)))
+    row = find_model_row(category, name)
     out = {'name': name}
     if row:
         out['code'] = row[5]
         out['form'] = clean(row[12]) or None
-        out['writeBiz'] = clean(row[10]) or None  # Donegal WriteBiz Availability For Agents (Y/N)
+        out['writeBiz'] = clean(row[10]) or None  # Donegal WriteBiz Availability For Agents (Y/N), struck-through text removed
         out['availability'] = {s: clean(row[i]) for s, i in STATE_COLS.items() if row[i] not in (None, '')}
     t = terms.get((norm(category), norm(name)))
     if not t and row:
@@ -154,9 +224,21 @@ for r in wb2['Coverage Lists'].iter_rows(min_row=4, values_only=True):
 # of ANY coverage card WriteBiz shows against the model.
 model_terms = []
 for (ncat, ncov), tmap in terms.items():
-    row = cov_index.get((ncat, ncov)) or cov_index.get((None, ncov))
-    name = clean(row[4]) if row else ncov
-    model_terms.append({'category': clean(row[3]) if row else ncat, 'name': name, 'terms': tmap})
+    row = find_model_row(ncat, ncov) or cov_index.get((ncat, ncov)) or cov_index.get((None, ncov))
+    raw = str(row[4]) if row else ncov
+    for nm in [x for x in raw.split(chr(10)) if x.strip()] or [ncov]:
+        model_terms.append({'category': clean(row[3]) if row else ncat, 'name': clean(nm), 'terms': tmap})
+
+# Every term name per coverage (Coverage Terms tab; includes free-text terms that have no option rows) so a dialog's terms can be
+# checked for presence. The tab is declared with ~1M blank rows, so only the first few thousand are read.
+term_names = {}
+for r in pm['Coverage Terms'].iter_rows(min_row=2, max_row=6000, values_only=True, max_col=8):
+    if r[4] and r[6]:
+        for nm in str(r[4]).split(chr(10)):
+            if nm.strip():
+                lst = term_names.setdefault(norm(nm), [])
+                if clean(r[6]) not in lst:
+                    lst.append(clean(r[6]))
 
 # ── "SBT Update" = yes on the Coverages / Conditions / Exclusions tabs: the full CA Refresh set (the test-case
 #    precondition only lists some of it) ───────────────────────────────────────────────────────────────────────────
@@ -192,6 +274,7 @@ codes = {c['code'] for c in sbt if c['code']} | {c.get('code') for lob in ('BUSI
 clause = {k: v for k, v in clause.items() if k in codes}
 
 data = {
+    'termNames': term_names,
     'sbt': sbt,
     'clauseRules': clause,
     'modelTerms': model_terms,

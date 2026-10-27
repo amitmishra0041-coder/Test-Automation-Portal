@@ -11,7 +11,7 @@ const { attachSpinnerTracker } = require('./helpers/spinnerTracker');
 const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequiredSelects } = require('./helpers/coverageHelpers');
 const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
-const { addExpectedFromGrid } = require('./helpers/caRefreshAdditional');
+const { addExpectedFromGrid, exerciseCards } = require('./helpers/caRefreshAdditional');
 const fs   = require('fs');
 const path = require('path');
 
@@ -169,16 +169,17 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   // Adds the precondition's additional coverages / forms / exclusions that have a row in the Additional Coverages grid
   // on the current page (click +, record terms, fill required terms, Save, confirm selected).
+  const norm2 = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   async function crAddExpected(label) {
     if (!caRefreshOn) return;
     await dismissStatusModal();
-    const already = new Set(crAdditions.map((a) => a.coverage)); // each coverage is tried once per run, whatever the outcome
+    const perVehicle = /^Vehicle additional/.test(label); // vehicle coverages (e.g. Lessor - Additional Insured And Loss Payee) belong to EACH vehicle
+    const already = new Set(crAdditions.filter((a) => (perVehicle ? a.page === label : !/^Vehicle additional/.test(a.page))).map((a) => a.coverage)); // tried once, whatever the outcome
     let expected = caRefresh.expectedFor(caRefreshLob, testState).filter((c) => c.expected && !already.has(c.name));
-    // Rating rule seen live: the Tapes, Records And Discs form "cannot be attached if there is no Other Than Collision
-    // Coverage provided"; switching that on makes Inventory Value / Reporting Basis required, so it is recorded as skipped.
-    const tapes = expected.filter((c) => /Tapes Records And Discs/i.test(c.name));
-    for (const c of tapes) crAdditions.push({ coverage: c.name, gridRow: '', page: label, status: 'SKIPPED_RULE', detail: 'requires Other Than Collision coverage (not provided in this workflow)' });
-    expected = expected.filter((c) => !tapes.includes(c));
+    // Coverages QA asked to always add where the portal offers them (grid row match is exact on the name).
+    const QA_EXTRAS = { BUSINESS_AUTO: ['Drive Other Car Coverage - Broadened Coverage For Named Individuals', 'Garagekeepers'], AUTO_DEALERS: ['Tapes, Records And Discs'] };
+    for (const nm of QA_EXTRAS[caRefreshLob] || []) if (!already.has(nm) && !expected.some((c) => norm2(c.name) === norm2(nm))) expected.push({ name: nm, category: 'QA extra', expected: true, source: 'QA' });
+
     // OEM Replacement Parts is not available for vehicles older than 10 years, so CA Refresh runs use 2019 model-year VINs (valid for the 2027 effective date).
     const effDate = global.testData.effectiveDate || '';
     await addExpectedFromGrid(page, { expected, effectiveDate: effDate, pool: crPool, shotDir: crShotDir, label, record: (e) => { crAdditions.push(e); console.log(`CA Refresh additional coverage: ${e.status} - ${e.coverage} (grid "${e.gridRow}" on ${label}) ${e.detail || ''}`); } });
@@ -194,6 +195,99 @@ test('CA Submission', async ({ page }, testInfo) => {
         return e.tagName + '#' + e.id + '[' + v + '] req=' + (e.dataset.required || '') + ' :: ' + (fs ? fs.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : ''); })).catch(() => []);
     console.log('DEALERDUMP ' + tag + '\n' + rows.join('\n'));
   };
+
+  // QA: select each non-default option of every card's controlling dropdown and verify the dependent terms/options.
+  async function crExercise(label) {
+    if (!caRefreshOn || process.env.CA_REFRESH_EXERCISE === '0') return;
+    try {
+      await exerciseCards(page, crPool, label);
+      await dismissStatusModal();
+      await fillBlankRequiredSelects(page);
+      await settleAndRefillRequired();
+    } catch (e) { console.log(`CA Refresh exercise "${label}" failed: ${e.message.split(String.fromCharCode(10))[0]}`); }
+  }
+
+  // Fill every visible empty required text/number input (data-required) with a plausible value; selects are handled by fillBlankRequiredSelects.
+  async function crFillRequiredInputs(tag) {
+    const ids = await page.evaluate(() => [...document.querySelectorAll('input[data-required="true"], textarea[data-required="true"]')]
+      .filter((e) => e.offsetParent !== null && !e.disabled && !e.readOnly && !String(e.value || '').trim()).map((e) => ({ id: e.id, name: e.getAttribute('data-requiredmessage') || e.id }))).catch(() => []);
+    const done = [];
+    for (const f of ids) {
+      if (!f.id) continue;
+      const v = /vin/i.test(f.name) ? '1FTEW1EP4KFA12345' : /date/i.test(f.name) ? (global.testData.effectiveDate || '08/01/2027') : /descri|name|text/i.test(f.name) ? 'Test' : '1000';
+      await page.locator(`[id="${f.id}"]`).fill(v).catch(() => {});
+      done.push(`${f.name}=${v}`);
+    }
+    if (done.length) console.log(`${tag}: filled required inputs ${JSON.stringify(done)}`);
+    return done.length;
+  }
+
+  // QA: a Special Type vehicle so the Special Type coverages can be verified. Best effort - a failure here must never stop the run.
+  async function crAddSpecialTypeVehicle() {
+    if (!caRefreshOn || process.env.CA_REFRESH_SPECIAL_TYPE === '0') return;
+    try {
+      await closeVehiclePrefill();
+      await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (special type)');
+      await clickBsSelect('bs-select-2-2', 'Vehicle Type (special type)');
+      await page.getByRole('combobox', { name: 'Select Garaging Location' }).click({ timeout: 15000 });
+      await clickBsSelect('bs-select-3-1', 'Garaging Location (special type)');
+      await page.getByRole('button', { name: 'Confirm' }).click({ timeout: 10000 });
+      await dismissStatusModal();
+      await page.waitForTimeout(1500);
+      // generic fill: VIN, then required selects / inputs / class lookups, a few passes (selects reload their dependants)
+      await page.locator('#txt_Vin').fill('1FTEW1EP4KFA12345').catch(() => {});
+      for (let pass = 0; pass < 3; pass++) {
+        await fillBlankRequiredSelects(page, 'special type');
+        await crFillRequiredInputs('special type');
+        for (const icon of await page.locator('[id$="_displayAll"].input-group-text, .input-group-text[id*="ClassCode"], .input-group-text[id*="Class"]').all()) {
+          if (!await icon.isVisible().catch(() => false)) continue;
+          await icon.click({ timeout: 3000 }).catch(() => {});
+          const row = page.locator('table[id$="_resultsTable"] tbody tr').first();
+          if (await row.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) await row.click().catch(() => {});
+        }
+        await page.waitForTimeout(800);
+      }
+      await crSnap('Vehicle details - Special type');
+      await safeNextClick();
+      await page.waitForLoadState('domcontentloaded');
+      await dismissStatusModal();
+      await fillBlankRequiredSelects(page);
+      await settleAndRefillRequired();
+      await crSnap('Vehicle coverages - Special type');
+      await crExercise('Vehicle coverages - Special type');
+      await safeNextClick();
+      await dismissStatusModal();
+      await crSnap('Vehicle additional coverages - Special type');
+      await crAddExpected('Vehicle additional coverages - Special type');
+      await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
+      await crSnap('Vehicles - Special type');
+      trackMilestone('Vehicles Page: Special type Vehicle Added');
+    } catch (e) {
+      console.log(`Special Type vehicle could not be added: ${e.message.split(String.fromCharCode(10))[0]}`);
+      await crSnap('Special type vehicle - failure point').catch(() => {});
+      const note = { coverage: 'Special Type vehicle', gridRow: '', page: 'Vehicles', status: 'ADD_FAILED', detail: e.message.split(String.fromCharCode(10))[0].slice(0, 160) };
+      crAdditions.push(note);
+      for (let i = 0; i < 4; i++) { // leave no dialog or half-filled vehicle behind
+        const top = page.locator('.modal.show').last();
+        if (!await top.isVisible().catch(() => false)) break;
+        await top.locator('button:has-text("Cancel"), button:has-text("Close")').first().click({ timeout: 3000 }).catch(() => {});
+        await page.waitForTimeout(600);
+      }
+    }
+  }
+
+  // QA: Tapes, Records And Discs needs Other Than Collision provided (then Inventory Value / Reporting Basis are required).
+  async function crDealerOtcForTapes() {
+    if (!caRefreshOn || caRefreshLob !== 'AUTO_DEALERS' || process.env.CA_REFRESH_TAPES === '0') return;
+    const otc = page.locator('[id^="xacc_Card_"]').filter({ hasText: /Garage Other Than Collision/ }).first();
+    const sel = otc.locator('select').first();
+    if (await sel.count() === 0) { console.log('Dealer Other Than Collision card not found'); return; }
+    const v = await sel.evaluate((e) => ([...e.options].find((o) => o.value && !/no coverage|nothing selected/i.test(o.textContent)) || {}).value).catch(() => null);
+    if (v) { await sel.selectOption(v).catch(() => {}); await page.waitForTimeout(1800); console.log('Dealer Other Than Collision turned on (for Tapes, Records And Discs)'); }
+    await dismissStatusModal();
+    await fillBlankRequiredSelects(page, 'dealer OTC');
+    await crFillRequiredInputs('dealer OTC');
+  }
 
   // Add-coverage dialog opened from the "+" button: record its terms/options under the grid row's coverage name.
   const crCaptureModal = async (rowName, modal) => {
@@ -253,6 +347,8 @@ test('CA Submission', async ({ page }, testInfo) => {
     await page.waitForLoadState('domcontentloaded');
     await fillBlankRequiredSelects(page, 'dealer coverages');
     await crSnap('Auto Dealers - Coverages');
+    await crExercise('Auto Dealers - Coverages');
+    await crDealerOtcForTapes();
     await dumpFields('coverages');
     await safeNextClick();
     await dismissStatusModal();
@@ -982,6 +1078,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     } catch (e) { console.log('No Delete Coverage button found, continuing...'); }
 
     await crSnap('Commercial Auto - Coverage');
+    await crExercise('Commercial Auto - Coverage');
     await safeNextClick();
     trackMilestone('Commercial Auto - Coverage');
 
@@ -1117,6 +1214,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       console.log('Number of Employees field not visible - skipping (may not be required for this LOB/state combo)');
     }
     await crSnap('State specific info - Coverages');
+    await crExercise('State specific info - Coverages');
     await safeNextClick();
     trackMilestone('State specific info - Coverages');
     await crSnap('State specific info - Additional coverages');
@@ -1175,6 +1273,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await fillBlankRequiredSelects(page);
     await settleAndRefillRequired();
     await crSnap('Vehicle coverages - Private passenger');
+    await crExercise('Vehicle coverages - Private passenger');
     await safeNextClick();
     await dismissStatusModal()
     await crSnap('Vehicle additional coverages - Private passenger');
@@ -1239,6 +1338,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await fillBlankRequiredSelects(page);
     await settleAndRefillRequired();
     await crSnap('Vehicle coverages - Truck');
+    await crExercise('Vehicle coverages - Truck');
     await safeNextClick();
     await dismissStatusModal()
     await crSnap('Vehicle additional coverages - Truck');
@@ -1246,6 +1346,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
     await crSnap('Vehicles - Truck');
     trackMilestone('Vehicles Page: Truck Vehicle Added');
+    await crAddSpecialTypeVehicle();
 
     // ── Drivers and Symbols ─────────────────────────────────────────────────────
     await safeClick(page.locator('#btnNext_CLAutoVehicles'));

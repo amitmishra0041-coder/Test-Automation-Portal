@@ -111,7 +111,8 @@ async function snapshot(page, label, pool, shotDir) {
     }
     if (shotDir) fs.writeFileSync(shot ? shot.replace(/\.png$/, '.txt') : path.join(shotDir, `${pool.length + 1}.txt`), text);
     const cards = await readCards(page);
-    pool.push({ label, text, norm: norm(text), shot, cards });
+    const gridNames = await page.evaluate(() => [...document.querySelectorAll('table tbody tr')].map((tr) => { const td = tr.querySelectorAll('td'); return td.length > 3 ? td[2].textContent.replace(/\s+/g, ' ').trim() : ''; }).filter(Boolean)).catch(() => []);
+    pool.push({ label, text, norm: norm(text), shot, cards, gridNames });
   } catch (e) { console.log(`CA Refresh snapshot "${label}" failed: ${e.message.split('\n')[0]}`); }
 }
 
@@ -121,7 +122,6 @@ function matchers(cov) {
   const list = [full];
   const m = /^\s*(CAD?\s?\d{2}\s?\d{2})\b/i.exec(cov.name);
   if (m) list.push(norm(m[1]));
-  if (cov.form) list.push(norm(cov.form));
   return list.filter(Boolean);
 }
 
@@ -161,8 +161,9 @@ const normOpt = (o) => norm(String(o).replace(/,/g, ''));
 const jaccard = (a, b) => { const ta = new Set(tokens(a)); const tb = new Set(tokens(b)); const u = new Set([...ta, ...tb]); return u.size ? [...ta].filter((t) => tb.has(t)).length / u.size : 0; };
 const overlap = (a, b) => { const ta = tokens(a); const tb = tokens(b); return ta.length ? ta.filter((t) => tb.includes(t)).length / ta.length : 0; };
 
+const canon = (n) => norm(n).replace(/^auto dealers? /, 'garage ').replace(/^cad? ?\d{2} ?\d{2} /, '');
 const modelByName = new Map();
-for (const m of DATA.modelTerms || []) { const k = norm(m.name); (modelByName.get(k) || modelByName.set(k, []).get(k)).push(m); }
+for (const m of DATA.modelTerms || []) { const k = canon(m.name); (modelByName.get(k) || modelByName.set(k, []).get(k)).push(m); }
 
 // Every coverage card / Add-coverage dialog captured from WriteBiz that maps to a product-model coverage with term
 // options gets its dropdown options compared with the model's options offered in this state.
@@ -171,18 +172,29 @@ function checkAllCards(state, pool) {
   const done = new Set();
   for (const p of pool) {
     for (const card of p.cards || []) {
-      let cands = modelByName.get(norm(card.title));
+      let cands = modelByName.get(canon(card.title));
       if (!cands) cands = (DATA.modelTerms || []).filter((m) => overlap(m.name, card.title) >= 0.9 && overlap(card.title, m.name) >= 0.9);
       if (!cands.length) continue;
       const selects = card.terms.filter((x) => x.kind === 'select');
       const score = (m) => Object.keys(m.terms).filter((tn) => selects.some((x) => overlap(tn, x.label) >= 0.6)).length;
       const m = cands.slice().sort((a, b) => score(b) - score(a))[0];
+      // Every term the model defines for this coverage (Coverage Terms tab, free-text ones included) should be shown on it.
+      const names = DATA.termNames && DATA.termNames[norm(m.name)];
+      const pkey = `names|${norm(card.title)}|${card.terms.map((x) => x.label).join('~')}`;
+      if (names && card.terms.length && !done.has(pkey)) {
+        done.add(pkey);
+        const shown = card.terms.map((x) => x.label);
+        for (const nm of names) {
+          const ok = shown.some((l) => jaccard(nm, l) >= 0.6);
+          out.push({ coverage: card.title, term: nm, expected: [], observed: [], missing: [], extra: [], page: p.label, context: p.context || '', status: ok ? 'MATCH' : 'PARTIAL', note: ok ? 'term shown' : 'term not shown on the screen' });
+        }
+      }
       for (const [term, opts] of Object.entries(m.terms)) {
         const t = selects.slice().sort((x, y) => jaccard(term, y.label) - jaccard(term, x.label))[0];
         const expected = opts.filter((o) => o.states.includes(state) && o.wb !== 'N').map((o) => o.option);
-        const base = { coverage: card.title, term, expected, page: p.label };
+        const base = { coverage: card.title, term, expected, page: p.label, context: p.context || '' };
         if (!t || jaccard(term, t.label) < 0.6) { continue; } // term not shown for this card/state - nothing to compare
-        const key = `${norm(card.title)}|${norm(term)}|${t.options.join('~')}`;
+        const key = `${norm(card.title)}|${norm(term)}|${t.options.join('~')}|${p.context || ''}`;
         if (done.has(key)) continue;
         done.add(key);
         const seen = new Set(t.options.map(normOpt));
@@ -199,13 +211,28 @@ function checkAllCards(state, pool) {
   return out;
 }
 
+// "Auto Dealers X" in the precondition is "Garage X" on the screens; a leading form number is not part of the name.
+const isFormNumberName = (cov) => cov.mappingForm || /^\s*CAD?\s?\d{2}\s?\d{2}\b/i.test(cov.name);
+
+// A coverage is PRESENT only when WriteBiz shows it as a coverage card title or an Additional Coverages grid row with the
+// same name (not merely the same words somewhere on the page). Form-number entries are matched by their number in the page text.
+function findPresent(cov, pool) {
+  const c = canon(cov.name);
+  for (const p of pool) {
+    if ((p.cards || []).some((k) => canon(k.title) === c)) return p;
+    if ((p.gridNames || []).some((g) => canon(g) === c)) return p;
+  }
+  if (isFormNumberName(cov)) return pool.find((p) => matchers(cov).some((m) => p.norm.includes(m)));
+  return null;
+}
+
 function evaluate(lob, state, pool) {
   const results = expectedFor(lob, state).map((cov) => {
-    let hit = pool.find((p) => matchers(cov).some((m) => p.norm.includes(m)));
+    const hit = findPresent(cov, pool);
     let page = hit ? hit.label : '';
     if (!hit && cov.expected) {
       const sim = similarLine(cov, pool);
-      if (sim) { hit = sim; page = `${sim.page} (as "${sim.line}")`; }
+      if (sim) page = `not present; similar wording on ${sim.page}: "${sim.line}"`; // reported, but never counted as found
     }
     let status;
     if (!cov.expected) status = hit ? 'UNEXPECTED' : 'NOT_APPLICABLE';

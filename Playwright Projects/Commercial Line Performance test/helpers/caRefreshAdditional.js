@@ -85,6 +85,56 @@ async function closeAllModals(page) {
   await page.keyboard.press('Escape').catch(() => {});
 }
 
+// Select each option of every (small) dropdown in the dialog, record the terms/options it then shows, put the default back.
+async function exerciseDialog(page, modal, pool, rowName) {
+  const sels = await modal.locator('select:visible').all();
+  for (const sel of sels.slice(0, 6)) {
+    const info = await sel.evaluate((e) => {
+      const fs = e.closest('.FieldSpacing'); const l = fs && fs.querySelector('.FieldLabel');
+      return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, cur: e.value,
+        opts: [...e.options].filter((o) => o.value && !/nothing selected|^select/i.test(o.textContent)).map((o) => ({ v: o.value, t: o.textContent.trim() })) };
+    }).catch(() => null);
+    if (!info || info.opts.length < 2 || info.opts.length > 8) continue;
+    for (const o of info.opts) {
+      if (o.v === info.cur) continue;
+      await sel.selectOption(o.v).catch(() => {});
+      await page.waitForTimeout(1000);
+      const cards = await readCards(page, '.modal.show');
+      pool.push({ label: `Add coverage: ${rowName}`, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: rowName })) });
+    }
+    await sel.selectOption(info.cur).catch(() => {});
+    await page.waitForTimeout(800);
+  }
+}
+
+// Page-level coverage cards: for the first (controlling) dropdown of each card, select every option except "No Coverage",
+// record the terms/options that appear, then restore the default. e.g. Collision / Other Than Collision "Coverage Type".
+async function exerciseCards(page, pool, label, maxCards = 14) {
+  const ids = await page.evaluate(() => [...document.querySelectorAll('[id^="xacc_Card_"]')].filter((c) => c.offsetParent !== null && c.querySelector('select')).map((c) => c.id)).catch(() => []);
+  let n = 0;
+  for (const id of ids) {
+    if (n++ >= maxCards) break;
+    const card = page.locator(`[id="${id}"]`);
+    const sel = card.locator('select').first();
+    const info = await sel.evaluate((e) => {
+      const fs = e.closest('.FieldSpacing'); const l = fs && fs.querySelector('.FieldLabel');
+      return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, cur: e.value, disabled: e.disabled,
+        opts: [...e.options].filter((o) => o.value && !/nothing selected|^select/i.test(o.textContent)).map((o) => ({ v: o.value, t: o.textContent.trim() })) };
+    }).catch(() => null);
+    if (!info || info.disabled || info.opts.length < 2 || info.opts.length > 8) continue;
+    const title = await card.locator('.xaccordion-sectionheader').first().innerText().catch(() => id);
+    for (const o of info.opts) {
+      if (o.v === info.cur || /^no coverage$/i.test(o.t)) continue;
+      await sel.selectOption(o.v).catch(() => {});
+      await page.waitForTimeout(1500);
+      const cards = await readCards(page, `#${id}`);
+      pool.push({ label, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: title.replace(/\s+Save$/i, '').trim() })) });
+    }
+    await sel.selectOption(info.cur).catch(() => {});
+    await page.waitForTimeout(1200);
+  }
+}
+
 // opts: { expected: [{name, category}], effectiveDate, pool, record(entry), label }
 async function addExpectedFromGrid(page, opts) {
   const { expected, effectiveDate, pool, record, label } = opts;
@@ -92,7 +142,7 @@ async function addExpectedFromGrid(page, opts) {
   const done = new Set();
   for (const row of rows) {
     const match = expected.filter((e) => !done.has(e.name)).map((e) => ({ e, score: norm(row.name) === norm(e.name) ? 1 : covered(row.name, e.name) }))
-      .filter((m) => m.score >= 0.8 && tokens(row.name).length >= 2).sort((a, b) => b.score - a.score)[0];
+      .filter((m) => m.score >= 0.8 && tokens(row.name).length >= 2 && (tokens(row.name).length > 6 || m.score === 1)).sort((a, b) => b.score - a.score)[0];
     if (!match) continue;
     const entry = { coverage: match.e.name, gridRow: row.name, page: label, status: '', detail: '' };
     done.add(match.e.name);
@@ -107,6 +157,7 @@ async function addExpectedFromGrid(page, opts) {
         await page.waitForTimeout(500);
         const cards = await readCards(page, '.modal.show');
         pool.push({ label: `Add coverage: ${row.name}`, text: await modal.innerText().catch(() => ''), norm: norm(row.name), shot: '', cards: cards.map((c) => ({ ...c, title: row.name })) });
+        await exerciseDialog(page, modal, pool, row.name).catch((e) => console.log(`  exerciseDialog: ${e.message.split(String.fromCharCode(10))[0]}`));
         await completeDialog(page, modal, effectiveDate);
         await modal.locator('button:has-text("Save")').first().click({ timeout: 5000 }).catch(() => {});
         await page.waitForTimeout(1200);
@@ -114,22 +165,28 @@ async function addExpectedFromGrid(page, opts) {
         if (await modal.isVisible().catch(() => false)) {
           const addItem = modal.locator('button:has-text("Add Scheduled Item"), button:has-text("Add Item"), button:has-text("Add New")').first();
           if (await addItem.count() > 0) {
-            await addItem.click({ timeout: 4000 }).catch(() => {});
-            await page.waitForTimeout(1200);
-            const top = page.locator('.modal.show').last();
-            for (let attempt = 0; attempt < 3; attempt++) {
-              await completeDialog(page, top, effectiveDate);
-              await top.locator('button:has-text("Save")').first().click({ timeout: 4000 }).catch(() => {});
-              if (await top.waitFor({ state: 'hidden', timeout: 5000 }).then(() => true).catch(() => false)) break;
-            }
-            // wait for the scheduled-item dialog to actually close before saving the coverage dialog behind it
-            await top.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
-            if (await top.isVisible().catch(() => false)) {
-              entry.detail = 'scheduled item: ' + (((await top.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 220));
-            } else {
+            let saved = 0;
+            for (let n = 0; n < 2; n++) { // two scheduled items for any scheduled coverage
+              await addItem.click({ timeout: 4000 }).catch(() => {});
+              await page.waitForTimeout(1200);
+              const top = page.locator('.modal.show').last();
+              for (let attempt = 0; attempt < 3; attempt++) {
+                await completeDialog(page, top, effectiveDate);
+                await top.locator('button:has-text("Save")').first().click({ timeout: 4000 }).catch(() => {});
+                if (await top.waitFor({ state: 'hidden', timeout: 5000 }).then(() => true).catch(() => false)) break;
+              }
+              if (await top.isVisible().catch(() => false)) {
+                entry.detail = 'scheduled item ' + (n + 1) + ': ' + (((await top.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 200));
+                break;
+              }
+              saved++;
               await page.waitForTimeout(500);
+            }
+            if (saved) {
+              if (saved < 2 && !entry.detail) entry.detail = 'only ' + saved + ' scheduled item saved';
               await page.locator('.modal.show').first().locator('button:has-text("Save")').first().click({ timeout: 4000 }).catch(() => {});
               await page.waitForTimeout(1500);
+              if (saved === 2) entry.detail = '2 scheduled items added';
             }
           }
         }
@@ -158,4 +215,4 @@ async function addExpectedFromGrid(page, opts) {
   return [...done];
 }
 
-module.exports = { addExpectedFromGrid, readGrid };
+module.exports = { addExpectedFromGrid, readGrid, exerciseCards };

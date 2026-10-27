@@ -80,8 +80,8 @@ async function writeCaRefreshDoc(run, outFile) {
   if (tc.length) {
     kids.push(table([new TableRow({ tableHeader: true, children: ['Coverage', 'Term', 'Product model options', 'WriteBiz options', 'Missing / extra', 'Result'].map((h, i) => cell(h, { w: [18, 16, 20, 20, 16, 10][i], bold: true, fill: 'E7EBF0' })) })]
       .concat(tc.map((t) => new TableRow({ children: [
-        cell(t.coverage, { w: 18 }), cell(t.term, { w: 16 }), cell(t.expected.join(', '), { w: 20 }), cell(t.observed.join(', '), { w: 20 }),
-        cell([t.missing.length ? `missing: ${t.missing.join(', ')}` : '', t.extra.length ? `extra: ${t.extra.join(', ')}` : ''].filter(Boolean).join(' | '), { w: 16 }),
+        cell(t.coverage + (t.context ? ' [' + t.context + ']' : ''), { w: 18 }), cell(t.term, { w: 16 }), cell(t.expected.join(', '), { w: 20 }), cell(t.observed.join(', '), { w: 20 }),
+        cell([t.note || '', t.missing.length ? `missing: ${t.missing.join(', ')}` : '', t.extra.length ? `extra: ${t.extra.join(', ')}` : ''].filter(Boolean).join(' | '), { w: 16 }),
         cell(t.status, { w: 10, bold: true, color: COLORS[t.status], fill: FILLS[t.status] })] })))));
   }
 
