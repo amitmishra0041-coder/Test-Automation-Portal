@@ -305,6 +305,9 @@ const SETTINGS_ENV_FIELDS = [
   { field: 'ccPass', env: 'CC_PASS', secret: true },
   { field: 'ccAdminUser', env: 'CC_ADMIN_USER' },
   { field: 'ccAdminPass', env: 'CC_ADMIN_PASS', secret: true },
+  // ContactManager (OneInc cases that edit an Address Book contact for the test and restore it afterwards).
+  { field: 'cmUser', env: 'CM_USER' },
+  { field: 'cmPass', env: 'CM_PASS', secret: true },
   // One WriteBiz login for every state (used when a state has no WB_USER_<state> of its own) - field names wbUser / wbPass.
   { field: 'wbUser', env: 'WB_USER' },
   { field: 'wbPass', env: 'WB_PASS', secret: true },

@@ -1060,6 +1060,12 @@
       <div class="hint">A separate admin-level login SmartCOMM needs for closing exposures/claims and some activities — not the same account as above.</div>
       <div class="field-label">ClaimCenter admin password</div>
       <input type="password" id="settingsCcAdminPass" autocomplete="off" style="max-width:360px" />
+
+      <div class="field-label">ContactManager username</div>
+      <input type="text" id="settingsCmUser" placeholder="your ContactManager (TEST) login" autocomplete="off" style="max-width:360px" />
+      <div class="hint">Needed by the OneInc Payments cases that change a contact or vendor in ContactManager for the test (e-mail/phone, address, Tax ID Valid Until) and put it back afterwards. Without it those cases come out BLOCKED with "ContactManager credentials not provided".</div>
+      <div class="field-label">ContactManager password</div>
+      <input type="password" id="settingsCmPass" autocomplete="off" style="max-width:360px" />
     </div>
 
     <div class="card">
@@ -1472,6 +1478,8 @@
       if (cfg.settings.ccPass) document.getElementById('settingsCcPass').value = cfg.settings.ccPass;
       if (cfg.settings.ccAdminUser) document.getElementById('settingsCcAdminUser').value = cfg.settings.ccAdminUser;
       if (cfg.settings.ccAdminPass) document.getElementById('settingsCcAdminPass').value = cfg.settings.ccAdminPass;
+      if (cfg.settings.cmUser) document.getElementById('settingsCmUser').value = cfg.settings.cmUser;
+      if (cfg.settings.cmPass) document.getElementById('settingsCmPass').value = cfg.settings.cmPass;
       if (cfg.settings.jiraEmail) document.getElementById('settingsJiraEmail').value = cfg.settings.jiraEmail;
       if (cfg.settings.jiraApiToken) document.getElementById('settingsJiraApiToken').value = cfg.settings.jiraApiToken;
       if (cfg.settings.jiraSite) document.getElementById('settingsJiraSite').value = cfg.settings.jiraSite;
@@ -1953,6 +1961,8 @@
       ccPass: document.getElementById('settingsCcPass').value,
       ccAdminUser: document.getElementById('settingsCcAdminUser').value.trim(),
       ccAdminPass: document.getElementById('settingsCcAdminPass').value,
+      cmUser: document.getElementById('settingsCmUser').value.trim(),
+      cmPass: document.getElementById('settingsCmPass').value,
       jiraEmail: document.getElementById('settingsJiraEmail').value.trim(),
       jiraApiToken: document.getElementById('settingsJiraApiToken').value,
       jiraSite: document.getElementById('settingsJiraSite').value.trim(),
