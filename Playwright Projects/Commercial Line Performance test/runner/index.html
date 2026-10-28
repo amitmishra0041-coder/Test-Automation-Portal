@@ -896,7 +896,12 @@
       <input type="checkbox" id="oneIncAllowFinish" checked hidden>
       <input type="checkbox" id="oneIncProvision" checked hidden>
       <select id="oneIncPoolSize" hidden><option selected>1</option><option>2</option><option>3</option></select>
-      <div class="oi-finish" id="oneIncTestNote">On TEST every run first <b>prepares the test data</b> the selected cases need (checks/builds the pool claims, creates claims if missing) and <b>may submit small real payments to OneInc TEST</b> when a case presses Finish.</div>
+      <div class="oi-finish" id="oneIncTestNote">On TEST every run uses <b>new claims</b> with the test data its cases need: payment cases get a claim each, screen checks share one. It takes <b>Unused</b> claims from the test-data stock first and creates only what is missing. Runs <b>may submit small real payments to OneInc TEST</b> when a case presses Finish.</div>
+      <div class="oi-finish" id="oneIncDataBox">
+        <b>Step 1 · Test data (optional, saves time on the run):</b> creates the new claims the selected cases will need, ahead of time — each claim takes a few minutes in ClaimCenter. No test runs.
+        <div id="oneIncStock" class="muted" style="margin-top:4px">Loading test-data stock…</div>
+        <div style="margin-top:6px"><button class="run" id="oneIncDataBtn" disabled>Create test data for selected</button> <button class="run" id="oneIncDataAllBtn" disabled>Create test data for all automated</button></div>
+      </div>
       <label class="oi-finish">Parallel browsers for screen checks
         <select id="oneIncWorkers" style="width:auto;min-width:0;padding:1px 4px"><option>1</option><option selected>2</option><option>3</option></select>
         (payment / Finish scenarios always run one at a time)</label>
@@ -3679,6 +3684,19 @@
       $('oneIncRunBtn').disabled = running || oi.selected.size === 0;
       $('oneIncRunAllBtn').disabled = running || !oi.data;
       $('oneIncRerunBtn').disabled = running || !oi.latestRunId;
+      $('oneIncDataBtn').disabled = running || oi.tier !== 'test' || oi.selected.size === 0;
+      $('oneIncDataAllBtn').disabled = running || oi.tier !== 'test' || !oi.data;
+    }
+    // Test-data stock: Unused new claims per claim type (taken first by the next run) + the Excel sheet listing them.
+    function loadStock() {
+      fetch('/api/oneInc/testClaims').then(function (r) { return r.json(); }).then(function (d) {
+        if (d.error) { $('oneIncStock').textContent = d.error; return; }
+        var t = d.types || {}, names = Object.keys(t).sort(), free = names.filter(function (n) { return t[n].unused.length; });
+        var total = free.reduce(function (n, k) { return n + t[k].unused.length; }, 0);
+        $('oneIncStock').innerHTML = 'Stock: <b>' + total + ' Unused</b> claim(s)' +
+          (free.length ? ' — ' + free.map(function (n) { return esc(n) + ' ' + t[n].unused.length; }).join(' · ') : ' (the next run creates its own)') +
+          (d.sheetUrl ? ' · <a href="' + d.sheetUrl + '">Test claims sheet (.xlsx)</a>' : '');
+      }).catch(function () { $('oneIncStock').textContent = 'Could not load the test-data stock.'; });
     }
     var reportLinks = function (id) {
       return '<a href="/reports/oneinc/Reports/' + esc(id) + '.html" target="_blank">HTML</a> · <a href="/reports/oneinc/Reports/' + esc(id) + '.csv">CSV</a> · <a href="/reports/oneinc/Logs/' + esc(id) + '.log" target="_blank">log</a>';
@@ -3790,6 +3808,7 @@
         if (oi.latestRunId && !oi.runDetail[oi.latestRunId]) fetch('/api/oneInc/runs/' + encodeURIComponent(oi.latestRunId)).then(function (r) { return r.json(); }).then(function (run) { oi.runDetail[oi.latestRunId] = run; renderTable(); renderCurrentRun(); });
       }).catch(function (e) { $('oneIncError').textContent = 'Could not load OneInc scenarios: ' + e.message; });
       loadRuns();
+      loadStock();
     }
     function queue(job) {
       $('oneIncError').textContent = '';
@@ -3830,6 +3849,8 @@
     $('oneIncRunBtn').addEventListener('click', function () { queue({ mode: 'ids', ids: Array.from(oi.selected) }); });
     $('oneIncRunAllBtn').addEventListener('click', function () { queue({ mode: 'all' }); });
     $('oneIncRerunBtn').addEventListener('click', function () { queue({ mode: 'rerun', runId: oi.latestRunId }); });
+    $('oneIncDataBtn').addEventListener('click', function () { queue({ mode: 'ids', ids: Array.from(oi.selected), dataOnly: true }); });
+    $('oneIncDataAllBtn').addEventListener('click', function () { queue({ mode: 'all', dataOnly: true }); });
     $('oneIncStopBtn').addEventListener('click', function () { stopAll(); });
     $('oneIncRefreshBtn').addEventListener('click', function () { load(true); });
     $('oneIncAllRunsToggle').addEventListener('click', function () { oi.showAllRuns = !oi.showAllRuns; loadRuns(); });

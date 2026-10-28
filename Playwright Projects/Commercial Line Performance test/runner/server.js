@@ -519,6 +519,31 @@ app.get('/api/oneInc/runs', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Test-data stock (ClaimCenter-Automation helpers/oneInc/testClaims.js): Unused / Used new claims per claim type and
+// the Excel sheet that lists them — for the OneInc tab's "Create test data" step (2026-10-27).
+app.get('/api/oneInc/testClaims', (req, res) => {
+  try {
+    const picker = oneIncModule('claimPicker');
+    const pool = picker.readPool();
+    const types = {};
+    for (const [profile, list] of Object.entries(pool)) {
+      if (profile.startsWith('_') || !Array.isArray(list)) continue;
+      const t = types[profile] = { unused: [], used: 0, notUsable: 0 };
+      for (const e of list) {
+        if (!e.usable) t.notUsable++;
+        else if (e.status === 'Unused') t.unused.push(e.claim);
+        else t.used++;
+      }
+    }
+    const sheet = oneIncModule('testClaims').SHEET_FILE;
+    const root = oneIncResultsDir();
+    const sheetUrl = root && fs.existsSync(sheet) ? '/reports/oneinc/' + path.relative(root, sheet).split(path.sep).map(encodeURIComponent).join('/') : null;
+    res.json({ types, sheetUrl });
+  } catch (e) {
+    res.status(500).json({ error: `Test-data stock unavailable: ${e.message}` });
+  }
+});
+
 // Status by Jira story: for every story, the LATEST attempted result of each automated case across all runs, the
 // manual / needs-data counts, Jira readiness, and that story's own run history.
 app.get('/api/oneInc/storyStatus', async (req, res) => {
@@ -1430,6 +1455,19 @@ function buildOneIncJob(j) {
     const listFile = path.join(require('os').tmpdir(), `oneinc-ids-${Date.now()}.txt`);
     fs.writeFileSync(listFile, ids.join('\n'));
     args.push('--ids-file', listFile); what = `${ids.length} scenario(s)`;
+  }
+  // "Create test data" step: creates the NEW claims the selection needs (minus the Unused stock) and runs no test.
+  if (j.dataOnly) {
+    if (tier !== 'test') throw new Error('Test data (new claims) can only be created on the TEST tier');
+    args.push('--data-only');
+    return {
+      label: `OneInc · Create test data · ${what} · cloud/${tier}`,
+      cwd: CLAIMS_DIR,
+      cmd: 'node',
+      args,
+      env: { CC_ENV: 'cloud', CC_TIER: tier },
+      reportUrls: { kind: 'oneInc' },
+    };
   }
   const allowFinish = Boolean(j.allowFinish);
   if (allowFinish && tier !== 'test') throw new Error('Submitting payments (Finish) is only allowed on the TEST tier');
