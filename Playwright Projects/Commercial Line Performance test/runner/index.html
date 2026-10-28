@@ -2295,8 +2295,8 @@
       summary: 'Finds a SmartCOMM file in the S3 admin tool by key, downloads every match, and emails them.',
       hint: 'Finds a SmartCOMM file in the Guidewire S3 Integration Files admin tool by its key (or part of one), downloads every match, and emails them. It reuses a shared Okta sign-in kept on the team drive and maintained centrally, so you don\'t need your own S3 access. If a run fails saying the shared session expired, let the tool owner know so they can refresh it — you don\'t sign in yourself.' },
     { key: 's3-session', label: 'Establish S3 Session',
-      summary: 'Owner-only: refreshes the shared Okta sign-in on the team drive that everyone else reuses.',
-      hint: 'Owner-only. Opens a real, visible browser window and waits for the tool owner to sign in to Okta by hand (email, password, MFA — whatever it asks for). Once it lands on the admin tool, the session is saved to the shared team drive so everyone\'s "Download from S3" and Interactive validation runs can reuse it without signing in themselves. Most people never need this — run it only if you maintain the shared S3 session and it has expired.' }
+      summary: 'Refreshes the shared Okta sign-in on the team drive that everyone reuses — automatically, on the owner\'s PC.',
+      hint: 'Refreshes the shared S3 sign-in with no manual steps. The sign-in always happens on the tool owner\'s PC: a browser opens there, enters the owner\'s email and clicks SSO, then saves the session to the team drive. Run from anyone else\'s Runner, it sends the request to the owner\'s PC and waits (up to ~6 minutes) for the refreshed session. Needs the owner\'s PC to be on and signed in. Use it when a run says the shared S3 session expired.' }
   ];
 
   // Renders a hint element as a short visible summary plus an "i" dot whose hover/focus tooltip carries the
