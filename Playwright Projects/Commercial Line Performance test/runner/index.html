@@ -1217,6 +1217,19 @@
 <script>
 (function () {
   'use strict';
+  // OneInc Word documents: the desktop app opens the file on V: directly (a browser download lands in Downloads as
+  // "<id> (2).docx", which Word refused to open for the team, 2026-10-28); the shared web Runner still downloads it.
+  document.addEventListener('click', function (ev) {
+    var a = ev.target && ev.target.closest ? ev.target.closest('a.oi-open') : null;
+    if (!a) return;
+    ev.preventDefault();
+    var href = a.getAttribute('href');
+    fetch('/api/oneInc/openFile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: href }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (!j.opened) window.open(href, '_blank'); })
+      .catch(function () { window.open(href, '_blank'); });
+  });
+
 
   // ── Tabs ───────────────────────────────────────────────────────────────
   // Entitlements (see refreshEntitlements() below) can mark a tab locked or "coming soon" - checked here,
@@ -3676,7 +3689,7 @@
       return '<tr class="oi-det"><td></td><td colspan="5"><div class="grid"><div><b>Expected</b><pre>' + esc(r.expected) + '</pre></div><div><b>Actual</b><pre>' + esc(r.actual || r.reason) + '</pre></div></div>' +
         (checks ? '<b>Checks</b><ul>' + checks + '</ul>' : '') + (r.stepsExecuted && r.stepsExecuted.length ? '<b>Steps</b><ol>' + r.stepsExecuted.map(function (x, k) { var u = (r.stepShotUrls || [])[k]; return '<li>' + esc(x) + (u ? ' — <a href="' + u + '" target="_blank">screenshot</a>' : '') + '</li>'; }).join('') + '</ol>' : '') +
         '<div class="muted">Run ' + esc(run.run.runId) + (r.claim ? ' · claim ' + esc(r.claim) : '') + (r.startedAt ? ' · ' + esc(r.startedAt) + ' → ' + esc(r.finishedAt) + ' (' + ((r.durationMs || 0) / 1000).toFixed(1) + 's)' : '') + '</div>' +
-        (r.reviewUrl ? '<div><b><a href="' + r.reviewUrl + '" target="_blank">Download step-by-step Word document</a></b> <span class="muted">(.docx, latest result of this case: test data, every step with its screenshot, every check — attach it in qTest)</span></div>' : '') +
+        (r.reviewUrl ? '<div><b><a class="oi-open" href="' + r.reviewUrl + '" target="_blank">Open step-by-step Word document</a></b> <span class="muted">(.docx, latest result of this case: test data, every step with its screenshot, every check — attach it in qTest)</span></div>' : '') +
         (shots ? '<div>Evidence: ' + shots + '</div>' : '') + (r.error ? '<pre>' + esc(r.stack || r.error) + '</pre>' : '') + '</td></tr>';
     }
     function updateButtons() {
@@ -3717,7 +3730,7 @@
         if (C[st] !== undefined) { C[st]++; done++; }
         return '<tr><td><span class="oi-st ' + esc(st.replace(/ /g, '-')) + '">' + esc(st) + '</span></td><td class="mono">' + esc(r.scenarioId) + '</td><td>' + esc(r.name) +
           (why && st !== 'PASS' ? '<div class="oi-why">' + esc(String(why).slice(0, 260)) + '</div>' : '') + '</td><td class="mono">' + esc(r.claim || '') + '</td>' +
-          '<td class="oi-num">' + (r.durationMs ? (r.durationMs / 1000).toFixed(0) + 's' : '') + '</td><td>' + (r.reviewUrl && /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? '<a href="' + r.reviewUrl + '" target="_blank">Word document</a>' : '') + '</td></tr>';
+          '<td class="oi-num">' + (r.durationMs ? (r.durationMs / 1000).toFixed(0) + 's' : '') + '</td><td>' + (r.reviewUrl && /^(PASS|FAIL|BLOCKED)$/.test(r.status) ? '<a class="oi-open" href="' + r.reviewUrl + '" target="_blank">Word document</a>' : '') + '</td></tr>';
       }).join('');
       el.innerHTML = '<div style="margin-bottom:8px"><b class="mono">' + esc(id) + '</b> ' + (lr.inProgress && lr.runId === id ? '<span class="oi-st RUNNING">RUNNING</span>' : '<span class="muted">finished</span>') +
         ' · ' + done + ' of ' + mine.length + ' done — ' + C.PASS + ' pass, ' + C.FAIL + ' fail, ' + C.BLOCKED + ' blocked · ' + reportLinks(id) + '</div>' +

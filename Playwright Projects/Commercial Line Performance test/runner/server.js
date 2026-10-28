@@ -449,6 +449,22 @@ app.use('/reports/oneinc', (req, res, next) => {
   if (!dir || !fs.existsSync(dir)) return res.status(404).send('No OneInc results yet');
   return express.static(dir)(req, res, next);
 });
+// Open a OneInc result file (the per-case Word documents) IN PLACE from the results folder on V: with its own program.
+// Through the browser a .docx is downloaded into Downloads as "<id> (2).docx", marked as from the internet, and Word
+// refused to open those copies for the team (2026-10-28). Only inside the desktop app and only for requests from this
+// PC; otherwise { opened: false } and the page falls back to the download.
+app.post('/api/oneInc/openFile', express.json(), async (req, res) => {
+  try {
+    const root = oneIncResultsDir();
+    const rel = String((req.body && req.body.url) || '').replace(/^\/reports\/oneinc\//, '').split('/').map(decodeURIComponent).join(path.sep);
+    const file = root ? path.resolve(root, rel) : '';
+    if (!root || !file.startsWith(path.resolve(root) + path.sep) || !fs.existsSync(file)) return res.status(404).json({ opened: false, error: 'file not found' });
+    const local = /^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(req.socket.remoteAddress || '');
+    if (!process.versions.electron || !local) return res.json({ opened: false, path: file });
+    const err = await require('electron').shell.openPath(file);
+    res.json(err ? { opened: false, path: file, error: err } : { opened: true, path: file });
+  } catch (e) { res.status(500).json({ opened: false, error: e.message }); }
+});
 
 // ── OneInc: scenario inventory (workbooks + classification + Jira readiness + last status) and run history ───
 let oneIncInventoryCache = null;
