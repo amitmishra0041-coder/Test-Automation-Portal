@@ -51,7 +51,7 @@ function expectedFor(lob, state) {
   const seen = new Set(list.map((c) => norm(c.name)));
   for (const e of DATA.sbt || []) {
     // only coverages marked Y for WriteBiz (struck-through values already removed), offered in the state, and not classified for the other policy type
-    if (seen.has(norm(e.name)) || !/y/i.test(e.writeBiz || '') || !isExpectedIn(e, state)) continue;
+    if (seen.has(norm(e.name)) || !/^y$/i.test(String(e.writeBiz || '').replace(/\s+/g, '')) || !isExpectedIn(e, state)) continue;
     const kind = classify(e, lob);
     if (kind === 'other') continue;
     seen.add(norm(e.name));
@@ -149,7 +149,7 @@ function similarLine(cov, pool) {
 // Coverages the product model marks as not available to agents in WriteBiz can't appear on WriteBiz pages;
 // they belong to PolicyCenter, so they're reported as PC_ONLY instead of MISSING.
 // column K "Donegal WriteBiz Availability For Agents": any Y = applies to WriteBiz; otherwise PolicyCenter-only (counts as pass)
-const wbVisible = (cov) => cov.mappingForm || !cov.writeBiz || /y/i.test(cov.writeBiz);
+const wbVisible = (cov) => cov.mappingForm || !cov.writeBiz || /^y$/i.test(String(cov.writeBiz).replace(/\s+/g, ''));
 
 // The workflow only creates a Private Passenger and a Truck vehicle, so coverages that live on other vehicle
 // types can't be seen - say so instead of calling them missing.
@@ -191,7 +191,7 @@ function checkAllCards(state, pool) {
       }
       for (const [term, opts] of Object.entries(m.terms)) {
         const t = selects.slice().sort((x, y) => jaccard(term, y.label) - jaccard(term, x.label))[0];
-        const expected = opts.filter((o) => o.states.includes(state) && o.wb !== 'N').map((o) => o.option);
+        const expected = opts.filter((o) => o.states.includes(state) && o.wb === 'Y').map((o) => o.option);
         const base = { coverage: card.title, term, expected, page: p.label, context: p.context || '' };
         if (!t || jaccard(term, t.label) < 0.6) { continue; } // term not shown for this card/state - nothing to compare
         const key = `${norm(card.title)}|${norm(term)}|${t.options.join('~')}|${p.context || ''}`;

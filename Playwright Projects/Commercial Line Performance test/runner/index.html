@@ -610,6 +610,12 @@
       <div class="field-label">Project (select one)</div>
       <div class="chips" id="policyProjectChips"></div>
 
+      <div id="caRunUntilBox" style="display:none">
+        <div class="field-label">Run until (CA Refresh)</div>
+        <select id="caRunUntil" style="width:auto"><option value="ISSUANCE">Issuance (default) - rate, submit and issue the policy</option><option value="RATING">Rating only - stop after the quote is rated</option></select>
+        <div class="hint" style="margin:4px 0 10px">The result document is produced either way.</div>
+      </div>
+
       <div class="field-label">Line of Business (select one or more)</div>
       <div class="chips" id="policyLobChips"></div>
 
@@ -1990,9 +1996,11 @@
   function policyLobCatalog() { return policyIsCaRefresh() ? config.policy.caRefresh.lobs : config.policy.lobs; }
   function policyStateList() { return policyIsCaRefresh() ? config.policy.caRefresh.states : config.policy.states; }
 
+  function syncCaRunUntil() { var b = document.getElementById('caRunUntilBox'); if (b) b.style.display = policyIsCaRefresh() ? '' : 'none'; }
   function renderPolicyProjects() {
     var box = document.getElementById('policyProjectChips');
     box.innerHTML = '';
+    syncCaRunUntil();
     Object.keys(config.policy.projects || {}).forEach(function (code) {
       var c = chip(config.policy.projects[code].label, policy.project === code);
       c.addEventListener('click', function () {
@@ -2005,6 +2013,7 @@
         renderPolicyStates();
         updatePolicyPreview();
         loadCaRefreshHistory();
+        syncCaRunUntil();
       });
       box.appendChild(c);
     });
@@ -2530,7 +2539,7 @@
     policy.lobs.forEach(function (lob) {
       policy.states.forEach(function (state) {
         policy.envs.forEach(function (env) {
-          jobs.push({ project: policy.project, lob: lob, state: state, env: env });
+          jobs.push({ project: policy.project, lob: lob, state: state, env: env, until: policy.project === 'CA_REFRESH' ? document.getElementById('caRunUntil').value : undefined });
         });
       });
     });
@@ -2549,7 +2558,7 @@
     box.innerHTML = jobs.map(function (j) {
       if (j.project === 'CA_REFRESH') {
         return '<div class="job-line">CA Refresh &middot; ' + config.policy.caRefresh.lobs[j.lob].label + ' &middot; ' + j.state +
-               ' &nbsp;(npx playwright test Create_CA.test.js --project=chromium, TEST_ENV=' + j.env + ' TEST_STATE=' + j.state + ' CA_REFRESH=1)</div>';
+               ' &nbsp;(npx playwright test Create_CA.test.js --project=chromium, TEST_ENV=' + j.env + ' TEST_STATE=' + j.state + ' CA_REFRESH=1' + (j.until === 'RATING' ? ' CA_REFRESH_STOP_AT=RATING' : '') + ')</div>';
       }
       var f = config.policy.lobs[j.lob].file;
       return '<div class="job-line">npx playwright test ' + f + ' --project=chromium &nbsp;' +

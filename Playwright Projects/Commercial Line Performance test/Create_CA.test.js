@@ -119,6 +119,7 @@ test('CA Submission', async ({ page }, testInfo) => {
   const caRefreshLob = process.env.CA_REFRESH_LOB === 'AUTO_DEALERS' ? 'AUTO_DEALERS' : 'BUSINESS_AUTO';
   const crPool       = [];
   const crAdditions  = [];
+  const stopAtRating = caRefreshOn && /^rat/i.test(process.env.CA_REFRESH_STOP_AT || ''); // default: run through to issuance
   const crShotDir    = path.join(RUNTIME_DIR, 'ca-refresh', `${testState}-${caRefreshLob}`);
   if (caRefreshOn) { fs.rmSync(crShotDir, { recursive: true, force: true }); fs.mkdirSync(crShotDir, { recursive: true }); }
   const crSnap = async (label) => { if (caRefreshOn) await caRefresh.snapshot(page, label, crPool, crShotDir); };
@@ -175,9 +176,11 @@ test('CA Submission', async ({ page }, testInfo) => {
     await dismissStatusModal();
     const perVehicle = /^Vehicle additional/.test(label); // vehicle coverages (e.g. Lessor - Additional Insured And Loss Payee) belong to EACH vehicle
     const already = new Set(crAdditions.filter((a) => (perVehicle ? a.page === label : !/^Vehicle additional/.test(a.page))).map((a) => a.coverage)); // tried once, whatever the outcome
-    let expected = caRefresh.expectedFor(caRefreshLob, testState).filter((c) => c.expected && !already.has(c.name));
+    let expected = caRefresh.expectedFor(caRefreshLob, testState).filter((c) => c.expected && !already.has(c.name) && !/silver series plus/i.test(c.name)); // QA: Silver Series Plus is never added (Auto Dealers line level)
     // Coverages QA asked to always add where the portal offers them (grid row match is exact on the name).
-    const QA_EXTRAS = { BUSINESS_AUTO: ['Drive Other Car Coverage - Broadened Coverage For Named Individuals', 'Garagekeepers'], AUTO_DEALERS: ['Tapes, Records And Discs'] };
+    const HIRED_PD = 'Autos Leased, Hired, Rented Or Borrowed With Drivers - Physical Damage';
+    const DOC_NI = 'Drive Other Car Coverage - Broadened Coverage For Named Individuals';
+    const QA_EXTRAS = { BUSINESS_AUTO: [DOC_NI, 'Garagekeepers', HIRED_PD], AUTO_DEALERS: ['Tapes, Records And Discs', DOC_NI, HIRED_PD, 'Exclusion Designated Products', 'Exclusion - Designated Work You Performed'] };
     for (const nm of QA_EXTRAS[caRefreshLob] || []) if (!already.has(nm) && !expected.some((c) => norm2(c.name) === norm2(nm))) expected.push({ name: nm, category: 'QA extra', expected: true, source: 'QA' });
 
     // OEM Replacement Parts is not available for vehicles older than 10 years, so CA Refresh runs use 2019 model-year VINs (valid for the 2027 effective date).
@@ -208,7 +211,7 @@ test('CA Submission', async ({ page }, testInfo) => {
         await page.waitForLoadState('domcontentloaded').catch(() => {});
         await dismissStatusModal();
       };
-      await exerciseCards(page, crPool, label, 14, { rerender });
+      await exerciseCards(page, crPool, label, 40, { rerender });
       await dismissStatusModal();
       await fillBlankRequiredSelects(page);
       await settleAndRefillRequired();
@@ -232,8 +235,8 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   // QA: a Special Type vehicle so the Special Type coverages can be verified. Best effort - a failure here must never stop the run.
   async function crAddSpecialTypeVehicle() {
-    // Skipped for now (fails on WriteBiz); set CA_REFRESH_SPECIAL_TYPE=1 to try it.
-    if (!caRefreshOn || process.env.CA_REFRESH_SPECIAL_TYPE !== '1') return;
+    // On again (QA can add it by hand in WriteBiz); CA_REFRESH_SPECIAL_TYPE=0 skips it.
+    if (!caRefreshOn || process.env.CA_REFRESH_SPECIAL_TYPE === '0') return;
     try {
       await closeVehiclePrefill();
       await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (special type)');
@@ -244,7 +247,32 @@ test('CA Submission', async ({ page }, testInfo) => {
       await dismissStatusModal();
       await page.waitForTimeout(1500);
       // generic fill: VIN, then required selects / inputs / class lookups, a few passes (selects reload their dependants)
-      await page.locator('#txt_Vin').fill('1FTEW1EP4KFA12345').catch(() => {});
+      // The special-type form is a cascade: Class Type unlocks Vehicle Type, then Supplementary Type, Class Code, Dealer Classification;
+      // Year / Make / Model / VIN stay read-only until the cascade is done. Drive each real bootstrap control in order.
+      for (const id of ['ddl_ClassType', 'ddl_VehicleType', 'ddl_SupplementaryType', 'ddl_ClassCode_SpecialTypes', 'ddl_FranchisedDealerClassification']) {
+        for (let w = 0; w < 10; w++) { // wait for the previous pick to load this list
+          const n = await page.locator(`[id="${id}"] option`).evaluateAll((os) => os.filter((o) => o.value && !/please select|nothing selected/i.test(o.textContent)).length).catch(() => 0);
+          if (n) break;
+          await page.waitForTimeout(700);
+        }
+        const pick = await page.evaluate((i) => {
+          const el = document.getElementById(i); if (!el || el.disabled) return null;
+          const o = [...el.options].find((x) => x.value && !/please select|nothing selected/i.test(x.textContent)); if (!o) return null;
+          const $j = window.jQuery || window.$; el.value = o.value;
+          if ($j) { $j(el).selectpicker && $j(el).selectpicker('refresh'); $j(el).trigger('change'); } else el.dispatchEvent(new Event('change', { bubbles: true }));
+          return o.textContent.trim();
+        }, id).catch(() => null);
+        console.log(`Special type: ${id} = ${pick}`);
+        await page.waitForTimeout(1500); await dismissStatusModal();
+      }
+      await page.locator('#txt_Vin').fill('1FTEW1EP4KFA54321').catch(() => {}); // must differ from the private passenger / truck VIN (1FTEW1EP4KFA12345): "Cannot quote vehicles with duplicate VINs"
+      for (const [lbl, val] of [['Year', '2019'], ['Make', 'FORD'], ['Model', 'F150']]) {
+        const box = page.locator(`xpath=//*[normalize-space(text())="${lbl}"]/following::input[not(@type="hidden")][1]`);
+        if (await box.isEditable().catch(() => false) && !(await box.inputValue().catch(() => '')).trim()) await box.fill(val).catch(() => {});
+      }
+      await page.getByRole('textbox', { name: 'Description of Permanently' }).fill('test desc').catch(() => {});
+      await fillLabeledAmount('Original Cost New Of Vehicle', '01555').catch(() => {});
+      await fillLabeledAmount('Stated Amount', '0').catch(() => {});
       for (let pass = 0; pass < 3; pass++) {
         await fillBlankRequiredSelects(page, 'special type');
         await crFillRequiredInputs('special type');
@@ -276,6 +304,8 @@ test('CA Submission', async ({ page }, testInfo) => {
       await crSnap('Special type vehicle - failure point').catch(() => {});
       const note = { coverage: 'Special Type vehicle', gridRow: '', page: 'Vehicles', status: 'ADD_FAILED', detail: e.message.split(String.fromCharCode(10))[0].slice(0, 160) };
       crAdditions.push(note);
+      const back = page.getByRole('button', { name: /Return to Summary/i }).first();
+      if (await back.isVisible().catch(() => false)) { await back.click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(1200); await dismissStatusModal(); }
       for (let i = 0; i < 4; i++) { // leave no dialog or half-filled vehicle behind
         const top = page.locator('.modal.show').last();
         if (!await top.isVisible().catch(() => false)) break;
@@ -1495,10 +1525,17 @@ test('CA Submission', async ({ page }, testInfo) => {
       const pm = /Term Premium[\s\S]{0,30}?\$([\d,]+\.\d{2})/.exec(rateText);
       const premium = pm ? pm[1] : null;
       console.log(`CA Refresh term premium after rating: ${premium === null ? 'not found' : '$' + premium}`);
-      if (premium !== null && Number(premium.replace(/,/g, '')) === 0) {
+      if (!stopAtRating && premium !== null && Number(premium.replace(/,/g, '')) === 0) {
         throw new Error(`Policy not issued: rating returned $0.00 term premium for effective date ${global.testData.effectiveDate} on ${envName} (rates for the refresh term are probably not loaded there); coverage validation was still completed`);
       }
     }
+    if (stopAtRating) {
+      // Runner option "Run until: Rating": the quote is rated, nothing is submitted/issued; the result document is still produced.
+      global.testData.status = 'PASSED';
+      saveTestData();
+      console.log(`CA Refresh: stopped after rating as requested (CA_REFRESH_STOP_AT=RATING). Quote: ${quoteNumber}`);
+      await crWriteDoc('PASS');
+    } else {
     console.log('Starting policy submission workflow...');
     const policyNumber = await submitPolicyForApproval(page, quoteNumber, { policyCenterUrl, trackMilestone });
 
@@ -1507,6 +1544,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     saveTestData();
     console.log('Test completed successfully. Policy:', policyNumber);
     await crWriteDoc('PASS');
+    }
 
   } catch (error) {
     testFailed = true;

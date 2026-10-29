@@ -108,18 +108,21 @@ for r in cov_rows[2:]:
     cov_index.setdefault((None, norm(r[4])), r)
 
 TARGET_STATES = {st for c in cases for st in c['states']}
-opt_rows = apply_wb(list(pm['Coverage Term Options'].iter_rows(values_only=True, max_col=40)), wb_overrides('Coverage Term Options', 14, 6000), 13)
+opt_rows = apply_wb(list(pm['Coverage Term Options'].iter_rows(values_only=True, max_col=50)), wb_overrides('Coverage Term Options', 14, 6000), 13)
 ohdr = opt_rows[1]
 OPT_STATE_COLS = {ohdr[i]: i for i in range(15, 39) if ohdr[i]}
 terms = {}  # (category, coverage) -> {term: [{"option", "code", "states": [...], "wb": "Y/N", "default": bool}]}
 for r in opt_rows[2:]:
     if not r[4] or not r[6] or not r[9]:
         continue
+    # QA rule (Devyani): terms/options are only in scope when 'SBT Update 2025' is Y / Yes
+    if str(r[45] or '').strip().upper() not in ('Y', 'YES'):
+        continue
     t = terms.setdefault((norm(r[3]), norm(r[4])), {}).setdefault(clean(r[6]), [])
     # a cell can hold several lines (Y then N) when the sheet differs by effective date - any Y counts as offered
     states = [st for st, c in OPT_STATE_COLS.items() if st in TARGET_STATES and r[c] and 'Y' in str(r[c]).upper()]
     t.append({'option': clean(r[9]), 'code': clean(r[8]) or None, 'value': clean(r[10]) or None,
-              'default': str(r[12] or '').strip().upper().startswith('Y'), 'wb': clean(r[13]) or None, 'states': states})
+              'default': str(r[12] or '').strip().upper().startswith('Y'), 'wb': re.sub(r'\s+', '', str(r[13] or '')).upper() or None, 'states': states})
 
 
 # Conditions + Exclusions rows in the same tuple shape as the Coverages rows, so one lookup covers all three sheets
@@ -232,8 +235,8 @@ for (ncat, ncov), tmap in terms.items():
 # Every term name per coverage (Coverage Terms tab; includes free-text terms that have no option rows) so a dialog's terms can be
 # checked for presence. The tab is declared with ~1M blank rows, so only the first few thousand are read.
 term_names = {}
-for r in pm['Coverage Terms'].iter_rows(min_row=2, max_row=6000, values_only=True, max_col=8):
-    if r[4] and r[6]:
+for r in pm['Coverage Terms'].iter_rows(min_row=2, max_row=6000, values_only=True, max_col=60):
+    if r[4] and r[6] and str(r[52] or '').strip().upper() in ('Y', 'YES'):
         for nm in str(r[4]).split(chr(10)):
             if nm.strip():
                 lst = term_names.setdefault(norm(nm), [])

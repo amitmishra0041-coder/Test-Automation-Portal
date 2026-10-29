@@ -1053,11 +1053,11 @@ function buildCaRefreshJob(j) {
   const envKey = String(j.env || '').toLowerCase();
   if (!ENV_URLS[envKey]) throw new Error(`Env "${j.env}" isn't configured yet - add ENV_URLS.${envKey} in helpers/envConfig.js before running it.`);
   return {
-    label: `CA Refresh · ${CA_REFRESH_LOB[j.lob].label} · ${j.state} · ${envKey.toUpperCase()}`,
+    label: `CA Refresh · ${CA_REFRESH_LOB[j.lob].label} · ${j.state} · ${envKey.toUpperCase()}${j.until === 'RATING' ? ' · until rating' : ''}`,
     cwd: POLICY_DIR,
     cmd: 'npx',
     args: ['playwright', 'test', POLICY_LOB.CA.file, '--project=chromium'],
-    env: { TEST_ENV: envKey, TEST_STATE: j.state, CA_REFRESH: '1', CA_REFRESH_LOB: j.lob, TEST_DATA_TAG: `CARefresh-${j.lob}` },
+    env: { TEST_ENV: envKey, TEST_STATE: j.state, CA_REFRESH: '1', CA_REFRESH_LOB: j.lob, TEST_DATA_TAG: `CARefresh-${j.lob}`, CA_REFRESH_STOP_AT: j.until === 'RATING' ? 'RATING' : '' },
   };
 }
 
