@@ -264,9 +264,24 @@ async function addExpectedFromGrid(page, opts) {
           if (await addItem.count() > 0) {
             let saved = 0;
             for (let n = 0; n < 2; n++) { // two scheduled items for any scheduled coverage
-              await addItem.click({ timeout: 4000 }).catch(() => {});
-              await page.waitForTimeout(1200);
-              const top = page.locator('.modal.show').last();
+              // After an item is saved WriteBiz re-renders the parent dialog (briefly hidden): wait for it, then make sure
+              // the click really opened a NEW nested dialog before filling/counting the item.
+              let openedItem = false;
+              for (let k = 0; k < 3 && !openedItem; k++) {
+                await modal.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+                await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+                const before = await page.locator('.modal.show').count();
+                await addItem.click({ timeout: 4000 }).catch(() => {});
+                openedItem = await page.waitForFunction((b) => document.querySelectorAll('.modal.show').length > b, before, { timeout: 5000 }).then(() => true).catch(() => false);
+                if (!openedItem) await page.waitForTimeout(1500);
+              }
+              if (!openedItem) { console.log(`  scheduled item ${n + 1} of "${row.name}": the item dialog did not open`); entry.detail = entry.detail || `scheduled item ${n + 1}: item dialog did not open`; break; }
+              await page.waitForTimeout(800);
+              // Pin THIS item dialog: '.modal.show'.last() would become the parent dialog once the item closes, and the
+              // Save retries below would then save (and close) the parent with only one item.
+              const tag = `cr-item-${n}-${Date.now()}`;
+              await page.locator('.modal.show').last().evaluate((m, t) => m.setAttribute('data-cr-item', t), tag).catch(() => {});
+              const top = page.locator(`[data-cr-item="${tag}"]`);
               const want = (ITEM_PICKS.find((x) => x.row.test(row.name)) || {}).picks;
               if (want && want[n]) {
                 let ok = false;
@@ -277,7 +292,7 @@ async function addExpectedFromGrid(page, opts) {
                 }
                 console.log(`  scheduled item ${n + 1} of "${row.name}": ${ok ? 'picked' : 'could NOT pick'} ${want[n]}`);
                 if (!ok && opts.shotDir) await page.screenshot({ path: require('path').join(opts.shotDir, `schedule-item-${n + 1}-pick-failed.png`) }).catch(() => {});
-                if (!ok) console.log('  schedule dialog dump: ' + JSON.stringify(await top.evaluate((m) => ({ selects: [...m.querySelectorAll('select')].map((e) => ({ id: e.id, vis: !!e.offsetParent, opts: [...e.options].map((o) => o.textContent.trim()).slice(0, 8) })), boxes: [...m.querySelectorAll('input[type=checkbox],input[type=radio]')].map((e) => ({ id: e.id, name: e.name, vis: !!e.offsetParent, txt: ((e.closest('label') || e.parentElement || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) })), text: m.innerText.replace(/\s+/g, ' ').slice(0, 400) })).catch((e) => ({ err: String(e.message).slice(0, 150), modals: 0 }))));
+                if (!ok) console.log('  schedule dialog dump: ' + JSON.stringify(await top.evaluate((m) => ({ selects: [...m.querySelectorAll('select')].map((e) => ({ id: e.id, vis: !!e.offsetParent, opts: [...e.options].map((o) => o.textContent.trim()).slice(0, 8) })), boxes: [...m.querySelectorAll('input[type=checkbox],input[type=radio]')].map((e) => ({ id: e.id, name: e.name, vis: !!e.offsetParent, txt: ((e.closest('label') || e.parentElement || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) })), text: m.innerText.replace(/\s+/g, ' ').slice(0, 400) }), undefined, { timeout: 3000 }).catch((e) => ({ err: String(e.message).slice(0, 150), modals: 0 }))));
                 const cards2 = await readCards(page, '.modal.show').catch(() => []);
                 pool.push({ label: `Add coverage: ${row.name}`, context: `scheduled item ${n + 1}: Named Individuals ${n === 0 ? 'Collision' : 'Other Than Collision'}`, text: '', norm: '', shot: '', cards: cards2.map((c) => ({ ...c, title: row.name })) });
               }

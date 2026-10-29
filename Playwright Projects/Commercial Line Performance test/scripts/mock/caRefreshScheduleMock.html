@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Offline reproduction of the WriteBiz "Drive Other Car Coverage - Broadened Coverage For Named Individuals" schedule dialog:
+     the coverage dialog will not save until it has scheduled items; "Add Scheduled Item" opens a nested item dialog with the
+     Collision / Other Than Collision checkboxes. Saving an item re-renders the parent dialog, which is hidden for ?hideMs=
+     (default 1500) - the second "Add Scheduled Item" click used to land while it was hidden and open nothing. -->
+<html><head><meta charset="utf-8"><title>Mock schedule</title>
+<style>.modal{display:none;border:1px solid #333;padding:8px;margin:6px}.modal.show{display:block}</style></head>
+<body>
+<table><tbody>
+  <tr><td>Coverage</td><td></td><td>Drive Other Car Coverage - Broadened Coverage For Named Individuals</td><td>CA</td>
+      <td id="act"><button data-action="Add" onclick="openParent()"><i class="fa-plus-circle"></i>Add</button></td></tr>
+</tbody></table>
+<div class="modal" id="parent"><h4 class="modal-title">Drive Other Car Coverage - Broadened Coverage For Named Individuals</h4>
+  <div id="items"></div><span class="text-danger" id="perr"></span>
+  <button onclick="addItem()">Add Scheduled Item</button> <button onclick="saveParent()">Save</button></div>
+<div class="modal" id="item"><h4 class="modal-title">Scheduled Item</h4>
+  <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsCollision"> Broadened Coverage For Named Individuals Collision</label><br>
+  <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision"> Broadened Coverage For Named Individuals Other Than Collision</label><br>
+  <span class="FieldSpacing">Name <input type="text" id="txtName"></span>
+  <button onclick="saveItem()">Save</button></div>
+<script>
+const hideMs = Number(new URLSearchParams(location.search).get('hideMs') ?? 1500);
+window.__items = []; window.__saved = false;
+const $ = (id) => document.getElementById(id);
+function openParent() { $('parent').classList.add('show'); }
+function addItem() {
+  if (!$('parent').classList.contains('show')) return;
+  ['cbCA7DOCCovBroadCovForNamedIndivsCollision', 'cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision'].forEach((i) => { $(i).checked = false; });
+  $('txtName').value = ''; $('item').classList.add('show');
+}
+function saveItem() {
+  const picks = [...$('item').querySelectorAll('input[type=checkbox]')].filter((c) => c.checked).map((c) => c.id.replace(/^cbCA7DOCCovBroadCovForNamedIndivs/, ''));
+  if (!picks.length || !$('txtName').value) return;
+  window.__items.push(picks.join('+'));
+  $('item').classList.remove('show');
+  $('parent').classList.remove('show'); // re-render
+  setTimeout(() => { $('items').textContent = 'Items: ' + window.__items.join(', '); $('parent').classList.add('show'); }, hideMs);
+}
+function saveParent() {
+  if (!window.__items.length) { $('perr').textContent = 'At least one scheduled item is required'; return; }
+  window.__saved = true; $('parent').classList.remove('show');
+  $('act').innerHTML = '<i class="fa-trash"></i>';
+}
+</script></body></html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- Offline model of the WriteBiz Vehicles flow seen in the PA Auto Dealers trace (10/29):
+     summary -> Next -> "Attention / Errors" box listing vehicles with a missing required coverage field + an Edit link;
+     Edit shows a "Loading..." bubble and only seconds later opens the vehicle's Details sub-tab; the field lives on the
+     Coverages sub-tab; "Save Vehicle" only on Additional Coverages. The "server" is localStorage.
+     ?editDelay=ms (default 3000) delays the Edit link; localStorage 'dropFirst'=1 makes the first post of a field fail
+     silently (browser shows the value, server keeps it blank) like the restore failures seen live. -->
+<html><head><meta charset="utf-8"><title>Mock vehicles</title>
+<style>.modal{display:none;border:1px solid #333;padding:8px}.modal.show{display:block}#dgic-status-message{display:none}</style></head>
+<body>
+<div id="dgic-status-message">Loading...</div>
+<div id="app"></div>
+<script>
+const Q = new URLSearchParams(location.search);
+const P = Q.get('p') || 'summary';
+const V = Number(Q.get('v') || 0);
+const editDelay = Number(Q.get('editDelay') ?? 3000);
+const srv = JSON.parse(localStorage.getItem('srv') || 'null') || {
+  1: { name: 'Private Passenger', losses: 'Comprehensive', ded: '500' },
+  2: { name: 'Truck', losses: 'Comprehensive', ded: '' },
+  3: { name: 'Special Type', losses: '', ded: '' },
+};
+const save = () => localStorage.setItem('srv', JSON.stringify(srv));
+const go = (p, v) => { location.href = location.pathname + `?p=${p}&v=${v || 0}&editDelay=${editDelay}`; };
+const errors = () => Object.entries(srv).flatMap(([n, x]) => [
+  !x.losses && `${n}: (VIN${n}) 2019 FORD F150: ${x.name} Other Than Collision Coverage - Missing required field "Losses Covered"`,
+  x.losses && !x.ded && `${n}: (VIN${n}) 2019 FORD F150: ${x.name} Other Than Collision Coverage - Missing required field "Deductible Type"`,
+].filter(Boolean).map((t) => ({ n, t })));
+function post(v, field, val) { // AJAX post of one coverage term
+  const st = document.getElementById('dgic-status-message'); st.style.display = 'block';
+  setTimeout(() => {
+    st.style.display = 'none';
+    if (localStorage.getItem('dropFirst') === '1') { localStorage.setItem('dropFirst', '0'); return; } // lost post
+    srv[v][field] = val; if (field === 'losses') srv[v].ded = ''; save(); render();
+  }, 400);
+}
+const tabs = (v) => `<a href="#" onclick="go('details',${v});return false">Details</a> | <a href="#" onclick="go('coverages',${v});return false">Coverages</a> | <a href="#" onclick="go('additional',${v});return false">Additional Coverages</a>
+  <button onclick="go('summary')">Return to Summary</button>`;
+function render() {
+  const app = document.getElementById('app');
+  if (P === 'summary') {
+    app.innerHTML = `<h3>Vehicles - Summary</h3><table id="tblVehicles"><tbody>${Object.entries(srv).map(([n, x]) =>
+      `<tr><td>${n}</td><td>${x.name}</td><td>VIN${n}</td><td><button data-action="Edit" title="Edit the Vehicle" onclick="go('details',${n})">e</button></td></tr>`).join('')}</tbody></table>
+      <button id="btnNext_CLAutoVehicles" onclick="next()">Next</button>
+      <div class="modal" id="err"><b>Attention</b><div>Errors</div><div id="errList"></div><button id="ActivityImpediments_dialog_btn_0" onclick="this.parentElement.classList.remove('show')">Close</button></div>`;
+  } else if (P === 'details') {
+    app.innerHTML = tabs(V) + `<h3>Details</h3><select id="ddl_ClassType"><option value="m" selected>Mobile</option></select><button onclick="go('coverages',${V})">Next <i></i></button>`;
+  } else if (P === 'coverages') {
+    const x = srv[V];
+    app.innerHTML = tabs(V) + `<h3>Coverages</h3><div id="xacc_Card_OTC"><span>Losses Covered</span>
+      <select id="selLosses" onchange="post(${V},'losses',this.value)"><option value="">Nothing selected</option>${['Comprehensive', 'Specified Causes Of Loss'].map((o) => `<option value="${o}" ${x.losses === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      ${x.losses ? `<span>Deductible Type</span><select id="selDed" onchange="post(${V},'ded',this.value)"><option value="">Nothing selected</option>${['500', '1000'].map((o) => `<option value="${o}" ${x.ded === o ? 'selected' : ''}>${o}</option>`).join('')}</select>` : ''}</div>
+      <button onclick="go('additional',${V})">Next <i></i></button>`;
+  } else if (P === 'additional') {
+    app.innerHTML = tabs(V) + `<h3>Additional Coverages</h3><button onclick="go('summary')">Save Vehicle <i></i></button>`;
+  } else app.innerHTML = '<h3>Drivers</h3>';
+}
+function next() {
+  const e = errors();
+  if (!e.length) return go('drivers');
+  document.getElementById('errList').innerHTML = e.map((x) => `<div>${x.t} <a href="javascript:void(0)" onclick="document.getElementById('dgic-status-message').style.display='block';setTimeout(()=>go('details',${x.n}),${editDelay})">Edit</a></div>`).join('');
+  document.getElementById('err').classList.add('show');
+}
+render();
+</script></body></html>

@@ -12,6 +12,7 @@ const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequire
 const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
 const { addExpectedFromGrid, exerciseCards } = require('./helpers/caRefreshAdditional');
+const { repairVehicleErrors } = require('./helpers/caRefreshVehicleRepair');
 const fs   = require('fs');
 const path = require('path');
 
@@ -215,6 +216,16 @@ test('CA Submission', async ({ page }, testInfo) => {
       await dismissStatusModal();
       await fillBlankRequiredSelects(page);
       await settleAndRefillRequired();
+      // Restoring a card (e.g. Losses Covered) can leave its dependent "Deductible Type" blank on the server even though the
+      // browser shows it filled - the Vehicles Next then fails with 'Missing required field "Deductible Type"'.
+      // Re-render from the server and fill again until a re-render shows no blanks.
+      for (let i = 1; i <= 3; i++) {
+        await rerender();
+        await page.waitForTimeout(1500);
+        const n = await fillBlankRequiredSelects(page, `${label} (after re-render ${i})`);
+        if (!n) break;
+        await settleAndRefillRequired();
+      }
     } catch (e) { console.log(`CA Refresh exercise "${label}" failed: ${e.message.split(String.fromCharCode(10))[0]}`); }
   }
 
@@ -1532,8 +1543,18 @@ test('CA Submission', async ({ page }, testInfo) => {
     trackMilestone('Vehicles Page: Truck Vehicle Added');
     await crAddSpecialTypeVehicle();
 
+    // Vehicles Next can be refused with an "Errors" box (missing "Losses Covered" / "Deductible Type" on a vehicle):
+    // helpers/caRefreshVehicleRepair.js opens that vehicle, fills its Coverages, saves it and presses Next again.
+    if (caRefreshOn) {
+      const accepted = await repairVehicleErrors(page, {
+        safeNextClick, dismiss: dismissStatusModal, log: (m) => console.log(m),
+        fillBlanks: async (tag) => { const n = await fillBlankRequiredSelects(page, tag); await settleAndRefillRequired(); return n; },
+      });
+      if (!accepted) throw new Error('Vehicles: Next still refused after the repair attempts (see "Vehicles Next refused" lines)');
+    }
+
     // ── Drivers and Symbols ─────────────────────────────────────────────────────
-    await safeClick(page.locator('#btnNext_CLAutoVehicles'));
+    if (!caRefreshOn) await safeClick(page.locator('#btnNext_CLAutoVehicles')); // CA Refresh already pressed Next in the repair loop above
     await page.waitForLoadState('domcontentloaded');
     await dismissStatusModal();
 
