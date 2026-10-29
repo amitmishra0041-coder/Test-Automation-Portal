@@ -32,8 +32,9 @@ const JIRA_SITE = process.env.JIRA_SITE;
 const JIRA_EMAIL = process.env.JIRA_EMAIL;
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
 const DEFECTS_JQL = 'project IN (GCCM, GCMDT, GCMDW, GCMR, SMART) AND type IN (Bug, Defect) AND status NOT IN (Closed, Rejected) ORDER BY assignee ASC, created DESC';
-const HOURS_PER_DAY = Number(process.env.STATUS_DECK_HOURS_PER_DAY) || 8;
-const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate'];
+const SEVERITY_FIELD = 'customfield_10137'; // "Severity" (GCCM / SMART bugs) — the open-defects table counts by it
+const HOURS_PER_DAY =Number(process.env.STATUS_DECK_HOURS_PER_DAY) || 8;
+const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate', SEVERITY_FIELD];
 
 async function search(jql) {
   const issues = [];
@@ -59,6 +60,7 @@ async function search(jql) {
       rem: (f.timeestimate || 0) / 3600, orig: (f.timeoriginalestimate || 0) / 3600, spent: (f.timespent || 0) / 3600,
       sprints: (f.customfield_10020 || []).filter(Boolean).map((s) => ({ name: s.name, state: s.state, start: s.startDate, end: s.endDate })),
       resolved: f.resolutiondate || null,
+      severity: f[SEVERITY_FIELD] ? (f[SEVERITY_FIELD].value || f[SEVERITY_FIELD].name || String(f[SEVERITY_FIELD])) : '',
     };
   });
 }
@@ -139,7 +141,7 @@ async function collect() {
   const items = []; const doneItems = []; const history = [];
   for (const q of ['ClaimCenter', 'Enhancement', 'SmartComm']) {
     const jql = TRACK_DEFS[q].jql;
-    for (const i of await search(jql)) items.push({ ...i, area: areaOf(q, i), current: i.sprints.some((s) => s.state === 'active') });
+    for (const i of await search(jql)) items.push({ ...i, area: areaOf(q, i), track: q, current: i.sprints.some((s) => s.state === 'active') });
     for (const i of await search(doneInOpenSprint(jql))) doneItems.push({ ...i, area: areaOf(q, i) });
     for (const i of await searchHistory(`${withoutStatusFilter(jql)} AND updated >= -${HISTORY_DAYS}d`)) history.push({ ...i, area: areaOf(q, i) });
   }
@@ -197,7 +199,7 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     if (sub) slide.addText(sub, { x: 0.15, y: 0.62, w: 13.0, h: 0.52, fontFace: FONT, fontSize: 12, color: 'FFFFFF', valign: 'middle' });
   };
   const strip = (slide, x, y, w, a) => {
-    const cells = [[`${S} remaining`, h(sum(a.s5)), NAVY], ['Potential spillover (impeded)', h(a.spill), NAVY], [`${N} planned`, h(sum(a.s6)), NAVY]];
+    const cells = [[`${S} remaining`, h(sum(a.s5)), NAVY], ['(impeded)', h(a.spill), NAVY]];
     const cw = w / cells.length;
     cells.forEach(([label, val, c], n) => {
       slide.addText([{ text: val, options: { bold: true, fontSize: 12, color: c, breakLine: true } }, { text: label, options: { fontSize: 8, color: '555555' } }],
@@ -252,6 +254,15 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
   };
   const picked = (a) => [...a.pickedDone.map((i) => ({ t: `${nice(i.summary)} — done` })), ...a.pickedProg.map((i) => ({ t: `${nice(i.summary)} — ${i.status.toLowerCase()}` }))];
   const withPhase = (i) => ({ t: `${nice(i.summary)}${phase(i.summary) ? ` (${phase(i.summary).toLowerCase()})` : ''}` });
+  // "Item – status" lines as the QA lead writes them: impeded items carry the weekly note (what they're awaiting, ETA).
+  const statusText = (i) => {
+    const note = noteOf(i) ? firstLine(noteOf(i)) : '';
+    if (isImpeded(i)) return `Impeded${note ? `; ${note}` : ''}`;
+    const st = inProg(i) ? `${(phase(i.summary) || 'testing').replace(/^Design$/, 'design').replace(/^Execution$/, 'execution')} in progress`
+      : /to do/i.test(i.status) ? 'not started' : readyQa(i) ? 'ready for QA' : i.status.toLowerCase();
+    return `${st.charAt(0).toUpperCase()}${st.slice(1)}${note ? `; ${note}` : ''}`;
+  };
+  const lineOf = (i) => ({ t: `${nice(i.summary)} – ${statusText(i)}` });
   const hdr = { bold: true, fill: { color: 'D9E2F3' } };
   const tableOpts = { fontFace: FONT, color: '222222', fill: { color: 'FFFFFF' }, border: { type: 'solid', color: 'BFBFBF', pt: 0.5 } };
 
@@ -271,8 +282,9 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     const cc = A.ClaimCenter;
     column(s, X1, Y, W1, H, 'ClaimCenter', COL.ClaimCenter, [
       { head: 'Completed this week:', lines: cc.week.map(withPhase) },
-      { head: `Outstanding work (${S}):`, lines: [...cc.s5].sort((a, b) => Number(isImpeded(a)) - Number(isImpeded(b)) || b.rem - a.rem).map(outstanding) },
-      { head: `Picked up early from ${N}:`, lines: picked(cc) },
+      { head: 'In progress:', lines: cc.s5.filter((i) => i.track !== 'Enhancement' && inProg(i)).sort((a, b) => b.rem - a.rem).map(lineOf) },
+      { head: 'Enhancement:', lines: cc.s5.filter((i) => i.track === 'Enhancement').sort((a, b) => b.rem - a.rem).map(lineOf) },
+      { head: 'Blockers:', lines: cc.imp.map((i) => ({ t: `${nice(i.summary)} — ${noteOf(i) ? firstLine(noteOf(i)) : 'Impeded'}` })) },
       riskSection('ClaimCenter'),
     ], 9.5, cc);
 
@@ -297,18 +309,28 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
       return { total: byT.size, design: `${d('Design')} / ${n('Design')}`, exec: `${d('Execution')} / ${n('Execution')}` };
     };
     const bcT = tally('BillingCenter'); const ccT = tally('ClaimCenter');
+    // Outstanding work as counted summary lines per template system ("45 DIG letter templates – Blocked due to
+    // defects", "Testing for 10 CC templates in progress"); non-template work (CC_/BC_/QA_ features) one per line.
+    const scOutstanding = [];
+    const nTemplates = (list, sys) => new Set(list.map((i) => templateOf(i.summary)).filter((t) => t && t.sys === sys).map((t) => t.id)).size;
+    const open5 = sc.s5.filter((i) => !isImpeded(i));
+    for (const [sys, lbl, blockedLbl] of [['ClaimCenter', 'CC', 'DIG letter'], ['BillingCenter', 'BC', 'BC']]) {
+      const lines = [
+        [nTemplates(sc.imp, sys), (n) => `${n} ${blockedLbl} templates – Blocked due to defects`],
+        [nTemplates(open5.filter((i) => inProg(i) && phase(i.summary) === 'Execution'), sys), (n) => `Testing for ${n} ${lbl} templates in progress`],
+        [nTemplates(open5.filter((i) => inProg(i) && phase(i.summary) === 'Design'), sys), (n) => `Test design for ${n} ${lbl} templates in progress`],
+        [nTemplates(open5.filter((i) => !inProg(i)), sys), (n) => `${n} ${lbl} templates not started / awaiting dev`],
+      ];
+      for (const [n, text] of lines) if (n) scOutstanding.push({ t: text(n) });
+    }
+    scOutstanding.push(...sc.s5.filter((i) => !templateOf(i.summary)).sort((a, b) => b.rem - a.rem).map(lineOf));
     const scRisk = risk('SmartComm');
     const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
     const scTextEnd = column(s, X2, Y, W2, H, 'SMARTCOMM', COL.SmartComm, [
       { head: 'Completed this week:', lines: [
         { t: `${sc.week.length} items — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
       ] },
-      { head: `Outstanding work (${S}):`, lines: compactDigs([...sc.s5].sort((a, b) => b.rem - a.rem)) },
-      { head: `Picked up early from ${N}:`, lines: [['done', sc.pickedDone], ['in progress', sc.pickedProg]].flatMap(([what, list]) => {
-        const digs = list.filter(digNo); const rest = list.filter((i) => !digNo(i));
-        return rest.map((i) => ({ t: `${nice(i.summary)} — ${what}` }))
-          .concat(digs.length ? [{ t: `DIG letter templates ${what} (${digs.length}): ${[...new Set(digs.map(digNo))].join(', ')}` }] : []);
-      }) },
+      { head: `Outstanding work (${S}):`, lines: scOutstanding },
     ], 9.5, sc, H - scTail);
     const tblTop = Math.min(scTextEnd + 0.1, Y + H - scTail);
     s.addText('Overall Summary — templates (done / total):',{ x: X2, y: tblTop + 0.04, w: W2, h: 0.22, fontFace: FONT, fontSize: 10, bold: true, color: '000000', margin: [2, 6, 0, 6] });
@@ -324,30 +346,34 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
 
     const oi = A.OneInc;
     column(s, X3, Y, W3, 3.45, 'OneInc', COL.OneInc, [
-      { head: 'Completed this week:', lines: oi.week.map(withPhase) },
-      { head: `Outstanding work (${S}):`, lines: [...oi.s5].sort((a, b) => b.rem - a.rem).map(outstanding) },
-      { head: `Picked up early from ${N}:`, lines: picked(oi) },
+      ...[['Design', 'Test Design', 'Reviewed'], ['Execution', 'Test Execution', 'Tested'], ['', 'Other work', 'Done']].map(([p, head, verb]) => ({
+        head: `${head}:`,
+        lines: [...oi.week.filter((i) => phase(i.summary) === p).map((i) => ({ t: `${nice(i.summary)} – ${verb} and Closed` })),
+          ...oi.s5.filter((i) => phase(i.summary) === p).sort((a, b) => b.rem - a.rem).map(lineOf)],
+      })),
       { head: `Ready for QA (${N}):`, lines: oi.s6.filter(readyQa).map((i) => nice(i.summary))
         .reduce((acc, name, n) => { if (n % 2) acc[acc.length - 1].t += `, ${name}`; else acc.push({ t: name }); return acc; }, []) },
       riskSection('OneInc'),
     ], 9, oi);
 
     const prio = (p) => { const t = String(p || '').toLowerCase(); return /must|critical|highest|blocker/.test(t) ? 'Critical' : /high/.test(t) ? 'High' : /medium/.test(t) ? 'Medium' : /low/.test(t) ? 'Low' : 'Unranked'; };
-    const PR = ['Critical', 'High', 'Medium', 'Low', 'Unranked'];
+    // Counted by the bug's Severity; a bug with no severity falls back to its priority. "None" only shows if needed.
+    const sevOf = (b) => prio(b.severity) !== 'Unranked' ? prio(b.severity) : prio(b.priority);
+    const PR = ['Critical', 'High', 'Medium', 'Low', ...(bugs.some((b) => sevOf(b) === 'Unranked') ? ['Unranked'] : [])];
     const statuses = [...new Set(bugs.map((b) => b.status))].sort((a, b) => bugs.filter((x) => x.status === b).length - bugs.filter((x) => x.status === a).length);
     s.addShape(pptx.ShapeType.rect, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fill: { color: 'E8A100' } });
     s.addText(`Open Defects (CC & SmartComm) — ${bugs.length}`, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
     const rows = [[{ text: 'Status', options: hdr }, ...PR.map((p) => ({ text: { Critical: 'Crit.', High: 'High', Medium: 'Med.', Low: 'Low', Unranked: 'None' }[p], options: hdr })), { text: 'Total', options: hdr }]];
     for (const st of statuses.slice(0, 8)) {
       const b = bugs.filter((x) => x.status === st);
-      rows.push([st, ...PR.map((p) => { const n = b.filter((x) => prio(x.priority) === p).length; return n ? String(n) : ''; }), String(b.length)]);
+      rows.push([st, ...PR.map((p) => { const n = b.filter((x) => sevOf(x) === p).length; return n ? String(n) : ''; }), String(b.length)]);
     }
     if (statuses.length > 8) {
       const b = bugs.filter((x) => !statuses.slice(0, 8).includes(x.status));
-      rows.push(['Other', ...PR.map((p) => { const n = b.filter((x) => prio(x.priority) === p).length; return n ? String(n) : ''; }), String(b.length)]);
+      rows.push(['Other', ...PR.map((p) => { const n = b.filter((x) => sevOf(x) === p).length; return n ? String(n) : ''; }), String(b.length)]);
     }
-    rows.push([{ text: 'Grand Total', options: { bold: true } }, ...PR.map((p) => ({ text: String(bugs.filter((x) => prio(x.priority) === p).length), options: { bold: true } })), { text: String(bugs.length), options: { bold: true } }]);
-    s.addTable(rows, { ...tableOpts, x: X3, y: Y + 3.86, w: W3, colW: [1.4, 0.5, 0.52, 0.52, 0.47, 0.5, 0.55], fontSize: 9, margin: [1, 5, 1, 5], valign: 'middle', rowH: Math.min(0.3, (H - 3.86 - 0.12) / rows.length) });
+    rows.push([{ text: 'Grand Total', options: { bold: true } }, ...PR.map((p) => ({ text: String(bugs.filter((x) => sevOf(x) === p).length), options: { bold: true } })), { text: String(bugs.length), options: { bold: true } }]);
+    s.addTable(rows, { ...tableOpts, x: X3, y: Y + 3.86, w: W3, colW: PR.length === 5 ? [1.4, 0.5, 0.52, 0.52, 0.47, 0.5, 0.55] : [1.6, 0.55, 0.55, 0.55, 0.55, 0.66], fontSize: 9, margin: [1, 5, 1, 5], valign: 'middle', rowH: Math.min(0.3, (H - 3.86 - 0.12) / rows.length) });
   }
 
   // ── Slides 2 & 3: day-by-day and week-by-week progress (per the QA lead, 2026-10-17) ──
