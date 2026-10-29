@@ -168,7 +168,7 @@ async function exerciseCards(page, pool, label, maxCards = 40, opts = {}) {
     const title = (await card.locator('.xaccordion-sectionheader').first().innerText().catch(() => id)).replace(/\s+Save$/i, '').trim();
     const count = await card.locator('select').count().catch(() => 0);
     const infoAt = async (k) => card.locator('select').nth(k).evaluate(OPT_READ).catch(() => null);
-    const usable = (info) => info && !info.disabled && info.cur && !/nothing selected|^select|^please select/i.test(info.curText) && /* a blank start cannot be restored */ info.opts.length >= 2 && info.opts.length <= 12 && !info.opts.every((o) => /^(yes|no)$/i.test(o.t)); // Yes/No switches are set by the flow, never toggled here
+    const usable = (info) => info && !/deductible/i.test(info.label) /* dependent outputs - changing them corrupts the card server-side */ && !info.disabled && info.cur && !/nothing selected|^select|^please select/i.test(info.curText) && /* a blank start cannot be restored */ info.opts.length >= 2 && info.opts.length <= 12 && !info.opts.every((o) => /^(yes|no)$/i.test(o.t)); // Yes/No switches are set by the flow, never toggled here
     const snap = async (context) => { const cards = await readCards(page, `#${id}`); pool.push({ label, context, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title })) }); };
     for (let si = 0; si < count && si < 8; si++) {
       const info = await infoAt(si);
@@ -259,6 +259,7 @@ async function addExpectedFromGrid(page, opts) {
         await page.waitForTimeout(1200);
         // Dialogs such as the Additional Insured forms need at least one scheduled item before they will save.
         if (await modal.isVisible().catch(() => false)) {
+          console.log(`  schedule: dialog still open after first Save for "${row.name}"`);
           const addItem = modal.locator('button:has-text("Add Scheduled Item"), button:has-text("Add Item"), button:has-text("Add New")').first();
           if (await addItem.count() > 0) {
             let saved = 0;
@@ -275,7 +276,8 @@ async function addExpectedFromGrid(page, opts) {
                   if (!ok) await page.waitForTimeout(1200);
                 }
                 console.log(`  scheduled item ${n + 1} of "${row.name}": ${ok ? 'picked' : 'could NOT pick'} ${want[n]}`);
-                if (!ok) console.log('  schedule dialog dump: ' + JSON.stringify(await top.evaluate((m) => ({ selects: [...m.querySelectorAll('select')].map((e) => ({ id: e.id, vis: !!e.offsetParent, opts: [...e.options].map((o) => o.textContent.trim()).slice(0, 8) })), boxes: [...m.querySelectorAll('input[type=checkbox],input[type=radio]')].map((e) => ({ id: e.id, name: e.name, vis: !!e.offsetParent, txt: ((e.closest('label') || e.parentElement || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) })), text: m.innerText.replace(/\s+/g, ' ').slice(0, 400) })).catch(() => ({}))));
+                if (!ok && opts.shotDir) await page.screenshot({ path: require('path').join(opts.shotDir, `schedule-item-${n + 1}-pick-failed.png`) }).catch(() => {});
+                if (!ok) console.log('  schedule dialog dump: ' + JSON.stringify(await top.evaluate((m) => ({ selects: [...m.querySelectorAll('select')].map((e) => ({ id: e.id, vis: !!e.offsetParent, opts: [...e.options].map((o) => o.textContent.trim()).slice(0, 8) })), boxes: [...m.querySelectorAll('input[type=checkbox],input[type=radio]')].map((e) => ({ id: e.id, name: e.name, vis: !!e.offsetParent, txt: ((e.closest('label') || e.parentElement || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) })), text: m.innerText.replace(/\s+/g, ' ').slice(0, 400) })).catch((e) => ({ err: String(e.message).slice(0, 150), modals: 0 }))));
                 const cards2 = await readCards(page, '.modal.show').catch(() => []);
                 pool.push({ label: `Add coverage: ${row.name}`, context: `scheduled item ${n + 1}: Named Individuals ${n === 0 ? 'Collision' : 'Other Than Collision'}`, text: '', norm: '', shot: '', cards: cards2.map((c) => ({ ...c, title: row.name })) });
               }
@@ -320,6 +322,10 @@ async function addExpectedFromGrid(page, opts) {
       }
     } catch (e) { entry.status = 'ADD_FAILED'; entry.detail = e.message.split('\n')[0]; }
     record(entry);
+  }
+  for (const e of expected.filter((x) => x.source === 'QA' && !done.has(x.name))) { // QA extras with no grid row on this page: show the nearest rows so the name can be matched
+    const near = rows.filter((r) => covered(r.name, e.name) >= 0.4 || covered(e.name, r.name) >= 0.5).map((r) => r.name).slice(0, 4);
+    console.log(`  QA extra "${e.name}" not in the grid on "${label}"${near.length ? '; nearest rows: ' + JSON.stringify(near) : ''}`);
   }
   return [...done];
 }

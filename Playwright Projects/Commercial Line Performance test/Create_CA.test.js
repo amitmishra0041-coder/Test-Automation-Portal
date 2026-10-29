@@ -237,7 +237,33 @@ test('CA Submission', async ({ page }, testInfo) => {
   async function crAddSpecialTypeVehicle() {
     // On again (QA can add it by hand in WriteBiz); CA_REFRESH_SPECIAL_TYPE=0 skips it.
     if (!caRefreshOn || process.env.CA_REFRESH_SPECIAL_TYPE === '0') return;
-    try {
+    const specialFormReady = () => page.locator('#ddl_ClassType').waitFor({ state: 'attached', timeout: 15000 }).then(() => true).catch(() => false);
+    // QA recovery: when WriteBiz shows "An error has occurred" the new vehicle row (type Special Type, no VIN yet) still exists on the
+    // Vehicles summary. Close the dialogs, refresh, and open that row with its edit icon to carry on filling it in.
+    const recoverToSpecialRow = async () => {
+      for (let i = 0; i < 5; i++) {
+        const top = page.locator('.modal.show').last();
+        if (!await top.isVisible().catch(() => false)) break;
+        await top.locator('button:has-text("Close"), button:has-text("Cancel"), button:has-text("OK")').first().click({ timeout: 3000 }).catch(() => {});
+        await page.waitForTimeout(600);
+      }
+      await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+      await page.waitForTimeout(2500);
+      await dismissStatusModal();
+      const back = page.getByRole('button', { name: /Return to Summary/i }).first();
+      if (await back.isVisible().catch(() => false)) { await back.click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(1500); await dismissStatusModal(); }
+      const row = page.locator('table tbody tr').filter({ hasText: 'Special Type' }).last();
+      const edit = row.locator('i.fa-edit, i.fa-pen-to-square, i[class*="edit"], a[title*="Edit" i], button[title*="Edit" i]').first();
+      if (!await edit.isVisible().catch(() => false)) throw new Error('Special Type row / edit icon not found on the Vehicles summary');
+      await edit.click({ timeout: 5000 });
+      await dismissStatusModal();
+      await page.waitForTimeout(1500);
+      if (!await specialFormReady()) throw new Error('Special Type form did not open from the summary row');
+      console.log('Special type: recovered through the summary row edit icon');
+    };
+    const runSpecialOnce = async (recover) => {
+      if (recover) await recoverToSpecialRow();
+      else {
       await closeVehiclePrefill();
       await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (special type)');
       await clickBsSelect('bs-select-2-2', 'Vehicle Type (special type)');
@@ -246,6 +272,8 @@ test('CA Submission', async ({ page }, testInfo) => {
       await page.getByRole('button', { name: 'Confirm' }).click({ timeout: 10000 });
       await dismissStatusModal();
       await page.waitForTimeout(1500);
+      if (!await specialFormReady()) throw new Error('Special Type form did not open after Confirm');
+      }
       // generic fill: VIN, then required selects / inputs / class lookups, a few passes (selects reload their dependants)
       // The special-type form is a cascade: Class Type unlocks Vehicle Type, then Supplementary Type, Class Code, Dealer Classification;
       // Year / Make / Model / VIN stay read-only until the cascade is done. Drive each real bootstrap control in order.
@@ -263,6 +291,7 @@ test('CA Submission', async ({ page }, testInfo) => {
           return o.textContent.trim();
         }, id).catch(() => null);
         console.log(`Special type: ${id} = ${pick}`);
+        if (id === 'ddl_ClassType' && !pick && !(await page.locator('#ddl_ClassType').evaluate((e) => !!e.value).catch(() => false))) throw new Error('Special Type form: Class Type could not be set');
         await page.waitForTimeout(1500); await dismissStatusModal();
       }
       await page.locator('#txt_Vin').fill('1FTEW1EP4KFA54321').catch(() => {}); // must differ from the private passenger / truck VIN (1FTEW1EP4KFA12345): "Cannot quote vehicles with duplicate VINs"
@@ -299,6 +328,10 @@ test('CA Submission', async ({ page }, testInfo) => {
       await safeClick(page.getByRole('button', { name: 'Save Vehicle ' }));
       await crSnap('Vehicles - Special type');
       trackMilestone('Vehicles Page: Special type Vehicle Added');
+    };
+    try {
+      try { await runSpecialOnce(false); }
+      catch (e1) { console.log(`Special Type first attempt failed (${e1.message.split(String.fromCharCode(10))[0]}) - recovering through the summary row`); await runSpecialOnce(true); }
     } catch (e) {
       console.log(`Special Type vehicle could not be added: ${e.message.split(String.fromCharCode(10))[0]}`);
       await crSnap('Special type vehicle - failure point').catch(() => {});
@@ -313,6 +346,37 @@ test('CA Submission', async ({ page }, testInfo) => {
         await page.waitForTimeout(600);
       }
     }
+  }
+
+  // Last resort for a blank required dropdown that fillBlankRequiredSelects cannot see (e.g. "Losses Covered" after turning Other Than
+  // Collision on, which blocked Next with "Missing required field"): pick its first real option and fire the page's own change handler.
+  async function crForceBlankSelects(tag) {
+    // each pick can load the next blank dependant (Losses Covered -> Deductible), so repeat until nothing is blank
+    let total = 0;
+    let quiet = 0;
+    for (let round = 0; round < 8 && quiet < 2; round++) {
+      const n = await crForceBlankOnce(`${tag}${round ? ' #' + (round + 1) : ''}`); total += n;
+      if (n) { quiet = 0; await fillBlankRequiredSelects(page, tag); } else { quiet++; await page.waitForTimeout(2500); await dismissStatusModal(); } // the next dependant can load a moment later
+    }
+    return total;
+  }
+  async function crForceBlankOnce(tag) {
+    const done = await page.evaluate(() => {
+      const out = [];
+      for (const s of document.querySelectorAll('select')) {
+        if (s.disabled || (s.value && s.selectedIndex >= 0)) continue;
+        const box = s.closest('.bootstrap-select') || s; if (!(box.offsetParent || box.getClientRects().length)) continue;
+        const o = [...s.options].find((x) => !/nothing selected|^select|^please select|no coverage|not applicable/i.test(x.textContent) && x.textContent.trim());
+        if (!o) continue;
+        const $j = window.jQuery || window.$; s.selectedIndex = o.index;
+        if ($j) { $j(s).selectpicker && $j(s).selectpicker('refresh'); $j(s).trigger('change'); } else s.dispatchEvent(new Event('change', { bubbles: true }));
+        const fs = s.closest('.FieldSpacing'); const l = fs && fs.querySelector('.FieldLabel');
+        out.push(`${l ? l.textContent.replace(/\s+/g, ' ').trim() : s.id}=${o.textContent.trim()}`);
+      }
+      return out;
+    }).catch(() => []);
+    if (done.length) { console.log(`${tag}: force-filled blank dropdowns ${JSON.stringify(done)}`); await page.waitForTimeout(1500); await dismissStatusModal(); }
+    return done.length;
   }
 
   // QA: Tapes, Records And Discs needs Other Than Collision provided (then Inventory Value / Reporting Basis are required).
@@ -331,6 +395,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     if (v) { await sel.selectOption(v).catch(() => {}); await page.waitForTimeout(1800); console.log('Dealer Other Than Collision turned on (for Tapes, Records And Discs)'); }
     for (let k = 0; k < 3; k++) { await dismissStatusModal(); await page.waitForTimeout(1500); if (!await fillBlankRequiredSelects(page, 'dealer OTC')) break; }
 
+    await crForceBlankSelects('dealer OTC');
     await crFillRequiredInputs('dealer OTC');
     // Turning Other Than Collision on makes "Inventory Value" required on the dealer Details sub-tab (already passed):
     // open Details, fill it, save with Next (back to Coverages).
@@ -351,6 +416,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       await page.waitForLoadState('domcontentloaded').catch(() => {});
       await dismissStatusModal();
       for (let k = 0; k < 2; k++) { await page.waitForTimeout(1200); if (!await fillBlankRequiredSelects(page, 'dealer OTC (after details)')) break; }
+      await crForceBlankSelects('dealer OTC (after details)');
     }
   }
 
