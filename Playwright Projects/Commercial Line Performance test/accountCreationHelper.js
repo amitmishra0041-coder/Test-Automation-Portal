@@ -6,7 +6,7 @@
 
 require('dotenv').config();
 const { randEmail, randCompany, randAddress, randSSN, random } = require('./helpers/randomData');
-const { randCityForState, randZipForState }            = require('./stateConfig');
+const { randCityForState, randZipForState, getStateConfig } = require('./stateConfig');
 const { stateToZips, zipToCityState }                  = require('./address-helper/dist/zipData');
 
 const STATE_USERS = {
@@ -16,12 +16,33 @@ const STATE_USERS = {
   WI: { username: process.env.WB_USER_WI, password: process.env.WB_PASS_WI },
 };
 
+// Addresses (street name, city, ZIP) that passed WriteBiz Test's Locations step in CA Refresh runs on 10/29/2026.
+const CA_PROVEN_ADDRESSES = {
+  AZ: { street: 'Orlo Key', city: 'Tucson', zip: '85364' },
+  CO: { street: 'Suzanne Garden', city: 'Fort Collins', zip: '80906' },
+  DE: { street: 'Main St', city: 'Newark', zip: '19711' },
+  IA: { street: 'Cremin Mountains', city: 'Iowa City', zip: '50613' },
+  PA: { street: 'Main St', city: 'Carlisle', zip: '17013' },
+};
+
 function getRandomAddressByState(state) {
   // TEST_ADDRESS="330 Main St|Dover|DE|19904" forces a specific address, e.g. to
   // reproduce an address-dependent rule such as a high-risk (coastal) location.
   if (process.env.TEST_ADDRESS) {
     const [street, city, st, zip] = process.env.TEST_ADDRESS.split('|').map(s => s.trim());
     return { street, city, state: st || state, zip };
+  }
+  // CA Refresh: the location must get a Commercial Auto territory from its ZIP. For states with no ZIP list the old
+  // fallback picked city and ZIP separately (AZ "Tucson 85001", IA "Council Bluffs 50010" on 10/29) and WriteBiz refused
+  // Locations -> Next with "Location 1 must have the Commercial Auto Line (v7) territory code set". Use an address that
+  // already passed the Locations step on Test, else the state's own matched city/ZIP addresses.
+  if (process.env.CA_REFRESH === '1') {
+    const proven = CA_PROVEN_ADDRESSES[state];
+    if (proven) return { street: Math.floor(random() * 900 + 100) + ' ' + proven.street, city: proven.city, state, zip: proven.zip };
+    if (!(stateToZips[state] || []).length) {
+      const list = (getStateConfig(state).addresses || []).filter(a => a.city && a.zip);
+      if (list.length) { const a = list[Math.floor(random() * list.length)]; return { street: a.street, city: a.city, state, zip: a.zip }; }
+    }
   }
   const zips = stateToZips[state];
   if (!zips || zips.length === 0) throw new Error('No zips for state: ' + state);
@@ -822,4 +843,4 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   console.log('Account qualification completed');
 }
 
-module.exports = { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES };
+module.exports = { createAccountAndQualify, isTrainingUrl, TRAINING_LICENSED_STATES, getRandomAddressByState };

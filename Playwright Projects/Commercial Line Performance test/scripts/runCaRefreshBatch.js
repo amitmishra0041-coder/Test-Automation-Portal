@@ -28,7 +28,7 @@ const runOne = (state, lob) => new Promise((resolve) => {
     cwd: ROOT, shell: process.platform === 'win32', stdio: ['ignore', out, out],
     env: { ...process.env, TEST_ENV: env, TEST_STATE: state, CA_REFRESH: '1', CA_REFRESH_LOB: lob, TEST_DATA_TAG: `CARefresh-${lob}`, CA_REFRESH_STOP_AT: until === 'RATING' ? 'RATING' : '' },
   });
-  const killer = setTimeout(() => { try { process.platform === 'win32' ? spawn('taskkill', ['/PID', String(p.pid), '/T', '/F']) : p.kill('SIGKILL'); } catch (e) { /* ignore */ } }, 60 * 60 * 1000);
+  const killer = setTimeout(() => { try { process.platform === 'win32' ? spawn('taskkill', ['/PID', String(p.pid), '/T', '/F']) : p.kill('SIGKILL'); } catch (e) { /* ignore */ } }, 70 * 60 * 1000); // the test itself stops at 60 min
   p.on('close', () => {
     clearTimeout(killer);
     const text = fs.readFileSync(log, 'utf8');
@@ -58,14 +58,19 @@ const mail = async (state, results) => {
 
 (async () => {
   say(`batch ${stamp}: states=${states.join(',')} lobs=${lobs.join(',')} env=${env} until=${until}`);
+  let noDocStreak = 0; // two runs in a row without a result document = WriteBiz down (e.g. a deployment): stop
   for (const state of states) {
     const results = [];
     for (const lob of lobs) {
       const r = await runOne(state, lob);
       results.push(r);
       say(`${state} ${lob}: ${r.status} | doc=${path.basename(r.doc || '-')} | ${r.validation} ${r.err ? '| ' + r.err : ''}`);
+      noDocStreak = r.doc ? 0 : noDocStreak + 1;
+      if (noDocStreak >= 2) break;
     }
     await mail(state, results);
+    say(`STATE DONE ${state}`);
+    if (noDocStreak >= 2) { say('STOPPED: two runs in a row produced no result document - WriteBiz looks unavailable'); break; }
   }
   say('BATCH DONE');
 })();

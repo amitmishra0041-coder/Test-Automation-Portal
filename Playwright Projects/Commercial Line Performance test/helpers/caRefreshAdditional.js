@@ -237,8 +237,10 @@ async function addExpectedFromGrid(page, opts) {
   const rows = await readGrid(page);
   const done = new Set();
   for (const row of rows) {
-    const match = expected.filter((e) => !done.has(e.name)).map((e) => ({ e, score: norm(row.name) === norm(e.name) ? 1 : covered(row.name, e.name) }))
-      .filter((m) => m.score >= 0.8 && tokens(row.name).length >= 2 && (tokens(row.name).length > 6 || m.score === 1)).sort((a, b) => b.score - a.score)[0];
+    // An identical name always matches, even a one-word row such as "Garagekeepers" (it used to be skipped); a partial
+    // word match still needs at least 2 words, and more than 6 unless every word of the row is in the expected name.
+    const match = expected.filter((e) => !done.has(e.name)).map((e) => ({ e, exact: norm(row.name) === norm(e.name), score: norm(row.name) === norm(e.name) ? 1 : covered(row.name, e.name) }))
+      .filter((m) => m.exact || (m.score >= 0.8 && tokens(row.name).length >= 2 && (tokens(row.name).length > 6 || m.score === 1))).sort((a, b) => b.score - a.score)[0];
     if (!match) continue;
     const entry = { coverage: match.e.name, gridRow: row.name, page: label, status: '', detail: '' };
     done.add(match.e.name);

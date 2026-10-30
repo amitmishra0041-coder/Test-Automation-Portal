@@ -12,7 +12,7 @@ const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequire
 const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
 const { addExpectedFromGrid, exerciseCards } = require('./helpers/caRefreshAdditional');
-const { repairVehicleErrors } = require('./helpers/caRefreshVehicleRepair');
+const { repairVehicleErrors, repairCoverageErrors } = require('./helpers/caRefreshVehicleRepair');
 const fs   = require('fs');
 const path = require('path');
 
@@ -22,7 +22,7 @@ const RUNTIME_DIR = path.join(__dirname, 'runtime-data');
 fs.mkdirSync(RUNTIME_DIR, { recursive: true });
 
 test('CA Submission', async ({ page }, testInfo) => {
-  test.setTimeout(1800000);
+  test.setTimeout(process.env.CA_REFRESH === '1' ? 3600000 : 1800000); // CA Refresh Auto Dealers needs ~30-40 min (DE 10/29 timed out at 30)
   page.setDefaultTimeout(60000);
 
   const envName   = process.env.TEST_ENV || 'qa';
@@ -441,6 +441,33 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   // Changing one vehicle coverage (e.g. Losses Covered) reloads its dependent field (Deductible Type), which can come
   // back blank after the first fill pass and then blocks Save with 'Missing required field'. Let it settle, fill again.
+  // Add New Vehicle -> type -> garaging location -> Confirm, until the vehicle form (VIN) is open. The form sometimes never
+  // appears after Confirm (PA Auto Dealers truck, MD Business Auto private passenger, 10/29): log what is on screen,
+  // close any dialog and do the add once more (CA Refresh only; other runs keep the single attempt).
+  async function addNewVehicle(typeOptionId, label, opts = {}) {
+    for (let attempt = 1; attempt <= (caRefreshOn ? 2 : 1); attempt++) {
+      if (!(opts.prefillClosed && attempt === 1)) await closeVehiclePrefill();
+      const tag = attempt === 1 ? label : `${label}, retry`;
+      await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), `Add New Vehicle combobox (${tag})`);
+      await clickBsSelect(typeOptionId, `Vehicle Type (${tag})`);
+      await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
+      await clickBsSelect('bs-select-3-1', `Garaging Location (${tag})`);
+      await page.getByRole('button', { name: 'Confirm' }).click();
+      await dismissStatusModal();
+      if (!caRefreshOn || await page.locator('#txt_Vin').waitFor({ state: 'visible', timeout: 30000 }).then(() => true).catch(() => false)) return;
+      const modals = (await page.locator('.modal.show').allInnerTexts().catch(() => [])).join(' | ').replace(/\s+/g, ' ').slice(0, 300);
+      console.log(`${label}: VIN field not shown after Confirm (attempt ${attempt}); url=${page.url()}; dialogs: ${modals || 'none'}`);
+      await page.screenshot({ path: path.join(RUNTIME_DIR, 'ca-refresh', `vin-missing-${testState}-${label.replace(/ /g, '_')}-${attempt}.png`), fullPage: true }).catch(() => {});
+      for (let i = 0; i < 4; i++) {
+        const top = page.locator('.modal.show').last();
+        if (!await top.isVisible().catch(() => false)) break;
+        await top.locator('button:has-text("Close"), button:has-text("Cancel"), button:has-text("OK")').first().click({ timeout: 3000 }).catch(() => {});
+        await page.waitForTimeout(600);
+      }
+      await dismissStatusModal();
+    }
+  }
+
   async function settleAndRefillRequired() {
     for (let i = 0; i < 3; i++) {
       await dismissStatusModal();
@@ -858,6 +885,8 @@ test('CA Submission', async ({ page }, testInfo) => {
       visibleErrors: [...document.querySelectorAll('[class*="error" i], [class*="alert" i], [class*="danger" i]')]
         .filter(el => el.offsetParent !== null)
         .map(el => (el.textContent || '').trim()).filter(Boolean).slice(0, 5),
+      openDialogs: [...document.querySelectorAll('.modal.show, .ui-dialog')].filter(el => el.offsetParent !== null || el.getClientRects().length)
+        .map(el => (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 300)).filter(Boolean).slice(0, 3),
     })).catch(() => ({}));
     console.log(`${label}: element not visible - page diagnostic: ${JSON.stringify(diag)}`);
   }
@@ -1415,6 +1444,20 @@ test('CA Submission', async ({ page }, testInfo) => {
     await crSnap('State specific info - Additional coverages');
     await crAddExpected('State specific info - Additional coverages');
     await safeNextClick();
+    // CO 10/29: Next refused with 'Missing required field "Uninsured Motorists Property Damage Limit"' (a Coverages card).
+    // Only act on the Errors box itself - never press Next "just in case": on DE Auto Dealers (10/29) the page address still
+    // read State Specific while the Auto Dealers tab loaded, and an extra Next skipped the whole Auto Dealers tab.
+    if (caRefreshOn) {
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await dismissStatusModal();
+      if (await page.locator('.modal.show').filter({ hasText: /Missing required field/ }).first().waitFor({ state: 'visible', timeout: 6000 }).then(() => true).catch(() => false)) {
+        await repairCoverageErrors(page, {
+          safeNextClick, dismiss: dismissStatusModal, log: (m) => console.log(m),
+          fillBlanks: async (tag) => { const n = await fillBlankRequiredSelects(page, tag); await settleAndRefillRequired(); return n; },
+        });
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+      }
+    }
     trackMilestone('State specific info - Additional coverages');
 
     // Auto Dealers has its own tab (dealer locations: class + coverage type) before Vehicles.
@@ -1442,12 +1485,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     const skipPrivatePassenger = ['NC'].includes(testState);
     if (!skipPrivatePassenger) {
     await closeVehiclePrefill();
-    await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (private passenger)');
-    await clickBsSelect('bs-select-2-1', 'Vehicle Type (private passenger)');
-    await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
-    await clickBsSelect('bs-select-3-1', 'Garaging Location (private passenger)');
-    await page.getByRole('button', { name: 'Confirm' }).click();
-    await dismissStatusModal();
+    await addNewVehicle('bs-select-2-1', 'private passenger', { prefillClosed: true });
     await page.locator('#txt_Vin').fill(caRefreshOn ? '1HGCV1F39KA012345' : '1GBJ6C1BX8F416705');
     await page.getByText('Model *').click();
     await page.getByRole('combobox', { name: 'Please select' }).click();
@@ -1481,13 +1519,7 @@ test('CA Submission', async ({ page }, testInfo) => {
     }
 
     // ── Vehicles - Truck ────────────────────────────────────────────────────────
-    await closeVehiclePrefill();
-    await waitAndClick(page.getByRole('combobox', { name: 'Add New Vehicle' }), 'Add New Vehicle combobox (truck)');
-    await clickBsSelect('bs-select-2-3', 'Vehicle Type (truck)');
-    await page.getByRole('combobox', { name: 'Select Garaging Location' }).click();
-    await clickBsSelect('bs-select-3-1', 'Garaging Location (truck)');
-    await page.getByRole('button', { name: 'Confirm' }).click();
-    await dismissStatusModal();
+    await addNewVehicle('bs-select-2-3', 'truck');
     await page.locator('#txt_Vin').fill(caRefreshOn ? '1FTEW1EP4KFA12345' : '1FDXX46F93EA79961');
     await page.locator('#xrgn_CLAutoVehiclesDetails_LeftColumn').click();
     await page.locator('#xrgn_BusinessUseClass_Trucks_Dropdown').getByRole('combobox', { name: 'Nothing selected' }).click();

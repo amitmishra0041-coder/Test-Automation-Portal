@@ -22,17 +22,23 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
     fillBlanks: (tag) => fillBlankRequiredSelects(page, tag),
     safeNextClick: async () => { await dismiss(); await page.getByRole('button', { name: 'Next ' }).click({ timeout: 10000 }); },
   };
-  for (const [editDelay, dropFirst] of [[0, 0], [3000, 0], [8000, 0], [3000, 1]]) {
+  for (const [editDelay, dropFirst, ghost] of [[0, 0, 0], [3000, 0, 0], [8000, 0, 0], [3000, 1, 0], [3000, 0, 1], [3000, 1, 1]]) {
     await page.goto(`${BASE}?p=summary&editDelay=${editDelay}`);
-    await page.evaluate((d) => { localStorage.clear(); localStorage.setItem('dropFirst', String(d)); }, dropFirst);
+    await page.evaluate(([d, g]) => { localStorage.clear(); localStorage.setItem('dropFirst', String(d)); localStorage.setItem('ghost', String(g)); }, [dropFirst, ghost]);
     await page.goto(`${BASE}?p=summary&editDelay=${editDelay}`);
     const ok = await repairVehicleErrors(page, deps);
     const onDrivers = await page.getByText('Drivers', { exact: true }).isVisible().catch(() => false);
     const srv = await page.evaluate(() => JSON.parse(localStorage.getItem('srv') || '{}'));
     const complete = Object.values(srv).every((x) => x.losses && x.ded);
-    check(`edit ${editDelay}ms, lost first post=${!!dropFirst}: Next accepted, on Drivers`, ok && onDrivers);
-    check(`edit ${editDelay}ms, lost first post=${!!dropFirst}: every vehicle complete on the server`, complete, JSON.stringify(srv));
+    check(`edit ${editDelay}ms, lost first post=${!!dropFirst}, shown-but-blank=${!!ghost}: Next accepted, on Drivers`, ok && onDrivers);
+    check(`edit ${editDelay}ms, lost first post=${!!dropFirst}, shown-but-blank=${!!ghost}: every vehicle complete on the server`, complete, JSON.stringify(srv));
   }
+  // started on an unsaved vehicle form (MI Auto Dealers 10/29): must go back to the summary itself
+  await page.goto(`${BASE}?p=summary&editDelay=0`);
+  await page.evaluate(() => { localStorage.clear(); });
+  await page.goto(`${BASE}?p=coverages&v=3&editDelay=0`);
+  const okForm = await repairVehicleErrors(page, deps);
+  check('started on a vehicle form: back to summary, repaired, on Drivers', okForm && await page.getByText('Drivers', { exact: true }).isVisible().catch(() => false));
   await browser.close();
   console.log(failed ? `\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');
   process.exit(failed ? 1 : 0);

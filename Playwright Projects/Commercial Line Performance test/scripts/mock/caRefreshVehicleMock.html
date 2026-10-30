@@ -16,10 +16,12 @@ const P = Q.get('p') || 'summary';
 const V = Number(Q.get('v') || 0);
 const editDelay = Number(Q.get('editDelay') ?? 3000);
 const srv = JSON.parse(localStorage.getItem('srv') || 'null') || {
-  1: { name: 'Private Passenger', losses: 'Comprehensive', ded: '500' },
+  1: { name: 'Private Passenger', losses: 'Comprehensive', ded: localStorage.getItem('ghost') === '1' ? '' : '500' },
   2: { name: 'Truck', losses: 'Comprehensive', ded: '' },
   3: { name: 'Special Type', losses: '', ded: '' },
 };
+// ghost: WriteBiz shows a Deductible Type the server does not have (PA Business Auto, Private Passenger, 10/29)
+const ghost = (v) => localStorage.getItem('ghost') === '1' && Number(v) === 1;
 const save = () => localStorage.setItem('srv', JSON.stringify(srv));
 const go = (p, v) => { location.href = location.pathname + `?p=${p}&v=${v || 0}&editDelay=${editDelay}`; };
 const errors = () => Object.entries(srv).flatMap(([n, x]) => [
@@ -47,9 +49,9 @@ function render() {
     app.innerHTML = tabs(V) + `<h3>Details</h3><select id="ddl_ClassType"><option value="m" selected>Mobile</option></select><button onclick="go('coverages',${V})">Next <i></i></button>`;
   } else if (P === 'coverages') {
     const x = srv[V];
-    app.innerHTML = tabs(V) + `<h3>Coverages</h3><div id="xacc_Card_OTC"><span>Losses Covered</span>
-      <select id="selLosses" onchange="post(${V},'losses',this.value)"><option value="">Nothing selected</option>${['Comprehensive', 'Specified Causes Of Loss'].map((o) => `<option value="${o}" ${x.losses === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
-      ${x.losses ? `<span>Deductible Type</span><select id="selDed" onchange="post(${V},'ded',this.value)"><option value="">Nothing selected</option>${['500', '1000'].map((o) => `<option value="${o}" ${x.ded === o ? 'selected' : ''}>${o}</option>`).join('')}</select>` : ''}</div>
+    app.innerHTML = tabs(V) + `<h3>Coverages</h3><div id="xacc_Card_OTC"><span class="FieldLabel">Losses Covered</span>
+      <select id="selLosses" data-requiredmessage="Losses Covered is required" onchange="post(${V},'losses',this.value)"><option value="">Nothing selected</option>${['Comprehensive', 'Specified Causes Of Loss'].map((o) => `<option value="${o}" ${x.losses === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      ${x.losses ? `<div class="FieldSpacing"><span class="FieldLabel">Deductible Type</span><select id="selDed" data-requiredmessage="Deductible Type is required" onchange="post(${V},'ded',this.value)"><option value="">Nothing selected</option>${['500', '1000'].map((o) => `<option value="${o}" ${(x.ded || (ghost(V) ? '500' : '')) === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>` : ''}</div>
       <button onclick="go('additional',${V})">Next <i></i></button>`;
   } else if (P === 'additional') {
     app.innerHTML = tabs(V) + `<h3>Additional Coverages</h3><button onclick="go('summary')">Save Vehicle <i></i></button>`;

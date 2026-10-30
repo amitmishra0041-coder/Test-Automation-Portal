@@ -27,6 +27,16 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
     check(`hide ${hideMs}ms: coverage saved`, saved === true);
     check(`hide ${hideMs}ms: report says ADDED with 2 items`, r.status === 'ADDED' && r.detail === '2 scheduled items added', `${r.status} / ${r.detail}`);
   }
+  // one-word grid rows: "Garagekeepers" must match the QA extra "Garagekeepers" (CO 10/29 reported it "not in the grid"),
+  // but must NOT be taken for a longer expected name that merely contains the word
+  await page.setContent(`<table><tbody>
+    <tr><td>Additional Coverages</td><td></td><td>Garagekeepers</td><td>CO</td><td><i class="fa-trash"></i></td></tr>
+  </tbody></table>`);
+  for (const [name, want] of [['Garagekeepers', 'ALREADY_SELECTED'], ['Garagekeepers Coverage Other Than Collision', undefined]]) {
+    const recs = [];
+    await addExpectedFromGrid(page, { expected: [{ name, category: 'Coverage' }], effectiveDate: '08/01/2027', pool: [], record: (e) => recs.push(e), label: 'mock grid' });
+    check(`one-word row vs expected "${name}"`, (recs[0] || {}).status === want, JSON.stringify(recs[0] || null));
+  }
   await browser.close();
   console.log(failed ? `\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');
   process.exit(failed ? 1 : 0);

@@ -1,0 +1,36 @@
+<!doctype html>
+<!-- Offline model of the CO State Specific Info failure (10/29): Additional Coverages -> Next shows
+     'Colorado: Uninsured Motorists Property Damage Coverage - Missing required field "Uninsured Motorists Property Damage Limit"'
+     because the limit (a card on the Coverages sub-tab) is blank on the server. localStorage 'ghost'=1: the page SHOWS a limit
+     the server does not have. 'srv' is the server. -->
+<html><head><meta charset="utf-8"><title>Mock state specific</title>
+<style>.modal{display:none;border:1px solid #333;padding:8px}.modal.show{display:block}#dgic-status-message{display:none}</style></head>
+<body>
+<div id="dgic-status-message">Please wait...</div>
+<div><a href="#" onclick="go('details');return false">Details</a> | <a href="#" onclick="go('coverages');return false">Coverages</a> | <a href="#" onclick="go('additional');return false">Additional Coverages</a></div>
+<div id="app"></div>
+<div class="modal" id="dgic-modal-activityimpediments"><b>Attention</b><div>Errors</div>
+  <div id="xlbl_Impediment_0">Colorado: Uninsured Motorists Property Damage Coverage - Missing required field "Uninsured Motorists Property Damage Limit"</div>
+  <button id="ActivityImpediments_dialog_btn_0" onclick="this.parentElement.classList.remove('show')">Close</button></div>
+<script>
+const P = new URLSearchParams(location.search).get('p') || 'additional';
+const srv = JSON.parse(localStorage.getItem('srv') || '{"umpd":""}');
+const ghost = localStorage.getItem('ghost') === '1';
+const go = (p) => { location.href = location.pathname + '?p=' + p; };
+function post(val) {
+  const st = document.getElementById('dgic-status-message'); st.style.display = 'block';
+  setTimeout(() => { st.style.display = 'none'; srv.umpd = val; localStorage.setItem('srv', JSON.stringify(srv)); }, 400);
+}
+const app = document.getElementById('app');
+if (P === 'coverages') {
+  const shown = srv.umpd || (ghost ? '3500' : '');
+  app.innerHTML = `<h3>Coverages</h3><div id="xacc_Card_UMPD"><div class="FieldSpacing"><span class="FieldLabel">Uninsured Motorists Property Damage Limit</span>
+    <select id="selUmpd" data-requiredmessage="Uninsured Motorists Property Damage Limit is required" onchange="post(this.value)">
+    <option value="">Nothing selected</option>${['3500', '5000'].map((o) => `<option value="${o}" ${shown === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
+    <button onclick="go('additional')">Next <i></i></button>`;
+} else if (P === 'additional') {
+  app.innerHTML = `<h3>Additional Coverages</h3><button onclick="next()">Next <i></i></button>`;
+} else if (P === 'vehicles') app.innerHTML = '<h3>Vehicles</h3>';
+else app.innerHTML = `<h3>Details</h3><button onclick="go('coverages')">Next <i></i></button>`;
+function next() { if (!srv.umpd) document.getElementById('dgic-modal-activityimpediments').classList.add('show'); else go('vehicles'); }
+</script></body></html>
