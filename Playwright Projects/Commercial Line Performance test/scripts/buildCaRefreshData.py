@@ -97,6 +97,7 @@ def apply_wb(rows, over, idx):
 
 
 cov_rows = apply_wb(list(pm['Coverages'].iter_rows(values_only=True, max_col=40)), wb_overrides('Coverages', 11, 600), 10)
+cov_rows = apply_wb(cov_rows, wb_overrides('Coverages', 5, 600), 4)  # coverage name without struck-through (old) names
 hdr = cov_rows[1]
 STATE_COLS = {hdr[i]: i for i in range(15, 39) if hdr[i]}
 cov_index = {}
@@ -247,6 +248,9 @@ for r in pm['Coverage Terms'].iter_rows(min_row=2, max_row=6000, values_only=Tru
 #    precondition only lists some of it) ───────────────────────────────────────────────────────────────────────────
 def sbt_rows(sheet, kind, name_i, cat_i, code_i, wb_i, form_i, state0, sbt_i, maxc):
     rows = apply_wb(list(pm[sheet].iter_rows(values_only=True, max_col=maxc)), wb_overrides(sheet, wb_i + 1, 4000), wb_i)
+    # Renamed coverages keep the old name struck through in the same cell ("Garage Collision" / "Auto Dealers Collision"):
+    # read the name without the struck part, else the joined old+new name is reported MISSING (10/30 QA screenshot).
+    rows = apply_wb(rows, wb_overrides(sheet, name_i + 1, 4000), name_i)
     hdr = rows[1]
     scols = {hdr[i]: i for i in range(state0, state0 + 24) if hdr[i] in TARGET_STATES}
     out = []
