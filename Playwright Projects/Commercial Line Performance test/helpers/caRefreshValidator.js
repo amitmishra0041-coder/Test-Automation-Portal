@@ -35,6 +35,20 @@ function classify(cov, lob) {
 }
 const lobApplicable = (cov, lob) => classify(cov, lob) !== 'other';
 
+// QA review of the results (Devyani, 10/30/2026):
+//  - only in PolicyCenter, not on WriteBiz: CA 99 28 Stated Amount Insurance, CAD 21 06 / CAD 21 91 Pennsylvania UM / UIM - Stacked,
+//    CA 20 16 Mobile Homes Contents Coverage
+//  - "Non Owned Auto Standard Coverages" belong to Business Auto only
+//  - a precondition coverage named after a state ("Virginia Medical Expense And Income Loss Benefits Endorsement") is
+//    expected in that state only
+const QA_PC_ONLY = [/^ca 99 28\b/, /^cad 21 06\b/, /^cad 21 91\b/, /^ca 20 16\b/];
+const qaPcOnly = (cov) => QA_PC_ONLY.some((r) => r.test(norm(cov.name)));
+const QA_BA_ONLY_SECTIONS = [/^non owned auto standard coverages$/];
+const STATE_NAMES = { AZ: 'arizona', CO: 'colorado', DE: 'delaware', IA: 'iowa', MD: 'maryland', MI: 'michigan', NC: 'north carolina', NE: 'nebraska',
+  NM: 'new mexico', OH: 'ohio', PA: 'pennsylvania', SC: 'south carolina', SD: 'south dakota', TN: 'tennessee', TX: 'texas', UT: 'utah', VA: 'virginia', WI: 'wisconsin' };
+// the state a coverage name is tied to ("Virginia ...", "CAD 21 92 Pennsylvania ..."), or null
+const namedState = (name) => { const n = norm(name).replace(/^cad? ?\d{2} ?\d{2} /, ''); const hit = Object.entries(STATE_NAMES).find(([, s]) => n.startsWith(s + ' ')); return hit ? hit[0] : null; };
+
 function expectedFor(lob, state) {
   const d = DATA.lobs[lob];
   if (!d) throw new Error(`No CA Refresh data for LOB "${lob}"`);
@@ -42,10 +56,12 @@ function expectedFor(lob, state) {
   for (const sec of d.sections) {
     for (const c of sec.coverages) {
       if (!lobApplicable({ ...c, category: sec.category }, lob)) continue;
-      list.push({ category: sec.category, ...c, source: 'precondition', expected: isExpectedIn(c, state) });
+      if (lob !== 'BUSINESS_AUTO' && QA_BA_ONLY_SECTIONS.some((r) => r.test(norm(sec.category)))) continue;
+      const tied = namedState(c.name);
+      list.push({ category: sec.category, ...c, source: 'precondition', expected: isExpectedIn(c, state) && (!tied || tied === state) });
     }
   }
-  for (const f of d.mappingForms) list.push({ category: 'Forms from mapping', name: f, source: 'precondition', expected: true, mappingForm: true });
+  for (const f of d.mappingForms) { const tied = namedState(f); list.push({ category: 'Forms from mapping', name: f, source: 'precondition', expected: !tied || tied === state, mappingForm: true }); }
   // Everything else the product model flags "SBT Update = yes" (coverages, conditions, exclusions) that applies to this
   // policy type and state - the precondition only lists some of the CA Refresh set.
   const seen = new Set(list.map((c) => norm(c.name)));
@@ -161,7 +177,9 @@ const normOpt = (o) => norm(String(o).replace(/,/g, ''));
 const jaccard = (a, b) => { const ta = new Set(tokens(a)); const tb = new Set(tokens(b)); const u = new Set([...ta, ...tb]); return u.size ? [...ta].filter((t) => tb.has(t)).length / u.size : 0; };
 const overlap = (a, b) => { const ta = tokens(a); const tb = tokens(b); return ta.length ? ta.filter((t) => tb.includes(t)).length / ta.length : 0; };
 
-const canon = (n) => norm(n).replace(/^auto dealers? /, 'garage ').replace(/^cad? ?\d{2} ?\d{2} /, '');
+// precondition notes after the name ("CA 20 16 Mobile Homes Contents Coverage – new form with added fields", "... – Date added")
+// are not part of the name either
+const canon = (n) => norm(n).replace(/^auto dealers? /, 'garage ').replace(/^cad? ?\d{2} ?\d{2} /, '').replace(/ (new form with added fields|date added)$/, '');
 const modelByName = new Map();
 for (const m of DATA.modelTerms || []) { const k = canon(m.name); (modelByName.get(k) || modelByName.set(k, []).get(k)).push(m); }
 
@@ -222,6 +240,15 @@ function findPresent(cov, pool) {
     if ((p.cards || []).some((k) => canon(k.title) === c)) return p;
     if ((p.gridNames || []).some((g) => canon(g) === c)) return p;
   }
+  // "<State> Uninsured / Underinsured Motorists Coverage - Nonstacked": on WriteBiz this is a Coverage Type option
+  // ("Combined Single Limit Nonstacked") of the Uninsured / Underinsured Motorists Coverage card, not a coverage of its own.
+  const stack = /(uninsured|underinsured) motorists coverage (non ?stacked|stacked)$/.exec(c.replace(/^[a-z ]*?(?=(uninsured|underinsured) )/, ''));
+  if (stack) {
+    const want = stack[2].replace(' ', '');
+    for (const p of pool) {
+      if ((p.cards || []).some((k) => canon(k.title) === `${stack[1]} motorists coverage` && (k.terms || []).some((t) => (t.options || []).some((o) => norm(o).split(' ').includes(want))))) return p;
+    }
+  }
   if (isFormNumberName(cov)) return pool.find((p) => matchers(cov).some((m) => p.norm.includes(m)));
   return null;
 }
@@ -238,7 +265,7 @@ function evaluate(lob, state, pool) {
     if (!cov.expected) status = hit ? 'UNEXPECTED' : 'NOT_APPLICABLE';
     else if (hit) status = 'FOUND';
     else if (needsOtherVehicle(cov, state)) status = 'NOT_TESTED';
-    else status = wbVisible(cov) ? 'MISSING' : 'PC_ONLY';
+    else status = wbVisible(cov) && !qaPcOnly(cov) ? 'MISSING' : 'PC_ONLY';
     if (cov.optional && !hit) return null; // unclassified and not on screen: nothing to report
     return { category: cov.category, name: cov.name, source: cov.source || '', code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
   });
