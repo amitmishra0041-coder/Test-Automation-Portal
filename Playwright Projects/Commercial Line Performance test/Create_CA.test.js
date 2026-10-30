@@ -916,6 +916,20 @@ test('CA Submission', async ({ page }, testInfo) => {
     console.log(`${label}: element not visible - page diagnostic: ${JSON.stringify(diag)}`);
   }
 
+  // WriteBiz's "Attention - An error has occurred. For assistance, please contact our Agency Automation Support" box (PA 10/30,
+  // State Specific Info): click Close, then update the page's coverages again (fill / re-check the dropdowns) before Next is retried.
+  async function closeAgencyErrorAndRetry() {
+    const box = page.locator('.modal.show').filter({ hasText: /An error has occurred\. For assistance/i }).first();
+    if (!await box.isVisible().catch(() => false)) return false;
+    await box.getByRole('button', { name: /Close/ }).first().click({ timeout: 5000 }).catch(() => {});
+    await box.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    console.log('Closed "An error has occurred ... Agency Automation Support" box - updating the coverages again');
+    await dismissStatusModal();
+    await fillBlankRequiredSelects(page, 'after the WriteBiz error');
+    await settleAndRefillRequired();
+    return true;
+  }
+
   async function safeNextClick() {
     const btn = page.getByRole('button', { name: 'Next ' });
     await btn.waitFor({ state: 'visible', timeout: 30000 });
@@ -951,6 +965,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       } catch (e) {
         console.log(`safeNextClick attempt ${attempt}: ${e.message.split('\n')[0]}`);
         await dismissStatusModal();
+        await closeAgencyErrorAndRetry();
         await fixRequiredFields();
         await fillBlankRequiredSelects(page, 'safeNextClick');
         await page.waitForTimeout(500);
