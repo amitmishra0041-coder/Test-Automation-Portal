@@ -113,15 +113,25 @@ opt_rows = apply_wb(list(pm['Coverage Term Options'].iter_rows(values_only=True,
 ohdr = opt_rows[1]
 OPT_STATE_COLS = {ohdr[i]: i for i in range(15, 39) if ohdr[i]}
 terms = {}  # (category, coverage) -> {term: [{"option", "code", "states": [...], "wb": "Y/N", "default": bool}]}
-for r in opt_rows[2:]:
+# State cells can hold two lines - the old value above the new one ("Y" / "N"), the old one sometimes struck through.
+# QA (Devyani, 10/30): the CURRENT value is the last line that is not struck through - "Y<newline>N" = no longer offered,
+# "N<newline>Y" = offered. Read those cells with rich text so struck parts are dropped.
+def state_now(cell):
+    v = effective(cell)
+    lines = [x.strip().upper() for x in str(v or '').split(chr(10)) if x.strip()]
+    return lines[-1] if lines else ''
+opt_state_now = {}  # sheet row -> {state: current value}
+for rn, row in enumerate(pmr['Coverage Term Options'].iter_rows(min_row=3, max_row=6000, min_col=1, max_col=39), start=3):
+    if len(row) < 39 or (row[0].value is None and row[4].value is None):
+        continue
+    opt_state_now[rn] = {st: state_now(row[c]) for st, c in OPT_STATE_COLS.items() if st in TARGET_STATES and row[c].value is not None}
+for k, r in enumerate(opt_rows[2:], start=3):
     if not r[4] or not r[6] or not r[9]:
         continue
-    # QA rule (Devyani): terms/options are only in scope when 'SBT Update 2025' is Y / Yes
-    if str(r[45] or '').strip().upper() not in ('Y', 'YES'):
-        continue
+    # QA (Devyani, 10/30): every term and option of an in-scope coverage is checked - no 'SBT Update 2025' filter here
+    # (Hired Auto Collision: only Deductible was SBT-flagged, so Coverage Type and its dependent deductibles were missed).
     t = terms.setdefault((norm(r[3]), norm(r[4])), {}).setdefault(clean(r[6]), [])
-    # a cell can hold several lines (Y then N) when the sheet differs by effective date - any Y counts as offered
-    states = [st for st, c in OPT_STATE_COLS.items() if st in TARGET_STATES and r[c] and 'Y' in str(r[c]).upper()]
+    states = [st for st, v in opt_state_now.get(k, {}).items() if v == 'Y']
     t.append({'option': clean(r[9]), 'code': clean(r[8]) or None, 'value': clean(r[10]) or None,
               'default': str(r[12] or '').strip().upper().startswith('Y'), 'wb': re.sub(r'\s+', '', str(r[13] or '')).upper() or None, 'states': states})
 
@@ -237,7 +247,7 @@ for (ncat, ncov), tmap in terms.items():
 # checked for presence. The tab is declared with ~1M blank rows, so only the first few thousand are read.
 term_names = {}
 for r in pm['Coverage Terms'].iter_rows(min_row=2, max_row=6000, values_only=True, max_col=60):
-    if r[4] and r[6] and str(r[52] or '').strip().upper() in ('Y', 'YES'):
+    if r[4] and r[6]:  # every term (QA 10/30: no 'SBT Update 2025' filter on the Coverage Terms tab)
         for nm in str(r[4]).split(chr(10)):
             if nm.strip():
                 lst = term_names.setdefault(norm(nm), [])

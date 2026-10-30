@@ -12,7 +12,7 @@ const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequire
 const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
 const { addExpectedFromGrid, exerciseCards } = require('./helpers/caRefreshAdditional');
-const { repairVehicleErrors, repairCoverageErrors } = require('./helpers/caRefreshVehicleRepair');
+const { repairVehicleErrors, repairCoverageErrors, repairGridCoverageErrors } = require('./helpers/caRefreshVehicleRepair');
 const fs   = require('fs');
 const path = require('path');
 
@@ -478,6 +478,13 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   async function addDealerLocation() {
     await dismissStatusModal();
+    // Never run the dealer steps on another page (DE 10/30 ran them on Vehicles after an off-by-one Next): open the tab.
+    if (!/CLAutoDealers/i.test(page.url())) {
+      console.log(`Auto Dealers: not on the Auto Dealers tab (${page.url()}) - opening it`);
+      await page.locator('a:visible, li:visible').filter({ hasText: /^\s*Auto Dealers\s*$/ }).first().click({ timeout: 8000 }).catch(() => {});
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await dismissStatusModal();
+    }
     await crSnap('Auto Dealers - Locations');
     const opts = await page.locator('#ddlAddNewDealer option').allInnerTexts().catch(() => []);
     console.log(`Dealer location options: ${JSON.stringify(opts)}`);
@@ -524,22 +531,37 @@ test('CA Submission', async ({ page }, testInfo) => {
     await crSnap('Auto Dealers - Additional Coverages (before adding)');
     await crAddExpected('Auto Dealers - Additional Coverages');
     await crSnap('Auto Dealers - Additional Coverages (after adding)');
-    // This last dealer tab ends with a green "Save Auto Dealers" button (no Next); saving moves on to Vehicles.
-    const saveDealers = page.getByRole('button', { name: /Save Auto Dealers/ });
-    if (await saveDealers.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await saveDealers.click({ timeout: 10000 });
-      await page.waitForLoadState('domcontentloaded');
-      await dismissStatusModal();
-      console.log('Auto Dealers saved');
-    } else {
-      await safeNextClick();
-      await dismissStatusModal();
-    }
-    // Vehicles tab (if saving did not already land there)
-    if (!/CLAutoVehicles/i.test(page.url())) {
-      await page.getByRole('link', { name: 'Vehicles' }).or(page.locator('a:has-text("Vehicles"), li:has-text("Vehicles")')).first().click({ timeout: 8000 }).catch(() => {});
-      await page.waitForLoadState('domcontentloaded');
-      await dismissStatusModal();
+    // This last dealer tab ends with a green "Save Auto Dealers" button (no Next); saving moves on to Vehicles - else the
+    // Vehicles tab is opened. WriteBiz checks the dealer coverages when the tab is LEFT (DE 10/30: the 'Auto Dealers Personal
+    // Injury Protection Endorsement PIP Coverage - Missing required field ...' box came on the Vehicles click, not on Save),
+    // so after every attempt to leave: on Vehicles = done; an Errors box = repair (pre-selected grid row's dialog, then the
+    // Coverages sub-tab) and leave again.
+    const leaveDealers = async () => {
+      const save = page.getByRole('button', { name: /Save Auto Dealers/ });
+      if (await save.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await save.click({ timeout: 10000 }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+        await dismissStatusModal();
+        console.log('Auto Dealers saved');
+      } else if (!/CLAutoVehicles/i.test(page.url())) { await safeNextClick().catch(() => {}); await dismissStatusModal(); }
+      if (!/CLAutoVehicles/i.test(page.url()) && !await dealerErr().isVisible().catch(() => false)) {
+        await page.getByRole('link', { name: 'Vehicles' }).or(page.locator('a:has-text("Vehicles"), li:has-text("Vehicles")')).first().click({ timeout: 8000 }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+        await dismissStatusModal();
+      }
+    };
+    const dealerErr = () => page.locator('.modal.show').filter({ hasText: /Missing required field/ }).first();
+    await leaveDealers();
+    for (let k = 0; k < 3 && !/CLAutoVehicles/i.test(page.url()); k++) {
+      if (!await dealerErr().waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) { await leaveDealers(); continue; }
+      await repairGridCoverageErrors(page, { dismiss: dismissStatusModal, log: (m) => console.log(m), saveTab: leaveDealers });
+      if (await dealerErr().isVisible().catch(() => false)) {
+        await repairCoverageErrors(page, {
+          safeNextClick, dismiss: dismissStatusModal, log: (m) => console.log(m),
+          fillBlanks: async (tag) => { const n = await fillBlankRequiredSelects(page, tag); await settleAndRefillRequired(); return n; },
+        });
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+      }
     }
     console.log(`After Auto Dealers: ${page.url()}`);
   }
@@ -703,6 +725,9 @@ test('CA Submission', async ({ page }, testInfo) => {
         const hired = await read('Hired Auto Coverage');
         const nonOwned = await read('Non-Owned Auto Coverage');
         console.log(`State-specific (after save, round ${round}): Hired Auto Coverage = ${hired}, Non-Owned Auto Coverage = ${nonOwned}`);
+        // DE Auto Dealers 10/30: WriteBiz was slow, the Details click did not open the tab (both read null) and the Next below
+        // then moved one page too far - the Auto Dealers tab was skipped. Neither field on screen = still on Coverages: stop here.
+        if (hired === null && nonOwned === null) { console.log('State-specific: Details sub-tab did not open - not pressing Next again'); break; }
         const ok = (hired === null || hired === 'Yes') && (nonOwned === null || nonOwned === 'Yes');
         if (!ok && round === 1) { await choose('Hired Auto Coverage', 'Yes'); await choose('Non-Owned Auto Coverage', 'Yes'); }
         await safeNextClick(); // save Details (again) and go on to Coverages

@@ -185,7 +185,7 @@ async function exerciseCards(page, pool, label, maxCards = 40, opts = {}) {
             const inf2 = await infoAt(sj);
             if (!usable(inf2)) continue;
             const sel2 = card.locator('select').nth(sj);
-            for (const q of inf2.opts.filter((x) => x.v !== inf2.cur && !/^no coverage$/i.test(x.t)).slice(0, 4)) {
+            for (const q of ((l) => (l.length > 4 ? [...l.slice(0, 3), l[l.length - 1]] : l))(inf2.opts.filter((x) => x.v !== inf2.cur && !/^no coverage$/i.test(x.t)))) { // first 3 + the last (highest limit: some values only appear under it - QA 10/30)
               await sel2.selectOption(q.v).catch(() => {});
               await settle(page, 1500);
               await snap(`${info.label} = ${o.t}; ${inf2.label} = ${q.t}`);
@@ -263,7 +263,9 @@ async function addExpectedFromGrid(page, opts) {
         if (await modal.isVisible().catch(() => false)) {
           console.log(`  schedule: dialog still open after first Save for "${row.name}"`);
           const addItem = modal.locator('button:has-text("Add Scheduled Item"), button:has-text("Add Item"), button:has-text("Add New")').first();
-          if (await addItem.count() > 0) {
+          // After the first Save WriteBiz re-renders it as "Edit <coverage>" - on the slower dealer form the button was not back
+          // yet when it was counted, so Drive Other Car never got its items on Auto Dealers (10/30). Wait for it.
+          if (await addItem.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
             let saved = 0;
             for (let n = 0; n < 2; n++) { // two scheduled items for any scheduled coverage
               // After an item is saved WriteBiz re-renders the parent dialog (briefly hidden): wait for it, then make sure

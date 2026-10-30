@@ -183,11 +183,14 @@ const canon = (n) => norm(n).replace(/^auto dealers? /, 'garage ').replace(/^cad
 const modelByName = new Map();
 for (const m of DATA.modelTerms || []) { const k = canon(m.name); (modelByName.get(k) || modelByName.set(k, []).get(k)).push(m); }
 
-// Every coverage card / Add-coverage dialog captured from WriteBiz that maps to a product-model coverage with term
-// options gets its dropdown options compared with the model's options offered in this state.
+// Every coverage card / Add-coverage dialog captured from WriteBiz that maps to a product-model coverage gets its terms and
+// dropdown options compared with the model's options offered in this state. QA (Devyani, 10/30): a term's options depend on
+// other selections (Coverage Type = No Coverage shows no deductibles; some values only under higher limits), so the options
+// seen across EVERY snapshot of the same coverage + term (default page and every exercised selection) are combined before
+// comparing; likewise a term counts as shown when any snapshot of the card shows it.
 function checkAllCards(state, pool) {
-  const out = [];
-  const done = new Set();
+  const agg = new Map(); // coverage|term -> { coverage, term, expected, observed:Set, pages:Set, contexts:Set }
+  const shownTerms = new Map(); // coverage -> { names, shown:Set, pages:Set }
   for (const p of pool) {
     for (const card of p.cards || []) {
       let cands = modelByName.get(canon(card.title));
@@ -196,35 +199,41 @@ function checkAllCards(state, pool) {
       const selects = card.terms.filter((x) => x.kind === 'select');
       const score = (m) => Object.keys(m.terms).filter((tn) => selects.some((x) => overlap(tn, x.label) >= 0.6)).length;
       const m = cands.slice().sort((a, b) => score(b) - score(a))[0];
-      // Every term the model defines for this coverage (Coverage Terms tab, free-text ones included) should be shown on it.
+      const ckey = canon(card.title);
       const names = DATA.termNames && DATA.termNames[norm(m.name)];
-      const pkey = `names|${norm(card.title)}|${card.terms.map((x) => x.label).join('~')}`;
-      if (names && card.terms.length && !done.has(pkey)) {
-        done.add(pkey);
-        const shown = card.terms.map((x) => x.label);
-        for (const nm of names) {
-          const ok = shown.some((l) => jaccard(nm, l) >= 0.6);
-          out.push({ coverage: card.title, term: nm, expected: [], observed: [], missing: [], extra: [], page: p.label, context: p.context || '', status: ok ? 'MATCH' : 'PARTIAL', note: ok ? 'term shown' : 'term not shown on the screen' });
-        }
+      if (names && card.terms.length) {
+        const st = shownTerms.get(ckey) || shownTerms.set(ckey, { coverage: card.title, names, shown: new Set(), pages: new Set() }).get(ckey);
+        card.terms.forEach((x) => st.shown.add(x.label));
+        st.pages.add(p.label);
       }
       for (const [term, opts] of Object.entries(m.terms)) {
         const t = selects.slice().sort((x, y) => jaccard(term, y.label) - jaccard(term, x.label))[0];
-        const expected = opts.filter((o) => o.states.includes(state) && o.wb === 'Y').map((o) => o.option);
-        const base = { coverage: card.title, term, expected, page: p.label, context: p.context || '' };
-        if (!t || jaccard(term, t.label) < 0.6) { continue; } // term not shown for this card/state - nothing to compare
-        const key = `${norm(card.title)}|${norm(term)}|${t.options.join('~')}|${p.context || ''}`;
-        if (done.has(key)) continue;
-        done.add(key);
-        const seen = new Set(t.options.map(normOpt));
-        const want = new Set(expected.map(normOpt));
-        const missing = expected.filter((o) => !seen.has(normOpt(o)));
-        const extra = t.options.filter((o) => !want.has(normOpt(o)));
-        // Options WriteBiz offers that the model does not list = MISMATCH. Model options not on screen = PARTIAL (many
-        // dropdowns are filtered by another selection, so only a subset is visible). No options for this state = no data.
-        const status = !expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : 'MATCH';
-        out.push({ ...base, observed: t.options, missing, extra, status });
+        if (!t || jaccard(term, t.label) < 0.6) continue; // term not shown in this snapshot
+        const key = `${ckey}|${norm(term)}`;
+        const a = agg.get(key) || agg.set(key, { coverage: card.title, term, expected: opts.filter((o) => o.states.includes(state) && o.wb === 'Y').map((o) => o.option), observed: new Set(), pages: new Set(), contexts: new Set() }).get(key);
+        t.options.forEach((o) => a.observed.add(o));
+        a.pages.add(p.label);
+        if (p.context) a.contexts.add(p.context);
       }
     }
+  }
+  const out = [];
+  for (const st of shownTerms.values()) {
+    const shown = [...st.shown];
+    for (const nm of st.names) {
+      const ok = shown.some((l) => jaccard(nm, l) >= 0.6);
+      out.push({ coverage: st.coverage, term: nm, expected: [], observed: [], missing: [], extra: [], page: [...st.pages].join(', '), context: '', status: ok ? 'MATCH' : 'PARTIAL', note: ok ? 'term shown' : 'term not shown on any snapshot of this coverage' });
+    }
+  }
+  for (const a of agg.values()) {
+    const observed = [...a.observed];
+    const seen = new Set(observed.map(normOpt));
+    const want = new Set(a.expected.map(normOpt));
+    const missing = a.expected.filter((o) => !seen.has(normOpt(o)));
+    const extra = observed.filter((o) => !want.has(normOpt(o)));
+    // Options WriteBiz offers that the model does not list = MISMATCH. Model options never seen on any snapshot = PARTIAL.
+    const status = !a.expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : 'MATCH';
+    out.push({ coverage: a.coverage, term: a.term, expected: a.expected, page: [...a.pages].join(', '), context: [...a.contexts].slice(0, 6).join(' | ') + (a.contexts.size > 6 ? ` (+${a.contexts.size - 6} more)` : ''), observed, missing, extra, status });
   }
   return out;
 }

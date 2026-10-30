@@ -1,0 +1,60 @@
+<!doctype html>
+<!-- Offline model of the DE Auto Dealers failure (10/30): "Save Auto Dealers" shows
+     'Location 1: MAIN ST, NEWARK, DE 19702: Auto Dealers Personal Injury Protection Endorsement PIP Coverage - Missing required field
+     "Personal Injury Protection For "Bodily Injury""' (+ "Personal Injury Protection coverage Deductible"). The coverage is a
+     pre-selected ROW of the Additional Coverages grid; its fields are in the row's edit dialog. Server = localStorage. -->
+<html><head><meta charset="utf-8"><title>Mock dealer grid</title>
+<style>.modal{display:none;border:1px solid #333;padding:8px}.modal.show{display:block}#dgic-status-message{display:none}</style></head>
+<body>
+<div id="dgic-status-message">Please wait...</div>
+<div id="subtabs"><a href="#ajtc" class="nav-link" value="Static|CLAutoDealersCoverages.aspx" onclick="go('coverages');return false">Coverages</a> | <a href="#ajtc" class="nav-link" value="Static|CLAutoDealersAdditionalCoverages.aspx" onclick="go('additional');return false">Additional Coverages</a></div>
+<div class="top-tabs"><a href="#" onclick="leave();return false">Vehicles</a></div>
+<div id="app"></div>
+<div class="modal" id="dgic-modal-activityimpediments"><b>Attention</b><div>Errors</div><div id="errs"></div>
+  <button id="ActivityImpediments_dialog_btn_0" onclick="this.parentElement.classList.remove('show')">Close</button></div>
+<div class="modal" id="pipDlg"><h4 class="modal-title">Edit Auto Dealers Personal Injury Protection Endorsement PIP</h4>
+  <div class="FieldSpacing"><span class="FieldLabel">Personal Injury Protection For "Bodily Injury"</span>
+    <select id="selBI" data-requiredmessage='Personal Injury Protection For "Bodily Injury" is required'><option value="">Nothing selected</option><option value="15">15,000/30,000</option><option value="50">50,000/100,000</option></select></div>
+  <div class="FieldSpacing"><span class="FieldLabel">Personal Injury Protection coverage Deductible</span>
+    <select id="selDed" data-requiredmessage="Personal Injury Protection coverage Deductible is required"><option value="">Nothing selected</option><option value="0">No Deductible</option><option value="250">250</option></select></div>
+  <button onclick="savePip()">Save</button> <button onclick="this.parentElement.classList.remove('show')">Cancel</button></div>
+<script>
+const P = new URLSearchParams(location.search).get('p') || 'additional';
+const srv = JSON.parse(localStorage.getItem('srv') || '{"bi":"","ded":""}');
+const go = (p) => { location.href = location.pathname + '?p=' + p + (onLeaveQ ? '&on=leave' : '') + (paged ? '&paged=1' : ''); };
+const onLeaveQ = new URLSearchParams(location.search).get('on') === 'leave';
+const paged = new URLSearchParams(location.search).get('paged') === '1';
+const app = document.getElementById('app');
+if (P === 'additional') {
+  // ?paged=1: DataTables-style grid, 10 rows per page, the PIP endorsement row on page 2 (only the current page is in the DOM)
+  const filler = [...Array(10)].map((_, i) => `<tr><td>Exclusions</td><td></td><td>Filler Exclusion ${i + 1}</td><td><button data-action="Add">+</button></td></tr>`);
+  const pip = `<tr id="CA7GaragePersonalInjuryProtectionEndorsementPIPGRD"><td>Additional Coverages</td><td><i class="fas fa-check-circle"></i></td><td>Auto Dealers Personal Injury Protection Endorsement PIP</td><td><button data-action="Edit" title="Edit the Coverage" onclick="openPip()"><i class="fas fa-edit"></i></button></td></tr>`;
+  const rows = paged ? [...filler, pip] : [pip, ...filler];
+  window.showPage = (n) => { document.getElementById('tb').innerHTML = rows.slice(n * 10, n * 10 + 10).join(''); document.getElementById('nx').className = 'paginate_button next' + ((n + 1) * 10 >= rows.length ? ' disabled' : ''); window.pg = n; };
+  app.innerHTML = `<h3>Additional Coverages</h3><table><tbody id="tb"></tbody></table>
+    <a href="#" id="nx" class="paginate_button next" onclick="if(!this.classList.contains('disabled'))showPage(window.pg+1);return false">Next</a>
+    <button onclick="saveDealers()">Save Auto Dealers</button>`;
+  showPage(0);
+} else if (P === 'locations') {
+  // after Save Auto Dealers (DE 10/30): the dealer LOCATIONS list; the sub-tabs only show once a location is opened
+  document.getElementById('subtabs').style.display = 'none';
+  app.innerHTML = `<h3>Dealer Locations</h3><table><tbody><tr><td>1</td><td>MAIN ST</td><td>Franchised Private Passenger Auto Dealer</td><td><button data-action="Edit" title="Edit the Dealer" onclick="go('coverages')"><i class="fas fa-edit"></i></button></td></tr></tbody></table>`;
+} else if (P === 'vehicles') app.innerHTML = '<h3>Vehicles</h3>';
+else app.innerHTML = '<h3>Coverages</h3><button onclick="go(\'additional\')">Next</button>';
+function openPip() { document.getElementById('selBI').value = srv.bi; document.getElementById('selDed').value = srv.ded; document.getElementById('pipDlg').classList.add('show'); }
+function savePip() {
+  srv.bi = document.getElementById('selBI').value; srv.ded = document.getElementById('selDed').value;
+  localStorage.setItem('srv', JSON.stringify(srv)); document.getElementById('pipDlg').classList.remove('show');
+}
+// ?on=leave (DE 10/30 live): Save Auto Dealers just saves; the check runs when the Vehicles tab is clicked
+const onLeave = new URLSearchParams(location.search).get('on') === 'leave';
+function leave() { check(); }
+function saveDealers() { if (!onLeave) check(); else go('locations'); }
+function check() {
+  const loc = 'Location 1: MAIN ST, NEWARK, DE 19702: Auto Dealers Personal Injury Protection Endorsement PIP Coverage - Missing required field ';
+  const e = [!srv.bi && loc + '"Personal Injury Protection For "Bodily Injury""', !srv.ded && loc + '"Personal Injury Protection coverage Deductible"'].filter(Boolean);
+  if (!e.length) return go('vehicles');
+  document.getElementById('errs').innerHTML = e.map((t) => `<div>${t.replace(/</g, '&lt;')}</div>`).join('');
+  document.getElementById('dgic-modal-activityimpediments').classList.add('show');
+}
+</script></body></html>

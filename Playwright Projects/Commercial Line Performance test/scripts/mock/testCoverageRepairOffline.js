@@ -21,16 +21,16 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
     fillBlanks: (tag) => fillBlankRequiredSelects(page, tag),
     safeNextClick: async () => { await dismiss(); await page.getByRole('button', { name: 'Next ' }).click({ timeout: 10000 }); },
   };
-  for (const ghost of [0, 1]) {
+  for (const [ghost, disabledUmpd] of [[0, 0], [1, 0], [0, 1]]) {
     await page.goto(`${BASE}?p=additional`);
-    await page.evaluate((g) => { localStorage.clear(); localStorage.setItem('ghost', String(g)); }, ghost);
+    await page.evaluate(([g, d]) => { localStorage.clear(); localStorage.setItem('ghost', String(g)); localStorage.setItem('disabledUmpd', String(d)); }, [ghost, disabledUmpd]);
     await page.goto(`${BASE}?p=additional`);
     await deps.safeNextClick(); // the flow's own Next that WriteBiz refuses
     const ok = await repairCoverageErrors(page, deps);
     const onVehicles = await page.getByText('Vehicles', { exact: true }).isVisible().catch(() => false);
     const srv = await page.evaluate(() => JSON.parse(localStorage.getItem('srv') || '{}'));
-    check(`shown-but-blank=${!!ghost}: Next accepted, on Vehicles`, ok && onVehicles);
-    check(`shown-but-blank=${!!ghost}: limit saved on the server`, !!srv.umpd, JSON.stringify(srv));
+    check(`shown-but-blank=${!!ghost}, disabled-until-UM-reposted=${!!disabledUmpd}: Next accepted, on Vehicles`, ok && onVehicles);
+    check(`shown-but-blank=${!!ghost}, disabled-until-UM-reposted=${!!disabledUmpd}: limit saved on the server`, !!srv.umpd, JSON.stringify(srv));
   }
   // nothing wrong: returns true straight away
   await page.goto(`${BASE}?p=vehicles`);

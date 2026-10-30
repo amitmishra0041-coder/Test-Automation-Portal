@@ -10,8 +10,12 @@ const { spawn } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > -1 ? process.argv[i + 1] : d; };
 const DATA = require(path.join(ROOT, 'helpers', 'caRefreshData.json'));
-const states = (arg('states', DATA.states.join(',')) || '').split(',').filter(Boolean);
-const lobs = (arg('lobs', 'BUSINESS_AUTO,AUTO_DEALERS')).split(',').filter(Boolean);
+// --pairs PA:BUSINESS_AUTO,AZ:AUTO_DEALERS reruns just those runs (grouped by state for the emails); otherwise --states x --lobs
+const pairs = (arg('pairs', '') || '').split(',').filter(Boolean).map((x) => x.split(':'));
+const states = pairs.length ? [...new Set(pairs.map((x) => x[0]))] : (arg('states', DATA.states.join(',')) || '').split(',').filter(Boolean);
+const lobsDefault = (arg('lobs', 'BUSINESS_AUTO,AUTO_DEALERS')).split(',').filter(Boolean);
+const lobsFor = (state) => (pairs.length ? pairs.filter((x) => x[0] === state).map((x) => x[1]) : lobsDefault);
+const lobs = pairs.length ? [...new Set(pairs.map((x) => x[1]))] : lobsDefault;
 const env = arg('env', 'test');
 const until = arg('until', 'RATING'); // RATING | ISSUANCE
 const sendEmail = arg('email', '1') !== '0';
@@ -57,11 +61,11 @@ const mail = async (state, results) => {
 };
 
 (async () => {
-  say(`batch ${stamp}: states=${states.join(',')} lobs=${lobs.join(',')} env=${env} until=${until}`);
+  say(`batch ${stamp}: ${pairs.length ? 'pairs=' + pairs.map((x) => x.join(':')).join(',') : 'states=' + states.join(',') + ' lobs=' + lobs.join(',')} env=${env} until=${until}`);
   let noDocStreak = 0; // two runs in a row without a result document = WriteBiz down (e.g. a deployment): stop
   for (const state of states) {
     const results = [];
-    for (const lob of lobs) {
+    for (const lob of lobsFor(state)) {
       const r = await runOne(state, lob);
       results.push(r);
       say(`${state} ${lob}: ${r.status} | doc=${path.basename(r.doc || '-')} | ${r.validation} ${r.err ? '| ' + r.err : ''}`);

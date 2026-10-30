@@ -14,18 +14,25 @@
   <button id="ActivityImpediments_dialog_btn_0" onclick="this.parentElement.classList.remove('show')">Close</button></div>
 <script>
 const P = new URLSearchParams(location.search).get('p') || 'additional';
-const srv = JSON.parse(localStorage.getItem('srv') || '{"umpd":""}');
+const srv = JSON.parse(localStorage.getItem('srv') || 'null') || { umpd: '', um: 'CSL', umpdOn: localStorage.getItem('disabledUmpd') !== '1' };
+// disabledUmpd=1 (OH / CO 10/30): the limit is disabled and blank until the Uninsured Motorists card above it is re-posted
 const ghost = localStorage.getItem('ghost') === '1';
 const go = (p) => { location.href = location.pathname + '?p=' + p; };
-function post(val) {
+function post(val, field = 'umpd') {
   const st = document.getElementById('dgic-status-message'); st.style.display = 'block';
-  setTimeout(() => { st.style.display = 'none'; srv.umpd = val; localStorage.setItem('srv', JSON.stringify(srv)); }, 400);
+  setTimeout(() => {
+    st.style.display = 'none'; srv[field] = val;
+    if (field === 'um') { srv.umpdOn = val === 'CSL'; srv.umpd = ''; }
+    localStorage.setItem('srv', JSON.stringify(srv)); if (field === 'um') go('coverages');
+  }, 400);
 }
 const app = document.getElementById('app');
 if (P === 'coverages') {
   const shown = srv.umpd || (ghost ? '3500' : '');
-  app.innerHTML = `<h3>Coverages</h3><div id="xacc_Card_UMPD"><div class="FieldSpacing"><span class="FieldLabel">Uninsured Motorists Property Damage Limit</span>
-    <select id="selUmpd" data-requiredmessage="Uninsured Motorists Property Damage Limit is required" onchange="post(this.value)">
+  app.innerHTML = `<h3>Coverages</h3><div id="xacc_Card_UM"><div class="FieldSpacing"><span class="FieldLabel">Uninsured Motorists Coverage Type</span>
+    <select id="selUm" onchange="post(this.value, 'um')"><option value="NO" ${srv.um === 'NO' ? 'selected' : ''}>No Coverage</option><option value="CSL" ${srv.um === 'CSL' ? 'selected' : ''}>Combined Single Limit</option></select></div></div>
+    <div id="xacc_Card_UMPD"><div class="FieldSpacing"><span class="FieldLabel">Uninsured Motorists Property Damage Limit</span>
+    <select id="selUmpd" ${srv.umpdOn ? '' : 'disabled'} data-requiredmessage="Uninsured Motorists Property Damage Limit is required" onchange="post(this.value)">
     <option value="">Nothing selected</option>${['3500', '5000'].map((o) => `<option value="${o}" ${shown === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
     <button onclick="go('additional')">Next <i></i></button>`;
 } else if (P === 'additional') {

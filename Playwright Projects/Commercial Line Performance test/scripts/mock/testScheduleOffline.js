@@ -13,8 +13,8 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  for (const hideMs of [0, 1500, 4000]) {
-    await page.goto(`${BASE}?hideMs=${hideMs}`);
+  for (const [hideMs, btnDelay] of [[0, 0], [1500, 0], [4000, 0], [1500, 3000]]) {
+    await page.goto(`${BASE}?hideMs=${hideMs}&btnDelay=${btnDelay}`);
     const recs = [];
     await addExpectedFromGrid(page, {
       expected: [{ name: 'Drive Other Car Coverage - Broadened Coverage For Named Individuals', category: 'Coverage' }],
@@ -23,9 +23,9 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
     const items = await page.evaluate(() => window.__items);
     const saved = await page.evaluate(() => window.__saved);
     const r = recs[0] || {};
-    check(`hide ${hideMs}ms: items are Collision then Other Than Collision`, JSON.stringify(items) === '["Collision","OthThanCollision"]', JSON.stringify(items));
-    check(`hide ${hideMs}ms: coverage saved`, saved === true);
-    check(`hide ${hideMs}ms: report says ADDED with 2 items`, r.status === 'ADDED' && r.detail === '2 scheduled items added', `${r.status} / ${r.detail}`);
+    check(`hide ${hideMs}ms, button back after ${btnDelay}ms: items are Collision then Other Than Collision`, JSON.stringify(items) === '["Collision","OthThanCollision"]', JSON.stringify(items));
+    check(`hide ${hideMs}ms, button back after ${btnDelay}ms: coverage saved`, saved === true);
+    check(`hide ${hideMs}ms, button back after ${btnDelay}ms: report says ADDED with 2 items`, r.status === 'ADDED' && r.detail === '2 scheduled items added', `${r.status} / ${r.detail}`);
   }
   // one-word grid rows: "Garagekeepers" must match the QA extra "Garagekeepers" (CO 10/29 reported it "not in the grid"),
   // but must NOT be taken for a longer expected name that merely contains the word

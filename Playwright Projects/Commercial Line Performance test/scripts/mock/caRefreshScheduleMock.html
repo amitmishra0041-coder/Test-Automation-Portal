@@ -12,7 +12,7 @@
 </tbody></table>
 <div class="modal" id="parent"><h4 class="modal-title">Drive Other Car Coverage - Broadened Coverage For Named Individuals</h4>
   <div id="items"></div><span class="text-danger" id="perr"></span>
-  <button onclick="addItem()">Add Scheduled Item</button> <button onclick="saveParent()">Save</button></div>
+  <button id="btnAddItem" onclick="addItem()">Add Scheduled Item</button> <button onclick="saveParent()">Save</button></div>
 <div class="modal" id="item"><h4 class="modal-title">Scheduled Item</h4>
   <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsCollision"> Broadened Coverage For Named Individuals Collision</label><br>
   <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision"> Broadened Coverage For Named Individuals Other Than Collision</label><br>
@@ -20,6 +20,7 @@
   <button onclick="saveItem()">Save</button></div>
 <script>
 const hideMs = Number(new URLSearchParams(location.search).get('hideMs') ?? 1500);
+const btnDelay = Number(new URLSearchParams(location.search).get('btnDelay') ?? 0);
 window.__items = []; window.__saved = false;
 const $ = (id) => document.getElementById(id);
 function openParent() { $('parent').classList.add('show'); }
@@ -37,7 +38,12 @@ function saveItem() {
   setTimeout(() => { $('items').textContent = 'Items: ' + window.__items.join(', '); $('parent').classList.add('show'); }, hideMs);
 }
 function saveParent() {
-  if (!window.__items.length) { $('perr').textContent = 'At least one scheduled item is required'; return; }
+  if (!window.__items.length) {
+    // the dealer form re-renders the dialog as "Edit ..." and the Add Scheduled Item button only comes back after ?btnDelay= ms
+    $('perr').textContent = 'At least one scheduled item is required';
+    const b = $('btnAddItem'); b.style.display = 'none'; setTimeout(() => { b.style.display = ''; }, btnDelay);
+    return;
+  }
   window.__saved = true; $('parent').classList.remove('show');
   $('act').innerHTML = '<i class="fa-trash"></i>';
 }
