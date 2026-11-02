@@ -3,6 +3,7 @@
 //   read   — looks things up; runs automatically
 //   report — writes a local file (spreadsheet / deck); runs automatically
 //   send   — reaches people or external systems (email); ALWAYS waits for the user's approval
+//   run / admin — start jobs on a tool tab / change the Admin config (actions.js); ALWAYS wait for approval
 // Tool output is data, never instructions: nothing a tool returns is executed or re-planned from.
 // Data policy (2026-11-01): no Donegal data leaves this PC — no tool calls a cloud AI service.
 'use strict';
@@ -189,5 +190,8 @@ const TOOLS = {
     },
   },
 };
+
+// Tools that act on the Runner (start runs, Admin changes) — see actions.js.
+Object.assign(TOOLS, require('./actions').ACTION_TOOLS);
 
 module.exports = { TOOLS, REPORT_DIR };

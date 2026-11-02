@@ -100,8 +100,10 @@
 
     var wait = t.steps.find(function (s) { return s.status === 'awaiting_approval'; });
     if (wait) {
-      ap.innerHTML = '<div class="ag-bar"><span>&#9993;</span><div class="tx"><b>Waiting for you:</b> ' + esc(wait.title) +
-        (stepSub(wait) ? ' <span class="ag-sub">(' + esc(stepSub(wait)) + ')</span>' : '') + '</div>' +
+      var pv = wait.preview;
+      ap.innerHTML = '<div class="ag-bar"><span>' + (wait.risk === 'admin' ? '&#128737;' : wait.risk === 'run' ? '&#9654;' : '&#9993;') + '</span><div class="tx"><b>Waiting for you:</b> ' + esc(wait.title) +
+        (pv ? '<ul class="ag-pv">' + pv.lines.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>' + (pv.note ? '<div class="ag-sub">' + esc(pv.note) + '</div>' : '')
+          : (stepSub(wait) ? ' <span class="ag-sub">(' + esc(stepSub(wait)) + ')</span>' : '')) + '</div>' +
         '<button data-act="reject">Reject</button><button class="primary" data-act="approve">Approve</button></div>';
       each(ap, '[data-act]', function (b) { b.addEventListener('click', function () { act(t.id, b.dataset.act); }); });
     }
@@ -143,6 +145,7 @@
 
     each(el, '.ag-tabs [data-tab]', function (b) { b.addEventListener('click', function () { state.tab = b.dataset.tab; state.filter = null; renderTask(t); }); });
     each(el, '[data-tile]', function (b) { b.addEventListener('click', function () { state.filter = tileFilters(t)[b.dataset.tile]; state.tab = 'stories'; renderTask(t); }); });
+    each(el, '[data-open]', function (b) { b.addEventListener('click', function () { var tb = document.querySelector('.tab-btn[data-tab="' + b.dataset.open + '"]'); if (tb) tb.click(); }); });
     each(el, '[data-clear]', function (b) { b.addEventListener('click', function () { state.filter = null; renderTask(t); }); });
     each(el, '[data-act]', function (b) {
       b.addEventListener('click', function () {
@@ -175,7 +178,8 @@
     var st = stepOf(t, 'jira.impededStories'), an = stepOf(t, 'analysis.blockerInsights'), df = stepOf(t, 'jira.openDefects');
     if (st) html += '<div class="ag-headline"><b>' + st.stories + '</b> impeded stories &middot; <b>' + st.bugLinks + '</b> linked bugs</div>';
     else if (df) html += '<div class="ag-headline"><b>' + df.total + '</b> open defects</div>';
-    else if (t.summary && !stepOf(t, 'runner.queueStatus') && !stepOf(t, 'runner.usageStats')) html += '<div class="ag-headline small">' + esc(t.summary) + '</div>';
+    else if (t.summary && !stepOf(t, 'runner.queueStatus') && !stepOf(t, 'runner.usageStats') && !acted(t)) html += '<div class="ag-headline small' + (t.status === 'failed' ? ' ag-fail' : '') + '">' + esc(t.summary) + '</div>';
+    html += actionResults(t);
     if (t.note) html += '<div class="ag-sub">' + esc(t.note) + '</div>';
     if (an) {
       var tiles = [['overdue', an.overdue.length, 'Bugs overdue', 'red'], ['ready', an.readyToUnblock.length, 'Ready to unblock', 'green'],
@@ -193,6 +197,24 @@
     if ((st || df) && t.summary && ['failed', 'cancelled'].indexOf(t.status) >= 0) html += '<div class="ag-sub" style="margin-top:10px">' + esc(t.summary) + '</div>';
     if (t.status === 'done' && t.followUps && t.followUps.length) html += '<div class="ag-follow">' + t.followUps.map(function (f) { return '<button class="chip" data-follow="' + esc(f) + '">' + esc(f) + '</button>'; }).join('') + '</div>';
     if (!html) html = '<div class="ag-sub">' + (t.status === 'awaiting_approval' ? 'Nothing has been sent. Approve or reject above.' : t.status === 'running' ? 'Working on it…' : 'No results yet.') + '</div>';
+    return html;
+  }
+  // Runs queued / Admin changes / access list.
+  function acted(t) { return t.steps.some(function (s) { return s.result && (s.result.queued != null || s.result.changed || s.tool === 'admin.showAccess'); }); }
+  function actionResults(t) {
+    var html = '';
+    t.steps.forEach(function (s) {
+      var r = s.result;
+      if (!r) return;
+      if (r.queued != null) html += '<div class="ag-headline small">Queued <b>' + esc(r.queued) + '</b> job(s) on ' + esc(r.tabLabel) + '</div><ul class="ag-plain">' + r.jobs.map(function (j) { return '<li>' + esc(j) + '</li>'; }).join('') + '</ul>';
+      if (r.changed) html += '<div class="ag-headline small">Admin config updated</div><ul class="ag-plain">' + r.changed.map(function (j) { return '<li>' + esc(j) + '</li>'; }).join('') + '</ul>';
+      if (r.tab) html += '<div class="ag-files"><button class="ag-file" data-open="' + esc(r.tab) + '">Open the ' + esc(r.tabLabel) + ' tab &rarr;</button></div>';
+      if (s.tool === 'admin.showAccess') {
+        html += '<div class="ag-headline small"><b>Admins:</b> ' + esc(r.admins.join(', ')) + '<br><b>Everyone else by default:</b> ' + esc(r.defaultTools.join(', ') || '—') + ' <span class="ag-sub">(SmartCOMM is always on for everyone; admins can use every tool)</span></div>' +
+          (r.people.length ? '<div class="ag-table-wrap"><table class="ag-table"><thead><tr><th>Person</th><th>Tools</th></tr></thead><tbody>' +
+            r.people.map(function (p) { return '<tr><td>' + esc(p.email) + '</td><td>' + esc(p.tools.join(', ')) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="ag-sub">Nobody has a personal tool list.</div>');
+      }
+    });
     return html;
   }
   function plainResult(tool, r) {
@@ -235,7 +257,7 @@
       return '<li class="ag-step"><span class="ag-dot ' + esc(s.status) + '"></span><div><div class="ag-step-title">' + (s.n + 1) + '. ' + esc(s.title) + '</div>' +
         (stepSub(s) ? '<div class="ag-step-sub">' + esc(stepSub(s)) + '</div>' : '') +
         (s.error ? '<div class="ag-step-err">' + esc(s.error) + '</div>' : '') + '</div>' +
-        '<span class="ag-risk ' + esc(s.risk) + '">' + esc(s.risk === 'send' ? 'needs approval' : s.risk) + '</span></li>';
+        '<span class="ag-risk ' + esc(s.risk) + '">' + esc(s.risk === 'admin' ? 'admin · needs approval' : (s.risk === 'send' || s.risk === 'run') ? 'needs approval' : s.risk) + '</span></li>';
     }).join('') + '</ol>' +
       (v ? '<ul class="ag-checks">' + v.checks.map(function (c) { return '<li class="' + (c.ok ? '' : 'bad') + '">' + (c.ok ? '&#10003; ' : '&#10007; ') + esc(c.check) + (c.note ? ' — ' + esc(c.note) : '') + '</li>'; }).join('') + '</ul>' : '') +
       '<div class="ag-sub" style="margin-top:8px">Planned by ' + esc(t.planner) + '</div>';

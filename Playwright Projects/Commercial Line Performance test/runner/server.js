@@ -1945,6 +1945,7 @@ if (AGENT_ENABLED) {
       host: {
         queueStatus: () => ({ queued: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })), running: allRunning().map((r) => ({ label: r.job.label, requestedBy: r.job.requestedBy, progress: r.progress })) }),
         readUsage,
+        baseUrl: `http://127.0.0.1:${PORT}`, // runs / Admin changes go through this Runner's own /api/run and /api/admin
       },
     });
     console.log('Assistant enabled (RUNNER_AGENT=1).');

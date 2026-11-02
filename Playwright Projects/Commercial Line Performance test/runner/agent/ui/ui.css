@@ -86,7 +86,10 @@
 .ag-step-title { font-size: 13px; color: var(--text); }
 .ag-step-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; word-break: break-word; }
 .ag-risk { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
-.ag-risk.send { color: var(--amber); border-color: var(--amber); }
+.ag-risk.send, .ag-risk.run, .ag-risk.admin { color: var(--amber); border-color: var(--amber); }
+.ag-pv { margin: 6px 0 4px; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.ag-fail { color: var(--red); }
+button.ag-file { background: none; cursor: pointer; }
 .ag-checks { margin: 10px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); }
 .ag-checks .bad { color: var(--red); }
 .ag-log { font: 12px var(--mono); color: var(--muted); max-height: 320px; overflow: auto; white-space: pre-wrap; }

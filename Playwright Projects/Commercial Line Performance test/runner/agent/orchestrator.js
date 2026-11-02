@@ -18,6 +18,7 @@ const DATA_DIR = process.env.AGENT_DATA_DIR || path.join(__dirname, '..', '..', 
 const TASK_DIR = path.join(DATA_DIR, 'tasks');
 const AUDIT_FILE = path.join(DATA_DIR, 'audit.jsonl');
 const MEMORY_FILE = path.join(DATA_DIR, 'memory.json');
+const NEEDS_APPROVAL = new Set(['send', 'run', 'admin']); // never run without the user's Approve; never auto-retried
 const STEP_TIMEOUT_MS = Number(process.env.AGENT_STEP_TIMEOUT_MS) || 180000;
 const MAX_RETRIES = 1;
 const MEMORY_KEYS = { defaultProject: /^[A-Z][A-Z0-9]{1,9}$/, defaultRecipients: /^([^\s@,;]+@[^\s@,;]+\.[^\s@,;]+[,; ]*)+$/ };
@@ -58,7 +59,7 @@ function createOrchestrator({ host = {}, emit = () => {} } = {}) {
     const text = String(objective || '').trim().slice(0, 2000);
     if (!text) throw new Error('Tell me what you want done.');
     const prefs = memoryFor(user);
-    const p = await planner.plan(text, prefs);
+    const p = await planner.plan(text, { ...prefs, user });
     const id = `t${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`;
     const t = {
       id, user, objective: text, intent: p.intent, planner: p.planner, note: p.note || '', continueFrom: continueFrom || null,
@@ -80,7 +81,18 @@ function createOrchestrator({ host = {}, emit = () => {} } = {}) {
     while (t.status === 'running') {
       const step = t.steps.find((s) => s.status === 'pending' || s.status === 'approved');
       if (!step) { finish(t); return; }
-      if (step.risk === 'send' && step.status !== 'approved') {
+      if (NEEDS_APPROVAL.has(step.risk) && step.status !== 'approved') {
+        // preview(): checks the request (and admin rights) and lists exactly what will happen — a request that
+        // would be refused fails here instead of asking for an approval that can't succeed.
+        if (TOOLS[step.tool].preview && !step.preview) {
+          try { step.preview = await TOOLS[step.tool].preview(step.args, ctxFor(t)); } catch (e) {
+            step.status = 'failed'; step.error = String(e.message || e).slice(0, 500);
+            log(t, `Step ${step.n + 1} not possible: ${step.error}`, 'error');
+            audit({ user: t.user, action: 'approval.refused', task: t.id, tool: step.tool, error: step.error });
+            t.status = 'failed'; t.summary = step.error; save(t); return;
+          }
+          if (t.status !== 'running') { save(t); return; }
+        }
         step.status = 'awaiting_approval'; t.status = 'awaiting_approval';
         log(t, `Waiting for your approval: ${step.title}${step.args.to ? ` → ${step.args.to}` : ''}.`);
         audit({ user: t.user, action: 'approval.requested', task: t.id, tool: step.tool, args: step.args });
@@ -91,11 +103,15 @@ function createOrchestrator({ host = {}, emit = () => {} } = {}) {
     }
   }
 
-  async function runStep(t, step) {
-    const ctx = {
-      taskId: t.id, host,
+  function ctxFor(t) {
+    return {
+      taskId: t.id, user: t.user, host, dataDir: DATA_DIR,
       resultOf: (tool) => (t.steps.find((s) => s.tool === tool && s.status === 'done') || {}).result || null,
     };
+  }
+
+  async function runStep(t, step) {
+    const ctx = ctxFor(t);
     while (step.attempts <= MAX_RETRIES) {
       step.attempts++; step.status = 'running'; step.startedAt = new Date().toISOString();
       log(t, `Step ${step.n + 1}: ${step.title}${step.attempts > 1 ? ` (retry ${step.attempts - 1})` : ''}…`); save(t);
@@ -112,7 +128,7 @@ function createOrchestrator({ host = {}, emit = () => {} } = {}) {
         audit({ user: t.user, action: 'tool.run', task: t.id, tool: step.tool, risk: step.risk, ok: false, error: step.error });
         if (t.status === 'cancelled') { step.status = 'cancelled'; return; }
         // Don't retry what can't succeed on a second try (bad input, missing login) or a send.
-        const retryable = step.risk !== 'send' && !/needs|isn't|not configured|valid/i.test(step.error);
+        const retryable = !NEEDS_APPROVAL.has(step.risk) && !/needs|isn't|not configured|valid/i.test(step.error);
         if (retryable && step.attempts <= MAX_RETRIES) { t.usage.retries++; log(t, `Step ${step.n + 1} failed (${step.error}) — retrying.`, 'warn'); continue; }
         step.status = 'failed'; log(t, `Step ${step.n + 1} failed: ${step.error}`, 'error');
       } finally {
@@ -154,7 +170,7 @@ function createOrchestrator({ host = {}, emit = () => {} } = {}) {
     if (action === 'approve' || action === 'reject') {
       if (!step) throw new Error('Nothing is waiting for approval.');
       audit({ user, action: `approval.${action}`, task: id, tool: step.tool, args: step.args });
-      if (action === 'reject') { step.status = 'skipped'; log(t, `You rejected: ${step.title}. Nothing was sent.`); t.status = 'running'; }
+      if (action === 'reject') { step.status = 'skipped'; log(t, `You rejected: ${step.title}. Nothing was sent or changed.`); t.status = 'running'; }
       else { step.status = 'approved'; log(t, `You approved: ${step.title}.`); t.status = 'running'; }
     } else if (action === 'pause') {
       if (t.status !== 'running') throw new Error('Only a running task can be paused.');
@@ -222,7 +238,13 @@ function summarise(t) {
   for (const s of t.steps) if (s.result && s.result.file) parts.push(`Saved ${s.result.file}.`);
   const em = res('email.statusDeck');
   if (em) parts.push(`Emailed to ${em.sentTo.join(', ')}.`);
-  if (t.steps.some((s) => s.status === 'skipped')) parts.push('A step you rejected was skipped.');
+  for (const s of t.steps) {
+    if (s.result && s.result.queued != null) parts.push(`Queued ${s.result.queued} job(s) on ${s.result.tabLabel}.`);
+    if (s.result && s.result.changed) parts.push(s.result.changed.join(' '));
+  }
+  const acc = res('admin.showAccess');
+  if (acc) parts.push(`${acc.admins.length} admin(s); ${acc.people.length} people with their own tool list.`);
+  if (t.steps.some((s) => s.status === 'skipped')) parts.push('You rejected it — nothing was sent or changed.');
   return parts.join(' ') || 'Done.';
 }
 
