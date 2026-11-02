@@ -661,7 +661,14 @@
       <div class="chips" id="claimsLobChips"></div>
 
       <div class="field-label">Policy number</div>
-      <input type="text" id="claimsPolicyNumber" placeholder="e.g. 1002239222 or XXXX-000007" autocomplete="off" />
+      <input type="text" id="claimsPolicyNumber" placeholder="optional — blank picks a policy from the claim inventory" autocomplete="off" />
+
+      <div class="field-label">Or run on an existing claim # (skips FNOL)</div>
+      <input type="text" id="claimsClaimNumber" placeholder="optional, e.g. CA-OH-85-26-0000371" autocomplete="off" />
+
+      <div class="field-label">Steps (select any)</div>
+      <div class="chips" id="claimsStepChips"></div>
+      <div class="hint">FNOL and workplan activities always run. Close drains every reserve line with a Final Payment first (same-day reserve changes are blocked), so it adds approvals.</div>
 
       <div class="field-label">Platform (select one)</div>
       <div class="chips" id="claimsPlatformChips"></div>
@@ -1565,6 +1572,7 @@
     renderPolicyEnvs();
     loadCaRefreshHistory();
     renderClaimsLobs();
+    renderClaimsSteps();
     renderClaimsPlatforms();
     renderClaimsTiers();
     renderReconTiers();
@@ -2280,6 +2288,23 @@
     });
   }
 
+  function renderClaimsSteps() {
+    var box = document.getElementById('claimsStepChips');
+    var defs = config.claims.steps || {};
+    if (!claims.steps) claims.steps = Object.keys(defs).filter(function (k) { return defs[k].default; });
+    box.innerHTML = '';
+    Object.keys(defs).forEach(function (k) {
+      var c = chip(defs[k].label, claims.steps.indexOf(k) >= 0);
+      c.addEventListener('click', function () {
+        var i = claims.steps.indexOf(k);
+        if (i >= 0) claims.steps.splice(i, 1); else claims.steps.push(k);
+        renderClaimsSteps();
+        updateClaimsPreview();
+      });
+      box.appendChild(c);
+    });
+  }
+
   function renderClaimsPlatforms() {
     var box = document.getElementById('claimsPlatformChips');
     box.innerHTML = '';
@@ -2623,6 +2648,7 @@
   }
 
   document.getElementById('claimsPolicyNumber').addEventListener('input', updateClaimsPreview);
+  document.getElementById('claimsClaimNumber').addEventListener('input', updateClaimsPreview);
 
   function renderReconTiers() {
     var box = document.getElementById('reconTierChips');
@@ -2703,8 +2729,10 @@
 
   function claimsJob() {
     var policyNumber = document.getElementById('claimsPolicyNumber').value.trim();
-    if (!claims.lob || !claims.platform || !claims.tier || !policyNumber) return null;
-    return { lob: claims.lob, platform: claims.platform, tier: claims.tier, policyNumber: policyNumber };
+    var claimNumber = document.getElementById('claimsClaimNumber').value.trim();
+    if (!claims.lob || !claims.platform || !claims.tier) return null;
+    return { lob: claims.lob, platform: claims.platform, tier: claims.tier, policyNumber: policyNumber,
+      claimNumber: claimNumber, steps: (claims.steps || []).slice() };
   }
 
   function updateClaimsPreview() {
@@ -2712,13 +2740,14 @@
     var box = document.getElementById('claimsPreview');
     var btn = document.getElementById('claimsRunBtn');
     if (!job) {
-      box.innerHTML = '<span class="empty">Select LOB, platform, tier and enter a policy number.</span>';
+      box.innerHTML = '<span class="empty">Select LOB, platform and tier.</span>';
       btn.disabled = true;
       return;
     }
     var proj = config.claims.lobs[job.lob].project;
     box.innerHTML = '<div class="job-line">npx playwright test --project "' + proj + '" --workers=1 &nbsp;' +
-      '(CC_ENV=' + job.platform + ' CC_TIER=' + job.tier + ', policy ' + job.policyNumber + ')</div>';
+      '(CC_ENV=' + job.platform + ' CC_TIER=' + job.tier + (job.claimNumber ? ', existing claim ' + job.claimNumber : job.policyNumber ? ', policy ' + job.policyNumber : ', policy + loss date from the claim inventory') +
+      ', steps: ' + (job.steps.length ? job.steps.join(' + ') : 'FNOL only') + ')</div>';
     btn.disabled = anyRunning;
   }
 
