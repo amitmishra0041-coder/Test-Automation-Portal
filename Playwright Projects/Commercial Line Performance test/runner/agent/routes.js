@@ -28,7 +28,15 @@ function mountAgent(app, { broadcast, host }) {
   const recent = new Map(); // user -> submit timestamps (rate limit)
   const wrap = (fn) => async (req, res) => { try { res.json(await fn(req)); } catch (e) { res.status(400).json({ error: e.message }); } };
 
-  r.get('/meta', wrap((req) => ({ suggestions: orch.suggestions, tools: orch.tools(), memory: orch.memoryFor(req.user) })));
+  // Admin-only suggestions (who has access…) are offered to admins only.
+  // Suggestions only for what this person can do: admin ones for admins, run ones for tools they have.
+  const SUGGESTION_TOOL = [[/^run bop/i, 'policy'], [/smartcomm dig/i, 'smartComm']];
+  const offer = (s, user) => {
+    if (/access/i.test(s) && host.isAdmin && !host.isAdmin(user)) return false;
+    const t = SUGGESTION_TOOL.find(([re]) => re.test(s));
+    return !t || !host.allowedSuites || host.allowedSuites(user).includes(t[1]);
+  };
+  r.get('/meta', wrap((req) => ({ suggestions: orch.suggestions.filter((s) => offer(s, req.user)), tools: orch.tools(), memory: orch.memoryFor(req.user) })));
   r.get('/tasks', wrap((req) => orch.list(req.user)));
   r.get('/tasks/:id', wrap((req) => orch.get(req.user, req.params.id)));
   r.post('/tasks', wrap((req) => {

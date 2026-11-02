@@ -396,6 +396,18 @@ const CLAIMS_LOB = {
   BOP:     { label: 'BOP',          project: 'E2E - BOP',                policyVar: 'POLICY_BOP_PA' },
   PACKAGE: { label: 'Package (CP)', project: 'E2E - Commercial Package', policyVar: 'POLICY_CP_PA' },
   CA:      { label: 'CA',           project: 'E2E - Commercial Auto',    policyVar: 'POLICY_CAU_PA' },
+  PA:      { label: 'PA Auto',      project: 'E2E - PA Auto',            policyVar: 'POLICY_PA_AUTO' },
+  HO:      { label: 'Homeowners',   project: 'E2E - Homeowners',         policyVar: 'POLICY_HO_PA' },
+  WC:      { label: 'Workers Comp', project: 'E2E - Workers Comp',       policyVar: 'POLICY_WC_PA' },
+};
+// E2E steps the Claims tab can switch on/off (ClaimCenter-Automation helpers/e2eSteps.js reads CC_E2E_STEPS).
+// FNOL always runs unless an existing claim # is given; activities always run.
+const CLAIMS_STEPS = {
+  reserve:  { label: 'Reserve',              default: true },
+  payment:  { label: 'Partial payment',      default: true },
+  approval: { label: 'Approval',             default: true },
+  recovery: { label: 'Subro recovery + credit', default: true },
+  close:    { label: 'Final payment + close', default: false },
 };
 const CLAIMS_PLATFORMS = ['onprem', 'cloud']; // CC_ENV
 const CLAIMS_TIERS = ['test', 'dev'];         // CC_TIER
@@ -658,7 +670,7 @@ app.get('/api/config', (req, res) => {
   res.json({
     packagedBuild: PACKAGED,
     agentEnabled: AGENT_ENABLED,
-    agentAdminsOnly: PACKAGED, // team app: the Assistant tab shows for admins only
+    agentAdminsOnly: AGENT_ADMINS_ONLY,
     appVersion: process.env.RUNNER_APP_VERSION || '',
     comingSoonSuites: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
     settings: signedInSettings(req),
@@ -672,6 +684,7 @@ app.get('/api/config', (req, res) => {
     },
     claims: {
       lobs: CLAIMS_LOB,
+      steps: CLAIMS_STEPS,
       platforms: CLAIMS_PLATFORMS,
       tiers: CLAIMS_TIERS,
     },
@@ -1119,18 +1132,27 @@ function buildClaimsJob(j) {
   if (!CLAIMS_PLATFORMS.includes(j.platform)) throw new Error(`Unknown platform "${j.platform}"`);
   if (!CLAIMS_TIERS.includes(j.tier)) throw new Error(`Unknown tier "${j.tier}"`);
   const policyNumber = String(j.policyNumber || '').trim();
-  if (!policyNumber) throw new Error('Policy number is required');
+  const claimNumber = String(j.claimNumber || '').trim();
+  if (claimNumber) checkClaimNumber(claimNumber);
+  if (policyNumber && !/^[A-Za-z0-9-]+$/.test(policyNumber)) throw new Error(`"${policyNumber}" doesn't look like a policy number`);
+  const steps = (Array.isArray(j.steps) ? j.steps : Object.keys(CLAIMS_STEPS).filter(k => CLAIMS_STEPS[k].default))
+    .map(String).filter(k => CLAIMS_STEPS[k]);
 
   // getNextPolicy() checks POLICY_<VAR>_<TIER> before the bare POLICY_<VAR>
   // (helpers/claimCenterBase.js) - set both so the typed-in number wins no
   // matter which tier is selected.
-  const env = { CC_ENV: j.platform, CC_TIER: j.tier };
-  env[lob.policyVar] = policyNumber;
-  env[`${lob.policyVar}_TEST`] = policyNumber;
-  env[`${lob.policyVar}_DEV`] = policyNumber;
+  const env = { CC_ENV: j.platform, CC_TIER: j.tier, CC_E2E_STEPS: steps.join(',') || 'none' };
+  if (policyNumber) {
+    env[lob.policyVar] = policyNumber;
+    env[`${lob.policyVar}_TEST`] = policyNumber;
+    env[`${lob.policyVar}_DEV`] = policyNumber;
+  }
+  if (claimNumber) env.CC_E2E_CLAIM = claimNumber;
+  // Neither given: helpers/e2eSteps.js picks a policy from the claim inventory spreadsheet (loss date near that claim's), else the .env list.
+  if (!policyNumber && !claimNumber) Object.assign(env, { CC_E2E_POLICY_FROM_POOL: '1', CC_E2E_LOB: j.lob === 'PACKAGE' ? 'CP' : j.lob, CC_E2E_POLICY_VAR: lob.policyVar });
 
   return {
-    label: `${lob.label} · ${policyNumber} · ${j.platform}/${j.tier}`,
+    label: `${lob.label} · ${claimNumber ? 'claim ' + claimNumber : (policyNumber || 'policy from pool')} · ${j.platform}/${j.tier} · ${steps.join('+') || 'FNOL only'}`,
     cwd: CLAIMS_DIR,
     cmd: 'npx',
     args: ['playwright', 'test', '--project', lob.project, '--workers=1'],
@@ -2002,12 +2024,15 @@ const HOST = !PACKAGED && process.env.RUNNER_HOST ? process.env.RUNNER_HOST : '1
 // ── Assistant (experimental, dev Runner only) ───────────────────────────────
 // Plan-and-run tasks over the Runner's own tools (runner/agent/). Off unless RUNNER_AGENT=1, never in the
 // packaged build. No cloud AI: planning is rule-based, or a local model on this PC (AGENT_LOCAL_MODEL_URL).
-// Assistant: dev Runner with RUNNER_AGENT=1, or the team app (admins only, no Admin-change commands; RUNNER_AGENT=0 turns it off).
+// Assistant: dev Runner with RUNNER_AGENT=1, or the team app (everyone, from 2026-11-02; RUNNER_AGENT=0 turns it off,
+// RUNNER_AGENT_ADMINS_ONLY=1 limits it to admins again). Admin-change commands only while sign-in is on — without it
+// identity is just a typed email — and they still check isAdmin on every call.
 const AGENT_ENABLED = PACKAGED ? process.env.RUNNER_AGENT !== '0' : process.env.RUNNER_AGENT === '1';
+const AGENT_ADMINS_ONLY = PACKAGED && process.env.RUNNER_AGENT_ADMINS_ONLY === '1';
 if (AGENT_ENABLED) {
   try {
+    if (!auth.enabled) process.env.AGENT_ADMIN_TOOLS = '0';
     if (PACKAGED) {
-      process.env.AGENT_ADMIN_TOOLS = '0';
       const userData = path.dirname(SETTINGS_FILE); // writable per-user folder (the install folder may not be)
       if (!process.env.AGENT_DATA_DIR) process.env.AGENT_DATA_DIR = path.join(userData, 'assistant');
       if (!process.env.AGENT_REPORT_DIR) process.env.AGENT_REPORT_DIR = path.join(userData, 'assistant', 'reports');
@@ -2017,7 +2042,9 @@ if (AGENT_ENABLED) {
       host: {
         queueStatus: () => ({ queued: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })), running: allRunning().map((r) => ({ label: r.job.label, requestedBy: r.job.requestedBy, progress: r.progress })) }),
         readUsage,
-        allowUser: PACKAGED ? isAdmin : null,
+        allowUser: AGENT_ADMINS_ONLY ? isAdmin : null,
+        isAdmin,
+        allowedSuites: allowedSuitesFor,
         baseUrl: `http://127.0.0.1:${PORT}`,
         authHeaders: auth.internalHeaders, // runs / Admin changes go through this Runner's own /api/run and /api/admin
       },
