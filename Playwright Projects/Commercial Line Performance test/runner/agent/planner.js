@@ -95,7 +95,7 @@ const SUGGESTIONS = [
   'Run BOP for DE and PA on QA',
   'Validate SmartCOMM DIG32 on test',
   'Who has access to which tools?',
-];
+].filter((s) => TOOLS['admin.showAccess'] || !/access/i.test(s));
 
 // Follow-ups offered after a task, keyed by its intent.
 const FOLLOW_UPS = {
@@ -114,6 +114,9 @@ function planWithRules(objective, prefs) {
   const s = slots(objective, prefs);
   const rule = RULES.find((r) => (typeof r.test === 'function' ? r.test(objective) : r.test.test(objective)));
   if (!rule) return null;
+  if (/^admin-/.test(rule.intent) && !TOOLS['admin.showAccess']) {
+    return { intent: rule.intent, planner: 'rules', steps: [], note: "Admin changes aren't available in the Assistant here — use the Admin tab." };
+  }
   return { intent: rule.intent, planner: 'rules', steps: rule.steps(s, objective, prefs).map((st) => ({ ...st, args: clean(st.args) })) };
 }
 const clean = (o) => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)));

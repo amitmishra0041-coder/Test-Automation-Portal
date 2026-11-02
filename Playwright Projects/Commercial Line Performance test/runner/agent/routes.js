@@ -21,6 +21,7 @@ function mountAgent(app, { broadcast, host }) {
     // Header for API calls; ?u= only for file downloads (a plain link can't send a header).
     const user = String(req.get('x-runner-user') || (req.path.startsWith('/files/') ? req.query.u : '') || '').trim().toLowerCase();
     if (!EMAIL_RE.test(user)) return res.status(400).json({ error: 'Enter your email at the top of the Runner first.' });
+    if (host.allowUser && !host.allowUser(user)) return res.status(403).json({ error: 'The Assistant is available to admins only for now.' });
     req.user = user; next();
   });
 

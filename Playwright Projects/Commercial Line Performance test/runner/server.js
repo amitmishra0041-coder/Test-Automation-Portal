@@ -639,7 +639,8 @@ app.get('/api/caRefresh/runs', (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     packagedBuild: PACKAGED,
-    agentEnabled: process.env.RUNNER_AGENT === '1' && !PACKAGED,
+    agentEnabled: AGENT_ENABLED,
+    agentAdminsOnly: PACKAGED, // team app: the Assistant tab shows for admins only
     appVersion: process.env.RUNNER_APP_VERSION || '',
     comingSoonSuites: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
     settings: loadSettings(),
@@ -1937,14 +1938,22 @@ const HOST = !PACKAGED && process.env.RUNNER_HOST ? process.env.RUNNER_HOST : '1
 // ── Assistant (experimental, dev Runner only) ───────────────────────────────
 // Plan-and-run tasks over the Runner's own tools (runner/agent/). Off unless RUNNER_AGENT=1, never in the
 // packaged build. No cloud AI: planning is rule-based, or a local model on this PC (AGENT_LOCAL_MODEL_URL).
-const AGENT_ENABLED = process.env.RUNNER_AGENT === '1' && !PACKAGED;
+// Assistant: dev Runner with RUNNER_AGENT=1, or the team app (admins only, no Admin-change commands; RUNNER_AGENT=0 turns it off).
+const AGENT_ENABLED = PACKAGED ? process.env.RUNNER_AGENT !== '0' : process.env.RUNNER_AGENT === '1';
 if (AGENT_ENABLED) {
   try {
+    if (PACKAGED) {
+      process.env.AGENT_ADMIN_TOOLS = '0';
+      const userData = path.dirname(SETTINGS_FILE); // writable per-user folder (the install folder may not be)
+      if (!process.env.AGENT_DATA_DIR) process.env.AGENT_DATA_DIR = path.join(userData, 'assistant');
+      if (!process.env.AGENT_REPORT_DIR) process.env.AGENT_REPORT_DIR = path.join(userData, 'assistant', 'reports');
+    }
     require('./agent/routes').mountAgent(app, {
       broadcast,
       host: {
         queueStatus: () => ({ queued: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })), running: allRunning().map((r) => ({ label: r.job.label, requestedBy: r.job.requestedBy, progress: r.progress })) }),
         readUsage,
+        allowUser: PACKAGED ? isAdmin : null,
         baseUrl: `http://127.0.0.1:${PORT}`, // runs / Admin changes go through this Runner's own /api/run and /api/admin
       },
     });

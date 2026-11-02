@@ -1357,6 +1357,13 @@
     if (fu) fu.textContent = who ? 'Signed in as ' + who : 'Not signed in — enter your email on Settings';
   }
 
+  // Assistant tab: only when the server enables it; in the team app, only for admins.
+  var isAdminUser = false;
+  function showAgentBtn() {
+    var ab = document.getElementById('agentNavBtn');
+    if (ab) ab.style.display = (config && config.agentEnabled && (!config.agentAdminsOnly || isAdminUser)) ? '' : 'none';
+  }
+
   function refreshEntitlements() {
     var url = '/api/entitlements' + (isValidEmail(myEmail) ? ('?email=' + encodeURIComponent(myEmail)) : '');
     fetch(url).then(function (r) { return r.json(); }).then(function (d) {
@@ -1366,6 +1373,7 @@
       ownerEmail = d.ownerEmail || ownerEmail;
       var adminBtn = document.getElementById('adminNavBtn');
       if (adminBtn) adminBtn.style.display = d.admin ? '' : 'none';
+      isAdminUser = Boolean(d.admin); showAgentBtn();
       applyTabLocks();
     }).catch(function () { /* stay with whatever we last knew - network hiccup, not fatal */ });
   }
@@ -1379,7 +1387,7 @@
   function applyTabLocks() {
     document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
       var tab = btn.dataset.tab;
-      if (tab === 'home' || tab === 'results' || tab === 'settings' || tab === 'stats' || tab === 'admin') return; // Home/Results/Settings/Stats/Admin are never entitlement-gated
+      if (tab === 'home' || tab === 'results' || tab === 'settings' || tab === 'stats' || tab === 'admin' || tab === 'assistant') return; // Home/Results/Settings/Stats/Admin are never entitlement-gated
       var comingSoon = myComingSoon.indexOf(tab) !== -1;
       var locked = packagedBuild && myAllowedTabs && myAllowedTabs.indexOf(tab) === -1 && !comingSoon;
       btn.classList.toggle('locked', locked);
@@ -1454,7 +1462,7 @@
   // ── Load config, render controls ─────────────────────────────────────────
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     config = cfg;
-    if (cfg.agentEnabled) { var ab = document.getElementById('agentNavBtn'); if (ab) ab.style.display = ''; var ac = document.createElement('link'); ac.rel = 'stylesheet'; ac.href = '/agent-ui/ui.css'; document.head.appendChild(ac); var as = document.createElement('script'); as.src = '/agent-ui/ui.js'; document.body.appendChild(as); }
+    if (cfg.agentEnabled) { showAgentBtn(); var ac = document.createElement('link'); ac.rel = 'stylesheet'; ac.href = '/agent-ui/ui.css'; document.head.appendChild(ac); var as = document.createElement('script'); as.src = '/agent-ui/ui.js'; document.body.appendChild(as); }
     renderPolicyProjects();
     renderPolicyLobs();
     renderPolicyStates();

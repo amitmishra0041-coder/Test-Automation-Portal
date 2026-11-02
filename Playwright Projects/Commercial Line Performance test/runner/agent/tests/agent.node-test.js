@@ -180,3 +180,18 @@ test('orchestrator: a run is queued only after approval, as the requesting user'
   const m = await o.submit('a@b.com', 'run BOP for DE');
   assert.match((await until(() => { const x = o.get('a@b.com', m.id); return x.status === 'failed' && x; })).summary, /Which environment/);
 });
+
+test('team app mode (AGENT_ADMIN_TOOLS=0): no admin tools; admin requests point to the Admin tab', () => {
+  const out = require('child_process').execFileSync(process.execPath, ['-e', `
+    process.env.AGENT_ADMIN_TOOLS = '0';
+    const { TOOLS } = require(${JSON.stringify(path.join(__dirname, '..', 'tools'))});
+    const pl = require(${JSON.stringify(path.join(__dirname, '..', 'planner'))});
+    pl.plan('give x@d.com access to OneInc').then((p) => console.log(JSON.stringify({ admin: Object.keys(TOOLS).filter((k) => k.startsWith('admin.')), steps: p.steps.length, note: p.note, sugg: pl.SUGGESTIONS.some((s) => /access/i.test(s)), run: !!TOOLS['run.policy'] })));
+  `], { encoding: 'utf8' });
+  const r = JSON.parse(out.trim().split('\n').pop());
+  assert.deepStrictEqual(r.admin, []);
+  assert.strictEqual(r.steps, 0);
+  assert.match(r.note, /Admin tab/);
+  assert.strictEqual(r.sugg, false);
+  assert.strictEqual(r.run, true);
+});

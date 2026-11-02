@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 
-const REPORT_DIR = path.join(__dirname, '..', '..', 'reports', 'assistant');
+const REPORT_DIR = process.env.AGENT_REPORT_DIR || path.join(__dirname, '..', '..', 'reports', 'assistant');
 const SEVERITY_FIELD = 'customfield_10137';
 const DEFECTS_JQL = 'project IN (GCCM, GCMDT, GCMDW, GCMR, SMART) AND type IN (Bug, Defect) AND status NOT IN (Closed, Rejected)';
 const PROJECT_KEY = /^[A-Z][A-Z0-9]{1,9}$/;
@@ -192,6 +192,10 @@ const TOOLS = {
 };
 
 // Tools that act on the Runner (start runs, Admin changes) — see actions.js.
-Object.assign(TOOLS, require('./actions').ACTION_TOOLS);
+// AGENT_ADMIN_TOOLS=0 (the team app): no Admin-change tools at all — those stay on the Admin tab.
+for (const [name, tool] of Object.entries(require('./actions').ACTION_TOOLS)) {
+  if (process.env.AGENT_ADMIN_TOOLS === '0' && name.startsWith('admin.')) continue;
+  TOOLS[name] = tool;
+}
 
 module.exports = { TOOLS, REPORT_DIR };
