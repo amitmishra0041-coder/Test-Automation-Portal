@@ -1,9 +1,11 @@
 // Assistant tab (loaded only when the server has RUNNER_AGENT=1). Everything shown from Jira / tools is escaped.
+// Layout: one thing at a time — ask box, then one task card (Summary | Stories & bugs | Defects | Plan | Log tabs);
+// approvals as a bar above the card; History / memory / metrics live in a slide-out drawer.
 (function () {
   'use strict';
   var panel = document.getElementById('tab-assistant');
   if (!panel) return;
-  var state = { tasks: [], selected: null, meta: null, metrics: null };
+  var state = { tasks: [], selected: null, meta: null, tab: 'summary', filter: null };
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function me() { return window.runnerEmail || ''; }
@@ -12,28 +14,37 @@
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.statusText); return j; }); });
   }
   function ago(iso) { var s = (Date.now() - new Date(iso).getTime()) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + 'm ago' : s < 86400 ? Math.round(s / 3600) + 'h ago' : Math.round(s / 86400) + 'd ago'; }
-  var LABEL = { running: 'Running', done: 'Done', failed: 'Failed', cancelled: 'Cancelled', awaiting_approval: 'Needs approval', paused: 'Paused', interrupted: 'Interrupted', needs_input: 'Needs input' };
+  function each(root, sel, fn) { Array.prototype.forEach.call(root.querySelectorAll(sel), fn); }
+  function stepOf(t, tool) { return (t.steps.find(function (s) { return s.tool === tool && s.result; }) || {}).result; }
+  var LABEL = { running: 'Running', done: 'Done', failed: 'Failed', cancelled: 'Cancelled', awaiting_approval: 'Waiting for you', paused: 'Paused', interrupted: 'Interrupted', needs_input: 'Needs input' };
 
   panel.innerHTML =
-    '<div class="page-head"><h1>Assistant <span class="ag-badge" style="vertical-align:middle">Experimental</span></h1>' +
-    '<p>Describe what you need done. The assistant plans the steps, runs the Runner\'s own tools, asks before sending anything, and checks the results.</p></div>' +
-    '<div class="ag-grid"><div>' +
-      '<div class="card"><h2>What do you need?</h2>' +
-        '<div class="ag-ask"><textarea id="agInput" placeholder="e.g. Review impeded SMART test execution stories and list linked bugs with severity and due date"></textarea><button class="primary" id="agGo">Run</button></div>' +
-        '<div class="ag-sugg" id="agSugg"></div>' +
-        '<div class="ag-banner"><b>&#9679; Local only</b> — planning runs on this PC; no Donegal data is sent to any AI service. Reading and reports run automatically; emails wait for your approval.</div>' +
-        '<div class="ag-step-err" id="agErr"></div>' +
-      '</div>' +
-      '<div class="card" id="agTask"><div class="ag-empty">Run a task, or pick one from History.</div></div>' +
-    '</div><div>' +
-      '<div class="card"><h2>History</h2><ul class="ag-hist" id="agHist"><li class="ag-empty">No tasks yet.</li></ul></div>' +
-      '<div class="card"><h2>Remembered for you</h2><div class="ag-kv" id="agMem"></div><div class="hint" style="margin-top:8px">Used when a request doesn\'t say. Clear a box and press Save to forget it.</div></div>' +
-      '<div class="card"><h2>Assistant metrics</h2><div class="ag-metrics" id="agMetrics"></div><div id="agTools" class="hint" style="margin-top:10px"></div></div>' +
-    '</div></div>';
+    '<div class="ag-top"><h1>Assistant <span class="ag-badge">Experimental</span></h1>' +
+      '<div class="ag-top-r"><span class="ag-local">&#128274; Local only &middot; no AI service</span><button id="agHistBtn">&#128339; History</button></div></div>' +
+    '<div class="ag-main">' +
+      '<div id="agHero" class="ag-hero"><h2>What do you need?</h2><p>I plan the steps, run the safe ones and ask before sending anything.</p></div>' +
+      '<div class="ag-ask"><input id="agInput" placeholder="e.g. Review impeded SMART test execution stories and list linked bugs"><button class="primary" id="agGo">Run</button></div>' +
+      '<div class="ag-sugg" id="agSugg"></div>' +
+      '<div class="ag-err" id="agErr"></div>' +
+      '<div id="agApprove"></div>' +
+      '<div id="agTask"></div>' +
+      '<div id="agFoot" class="ag-local ag-foot-note">&#9679; Your data stays on this PC</div>' +
+    '</div>' +
+    '<div class="ag-dim" id="agDim" hidden></div>' +
+    '<aside class="ag-drawer" id="agDrawer" hidden><div class="ag-drawer-head"><b>History &amp; settings</b><button id="agClose" aria-label="Close">&#10005;</button></div>' +
+      '<button class="ag-link" id="agNew" style="margin-top:12px">+ New task</button>' +
+      '<h3>Recent tasks</h3><ul class="ag-hist" id="agHist"></ul>' +
+      '<h3>Remembered for you</h3><div class="ag-kv" id="agMem"></div><div class="hint">Used when a request doesn\'t say. Clear a box and Save to forget it.</div>' +
+      '<h3>Assistant</h3><div id="agMetrics" class="ag-mline"></div></aside>';
 
   var input = document.getElementById('agInput');
   document.getElementById('agGo').addEventListener('click', function () { submit(input.value); });
-  input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit(input.value); });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(input.value); });
+  function drawer(open) { document.getElementById('agDrawer').hidden = !open; document.getElementById('agDim').hidden = !open; }
+  document.getElementById('agHistBtn').addEventListener('click', function () { drawer(true); });
+  document.getElementById('agClose').addEventListener('click', function () { drawer(false); });
+  document.getElementById('agDim').addEventListener('click', function () { drawer(false); });
+  document.getElementById('agNew').addEventListener('click', function () { state.selected = null; renderHistory(); drawer(false); renderTask(null); input.focus(); });
 
   function err(msg) { document.getElementById('agErr').textContent = msg || ''; }
   function submit(text, continueFrom) {
@@ -53,7 +64,11 @@
     if (state.selected === t.id) renderTask(t);
     if (t.status === 'done' || t.status === 'failed') loadMetrics();
   }
-  function select(id) { state.selected = id; renderHistory(); var t = state.tasks.find(function (x) { return x.id === id; }); if (t) renderTask(t); }
+  function select(id) {
+    if (state.selected !== id) { state.tab = 'summary'; state.filter = null; }
+    state.selected = id; renderHistory(); drawer(false);
+    renderTask(state.tasks.find(function (x) { return x.id === id; }));
+  }
 
   function renderHistory() {
     var el = document.getElementById('agHist');
@@ -62,7 +77,7 @@
       return '<li data-id="' + esc(t.id) + '" class="' + (t.id === state.selected ? 'sel' : '') + '"><div class="t">' + esc(t.objective) + '</div>' +
         '<div class="m"><span class="ag-badge ' + esc(t.status) + '">' + esc(LABEL[t.status] || t.status) + '</span>' + esc(ago(t.createdAt)) + '</div></li>';
     }).join('');
-    Array.prototype.forEach.call(el.querySelectorAll('li[data-id]'), function (li) { li.addEventListener('click', function () { select(li.dataset.id); }); });
+    each(el, 'li[data-id]', function (li) { li.addEventListener('click', function () { select(li.dataset.id); }); });
   }
 
   function stepSub(s) {
@@ -76,107 +91,167 @@
 
   function renderTask(t) {
     var el = document.getElementById('agTask');
-    var real = t.steps.length;
-    var done = t.steps.filter(function (s) { return ['done', 'skipped'].indexOf(s.status) >= 0; }).length;
-    var current = t.steps.find(function (s) { return s.status === 'running' || s.status === 'awaiting_approval'; });
-    var html = '<div class="ag-task-head"><div><div class="ag-obj">' + esc(t.objective) + '</div>' +
-      '<div class="ag-meta">Planned by ' + esc(t.planner) + ' · ' + esc(ago(t.createdAt)) + (current ? ' · now: ' + esc(current.title) : '') + '</div></div>' +
-      '<span class="ag-badge ' + esc(t.status) + '">' + esc(LABEL[t.status] || t.status) + '</span></div>';
-    if (t.note) html += '<div class="ag-banner">' + esc(t.note) + '</div>';
-    if (real) {
-      html += '<div class="ag-progress"><div style="width:' + Math.round((done / real) * 100) + '%"></div></div>';
-      html += '<h2 style="margin:4px 0 6px">Plan</h2><ol class="ag-steps">' + t.steps.map(function (s) {
-        return '<li class="ag-step ' + esc(s.status) + '"><span class="ag-dot"></span><div><div class="ag-step-title">' + (s.n + 1) + '. ' + esc(s.title) + '</div>' +
-          (stepSub(s) ? '<div class="ag-step-sub">' + esc(stepSub(s)) + '</div>' : '') +
-          (s.error ? '<div class="ag-step-err">' + esc(s.error) + '</div>' : '') + '</div>' +
-          '<span class="ag-risk ' + esc(s.risk) + '">' + esc(s.risk === 'send' ? 'needs approval' : s.risk) + '</span></li>';
-      }).join('') + '</ol>';
-    }
+    document.getElementById('agHero').hidden = !!t;
+    document.getElementById('agSugg').hidden = !!t;
+    document.getElementById('agFoot').hidden = !!t;
+    var ap = document.getElementById('agApprove');
+    ap.innerHTML = '';
+    if (!t) { el.innerHTML = ''; return; }
+
     var wait = t.steps.find(function (s) { return s.status === 'awaiting_approval'; });
     if (wait) {
-      html += '<div class="ag-approve"><h3>Approval needed</h3><div style="font-size:13px">' + esc(wait.title) + '</div>' +
-        '<div class="ag-step-sub">' + esc(stepSub(wait) || 'no parameters') + '</div>' +
-        '<div class="row"><button class="primary" data-act="approve">Approve and send</button><button data-act="reject">Reject</button></div></div>';
+      ap.innerHTML = '<div class="ag-bar"><span>&#9993;</span><div class="tx"><b>Waiting for you:</b> ' + esc(wait.title) +
+        (stepSub(wait) ? ' <span class="ag-sub">(' + esc(stepSub(wait)) + ')</span>' : '') + '</div>' +
+        '<button data-act="reject">Reject</button><button class="primary" data-act="approve">Approve</button></div>';
+      each(ap, '[data-act]', function (b) { b.addEventListener('click', function () { act(t.id, b.dataset.act); }); });
     }
+
+    var total = t.steps.length;
+    var finished = t.steps.filter(function (s) { return ['done', 'skipped'].indexOf(s.status) >= 0; }).length;
+    var current = t.steps.find(function (s) { return s.status === 'running' || s.status === 'awaiting_approval'; });
+    var v = stepOf(t, 'validate');
+    var bad = v ? v.checks.filter(function (c) { return !c.ok; }).length : 0;
+    var stepText = !total ? '' : t.status === 'done' ? total + ' of ' + total + ' steps' + (v ? (bad ? ' · ' + bad + ' check(s) failed' : ' · checks passed') : '')
+      : current ? 'Step ' + (current.n + 1) + ' of ' + total + ' · ' + current.title : finished + ' of ' + total + ' steps';
+    var started = new Date(t.createdAt);
+    var dur = t.updatedAt && t.status === 'done' ? ' · ' + Math.max(1, Math.round((new Date(t.updatedAt) - started) / 1000)) + ' s' : '';
+
+    var st = stepOf(t, 'jira.impededStories'), df = stepOf(t, 'jira.openDefects');
+    var tabs = [['summary', 'Summary']];
+    if (st) tabs.push(['stories', 'Stories & bugs (' + st.bugLinks + ')']);
+    if (df) tabs.push(['defects', 'Defects (' + df.total + ')']);
+    tabs.push(['plan', 'Plan'], ['log', 'Log']);
+    if (!tabs.some(function (x) { return x[0] === state.tab; })) state.tab = 'summary';
+
+    var html = '<div class="ag-card"><div class="ag-head"><div><div class="ag-obj">' + esc(t.objective) + '</div>' +
+      '<div class="ag-meta">' + esc(started.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + dur + '</div></div>' +
+      '<span class="ag-badge ' + esc(t.status) + '">' + esc(LABEL[t.status] || t.status) + '</span></div>';
+    if (total) html += '<div class="ag-stepper">' + t.steps.map(function (s, i) {
+      return (i ? '<span class="ag-line"></span>' : '') + '<span class="ag-dot ' + esc(s.status) + '" title="' + esc((s.n + 1) + '. ' + s.title) + '"></span>';
+    }).join('') + '<span class="ag-steptext">' + esc(stepText) + '</span></div>';
+    html += '<div class="ag-tabs">' + tabs.map(function (x) { return '<button data-tab="' + x[0] + '" class="' + (x[0] === state.tab ? 'on' : '') + '">' + esc(x[1]) + '</button>'; }).join('') + '</div>';
+    html += '<div class="ag-body">' + (state.tab === 'summary' ? summary(t) : state.tab === 'stories' ? stories(st) : state.tab === 'defects' ? defects(df) : state.tab === 'plan' ? plan(t) : log(t)) + '</div>';
+
     var acts = [];
     if (t.status === 'running') acts.push(['pause', 'Pause']);
     if (['paused', 'interrupted', 'failed'].indexOf(t.status) >= 0) acts.push(['resume', t.status === 'failed' ? 'Retry' : 'Resume']);
     if (['done', 'cancelled'].indexOf(t.status) < 0) acts.push(['cancel', 'Cancel']);
     if (['done', 'failed', 'cancelled', 'needs_input'].indexOf(t.status) >= 0) acts.push(['rerun', 'Run again'], ['delete', 'Delete']);
-    if (acts.length) html += '<div class="ag-actions" style="margin-top:12px">' + acts.map(function (a) { return '<button data-act="' + a[0] + '">' + a[1] + '</button>'; }).join('') + '</div>';
-    if (t.summary) html += '<div class="ag-summary">' + esc(t.summary) + files(t) + checks(t) + '</div>';
-    html += results(t);
-    if (t.status === 'done' && t.followUps && t.followUps.length) html += '<div class="ag-follow">' + t.followUps.map(function (f) { return '<button class="chip" data-follow="' + esc(f) + '">' + esc(f) + '</button>'; }).join('') + '</div>';
-    html += '<details style="margin-top:10px"><summary class="hint" style="cursor:pointer">Execution log</summary><div class="ag-log">' +
-      esc(t.log.map(function (l) { return new Date(l.ts).toLocaleTimeString() + '  ' + l.msg; }).join('\n')) + '</div></details>';
+    html += '<div class="ag-foot"><span class="ag-sub">' + (stepOf(t, 'analysis.blockerInsights') && state.tab === 'summary' ? 'Click a tile to see those items' : '') + '</span><span class="ag-acts">' +
+      acts.map(function (a) { return '<button class="ag-link' + (a[0] === 'delete' ? ' danger' : '') + '" data-act="' + a[0] + '">' + a[1] + '</button>'; }).join('') + '</span></div></div>';
     el.innerHTML = html;
-    Array.prototype.forEach.call(el.querySelectorAll('[data-act]'), function (b) {
+
+    each(el, '.ag-tabs [data-tab]', function (b) { b.addEventListener('click', function () { state.tab = b.dataset.tab; state.filter = null; renderTask(t); }); });
+    each(el, '[data-tile]', function (b) { b.addEventListener('click', function () { state.filter = tileFilters(t)[b.dataset.tile]; state.tab = 'stories'; renderTask(t); }); });
+    each(el, '[data-clear]', function (b) { b.addEventListener('click', function () { state.filter = null; renderTask(t); }); });
+    each(el, '[data-act]', function (b) {
       b.addEventListener('click', function () {
         var a = b.dataset.act;
         if (a === 'rerun') submit(t.objective, t.id);
-        else if (a === 'delete') api('DELETE', '/tasks/' + t.id).then(function () { state.tasks = state.tasks.filter(function (x) { return x.id !== t.id; }); state.selected = null; renderHistory(); el.innerHTML = '<div class="ag-empty">Task deleted.</div>'; }).catch(function (e) { err(e.message); });
-        else act(t.id, a);
+        else if (a === 'delete') {
+          if (!confirm('Delete this task?')) return;
+          api('DELETE', '/tasks/' + t.id).then(function () { state.tasks = state.tasks.filter(function (x) { return x.id !== t.id; }); state.selected = null; renderHistory(); renderTask(null); }).catch(function (e) { err(e.message); });
+        } else act(t.id, a);
       });
     });
-    Array.prototype.forEach.call(el.querySelectorAll('[data-follow]'), function (b) {
+    each(el, '[data-follow]', function (b) {
       b.addEventListener('click', function () { if (/<address>/.test(b.dataset.follow)) { input.value = b.dataset.follow.replace('<address>', ''); input.focus(); } else submit(b.dataset.follow, t.id); });
     });
   }
 
-  function files(t) {
-    var out = t.steps.filter(function (s) { return s.result && s.result.file; }).map(function (s) {
-      return '<div style="margin-top:6px">&#128196; <a href="/api/agent/files/' + encodeURIComponent(s.result.file) + '?u=' + encodeURIComponent(me()) + '">' + esc(s.result.file) + '</a></div>';
-    });
-    return out.join('');
+  // ── tabs ──────────────────────────────────────────────────────────────────────────────────────────────
+  function tileFilters(t) {
+    var an = stepOf(t, 'analysis.blockerInsights');
+    if (!an) return {};
+    return {
+      overdue: { label: 'Bugs overdue', bugs: an.overdue.map(function (o) { return o.bug; }) },
+      ready: { label: 'Ready to unblock', stories: an.readyToUnblock },
+      nodue: { label: 'Open, no due date', bugs: an.openNoDueDate.map(function (o) { return o.bug; }) },
+      nobug: { label: 'No bug linked', stories: an.noBug },
+    };
   }
-  function checks(t) {
-    var v = t.steps.find(function (s) { return s.tool === 'validate' && s.result; });
-    if (!v) return '';
-    return '<ul class="ag-checks">' + v.result.checks.map(function (c) { return '<li class="' + (c.ok ? '' : 'bad') + '">' + (c.ok ? '&#10003; ' : '&#10007; ') + esc(c.check) + (c.note ? ' — ' + esc(c.note) : '') + '</li>'; }).join('') + '</ul>';
-  }
-  function results(t) {
+  function summary(t) {
     var html = '';
-    var an = (t.steps.find(function (s) { return s.tool === 'analysis.blockerInsights' && s.result; }) || {}).result;
+    var st = stepOf(t, 'jira.impededStories'), an = stepOf(t, 'analysis.blockerInsights'), df = stepOf(t, 'jira.openDefects');
+    if (st) html += '<div class="ag-headline"><b>' + st.stories + '</b> impeded stories &middot; <b>' + st.bugLinks + '</b> linked bugs</div>';
+    else if (df) html += '<div class="ag-headline"><b>' + df.total + '</b> open defects</div>';
+    else if (t.summary && !stepOf(t, 'runner.queueStatus') && !stepOf(t, 'runner.usageStats')) html += '<div class="ag-headline small">' + esc(t.summary) + '</div>';
+    if (t.note) html += '<div class="ag-sub">' + esc(t.note) + '</div>';
     if (an) {
-      var list = function (label, arr) { return arr.length ? '<div style="margin-top:6px"><b>' + esc(label) + ' (' + arr.length + '):</b> ' + esc(arr.join(', ')) + '</div>' : ''; };
-      html += '<div class="ag-summary"><h2 style="margin:0 0 4px">Insights</h2>' +
-        list('Ready to unblock — every linked bug closed', an.readyToUnblock) + list('No bug linked', an.noBug) +
-        list('Open bugs past due', an.overdue.map(function (o) { return o.bug + ' (' + o.status + ', due ' + o.due + ')'; })) +
-        list('Due today', an.dueToday) + list('Open bugs with no due date', an.openNoDueDate.map(function (o) { return o.bug + (o.severity ? ' (' + o.severity + ')' : ''); })) + '</div>';
+      var tiles = [['overdue', an.overdue.length, 'Bugs overdue', 'red'], ['ready', an.readyToUnblock.length, 'Ready to unblock', 'green'],
+        ['nodue', an.openNoDueDate.length, 'Open, no due date', 'amber'], ['nobug', an.noBug.length, 'No bug linked', 'muted']];
+      html += '<div class="ag-tiles">' + tiles.map(function (x) {
+        return '<button class="ag-tile ' + x[3] + '" data-tile="' + x[0] + '"' + (x[1] ? '' : ' disabled') + '><span class="n">' + x[1] + '</span><span class="t">' + x[2] + '</span></button>';
+      }).join('') + '</div>';
+      if (an.dueToday.length) html += '<div class="ag-sub" style="margin-top:8px">Due today: ' + esc(an.dueToday.join(', ')) + '</div>';
     }
-    var st = (t.steps.find(function (s) { return s.tool === 'jira.impededStories' && s.result; }) || {}).result;
-    if (st && st.rows.length) {
-      var today = new Date().toLocaleDateString('en-CA');
-      var site = 'https://donegalgroup.atlassian.net/browse/';
-      var link = function (k) { return k ? '<a href="' + site + encodeURIComponent(k) + '" target="_blank" rel="noopener">' + esc(k) + '</a>' : ''; };
-      html += '<div class="ag-table-wrap"><table class="ag-table"><thead><tr><th>Story</th><th>Summary</th><th>Bug</th><th>Status</th><th>Severity</th><th>Due</th></tr></thead><tbody>' +
-        st.rows.map(function (r) {
-          var overdue = r.due && r.due < today && !/^(closed|rejected|fixed|done)$/i.test(r.bugStatus || '');
-          return '<tr><td>' + link(r.story) + '</td><td>' + esc(r.storySummary) + '</td><td>' + (r.bug ? link(r.bug) : '<span class="hint">none</span>') + '</td><td>' + esc(r.bugStatus || '') +
-            '</td><td class="ag-sev-' + esc(r.severity) + '">' + esc(r.severity || '') + '</td><td class="' + (overdue ? 'ag-overdue' : '') + '">' + esc(r.due || '') + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
-    }
-    var df = (t.steps.find(function (s) { return s.tool === 'jira.openDefects' && s.result; }) || {}).result;
-    if (df) {
-      var sevs = ['Critical', 'High', 'Medium', 'Low', 'None'];
-      html += '<div class="ag-table-wrap"><table class="ag-table"><thead><tr><th>Status</th>' + sevs.map(function (s) { return '<th>' + s + '</th>'; }).join('') + '<th>Total</th></tr></thead><tbody>' +
-        Object.keys(df.byStatus).map(function (k) { var row = df.byStatus[k]; var tot = 0; Object.keys(row).forEach(function (x) { tot += row[x]; });
-          return '<tr><td>' + esc(k) + '</td>' + sevs.map(function (s) { return '<td>' + (row[s] || '') + '</td>'; }).join('') + '<td><b>' + tot + '</b></td></tr>'; }).join('') + '</tbody></table></div>';
-    }
-    ['runner.queueStatus', 'runner.usageStats'].forEach(function (tool) {
-      var r = (t.steps.find(function (s) { return s.tool === tool && s.result; }) || {}).result;
-      if (r) html += '<div class="ag-log" style="max-height:220px">' + esc(JSON.stringify(r, null, 2)) + '</div>';
-    });
+    ['runner.queueStatus', 'runner.usageStats'].forEach(function (tool) { var r = stepOf(t, tool); if (r) html += plainResult(tool, r); });
+    var fl = t.steps.filter(function (s) { return s.result && s.result.file; });
+    if (fl.length) html += '<div class="ag-files">' + fl.map(function (s) {
+      return '<a class="ag-file" href="/api/agent/files/' + encodeURIComponent(s.result.file) + '?u=' + encodeURIComponent(me()) + '">&#11015; ' + esc(s.result.file) + '</a>';
+    }).join('') + '</div>';
+    if ((st || df) && t.summary && ['failed', 'cancelled'].indexOf(t.status) >= 0) html += '<div class="ag-sub" style="margin-top:10px">' + esc(t.summary) + '</div>';
+    if (t.status === 'done' && t.followUps && t.followUps.length) html += '<div class="ag-follow">' + t.followUps.map(function (f) { return '<button class="chip" data-follow="' + esc(f) + '">' + esc(f) + '</button>'; }).join('') + '</div>';
+    if (!html) html = '<div class="ag-sub">' + (t.status === 'awaiting_approval' ? 'Nothing has been sent. Approve or reject above.' : t.status === 'running' ? 'Working on it…' : 'No results yet.') + '</div>';
     return html;
   }
+  function plainResult(tool, r) {
+    if (tool === 'runner.queueStatus') {
+      var row = function (j) { return '<li>' + esc(j.label || j.suite || j.id || 'job') + (j.requestedBy ? ' <span class="ag-sub">— ' + esc(j.requestedBy) + '</span>' : '') + '</li>'; };
+      var run = r.running || [], q = r.queued || [];
+      return '<div class="ag-headline small"><b>' + run.length + '</b> running &middot; <b>' + q.length + '</b> queued</div>' +
+        (run.length + q.length ? '<ul class="ag-plain">' + run.map(row).join('') + q.map(row).join('') + '</ul>' : '');
+    }
+    var by = r.jobsByTool || {};
+    return '<div class="ag-headline small"><b>' + r.submissions + '</b> submissions in the last ' + r.days + ' days</div><ul class="ag-plain">' +
+      Object.keys(by).sort(function (a, b) { return by[b] - by[a]; }).map(function (k) { return '<li>' + esc(k) + ' <span class="ag-sub">— ' + by[k] + ' jobs</span></li>'; }).join('') + '</ul>';
+  }
+  function stories(st) {
+    if (!st || !st.rows.length) return '<div class="ag-sub">No rows.</div>';
+    var today = new Date().toLocaleDateString('en-CA');
+    var site = 'https://donegalgroup.atlassian.net/browse/';
+    var link = function (k) { return k ? '<a href="' + site + encodeURIComponent(k) + '" target="_blank" rel="noopener">' + esc(k) + '</a>' : ''; };
+    var f = state.filter, rows = st.rows;
+    if (f) rows = rows.filter(function (r) { return f.bugs ? f.bugs.indexOf(r.bug) >= 0 : f.stories.indexOf(r.story) >= 0; });
+    if (f && f.bugs) { var seen = {}; rows = rows.filter(function (r) { if (seen[r.bug]) return false; seen[r.bug] = 1; return true; }); }
+    return (f ? '<div class="ag-filter">Showing: <b>' + esc(f.label) + '</b> (' + rows.length + ') <button class="ag-link" data-clear>Show all</button></div>' : '') +
+      '<div class="ag-table-wrap"><table class="ag-table"><thead><tr><th>Story</th><th>Summary</th><th>Bug</th><th>Status</th><th>Severity</th><th>Due</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        var overdue = r.due && r.due < today && !/^(closed|rejected|fixed|done|resolved)$/i.test(r.bugStatus || '');
+        return '<tr><td>' + link(r.story) + '</td><td>' + esc(r.storySummary) + '</td><td>' + (r.bug ? link(r.bug) : '<span class="ag-sub">none</span>') + '</td><td>' + esc(r.bugStatus || '') +
+          '</td><td class="ag-sev-' + esc(r.severity) + '">' + esc(r.severity || '') + '</td><td class="' + (overdue ? 'ag-overdue' : '') + '">' + esc(r.due || '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function defects(df) {
+    var sevs = ['Critical', 'High', 'Medium', 'Low', 'None'];
+    return '<div class="ag-table-wrap"><table class="ag-table"><thead><tr><th>Status</th>' + sevs.map(function (s) { return '<th>' + s + '</th>'; }).join('') + '<th>Total</th></tr></thead><tbody>' +
+      Object.keys(df.byStatus).map(function (k) { var row = df.byStatus[k]; var tot = 0; Object.keys(row).forEach(function (x) { tot += row[x]; });
+        return '<tr><td>' + esc(k) + '</td>' + sevs.map(function (s) { return '<td>' + (row[s] || '') + '</td>'; }).join('') + '<td><b>' + tot + '</b></td></tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function plan(t) {
+    if (!t.steps.length) return '<div class="ag-sub">' + esc(t.summary || 'No plan.') + '</div>';
+    var v = stepOf(t, 'validate');
+    return '<ol class="ag-steps">' + t.steps.map(function (s) {
+      return '<li class="ag-step"><span class="ag-dot ' + esc(s.status) + '"></span><div><div class="ag-step-title">' + (s.n + 1) + '. ' + esc(s.title) + '</div>' +
+        (stepSub(s) ? '<div class="ag-step-sub">' + esc(stepSub(s)) + '</div>' : '') +
+        (s.error ? '<div class="ag-step-err">' + esc(s.error) + '</div>' : '') + '</div>' +
+        '<span class="ag-risk ' + esc(s.risk) + '">' + esc(s.risk === 'send' ? 'needs approval' : s.risk) + '</span></li>';
+    }).join('') + '</ol>' +
+      (v ? '<ul class="ag-checks">' + v.checks.map(function (c) { return '<li class="' + (c.ok ? '' : 'bad') + '">' + (c.ok ? '&#10003; ' : '&#10007; ') + esc(c.check) + (c.note ? ' — ' + esc(c.note) : '') + '</li>'; }).join('') + '</ul>' : '') +
+      '<div class="ag-sub" style="margin-top:8px">Planned by ' + esc(t.planner) + '</div>';
+  }
+  function log(t) {
+    return '<div class="ag-log">' + esc(t.log.map(function (l) { return new Date(l.ts).toLocaleTimeString() + '  ' + l.msg; }).join('\n')) + '</div>';
+  }
 
+  // ── drawer ────────────────────────────────────────────────────────────────────────────────────────────
   function renderMemory(mem) {
     var el = document.getElementById('agMem');
-    var rows = [['defaultProject', 'Default Jira project', 'SMART'], ['defaultRecipients', 'Default email recipients', 'name@donegalgroup.com']];
+    var rows = [['defaultProject', 'Default project', 'SMART'], ['defaultRecipients', 'Default recipients', 'name@donegalgroup.com']];
     el.innerHTML = rows.map(function (r) {
-      return '<label for="agm-' + r[0] + '">' + r[1] + '</label><div style="display:flex;gap:6px"><input id="agm-' + r[0] + '" value="' + esc(mem[r[0]] || '') + '" placeholder="' + r[2] + '"><button data-key="' + r[0] + '">Save</button></div>';
+      return '<label for="agm-' + r[0] + '">' + r[1] + '</label><div class="ag-kv-row"><input id="agm-' + r[0] + '" value="' + esc(mem[r[0]] || '') + '" placeholder="' + r[2] + '"><button data-key="' + r[0] + '">Save</button></div>';
     }).join('');
-    Array.prototype.forEach.call(el.querySelectorAll('button[data-key]'), function (b) {
+    each(el, 'button[data-key]', function (b) {
       b.addEventListener('click', function () {
         api('POST', '/memory', { key: b.dataset.key, value: document.getElementById('agm-' + b.dataset.key).value.trim() || null })
           .then(function (m) { renderMemory(m); err(''); }).catch(function (e) { err(e.message); });
@@ -185,8 +260,8 @@
   }
   function loadMetrics() {
     api('GET', '/metrics').then(function (m) {
-      document.getElementById('agMetrics').innerHTML = [[m.tasks, 'Tasks'], [m.completionRate + '%', 'Completed'], [m.retries, 'Retries']].map(function (x) {
-        return '<div class="stat"><div class="n">' + esc(x[0]) + '</div><div class="l">' + esc(x[1]) + '</div></div>'; }).join('');
+      document.getElementById('agMetrics').innerHTML = '<div><span>Tasks</span>' + esc(m.tasks) + ' &middot; ' + esc(m.completionRate) + '% completed</div><div><span>Retries</span>' + esc(m.retries) + '</div>' +
+        (state.meta ? '<div><span>Tools</span>' + state.meta.tools.length + ' (' + state.meta.tools.filter(function (x) { return x.risk === 'send'; }).length + ' need approval)</div>' : '');
     }).catch(function () {});
   }
 
@@ -195,18 +270,18 @@
     api('GET', '/meta').then(function (m) {
       state.meta = m;
       document.getElementById('agSugg').innerHTML = m.suggestions.map(function (s) { return '<button class="chip" data-s="' + esc(s) + '">' + esc(s) + '</button>'; }).join('');
-      Array.prototype.forEach.call(document.querySelectorAll('#agSugg [data-s]'), function (b) { b.addEventListener('click', function () { input.value = b.dataset.s; input.focus(); }); });
-      document.getElementById('agTools').innerHTML = 'Tools: ' + m.tools.map(function (t) { return esc(t.name) + (t.risk === 'send' ? ' (approval)' : ''); }).join(', ');
+      each(document, '#agSugg [data-s]', function (b) { b.addEventListener('click', function () { input.value = b.dataset.s; input.focus(); }); });
       renderMemory(m.memory || {});
+      loadMetrics();
     }).catch(function (e) { err(e.message); });
     api('GET', '/tasks').then(function (list) { state.tasks = list; renderHistory(); if (!state.selected && list[0]) select(list[0].id); }).catch(function () {});
-    loadMetrics();
   }
   window.__loadAgent = load;
 
-  // Live updates: the Runner's existing event stream carries 'agent' task events.
+  // Live updates: the Runner's existing event stream carries 'agent' task pings (id/user/status only).
   var es = new EventSource('/api/stream');
   es.addEventListener('agent', function (e) { try { var p = JSON.parse(e.data); if (p.user === me()) api('GET', '/tasks/' + p.id).then(upsert).catch(function () {}); } catch (_) {} });
 
+  renderTask(null);
   if (document.querySelector('.tab-btn[data-tab="assistant"].active')) load();
 })();
