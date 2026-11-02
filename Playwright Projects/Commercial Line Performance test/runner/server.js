@@ -1602,12 +1602,46 @@ function buildJiraReportJob(j) {
   };
 }
 
+// What would stop this person's run before it starts (missing email / credentials for the tool). Returns
+// { error, fix: { tab, field, label } } — the page shows it as a popup with a button to the field to fill in.
+// Credentials come from Settings (applied to the environment) or, on a dev machine, the repo's .env.
+const CRED_LABEL = {
+  CC_USER: ['settingsCcUser', 'ClaimCenter username'], CC_PASS: ['settingsCcPass', 'ClaimCenter password'],
+  CC_ADMIN_USER: ['settingsCcAdminUser', 'ClaimCenter admin username'], CC_ADMIN_PASS: ['settingsCcAdminPass', 'ClaimCenter admin password'],
+  JIRA_EMAIL: ['settingsJiraEmail', 'Jira email'], JIRA_API_TOKEN: ['settingsJiraApiToken', 'Jira API token'],
+};
+function runBlocker(suite, jobs, identity) {
+  if (!EMAIL_RE.test(identity)) return { error: "Your email isn't set up yet. Add it on the Settings tab, then try again.", fix: { tab: 'settings', field: 'settingsEmail', label: 'Your email' } };
+  // ClaimCenter-Automation's own .env also feeds its tests (helpers/claimCenterBase.js loads it), so count it too.
+  let claimsEnv = {};
+  try { claimsEnv = require('dotenv').parse(fs.readFileSync(path.join(CLAIMS_DIR, '.env'))); } catch (_) { /* none */ }
+  const need = (vars, toolName) => {
+    const missing = vars.filter((v) => !String(process.env[v] || claimsEnv[v] || '').trim());
+    if (!missing.length) return null;
+    const [field, label] = CRED_LABEL[missing[0]];
+    return { error: `${toolName} needs your ${missing.map((v) => CRED_LABEL[v][1]).join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} on the Settings tab, Save, then run again.`, fix: { tab: 'settings', field, label } };
+  };
+  const list = Array.isArray(jobs) ? jobs : [];
+  if (suite === 'policy' || !suite) {
+    for (const st of [...new Set(list.map((j) => j && j.state).filter(Boolean))]) {
+      const user = process.env[`WB_USER_${st}`] || process.env.WB_USER, pass = process.env[`WB_PASS_${st}`] || process.env.WB_PASS;
+      if (!String(user || '').trim() || !String(pass || '').trim()) {
+        return { error: `Policy Tests need a WriteBiz login for ${st}. Add the ${st} username and password on the Settings tab (Policy credentials), Save, then run again.`, fix: { tab: 'settings', field: `settingsWbUser${st}`, label: `${st} WriteBiz login` } };
+      }
+    }
+  }
+  if (suite === 'claims') return need(['CC_USER', 'CC_PASS'], 'Claims (ClaimCenter)');
+  if (suite === 'oneInc') return need(['CC_USER', 'CC_PASS'], 'OneInc Payments');
+  if (suite === 'smartComm' && !list.every((j) => j && /^s3/.test(String(j.mode || '')))) return need(['CC_USER', 'CC_PASS'], 'SmartCOMM validation'); // admin login: only some templates need it
+  if (suite === 'jiraReport') return need(['JIRA_EMAIL', 'JIRA_API_TOKEN'], 'The Jira Sprint Report');
+  return null;
+}
+
 app.post('/api/run', (req, res) => {
   const { suite, jobs, requestedBy } = req.body || {};
   const identity = String(requestedBy || '').trim().toLowerCase();
-  if (!EMAIL_RE.test(identity)) {
-    return res.status(400).json({ error: 'Your email is required to run anything - enter it above the Status panel (this is how teammates sharing this tool will know it\'s you).' });
-  }
+  const blocker = runBlocker(suite, jobs, identity);
+  if (blocker) return res.status(400).json(blocker);
   if (!Array.isArray(jobs) || jobs.length === 0) {
     return res.status(400).json({ error: 'No jobs provided' });
   }

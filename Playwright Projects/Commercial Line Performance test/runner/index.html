@@ -1232,6 +1232,19 @@
 </dialog>
 
 <style>#signInGate[hidden] { display: none !important; }</style>
+<style>
+  #runProblem { border: 1px solid var(--border); border-radius: 14px; background: var(--panel); color: var(--text); padding: 22px 24px; width: min(440px, calc(100vw - 32px)); }
+  #runProblem::backdrop { background: rgba(0,0,0,.45); }
+  #runProblem h3 { margin: 0 0 8px; font-size: 16px; color: var(--amber); }
+  #runProblem p { margin: 0 0 18px; line-height: 1.5; font-size: 14px; }
+  #runProblem .row { display: flex; gap: 8px; justify-content: flex-end; }
+  .field-attention { outline: 2px solid var(--amber) !important; outline-offset: 2px; }
+</style>
+<dialog id="runProblem" aria-labelledby="runProblemTitle">
+  <h3 id="runProblemTitle">&#9888; Can't start this run</h3>
+  <p id="runProblemText"></p>
+  <div class="row"><button type="button" onclick="this.closest('dialog').close()">Close</button><button type="button" class="run" id="runProblemGo"></button></div>
+</dialog>
 <div id="signInGate" hidden style="position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:var(--bg,#111);">
   <form id="signInForm" style="width:min(380px,calc(100vw - 32px));padding:28px;border-radius:14px;border:1px solid var(--border,#333);background:var(--panel,#1a1a1f);color:var(--text,#eee);font:14px var(--sans,system-ui);">
     <h2 style="margin:0 0 4px;font-size:20px;">Sign in to the Runner</h2>
@@ -1258,12 +1271,31 @@
   window.__runnerSignIn = show;
   // Any API call answered "sign in first" (session expired) brings the screen back.
   var origFetch = window.fetch.bind(window);
-  window.fetch = function () {
+  window.fetch = function (input) {
+    var url = String((input && input.url) || input || '');
     return origFetch.apply(null, arguments).then(function (r) {
       if (r.status === 401) r.clone().json().then(function (j) { if (j && j.signIn) show(); }).catch(function () {});
+      // A Run that can't start (missing email / credentials / no access): explain it in a popup.
+      else if (!r.ok && /\/api\/run$/.test(url.split('?')[0])) r.clone().json().then(function (j) { if (j && j.error) runProblem(j); }).catch(function () {});
       return r;
     });
   };
+  function runProblem(j) {
+    var d = document.getElementById('runProblem');
+    document.getElementById('runProblemText').textContent = j.error;
+    var go = document.getElementById('runProblemGo');
+    go.hidden = !j.fix;
+    go.textContent = j.fix ? 'Go to ' + (j.fix.tab === 'settings' ? 'Settings' : j.fix.tab) : '';
+    go.onclick = function () {
+      d.close();
+      var tb = document.querySelector('.tab-btn[data-tab="' + j.fix.tab + '"]'); if (tb) tb.click();
+      setTimeout(function () {
+        var f = j.fix.field && document.getElementById(j.fix.field);
+        if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); f.classList.add('field-attention'); setTimeout(function () { f.classList.remove('field-attention'); }, 2500); }
+      }, 150);
+    };
+    if (!d.open) d.showModal();
+  }
   function post(url, body) {
     return origFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.statusText); return j; }); });
