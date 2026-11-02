@@ -87,6 +87,8 @@ async function refreshEntitlements() {
 // use predates entitlements entirely and every suite already in production use
 // there shouldn't suddenly need an approval step.
 function allowedSuitesFor(email) {
+  // No identity, no tools (user, 2026-11-02) — in every build, not just the packaged one.
+  if (!EMAIL_RE.test(String(email || '').trim())) return [];
   if (!PACKAGED) return SUITES.slice();
   if (isAdmin(email)) return SUITES.slice(); // an admin can use every tool (they manage access, after all)
   // activeEntitlements() prefers the admin-set config on V: (live), falling back to the GitHub-sourced cache -
@@ -436,6 +438,15 @@ const UPDATE_VALIDATION_TIERS = ['test', 'dev'];
 
 const app = express();
 app.use(express.json({ limit: '15mb' })); // bulk claims-file uploads travel as base64 JSON — see /api/recon/upload
+// Real sign-in (runner/auth.js): an emailed 6-digit code proves who you are; every route below acts as that person.
+const auth = require('./auth').createAuth({
+  dataDir: path.dirname(SETTINGS_FILE),
+  packaged: PACKAGED,
+  sendMail: (msg) => require('nodemailer').createTransport({
+    host: process.env.EMAIL_SMTP_HOST || 'smtp.donegalgroup.com', port: Number(process.env.EMAIL_SMTP_PORT) || 25, secure: false, tls: { rejectUnauthorized: false },
+  }).sendMail({ from: process.env.EMAIL_FROM || 'automation@donegalgroup.com', ...msg }),
+});
+auth.mount(app);
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
@@ -636,6 +647,13 @@ app.get('/api/caRefresh/runs', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// The saved name belongs to the saved email; a different signed-in person doesn't inherit it.
+function signedInSettings(req) {
+  const s = loadSettings();
+  if (!req.authEmail) return s;
+  return { ...s, email: req.authEmail, name: String(s.email || '').toLowerCase() === req.authEmail ? s.name : '' };
+}
+
 app.get('/api/config', (req, res) => {
   res.json({
     packagedBuild: PACKAGED,
@@ -643,7 +661,8 @@ app.get('/api/config', (req, res) => {
     agentAdminsOnly: PACKAGED, // team app: the Assistant tab shows for admins only
     appVersion: process.env.RUNNER_APP_VERSION || '',
     comingSoonSuites: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
-    settings: loadSettings(),
+    settings: signedInSettings(req),
+    authEnabled: auth.enabled,
     policy: {
       lobs: POLICY_LOB,
       states: POLICY_STATES,
@@ -717,7 +736,7 @@ app.post('/api/settings', (req, res) => {
 // through this app. `allowed` always includes smartComm; `comingSoon` is the
 // separate, always-locked-for-now list from PACKAGED_UNAVAILABLE_SUITES.
 app.get('/api/entitlements', (req, res) => {
-  const email = String(req.query.email || '').trim().toLowerCase();
+  const email = String(req.authEmail || req.query.email || '').trim().toLowerCase();
   res.json({
     packagedBuild: PACKAGED,
     allowed: allowedSuitesFor(email),
@@ -735,7 +754,7 @@ const SUITE_LABELS = {
   updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
 };
 app.get('/api/admin', (req, res) => {
-  const email = String(req.query.email || '').trim().toLowerCase();
+  const email = String(req.authEmail || req.query.email || '').trim().toLowerCase();
   if (!isAdmin(email)) return res.status(403).json({ error: 'Admin access only.' });
   res.json({
     isAdmin: true,
@@ -1954,7 +1973,8 @@ if (AGENT_ENABLED) {
         queueStatus: () => ({ queued: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })), running: allRunning().map((r) => ({ label: r.job.label, requestedBy: r.job.requestedBy, progress: r.progress })) }),
         readUsage,
         allowUser: PACKAGED ? isAdmin : null,
-        baseUrl: `http://127.0.0.1:${PORT}`, // runs / Admin changes go through this Runner's own /api/run and /api/admin
+        baseUrl: `http://127.0.0.1:${PORT}`,
+        authHeaders: auth.internalHeaders, // runs / Admin changes go through this Runner's own /api/run and /api/admin
       },
     });
     console.log('Assistant enabled (RUNNER_AGENT=1).');

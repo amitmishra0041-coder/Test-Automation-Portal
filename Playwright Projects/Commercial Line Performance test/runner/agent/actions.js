@@ -26,7 +26,8 @@ function runnerApi(ctx) {
   if (!ctx.host.baseUrl) throw new Error('Runner API not available.');
   return async (method, url, body) => {
     try {
-      const r = await axios({ method, url: ctx.host.baseUrl + url, data: body, timeout: 30000, signal: ctx.signal });
+      const headers = ctx.host.authHeaders ? ctx.host.authHeaders(ctx.user) : {};
+      const r = await axios({ method, url: ctx.host.baseUrl + url, data: body, headers, timeout: 30000, signal: ctx.signal });
       return r.data;
     } catch (e) {
       throw new Error((e.response && e.response.data && e.response.data.error) || e.message);

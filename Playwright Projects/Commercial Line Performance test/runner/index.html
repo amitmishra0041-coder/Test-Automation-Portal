@@ -1047,11 +1047,6 @@
       <input type="text" id="settingsSmartCommDataDir" placeholder="leave blank to use the copy bundled with this app" autocomplete="off" style="max-width:520px" />
       <div class="hint">A copy of the Claims_Documents_Index spreadsheet and template .docx files already ships with this app — only set this if you need to point at a different or newer copy.</div>
 
-      <div class="actions">
-        <button class="run" id="settingsSaveBtn">Save</button>
-      </div>
-      <div class="error-msg" id="settingsError"></div>
-      <div class="hint" id="settingsSavedMsg" style="display:none; color:var(--green)">Saved.</div>
     </div>
 
     <div class="card">
@@ -1094,6 +1089,12 @@
       <h2>Policy (WriteBiz) credentials</h2>
       <p class="hint">Needed for the Policy tab — one login per state. Same storage/privacy as above.</p>
       <div id="settingsWbFields"></div>
+    </div>
+    <div class="save-bar">
+      <span class="hint">Saves everything on this page.</span>
+      <span class="error-msg" id="settingsError"></span>
+      <span class="hint" id="settingsSavedMsg" style="display:none; color:var(--green)">Saved.</span>
+      <button class="run" id="settingsSaveBtn">Save settings</button>
     </div>
   </div>
 
@@ -1228,6 +1229,65 @@
   <ul id="quickSwitchList"></ul>
 </dialog>
 
+<style>#signInGate[hidden] { display: none !important; }</style>
+<div id="signInGate" hidden style="position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:var(--bg,#111);">
+  <form id="signInForm" style="width:min(380px,calc(100vw - 32px));padding:28px;border-radius:14px;border:1px solid var(--border,#333);background:var(--panel,#1a1a1f);color:var(--text,#eee);font:14px var(--sans,system-ui);">
+    <h2 style="margin:0 0 4px;font-size:20px;">Sign in to the Runner</h2>
+    <p id="signInHint" style="margin:0 0 18px;color:var(--muted,#999);">We'll email a 6-digit code to your Donegal address.</p>
+    <label for="signInEmail" style="display:block;font-size:12px;color:var(--muted,#999);margin-bottom:4px;">Email</label>
+    <input id="signInEmail" type="email" autocomplete="email" placeholder="you@donegalgroup.com" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border,#333);background:var(--field-bg,#111);color:inherit;font:inherit;" />
+    <div id="signInCodeRow" hidden style="margin-top:12px;">
+      <label for="signInCode" style="display:block;font-size:12px;color:var(--muted,#999);margin-bottom:4px;">Code from the email</label>
+      <input id="signInCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border,#333);background:var(--field-bg,#111);color:inherit;font:18px var(--mono,monospace);letter-spacing:4px;" />
+    </div>
+    <div id="signInErr" style="color:var(--red,#e55);font-size:12px;min-height:16px;margin-top:8px;"></div>
+    <button id="signInBtn" class="run" type="submit" style="width:100%;margin-top:6px;justify-content:center;">Email me a code</button>
+    <button id="signInBack" type="button" hidden style="width:100%;margin-top:8px;background:none;border:0;color:var(--muted,#999);cursor:pointer;">Use a different email / send a new code</button>
+  </form>
+</div>
+<script>
+// Real sign-in (runner/auth.js): until the server has a session for this browser, show the sign-in screen.
+(function () {
+  'use strict';
+  var gate = document.getElementById('signInGate');
+  var step = 'email';
+  function $(id) { return document.getElementById(id); }
+  function show() { if (gate.hidden) { gate.hidden = false; $('signInEmail').focus(); } }
+  window.__runnerSignIn = show;
+  // Any API call answered "sign in first" (session expired) brings the screen back.
+  var origFetch = window.fetch.bind(window);
+  window.fetch = function () {
+    return origFetch.apply(null, arguments).then(function (r) {
+      if (r.status === 401) r.clone().json().then(function (j) { if (j && j.signIn) show(); }).catch(function () {});
+      return r;
+    });
+  };
+  function post(url, body) {
+    return origFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.statusText); return j; }); });
+  }
+  function setStep(s) {
+    step = s;
+    $('signInCodeRow').hidden = s !== 'code';
+    $('signInBack').hidden = s !== 'code';
+    $('signInEmail').readOnly = s === 'code';
+    $('signInBtn').textContent = s === 'code' ? 'Sign in' : 'Email me a code';
+    $('signInHint').textContent = s === 'code' ? 'Check your inbox for the code (it expires in 10 minutes).' : "We'll email a 6-digit code to your Donegal address.";
+    if (s === 'code') $('signInCode').focus();
+  }
+  $('signInBack').addEventListener('click', function () { $('signInErr').textContent = ''; $('signInCode').value = ''; setStep('email'); });
+  $('signInForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = $('signInBtn'); $('signInErr').textContent = ''; btn.disabled = true;
+    var email = $('signInEmail').value.trim();
+    var p = step === 'email' ? post('/api/auth/request', { email: email }).then(function () { setStep('code'); })
+      : post('/api/auth/verify', { email: email, code: $('signInCode').value.trim() }).then(function () { location.reload(); });
+    p.catch(function (err) { $('signInErr').textContent = err.message; }).then(function () { btn.disabled = false; });
+  });
+  origFetch('/api/auth/me').then(function (r) { return r.json(); }).then(function (m) { if (m.enabled && !m.email) show(); }).catch(function () {});
+})();
+</script>
+
 <script>
 (function () {
   'use strict';
@@ -1320,7 +1380,8 @@
   // SmartCOMM's wins if both are filled in (it's the one most people here already use day to day).
   function isValidEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
   var myEmail = '';
-  var myAllowedTabs = null;   // null = not loaded yet / entitlements don't apply (plain dev use) -> nothing locked
+  var myAllowedTabs = null;
+  var entitlementsLoaded = false; // set by the first syncIdentity(), which fetches tool access even with no email
   var myComingSoon = [];
   var packagedBuild = false;
   var ownerEmail = 'amitmishra@donegalgroup.com';
@@ -1337,7 +1398,7 @@
     window.runnerEmail = myEmail; // read by the Assistant tab (separate script)
     showIdentity();
     setRunning(runningList());
-    if (changed) refreshEntitlements();
+    if (changed || !entitlementsLoaded) { entitlementsLoaded = true; refreshEntitlements(); } // also once at startup, so 'no email' locks the tools
   }
 
   function showIdentity() {
@@ -1354,7 +1415,7 @@
       av.setAttribute('aria-label', av.title);
       av.style.display = initials ? '' : 'none';
     }
-    if (fu) fu.textContent = who ? 'Signed in as ' + who : 'Not signed in — enter your email on Settings';
+    if (fu) fu.textContent = who ? 'Signed in as ' + who : 'Not signed in';
   }
 
   // Assistant tab: only when the server enables it; in the team app, only for admins.
@@ -1389,7 +1450,8 @@
       var tab = btn.dataset.tab;
       if (tab === 'home' || tab === 'results' || tab === 'settings' || tab === 'stats' || tab === 'admin' || tab === 'assistant') return; // Home/Results/Settings/Stats/Admin are never entitlement-gated
       var comingSoon = myComingSoon.indexOf(tab) !== -1;
-      var locked = packagedBuild && myAllowedTabs && myAllowedTabs.indexOf(tab) === -1 && !comingSoon;
+      // No email (not signed in) locks every tool in every build; otherwise only the packaged app restricts.
+      var locked = myAllowedTabs && myAllowedTabs.indexOf(tab) === -1 && !comingSoon && (packagedBuild || !isValidEmail(myEmail));
       btn.classList.toggle('locked', locked);
       btn.classList.toggle('comingSoon', comingSoon);
       var lbl = btn.querySelector('.tab-label'); if (lbl) lbl.textContent = btn.dataset.baseLabel; // keeps the icon
@@ -1492,6 +1554,14 @@
     if (cfg.settings) {
       if (cfg.settings.name) document.getElementById('settingsName').value = cfg.settings.name;
       if (cfg.settings.email) document.getElementById('settingsEmail').value = cfg.settings.email;
+      if (cfg.authEnabled) { // signed in: the email is the verified one; change it by signing out
+        var se = document.getElementById('settingsEmail'); se.readOnly = true; se.title = 'Your signed-in email';
+        if (!document.getElementById('signOutBtn')) {
+          var so = document.createElement('button'); so.type = 'button'; so.id = 'signOutBtn'; so.textContent = 'Sign out'; so.style.marginLeft = '8px';
+          so.addEventListener('click', function () { fetch('/api/auth/signout', { method: 'POST' }).then(function () { location.reload(); }); });
+          se.insertAdjacentElement('afterend', so);
+        }
+      }
       if (cfg.settings.smartCommDataDir) document.getElementById('settingsSmartCommDataDir').value = cfg.settings.smartCommDataDir;
       if (cfg.settings.ccUser) document.getElementById('settingsCcUser').value = cfg.settings.ccUser;
       if (cfg.settings.ccPass) document.getElementById('settingsCcPass').value = cfg.settings.ccPass;
