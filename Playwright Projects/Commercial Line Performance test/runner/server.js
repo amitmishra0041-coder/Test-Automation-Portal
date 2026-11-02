@@ -770,6 +770,17 @@ app.get('/api/admin', (req, res) => {
     },
   });
 });
+// Who has used which tool (from the shared usage log) — the Admin tab's "Add everyone who has used the tool".
+app.get('/api/admin/usageTools', (req, res) => {
+  const email = String(req.authEmail || req.query.email || '').trim().toLowerCase();
+  if (!isAdmin(email)) return res.status(403).json({ error: 'Admin access only.' });
+  const used = {};
+  for (const r of readUsage()) {
+    const e = String(r.email || '').trim().toLowerCase();
+    if (EMAIL_RE.test(e) && SUITES.includes(r.tool)) (used[e] = used[e] || new Set()).add(r.tool);
+  }
+  res.json(Object.fromEntries(Object.entries(used).map(([e, s]) => [e, [...s]])));
+});
 app.post('/api/admin', (req, res) => {
   const body = req.body || {};
   const email = String(body.requestedBy || '').trim().toLowerCase();

@@ -1148,7 +1148,9 @@
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
         <input type="email" id="adminNewUser" placeholder="person@donegalgroup.com" style="max-width:300px" />
         <button id="adminAddUserBtn" class="btn-secondary">Add person</button>
+        <button id="adminImportUsageBtn" class="btn-secondary" title="Adds everyone in the usage log and ticks the tools they have used. Nothing is removed. Review, then Save.">Add everyone who has used the tool</button>
       </div>
+      <div class="hint" id="adminImportMsg"></div>
     </div>
     <div class="card">
       <h2>Admins &amp; owner</h2>
@@ -1973,6 +1975,23 @@
     if (!adminState.grants[email]) adminState.grants[email] = [];
     inp.value = '';
     renderAdminGrants();
+  });
+  // Fills in (never removes) everyone from the usage log with the tools they've used; the admin reviews, then Saves.
+  document.getElementById('adminImportUsageBtn').addEventListener('click', function () {
+    fetch('/api/admin/usageTools?email=' + encodeURIComponent(myEmail)).then(function (r) { return r.json(); }).then(function (used) {
+      if (used.error) throw new Error(used.error);
+      syncAdminGrantsFromDom();
+      var added = 0, widened = 0;
+      Object.keys(used).forEach(function (email) {
+        var before = adminState.grants[email];
+        var base = before || adminState.defaultTools || [];
+        var next = adminState.suites.map(function (s) { return s.key; }).filter(function (k) { return k !== 'smartComm' && (base.indexOf(k) !== -1 || used[email].indexOf(k) !== -1); });
+        if (!before) added++; else if (next.length > before.length) widened++;
+        adminState.grants[email] = next;
+      });
+      renderAdminGrants();
+      document.getElementById('adminImportMsg').textContent = added + ' people added, ' + widened + ' given tools they have used. Nothing removed — review, then Save admin settings.';
+    }).catch(function (e) { document.getElementById('adminImportMsg').textContent = e.message; });
   });
   document.getElementById('adminSaveBtn').addEventListener('click', function () {
     syncAdminGrantsFromDom();
