@@ -1,0 +1,66 @@
+/* Assistant tab — uses the Runner's own theme tokens (--panel, --accent, ...), so light/dark both work. */
+.ag-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+@media (max-width: 1000px) { .ag-grid { grid-template-columns: 1fr; } }
+.ag-ask { display: flex; gap: 8px; }
+.ag-ask textarea { flex: 1; min-height: 52px; resize: vertical; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--field-bg); color: var(--text); font: 14px var(--sans); }
+.ag-ask button { min-width: 96px; }
+.ag-sugg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ag-sugg .chip { font-size: 12px; }
+.ag-banner { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.ag-banner b { color: var(--green); font-weight: 600; }
+.ag-task-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.ag-obj { font-size: 15px; font-weight: 600; color: var(--text); }
+.ag-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ag-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; border: 1px solid var(--border); white-space: nowrap; }
+.ag-badge.done { color: var(--green); border-color: var(--green); }
+.ag-badge.failed, .ag-badge.cancelled { color: var(--red); border-color: var(--red); }
+.ag-badge.running { color: var(--accent); border-color: var(--accent); }
+.ag-badge.awaiting_approval, .ag-badge.paused, .ag-badge.interrupted { color: var(--amber); border-color: var(--amber); }
+.ag-progress { height: 6px; background: var(--panel-2); border-radius: 3px; margin: 12px 0; overflow: hidden; }
+.ag-progress > div { height: 100%; background: var(--accent-strong); transition: width .3s; }
+.ag-steps { list-style: none; margin: 0; padding: 0; }
+.ag-step { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); align-items: start; }
+.ag-step:first-child { border-top: 0; }
+.ag-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); margin-top: 2px; }
+.ag-step.done .ag-dot { background: var(--green); border-color: var(--green); }
+.ag-step.running .ag-dot { border-color: var(--accent); border-top-color: transparent; animation: ag-spin .8s linear infinite; }
+.ag-step.failed .ag-dot { background: var(--red); border-color: var(--red); }
+.ag-step.awaiting_approval .ag-dot { background: var(--amber); border-color: var(--amber); }
+.ag-step.skipped .ag-dot, .ag-step.cancelled .ag-dot { background: var(--muted); border-color: var(--muted); }
+@keyframes ag-spin { to { transform: rotate(360deg); } }
+.ag-step-title { font-size: 13px; color: var(--text); }
+.ag-step-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; word-break: break-word; }
+.ag-step-err { font-size: 12px; color: var(--red); margin-top: 2px; }
+.ag-risk { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+.ag-risk.send { color: var(--amber); border-color: var(--amber); }
+.ag-approve { margin-top: 12px; padding: 12px; border: 1px solid var(--amber); border-radius: 8px; background: color-mix(in srgb, var(--amber) 8%, transparent); }
+.ag-approve h3 { margin: 0 0 6px; font-size: 13px; color: var(--amber); }
+.ag-approve .row { display: flex; gap: 8px; margin-top: 10px; }
+.ag-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.ag-actions button { font-size: 12px; padding: 4px 10px; }
+.ag-summary { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--panel-2); font-size: 13px; line-height: 1.5; }
+.ag-summary a { color: var(--link); }
+.ag-checks { margin: 8px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); }
+.ag-checks .bad { color: var(--red); }
+.ag-follow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ag-table-wrap { max-height: 360px; overflow: auto; margin-top: 12px; border: 1px solid var(--border); border-radius: 8px; }
+.ag-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ag-table th { position: sticky; top: 0; background: var(--panel-2); text-align: left; padding: 6px 8px; font-weight: 600; color: var(--muted); }
+.ag-table td { padding: 5px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+.ag-table a { color: var(--link); }
+.ag-sev-High, .ag-sev-Critical { color: var(--red); font-weight: 600; }
+.ag-overdue { color: var(--red); font-weight: 600; }
+.ag-log { font: 12px var(--mono); color: var(--muted); max-height: 140px; overflow: auto; margin-top: 10px; white-space: pre-wrap; }
+.ag-hist { list-style: none; margin: 0; padding: 0; }
+.ag-hist li { padding: 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+.ag-hist li:hover { border-color: var(--border); }
+.ag-hist li.sel { border-color: var(--accent); background: var(--panel-2); }
+.ag-hist .t { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-hist .m { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; gap: 6px; align-items: center; }
+.ag-kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 12px; align-items: center; }
+.ag-kv input { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--field-bg); color: var(--text); font: 12px var(--sans); min-width: 0; }
+.ag-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ag-metrics .stat { min-width: 0; padding: 8px; }
+.ag-metrics .stat .n { font-size: 18px; }
+.ag-metrics .stat .l { font-size: 10px; }
+.ag-empty { color: var(--muted); font-size: 13px; }

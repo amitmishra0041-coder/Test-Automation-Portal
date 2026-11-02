@@ -546,6 +546,7 @@
   <button type="button" class="collapse-btn" id="navCollapse" aria-label="Collapse or expand the menu" aria-expanded="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="tab-label">Collapse menu</span></button>
   <div class="nav-group">Overview</div>
   <button class="tab-btn active" data-tab="home" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="tab-label">Home</span></button>
+  <button class="tab-btn" data-tab="assistant" id="agentNavBtn" style="display:none" title="Assistant (experimental)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg><span class="tab-label">Assistant</span></button>
   <button class="tab-btn" data-tab="results" title="Results"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6v3H9zM7 5H5v16h14V5h-2M9 14l2 2 4-4"/></svg><span class="tab-label">Results</span></button>
   <div class="nav-group">Policy</div>
   <button class="tab-btn" data-tab="policy" title="Policy Tests (BOP / Package / CA)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span class="tab-label">Policy Tests (BOP / Package / CA)</span></button>
@@ -591,6 +592,7 @@
   </div>
 
   <!-- ── Results (saved SmartCOMM runs; never entitlement-gated) ─────────── -->
+  <div class="tab-panel" id="tab-assistant"></div>
   <div class="tab-panel" id="tab-results">
     <div class="page-head"><h1>Results</h1><p>Every saved SmartCOMM run — what passed, what failed and why, and what changed since the previous run.</p></div>
     <div class="results-layout">
@@ -1258,12 +1260,13 @@
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      setRunPanelsVisible(btn.dataset.tab !== 'home' && btn.dataset.tab !== 'results' && btn.dataset.tab !== 'settings' && btn.dataset.tab !== 'stats' && btn.dataset.tab !== 'admin');
+      setRunPanelsVisible(btn.dataset.tab !== 'home' && btn.dataset.tab !== 'results' && btn.dataset.tab !== 'settings' && btn.dataset.tab !== 'stats' && btn.dataset.tab !== 'admin' && btn.dataset.tab !== 'assistant');
       setCrumb(btn.dataset.baseLabel);
       if (btn.dataset.tab === 'home') loadHome();
       if (btn.dataset.tab === 'results') loadResults();
       if (btn.dataset.tab === 'stats') loadStats();
       if (btn.dataset.tab === 'admin') loadAdmin();
+      if (btn.dataset.tab === 'assistant' && window.__loadAgent) window.__loadAgent();
       if (btn.dataset.tab === 'oneInc' && window.__loadOneInc) window.__loadOneInc();
       try { localStorage.setItem('runnerActiveTab', btn.dataset.tab); } catch (_) { /* ignore */ }
     });
@@ -1331,6 +1334,7 @@
     var val = (settingsInput && settingsInput.value.trim()) || (scInput && scInput.value.trim()) || (jrInput && jrInput.value.trim()) || '';
     var changed = val.toLowerCase() !== myEmail;
     myEmail = val.toLowerCase();
+    window.runnerEmail = myEmail; // read by the Assistant tab (separate script)
     showIdentity();
     setRunning(runningList());
     if (changed) refreshEntitlements();
@@ -1450,6 +1454,7 @@
   // ── Load config, render controls ─────────────────────────────────────────
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     config = cfg;
+    if (cfg.agentEnabled) { var ab = document.getElementById('agentNavBtn'); if (ab) ab.style.display = ''; var ac = document.createElement('link'); ac.rel = 'stylesheet'; ac.href = '/agent-ui/ui.css'; document.head.appendChild(ac); var as = document.createElement('script'); as.src = '/agent-ui/ui.js'; document.body.appendChild(as); }
     renderPolicyProjects();
     renderPolicyLobs();
     renderPolicyStates();

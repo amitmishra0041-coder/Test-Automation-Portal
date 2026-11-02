@@ -639,6 +639,7 @@ app.get('/api/caRefresh/runs', (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     packagedBuild: PACKAGED,
+    agentEnabled: process.env.RUNNER_AGENT === '1' && !PACKAGED,
     appVersion: process.env.RUNNER_APP_VERSION || '',
     comingSoonSuites: PACKAGED ? PACKAGED_UNAVAILABLE_SUITES : [],
     settings: loadSettings(),
@@ -1933,6 +1934,23 @@ const HOST = !PACKAGED && process.env.RUNNER_HOST ? process.env.RUNNER_HOST : '1
 // Started from source while another Runner still answers on this port (an old window, or one left running for days):
 // on Windows the new listen can still "succeed" while the browser keeps reaching the old server — so check first, and
 // say so instead of looking started. The installed app manages its own server, so this is for source runs only.
+// ── Assistant (experimental, dev Runner only) ───────────────────────────────
+// Plan-and-run tasks over the Runner's own tools (runner/agent/). Off unless RUNNER_AGENT=1, never in the
+// packaged build. No cloud AI: planning is rule-based, or a local model on this PC (AGENT_LOCAL_MODEL_URL).
+const AGENT_ENABLED = process.env.RUNNER_AGENT === '1' && !PACKAGED;
+if (AGENT_ENABLED) {
+  try {
+    require('./agent/routes').mountAgent(app, {
+      broadcast,
+      host: {
+        queueStatus: () => ({ queued: allQueued().map((j) => ({ label: j.label, requestedBy: j.requestedBy })), running: allRunning().map((r) => ({ label: r.job.label, requestedBy: r.job.requestedBy, progress: r.progress })) }),
+        readUsage,
+      },
+    });
+    console.log('Assistant enabled (RUNNER_AGENT=1).');
+  } catch (e) { console.error(`Assistant failed to start: ${e.message}`); }
+}
+
 function startListening() {
   app.listen(PORT, HOST, onListening).on('error', (e) => {
     if (e.code === 'EADDRINUSE') { console.error(portInUseMessage()); process.exit(1); }
