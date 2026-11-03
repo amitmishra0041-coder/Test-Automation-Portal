@@ -1394,7 +1394,7 @@
   // ── State ──────────────────────────────────────────────────────────────
   var config = null;
   var policy = { project: 'REGRESSION', lobs: new Set(), states: new Set(), envs: new Set() };
-  var claims = { lob: null, platform: null, tier: null };
+  var claims = { lob: null, platform: 'cloud', tier: null }; // claims are cloud-only
   var recon = { tier: null, file: null };
   var uv = { tier: null, file: null };
   var smartComm = { templateId: null, tier: null, mode: 'template', templateIds: new Set() };

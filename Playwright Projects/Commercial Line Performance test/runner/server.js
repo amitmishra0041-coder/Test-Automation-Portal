@@ -409,7 +409,7 @@ const CLAIMS_STEPS = {
   recovery: { label: 'Subro recovery + credit', default: true },
   close:    { label: 'Final payment + close', default: false },
 };
-const CLAIMS_PLATFORMS = ['onprem', 'cloud']; // CC_ENV
+const CLAIMS_PLATFORMS = ['cloud']; // CC_ENV — claims are created on cloud only (user, 2026-11-03)
 const CLAIMS_TIERS = ['test', 'dev'];         // CC_TIER
 
 // Migration-reconciliation tier options — same CC_TIER axis as the claims
