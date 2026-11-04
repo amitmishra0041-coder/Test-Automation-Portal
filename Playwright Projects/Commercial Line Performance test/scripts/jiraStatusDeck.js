@@ -173,7 +173,7 @@ async function oneIncAutomation() {
       const execKey = r && r.exec && r.exec.key;
       if (!execKey) continue;
       const auto = inv.cases.filter((c) => c.story === w.story && classify(c, { readiness }).automation === 'AUTOMATED');
-      const c = { automated: auto.length, PASS: 0, FAIL: 0, BLOCKED: 0, NEVER: 0 };
+      const c = { automated: auto.length, PASS: 0, FAIL: 0, BLOCKED: 0, NEVER: 0, dev: (r.dev && r.dev.status) || '' }; // dev = the story's development card status
       for (const tc of auto) { const l = agg.latest[tc.scenarioId]; c[l ? l.status : 'NEVER']++; }
       byExec[execKey] = c;
     }
@@ -356,11 +356,21 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
   // it, worst first), then in progress, ready for QA, not started. Enhancements are marked, not listed separately.
   const ORDER = (i) => (isImpeded(i) ? 0 : inProg(i) ? 1 : readyQa(i) ? 2 : 3);
   const notSub = (i) => !/sub-?task/i.test(i.type); // listed via their story (hours still count)
-  const outstandingLines = (all, { maxBlocked = Infinity, lineFor = lineOf } = {}) => {
+  // Grouped in review order (QA lead, 2026-11-04): In progress → Blocked → Ready for QA → Not started, each under
+  // its own sub-heading with a count. `active` marks items that are really being tested though Jira says otherwise
+  // (OneInc stories with automated runs).
+  const grouped = (buckets) => buckets.flatMap(([label, lines, n]) => (lines.length
+    ? [{ t: `${label}${n != null ? ` (${n})` : ''}:`, plain: true, bold: true, color: label === 'Blocked' ? 'C00000' : '1F3864' }, ...lines] : []));
+  const bucketOf = (i, active) => (isImpeded(i) ? 'blocked' : inProg(i) || active(i) ? 'inprog' : readyQa(i) ? 'ready' : 'todo');
+  const outstandingLines = (all, { maxBlocked = Infinity, lineFor = lineOf, active = () => false } = {}) => {
     const list = all.filter(notSub);
-    const blocked = blockerLines(list.filter(isImpeded), maxBlocked);
-    const rest = list.filter((i) => !isImpeded(i)).sort((a, b) => ORDER(a) - ORDER(b) || b.rem - a.rem).map(lineFor);
-    return [...blocked, ...rest];
+    const by = (g) => list.filter((i) => bucketOf(i, active) === g).sort((a, b) => b.rem - a.rem);
+    return grouped([
+      ['In progress', by('inprog').map(lineFor), by('inprog').length],
+      ['Blocked', blockerLines(by('blocked'), maxBlocked), by('blocked').length],
+      ['Ready for QA', by('ready').map(lineFor), by('ready').length],
+      ['Not started', by('todo').map(lineFor), by('todo').length],
+    ]);
   };
   const enh = (i) => (i.track === 'Enhancement' && i.area === 'ClaimCenter' ? ' (enhancement)' : '');
   const hdr = { bold: true, fill: { color: 'D9E2F3' } };
@@ -419,28 +429,32 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     const bcT = tally('BillingCenter'); const ccT = tally('ClaimCenter');
     // Outstanding work as counted summary lines per template system ("45 DIG letter templates – Blocked due to
     // defects", "Testing for 10 CC templates in progress"); non-template work (CC_/BC_/QA_ features) one per line.
-    const scOutstanding = [];
     const nTemplates = (list, sys) => new Set(list.map((i) => templateOf(i)).filter((t) => t && t.sys === sys).map((t) => t.id)).size;
+    // Templates counted (no IDs); other SmartCOMM work listed by name — in the same four groups as the other tracks.
     const open5 = sc.s5.filter((i) => !isImpeded(i));
-    for (const [sys, lbl, blockedLbl] of [['ClaimCenter', 'CC', 'DIG letter'], ['BillingCenter', 'BC', 'BC']]) {
-      const lines = [
-        [nTemplates(open5.filter((i) => inProg(i) && phase(i.summary) === 'Execution'), sys), (n) => `Testing for ${n} ${lbl} templates in progress`],
-        [nTemplates(open5.filter((i) => inProg(i) && phase(i.summary) === 'Design'), sys), (n) => `Test design for ${n} ${lbl} templates in progress`],
-        [nTemplates(open5.filter((i) => !inProg(i)), sys), (n) => `${n} ${lbl} templates not started / awaiting dev`],
-      ];
-      for (const [n, text] of lines) if (n) scOutstanding.push({ t: text(n) });
-    }
-    // Blocked templates: counted (no IDs), with what's blocking them; other blocked work listed by name.
+    const tLines = (pick, text) => ['ClaimCenter', 'BillingCenter'].map((sys) => [nTemplates(pick, sys), sys === 'ClaimCenter' ? 'CC' : 'BC'])
+      .filter(([n]) => n).map(([n, lbl]) => ({ t: text(n, lbl) }));
+    const other = (g) => sc.s5.filter((i) => !templateOf(i) && notSub(i) && bucketOf(i, () => false) === g).sort((a, b) => b.rem - a.rem);
     const impT = sc.imp.filter((i) => templateOf(i));
     const impBugs = [...new Set(impT.flatMap((i) => i.openBugs))].map((k) => bugByKey.get(k)).filter(Boolean);
     const nImpT = nTemplates(impT, 'ClaimCenter') + nTemplates(impT, 'BillingCenter');
-    if (nImpT) {
-      const over = impBugs.filter((b) => b.due && b.due < todayKey).length;
-      const hi = impBugs.filter((b) => ['Critical', 'High'].includes(sevOf(b))).length;
-      scOutstanding.unshift({ t: `${nImpT} templates blocked by ${impBugs.length} open defects (${[hi && `${hi} Critical/High`, over && `${over} overdue`].filter(Boolean).join(', ') || 'none overdue'})`, color: 'C00000' });
-    }
-    scOutstanding.splice(nImpT ? 1 : 0, 0, ...blockerLines(sc.imp.filter((i) => !templateOf(i) && notSub(i))));
-    scOutstanding.push(...sc.s5.filter((i) => !templateOf(i) && !isImpeded(i) && notSub(i)).sort((a, b) => ORDER(a) - ORDER(b) || b.rem - a.rem).map(lineOf));
+    const over = impBugs.filter((b) => b.due && b.due < todayKey).length;
+    const hi = impBugs.filter((b) => ['Critical', 'High'].includes(sevOf(b))).length;
+    const scOutstanding = grouped([
+      ['In progress', [
+        ...tLines(open5.filter((i) => inProg(i) && phase(i.summary) === 'Execution'), (n, l) => `Testing for ${n} ${l} templates`),
+        ...tLines(open5.filter((i) => inProg(i) && phase(i.summary) === 'Design'), (n, l) => `Test design for ${n} ${l} templates`),
+        ...other('inprog').map(lineOf)]],
+      ['Blocked', [
+        ...(nImpT ? [{ t: `${nImpT} templates blocked by ${impBugs.length} open defects (${[hi && `${hi} Critical/High`, over && `${over} overdue`].filter(Boolean).join(', ') || 'none overdue'})`, color: 'C00000' }] : []),
+        ...blockerLines(other('blocked'))]],
+      ['Ready for QA', [
+        ...tLines(open5.filter((i) => readyQa(i)), (n, l) => `${n} ${l} templates ready for QA`),
+        ...other('ready').map(lineOf)]],
+      ['Not started', [
+        ...tLines(open5.filter((i) => !inProg(i) && !readyQa(i)), (n, l) => `${n} ${l} templates not started / awaiting dev`),
+        ...other('todo').map(lineOf)]],
+    ]);
     const sca = automation.smartComm;
     const scRisk = risk('SmartComm');
     const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
@@ -472,17 +486,26 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     // A OneInc execution card still marked "Ready for QA" whose story has automated results is really being tested.
     const oia = automation.oneInc || {};
     const autoOf = (i) => { const c = oia[i.key]; return c && c.automated && c.NEVER < c.automated ? c : null; };
+    const devPending = (i) => { const c = oia[i.key]; return c && c.dev && !/^(done|closed)$/i.test(c.dev) ? c.dev : ''; };
+    // Only a Ready-for-QA card with automated results counts as being tested; a To Do card stays Not started
+    // (e.g. Void/Stop: dev card still in progress), with its early automation run noted.
+    const testing = (i) => readyQa(i) && !!autoOf(i);
     const oneIncLine = (i) => {
       const c = autoOf(i);
-      if (!c || isImpeded(i) || /^(done|closed)$/i.test(i.status)) return lineOf(i);
+      if (/to do/i.test(i.status)) {
+        const dev = devPending(i);
+        return { t: `${nice(i.summary)} – Not started${dev ? `; awaiting dev (dev ${dev.toLowerCase()})` : ''}${c ? `; early automation run: ${c.PASS}/${c.automated} passed` : ''}` };
+      }
+      if (!c || !readyQa(i)) return lineOf(i);
       return { t: `${nice(i.summary)} – Testing in progress (automation: ${c.PASS}/${c.automated} passed${c.FAIL ? `, ${c.FAIL} failed` : ''}${c.BLOCKED ? `, ${c.BLOCKED} blocked` : ''})` };
     };
-    const tested = oi.s5.filter((i) => autoOf(i) && !isImpeded(i));
+    const tested = oi.s5.filter(testing);
     const tot = tested.reduce((a, i) => { const c = autoOf(i); a.n += c.automated; a.p += c.PASS; return a; }, { n: 0, p: 0 });
     const oiAutoLines = tested.length ? [{ t: `${tested.length} Ready-for-QA stories are being tested through automation (${tot.p} of ${tot.n} automated cases passing); the team is manually re-testing a sample to confirm the automation results.` }] : [];
-    column(s, X3, Y, W3, 3.45, 'OneInc', COL.OneInc, [
+    const OI_H = 3.8; // OneInc box; the open-defects table fills the rest of the column
+    column(s, X3, Y, W3, OI_H, 'OneInc', COL.OneInc, [
       { head: 'Accomplished this week:', lines: accomplished(oi.week) },
-      { head: `Outstanding work (${oi.s5.filter(notSub).length}, ${oi.imp.filter(notSub).length} blocked):`, lines: outstandingLines(oi.s5, { lineFor: oneIncLine }) },
+      { head: `Outstanding work (${oi.s5.filter(notSub).length}, ${oi.imp.filter(notSub).length} blocked):`, lines: outstandingLines(oi.s5, { lineFor: oneIncLine, active: testing }) },
       { head: 'Automation:', lines: oiAutoLines },
       { head: `Ready for QA (${N}):`, lines: oi.s6.filter(readyQa).map((i) => nice(i.summary))
         .reduce((acc, name, n) => { if (n % 2) acc[acc.length - 1].t += `, ${name}`; else acc.push({ t: name }); return acc; }, []) },
@@ -491,8 +514,8 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
 
     const PR = ['Critical', 'High', 'Medium', 'Low', ...(bugs.some((b) => sevOf(b) === 'Unranked') ? ['Unranked'] : [])];
     const statuses = [...new Set(bugs.map((b) => b.status))].sort((a, b) => bugs.filter((x) => x.status === b).length - bugs.filter((x) => x.status === a).length);
-    s.addShape(pptx.ShapeType.rect, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fill: { color: 'E8A100' } });
-    s.addText(`Open Defects (CC & SmartComm) — ${bugs.length}`, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
+    s.addShape(pptx.ShapeType.rect, { x: X3, y: Y + OI_H + 0.05, w: W3, h: 0.36, fill: { color: 'E8A100' } });
+    s.addText(`Open Defects (CC & SmartComm) — ${bugs.length}`, { x: X3, y: Y + OI_H + 0.05, w: W3, h: 0.36, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center' });
     const rows = [[{ text: 'Status', options: hdr }, ...PR.map((p) => ({ text: { Critical: 'Crit.', High: 'High', Medium: 'Med.', Low: 'Low', Unranked: 'None' }[p], options: hdr })), { text: 'Total', options: hdr }]];
     for (const st of statuses.slice(0, 8)) {
       const b = bugs.filter((x) => x.status === st);
@@ -503,7 +526,7 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
       rows.push(['Other', ...PR.map((p) => { const n = b.filter((x) => sevOf(x) === p).length; return n ? String(n) : ''; }), String(b.length)]);
     }
     rows.push([{ text: 'Grand Total', options: { bold: true } }, ...PR.map((p) => ({ text: String(bugs.filter((x) => sevOf(x) === p).length), options: { bold: true } })), { text: String(bugs.length), options: { bold: true } }]);
-    s.addTable(rows, { ...tableOpts, x: X3, y: Y + 3.86, w: W3, colW: PR.length === 5 ? [1.4, 0.5, 0.52, 0.52, 0.47, 0.5, 0.55] : [1.6, 0.55, 0.55, 0.55, 0.55, 0.66], fontSize: 9, margin: [1, 5, 1, 5], valign: 'middle', rowH: Math.min(0.3, (H - 3.86 - 0.12) / rows.length) });
+    s.addTable(rows, { ...tableOpts, x: X3, y: Y + OI_H + 0.41, w: W3, colW: PR.length === 5 ? [1.4, 0.5, 0.52, 0.52, 0.47, 0.5, 0.55] : [1.6, 0.55, 0.55, 0.55, 0.55, 0.66], fontSize: 9, margin: [1, 5, 1, 5], valign: 'middle', rowH: Math.min(0.3, (H - OI_H - 0.41 - 0.12) / rows.length) });
   }
 
   // ── Slides 2 & 3: day-by-day and week-by-week progress (per the QA lead, 2026-10-17) ──
