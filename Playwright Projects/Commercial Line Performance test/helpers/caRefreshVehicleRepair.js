@@ -148,6 +148,34 @@ async function repairVehicleErrors(page, deps, maxFixes = 4) {
   return false;
 }
 
+// A vehicle add that ran into WriteBiz's server timeout still creates the vehicle, blank ("Year on 3: cannot be less than 4
+// digits", 7 fields need attention), and that blank row blocks the Vehicles Next (PA Auto Dealers 11/04). When the vehicle
+// cannot be completed, remove those rows (summary row: <type> with no VIN) with the row's Remove button so the run goes on.
+// deps: { dismiss(), log(msg) }; returns how many rows were removed.
+async function removeBlankVehicles(page, deps, typeText = 'Special Type', max = 4) {
+  const { dismiss, log } = deps;
+  let removed = 0;
+  for (let k = 0; k < max; k++) {
+    const idx = await page.locator('table tbody tr').evaluateAll((rs, t) => rs.findIndex((r) => {
+      const td = [...r.querySelectorAll('td')].map((c) => c.innerText.trim());
+      return td.length > 3 && td[1] === t && !td[2];
+    }), typeText).catch(() => -1);
+    if (idx < 0) break;
+    const row = page.locator('table tbody tr').nth(idx);
+    const num = (await row.locator('td').first().innerText().catch(() => '?')).trim();
+    await row.locator('button[data-action="Remove"], button[title*="Remove" i]').first().click({ timeout: 8000 });
+    await page.waitForTimeout(800);
+    // a confirmation dialog, if WriteBiz asks
+    const confirm = page.locator('.modal.show').last().locator('button:has-text("Yes"), button:has-text("OK"), button:has-text("Remove"), button:has-text("Confirm"), button:has-text("Delete")').first();
+    if (await confirm.isVisible().catch(() => false)) await confirm.click({ timeout: 5000 }).catch(() => {});
+    await dismiss();
+    await page.waitForTimeout(1500);
+    log(`Vehicles: removed blank ${typeText} vehicle ${num}`);
+    removed++;
+  }
+  return removed;
+}
+
 // Same "Errors" box on a page with Details / Coverages / Additional Coverages sub-tabs (State Specific Info, Auto Dealers),
 // e.g. CO 10/29: 'Colorado: Uninsured Motorists Property Damage Coverage - Missing required field "Uninsured Motorists
 // Property Damage Limit"' after Additional Coverages -> Next. The field is a card on the Coverages sub-tab (no grid row, no
@@ -271,4 +299,4 @@ async function repairGridCoverageErrors(page, deps, maxFixes = 3) {
   return false;
 }
 
-module.exports = { repairVehicleErrors, repostField, repairCoverageErrors, repairGridCoverageErrors };
+module.exports = { repairVehicleErrors, repostField, repairCoverageErrors, repairGridCoverageErrors, removeBlankVehicles };

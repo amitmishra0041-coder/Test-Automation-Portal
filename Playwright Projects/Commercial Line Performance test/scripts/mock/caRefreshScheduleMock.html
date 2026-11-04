@@ -12,7 +12,7 @@
 </tbody></table>
 <div class="modal" id="parent"><h4 class="modal-title">Drive Other Car Coverage - Broadened Coverage For Named Individuals</h4>
   <div id="items"></div><span class="text-danger" id="perr"></span>
-  <button id="btnAddItem" onclick="addItem()">Add Scheduled Item</button> <button onclick="saveParent()">Save</button></div>
+  <button id="btnAddItem" onclick="addItem()">Add Scheduled Item</button> <button onclick="saveParent()">Save</button> <button onclick="cancelParent()">Cancel</button></div>
 <div class="modal" id="item"><h4 class="modal-title">Scheduled Item</h4>
   <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsCollision"> Broadened Coverage For Named Individuals Collision</label><br>
   <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision"> Broadened Coverage For Named Individuals Other Than Collision</label><br>
@@ -22,11 +22,16 @@
 const hideMs = Number(new URLSearchParams(location.search).get('hideMs') ?? 1500);
 const btnDelay = Number(new URLSearchParams(location.search).get('btnDelay') ?? 0);
 const dupHidden = new URLSearchParams(location.search).get('dupHidden') === '1';
+// ?brokenFirst=1 (PA Auto Dealers 11/04): the first time the coverage dialog is open its items never save - only a second try works
+const brokenFirst = new URLSearchParams(location.search).get('brokenFirst') === '1';
+let opens = 0;
 window.__items = []; window.__saved = false;
 const $ = (id) => document.getElementById(id);
-function openParent() { $('parent').classList.add('show'); }
+function openParent() { opens++; $('parent').classList.add('show'); }
+function cancelParent() { $('parent').classList.remove('show'); $('item').classList.remove('show'); }
 function addItem() {
   if (!$('parent').classList.contains('show')) return;
+  if (brokenFirst && opens < 2) return;
   ['cbCA7DOCCovBroadCovForNamedIndivsCollision', 'cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision'].forEach((i) => { $(i).checked = false; });
   $('txtName').value = ''; $('item').classList.add('show');
 }

@@ -12,7 +12,7 @@ const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequire
 const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
 const { addExpectedFromGrid, exerciseCards } = require('./helpers/caRefreshAdditional');
-const { repairVehicleErrors, repairCoverageErrors, repairGridCoverageErrors } = require('./helpers/caRefreshVehicleRepair');
+const { repairVehicleErrors, repairCoverageErrors, repairGridCoverageErrors, removeBlankVehicles } = require('./helpers/caRefreshVehicleRepair');
 const fs   = require('fs');
 const path = require('path');
 
@@ -258,13 +258,19 @@ test('CA Submission', async ({ page }, testInfo) => {
         await top.locator('button:has-text("Close"), button:has-text("Cancel"), button:has-text("OK")').first().click({ timeout: 3000 }).catch(() => {});
         await page.waitForTimeout(600);
       }
-      await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
-      await page.waitForTimeout(2500);
-      await dismissStatusModal();
-      const back = page.getByRole('button', { name: /Return to Summary/i }).first();
-      if (await back.isVisible().catch(() => false)) { await back.click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(1500); await dismissStatusModal(); }
+      // PA Auto Dealers 11/04 (trace): the add call ran into WriteBiz's 30 s server timeout ("An unexpected error occurred ...
+      // contact Agency Automation") but the server still created the vehicle - the summary only lists it a while later
+      // (a reload right away showed vehicles 1-2; a later visit showed "3 Special Type"). Reload until the row shows (~90 s).
       const row = page.locator('table tbody tr').filter({ hasText: 'Special Type' }).last();
-      const edit = row.locator('i.fa-edit, i.fa-pen-to-square, i[class*="edit"], a[title*="Edit" i], button[title*="Edit" i]').first();
+      const edit = row.locator('button[data-action="Edit"], i.fa-edit, i.fa-pen-to-square, i[class*="edit"], a[title*="Edit" i], button[title*="Edit" i]').first();
+      for (let r = 0; r < 6 && !await edit.isVisible().catch(() => false); r++) {
+        if (r) await page.waitForTimeout(15000);
+        await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+        await page.waitForTimeout(2500);
+        await dismissStatusModal();
+        const back = page.getByRole('button', { name: /Return to Summary/i }).first();
+        if (await back.isVisible().catch(() => false)) { await back.click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(1500); await dismissStatusModal(); }
+      }
       if (!await edit.isVisible().catch(() => false)) throw new Error('Special Type row / edit icon not found on the Vehicles summary');
       await edit.click({ timeout: 5000 });
       await dismissStatusModal();
@@ -342,7 +348,10 @@ test('CA Submission', async ({ page }, testInfo) => {
     };
     try {
       try { await runSpecialOnce(false); }
-      catch (e1) { console.log(`Special Type first attempt failed (${e1.message.split(String.fromCharCode(10))[0]}) - recovering through the summary row`); await runSpecialOnce(true); }
+      catch (e1) {
+        console.log(`Special Type first attempt failed (${e1.message.split(String.fromCharCode(10))[0]}) - recovering through the summary row`);
+        await runSpecialOnce(true); // never add it a second time: each timed-out add leaves another blank vehicle behind
+      }
     } catch (e) {
       console.log(`Special Type vehicle could not be added: ${e.message.split(String.fromCharCode(10))[0]}`);
       await crSnap('Special type vehicle - failure point').catch(() => {});
@@ -356,6 +365,9 @@ test('CA Submission', async ({ page }, testInfo) => {
         await top.locator('button:has-text("Cancel"), button:has-text("Close")').first().click({ timeout: 3000 }).catch(() => {});
         await page.waitForTimeout(600);
       }
+      // a timed-out add leaves a blank Special Type vehicle that would block the Vehicles Next - remove it
+      const n = await removeBlankVehicles(page, { dismiss: dismissStatusModal, log: (m) => console.log(m) }).catch((x) => { console.log(`Vehicles: removing the blank Special Type vehicle failed: ${x.message.split(String.fromCharCode(10))[0]}`); return 0; });
+      if (n) note.detail += ` (blank vehicle removed so the run continues; Special Type coverages not tested)`;
     }
   }
 

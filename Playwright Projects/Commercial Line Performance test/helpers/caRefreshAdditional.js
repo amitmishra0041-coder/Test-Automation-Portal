@@ -247,7 +247,27 @@ async function verifyAgainstServer(page, touched, rerender) {
 }
 
 // opts: { expected: [{name, category}], effectiveDate, pool, record(entry), label }
+// A coverage that fails to add gets ONE more try after the rest of the page (PA Auto Dealers 11/04: CA 25 29 Concessionaires
+// "At least 1 Scheduled Item must be added" while the 6 identical Additional Insured rows around it saved - a slow WriteBiz
+// moment, not the flow). Only the final outcome is recorded.
 async function addExpectedFromGrid(page, opts) {
+  const entries = [];
+  const done = await addExpectedFromGridOnce(page, { ...opts, record: (e) => entries.push(e) });
+  const failed = entries.filter((e) => e.status === 'ADD_FAILED');
+  if (failed.length) {
+    await closeAllModals(page);
+    console.log(`  retrying ${failed.length} coverage(s) that failed to add: ${failed.map((e) => e.coverage).join('; ')}`);
+    const again = [];
+    await addExpectedFromGridOnce(page, { ...opts, expected: opts.expected.filter((x) => failed.some((f) => f.coverage === x.name)), record: (e) => again.push(e) });
+    for (const a of again) {
+      const k = entries.findIndex((e) => e.coverage === a.coverage && e.status === 'ADD_FAILED');
+      if (k > -1) entries[k] = { ...a, detail: `${a.detail}${a.detail ? ' ' : ''}(second try; first: ${entries[k].detail})`.trim() };
+    }
+  }
+  entries.forEach((e) => opts.record(e));
+  return done;
+}
+async function addExpectedFromGridOnce(page, opts) {
   const { expected, effectiveDate, pool, record, label } = opts;
   const rows = await readGrid(page);
   const done = new Set();
