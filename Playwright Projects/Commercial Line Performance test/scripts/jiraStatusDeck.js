@@ -34,7 +34,7 @@ const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
 const DEFECTS_JQL = 'project IN (GCCM, GCMDT, GCMDW, GCMR, SMART) AND type IN (Bug, Defect) AND status NOT IN (Closed, Rejected) ORDER BY assignee ASC, created DESC';
 const SEVERITY_FIELD = 'customfield_10137'; // "Severity" (GCCM / SMART bugs) — the open-defects table counts by it
 const HOURS_PER_DAY =Number(process.env.STATUS_DECK_HOURS_PER_DAY) || 8;
-const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate', 'duedate', 'issuelinks', SEVERITY_FIELD];
+const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate', 'duedate', 'issuelinks', 'parent', SEVERITY_FIELD];
 
 async function search(jql) {
   const issues = [];
@@ -55,7 +55,7 @@ async function search(jql) {
   return issues.map((i) => {
     const f = i.fields;
     return {
-      key: i.key, summary: f.summary || '', status: (f.status && f.status.name) || '', type: (f.issuetype && f.issuetype.name) || '',
+      key: i.key, summary: f.summary || '', status: (f.status && f.status.name) || '', type: (f.issuetype && f.issuetype.name) || '', parent: (f.parent && f.parent.fields && f.parent.fields.summary) || '',
       assignee: f.assignee ? f.assignee.displayName : 'Unassigned', priority: f.priority ? f.priority.name : '',
       rem: (f.timeestimate || 0) / 3600, orig: (f.timeoriginalestimate || 0) / 3600, spent: (f.timespent || 0) / 3600,
       sprints: (f.customfield_10020 || []).filter(Boolean).map((s) => ({ name: s.name, state: s.state, start: s.startDate, end: s.endDate })),
@@ -392,16 +392,25 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     const sc = A.SmartComm;
     const live = scAll.filter((i) => !/retired/i.test(i.status) && !/sub-?task/i.test(i.type)); // retired work and sub-tasks aren't templates
     const isDone = (i) => /^(done|closed)$/i.test(i.status);
-    const templateOf = (t) => {
-      const m = t.match(/^DIG\s*-?\s*(\d+)\s*([A-Z]{0,3})\b/i);
-      if (m) return { sys: 'ClaimCenter', id: `DIG${m[1]}${m[2].toUpperCase()}` };
-      if (/^(CC|BC|QA|IR)[_ -]|^QA (Prep|Exec)|smartcomm|^smartcomm-lob/i.test(t)) return null;
-      const id = t.replace(/[_ -]*(Test[_ ]?(Design|Execution|Planning)|QA[_ ]?(Exec|Prep)).*$/i, '').trim();
-      return { sys: /letterhead/i.test(t) ? 'ClaimCenter' : 'BillingCenter', id };
+    // A template = a DIG letter or a letterhead (ClaimCenter), or a story under the "BillingCenter" epic (BillingCenter).
+    // Recalibrated 2026-11-04 with the QA lead: the epic, not the story name, says what's a BC template, and deferred
+    // templates and new enhancements (e.g. "Deposit Not Taken Email_QA Exec_Enhancement") aren't in the template count.
+    const templateOf = (i) => {
+      const t = i.summary;
+      if (/sub-?task/i.test(i.type)) return null;
+      const m = t.match(/^DIG\s*-?\s*(\d+)([A-Z]{1,3}(?=[\s_-]|$))?/i); // DIG75IA, DIG 150MI, DIG16 LargeLossNotice
+      if (m) return { sys: 'ClaimCenter', id: `DIG${m[1]}${(m[2] || '').toUpperCase()}` };
+      if (/letterhead/i.test(t)) return { sys: 'ClaimCenter', id: t.replace(/[_ -]*(Test[_ ]?(Design|Execution|Planning)|QA[_ ]?(Exec|Prep)).*$/i, '').trim() };
+      if (/billing\s*center/i.test(i.parent) && !/^(BC|QA|IR)[_ -]|smartcomm/i.test(t)) {
+        return { sys: 'BillingCenter', id: t.replace(/[_ -]*(Test[_ ]?(Design|Execution|Planning)|QA[_ ]?(Exec|Prep)).*$/i, '').trim() };
+      }
+      return null;
     };
+    const excluded = (i) => /deferred/i.test(i.status) || /[_ ]enhancement$/i.test(i.summary);
+    const liveT = live.filter((i) => !excluded(i)); // the template table: no deferred templates, no enhancements
     const tally = (system) => {
       const byT = new Map();
-      for (const i of live) { const t = templateOf(i.summary); if (!t || t.sys !== system) continue; if (!byT.has(t.id)) byT.set(t.id, []); byT.get(t.id).push(i); }
+      for (const i of liveT) { const t = templateOf(i); if (!t || t.sys !== system) continue; if (!byT.has(t.id)) byT.set(t.id, []); byT.get(t.id).push(i); }
       const n = (p) => [...byT.values()].filter((a) => a.some((i) => phase(i.summary) === p)).length;
       // A template is done for a phase only when ALL its stories for that phase are done (DIG17 has a done and an impeded run).
       const d = (p) => [...byT.values()].filter((a) => a.some((i) => phase(i.summary) === p) && a.filter((i) => phase(i.summary) === p).every(isDone)).length;
@@ -411,7 +420,7 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     // Outstanding work as counted summary lines per template system ("45 DIG letter templates – Blocked due to
     // defects", "Testing for 10 CC templates in progress"); non-template work (CC_/BC_/QA_ features) one per line.
     const scOutstanding = [];
-    const nTemplates = (list, sys) => new Set(list.map((i) => templateOf(i.summary)).filter((t) => t && t.sys === sys).map((t) => t.id)).size;
+    const nTemplates = (list, sys) => new Set(list.map((i) => templateOf(i)).filter((t) => t && t.sys === sys).map((t) => t.id)).size;
     const open5 = sc.s5.filter((i) => !isImpeded(i));
     for (const [sys, lbl, blockedLbl] of [['ClaimCenter', 'CC', 'DIG letter'], ['BillingCenter', 'BC', 'BC']]) {
       const lines = [
@@ -422,7 +431,7 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
       for (const [n, text] of lines) if (n) scOutstanding.push({ t: text(n) });
     }
     // Blocked templates: counted (no IDs), with what's blocking them; other blocked work listed by name.
-    const impT = sc.imp.filter((i) => templateOf(i.summary));
+    const impT = sc.imp.filter((i) => templateOf(i));
     const impBugs = [...new Set(impT.flatMap((i) => i.openBugs))].map((k) => bugByKey.get(k)).filter(Boolean);
     const nImpT = nTemplates(impT, 'ClaimCenter') + nTemplates(impT, 'BillingCenter');
     if (nImpT) {
@@ -430,8 +439,8 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
       const hi = impBugs.filter((b) => ['Critical', 'High'].includes(sevOf(b))).length;
       scOutstanding.unshift({ t: `${nImpT} templates blocked by ${impBugs.length} open defects (${[hi && `${hi} Critical/High`, over && `${over} overdue`].filter(Boolean).join(', ') || 'none overdue'})`, color: 'C00000' });
     }
-    scOutstanding.splice(nImpT ? 1 : 0, 0, ...blockerLines(sc.imp.filter((i) => !templateOf(i.summary) && notSub(i))));
-    scOutstanding.push(...sc.s5.filter((i) => !templateOf(i.summary) && !isImpeded(i) && notSub(i)).sort((a, b) => ORDER(a) - ORDER(b) || b.rem - a.rem).map(lineOf));
+    scOutstanding.splice(nImpT ? 1 : 0, 0, ...blockerLines(sc.imp.filter((i) => !templateOf(i) && notSub(i))));
+    scOutstanding.push(...sc.s5.filter((i) => !templateOf(i) && !isImpeded(i) && notSub(i)).sort((a, b) => ORDER(a) - ORDER(b) || b.rem - a.rem).map(lineOf));
     const sca = automation.smartComm;
     const scRisk = risk('SmartComm');
     const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
@@ -443,7 +452,12 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
       { head: 'Automation:', lines: sca && sca.templates ? [{ t: `${sca.templates} templates validated by automation this week — ${sca.PASS} passed, ${sca.FAIL} failed, ${sca.BLOCKED} blocked.` }] : [] },
     ], 9.5, sc, H - scTail);
     const tblTop = Math.min(scTextEnd + 0.1, Y + H - scTail);
-    s.addText('Overall Summary — templates (done / total):',{ x: X2, y: tblTop + 0.04, w: W2, h: 0.22, fontFace: FONT, fontSize: 10, bold: true, color: '000000', margin: [2, 6, 0, 6] });
+    // Say what the table leaves out, so its totals reconcile with Jira.
+    const exIds = (re) => new Set(live.filter((i) => excluded(i) && re(i)).map((i) => templateOf(i)).filter(Boolean).map((t) => `${t.sys}:${t.id}`));
+    const nDef = exIds((i) => /deferred/i.test(i.status)).size; const nEnh = exIds((i) => /[_ ]enhancement$/i.test(i.summary)).size;
+    const exNote = ` (excl. retired${nDef ? `, ${nDef} deferred` : ''}${nEnh ? `, ${nEnh} enhancement` : ''})`;
+    s.addText([{ text: 'Templates (done / total)', options: { bold: true, fontSize: 10 } }, { text: exNote, options: { italic: true, fontSize: 8, color: '555555' } }],
+      { x: X2, y: tblTop + 0.04, w: W2, h: 0.22, fontFace: FONT, color: '000000', margin: [2, 6, 0, 6] });
     s.addTable([
       [{ text: '', options: hdr }, { text: 'Total', options: hdr }, { text: 'Test design', options: hdr }, { text: 'Test execution', options: hdr }],
       ['BillingCenter', String(bcT.total), bcT.design, bcT.exec],
