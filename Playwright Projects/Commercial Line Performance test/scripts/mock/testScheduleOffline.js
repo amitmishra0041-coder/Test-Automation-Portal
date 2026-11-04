@@ -13,8 +13,8 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  for (const [hideMs, btnDelay] of [[0, 0], [1500, 0], [4000, 0], [1500, 3000]]) {
-    await page.goto(`${BASE}?hideMs=${hideMs}&btnDelay=${btnDelay}`);
+  for (const [hideMs, btnDelay, dupHidden] of [[0, 0], [1500, 0], [4000, 0], [1500, 3000], [1500, 0, 1], [1500, 11000]]) {
+    await page.goto(`${BASE}?hideMs=${hideMs}&btnDelay=${btnDelay}&dupHidden=${dupHidden || 0}`);
     const recs = [];
     await addExpectedFromGrid(page, {
       expected: [{ name: 'Drive Other Car Coverage - Broadened Coverage For Named Individuals', category: 'Coverage' }],

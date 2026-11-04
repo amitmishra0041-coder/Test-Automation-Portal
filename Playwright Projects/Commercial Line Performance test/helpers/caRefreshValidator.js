@@ -230,10 +230,15 @@ function checkAllCards(state, pool) {
     const seen = new Set(observed.map(normOpt));
     const want = new Set(a.expected.map(normOpt));
     const missing = a.expected.filter((o) => !seen.has(normOpt(o)));
-    const extra = observed.filter((o) => !want.has(normOpt(o)));
+    let extra = observed.filter((o) => !want.has(normOpt(o)));
+    // A Yes/No switch the model lists only as "Yes" (Hired Auto Liability "If Any Basis"): "No" is the switch's off position,
+    // not an extra product option.
+    const yesNo = want.size && [...want].every((o) => o === 'yes') && observed.every((o) => /^(yes|no)$/i.test(o));
+    const note = yesNo && extra.length ? 'Yes/No switch: "No" is its off position' : undefined;
+    if (yesNo) extra = [];
     // Options WriteBiz offers that the model does not list = MISMATCH. Model options never seen on any snapshot = PARTIAL.
     const status = !a.expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : 'MATCH';
-    out.push({ coverage: a.coverage, term: a.term, expected: a.expected, page: [...a.pages].join(', '), context: [...a.contexts].slice(0, 6).join(' | ') + (a.contexts.size > 6 ? ` (+${a.contexts.size - 6} more)` : ''), observed, missing, extra, status });
+    out.push({ coverage: a.coverage, term: a.term, expected: a.expected, page: [...a.pages].join(', '), context: [...a.contexts].slice(0, 6).join(' | ') + (a.contexts.size > 6 ? ` (+${a.contexts.size - 6} more)` : ''), observed, missing, extra, status, ...(note ? { note } : {}) });
   }
   return out;
 }
@@ -243,7 +248,7 @@ const isFormNumberName = (cov) => cov.mappingForm || /^\s*CAD?\s?\d{2}\s?\d{2}\b
 
 // A coverage is PRESENT only when WriteBiz shows it as a coverage card title or an Additional Coverages grid row with the
 // same name (not merely the same words somewhere on the page). Form-number entries are matched by their number in the page text.
-function findPresent(cov, pool) {
+function findPresent(cov, pool, state) {
   const c = canon(cov.name);
   for (const p of pool) {
     if ((p.cards || []).some((k) => canon(k.title) === c)) return p;
@@ -251,8 +256,10 @@ function findPresent(cov, pool) {
   }
   // "<State> Uninsured / Underinsured Motorists Coverage - Nonstacked": on WriteBiz this is a Coverage Type option
   // ("Combined Single Limit Nonstacked") of the Uninsured / Underinsured Motorists Coverage card, not a coverage of its own.
+  // Only in the state the form is named for: NM's own "Stacked" option is not CAD 21 06 Pennsylvania ... Stacked (NM 11/03).
   const stack = /(uninsured|underinsured) motorists coverage (non ?stacked|stacked)$/.exec(c.replace(/^[a-z ]*?(?=(uninsured|underinsured) )/, ''));
-  if (stack) {
+  const tied = namedState(cov.name);
+  if (stack && (!tied || !state || tied === state)) {
     const want = stack[2].replace(' ', '');
     for (const p of pool) {
       if ((p.cards || []).some((k) => canon(k.title) === `${stack[1]} motorists coverage` && (k.terms || []).some((t) => (t.options || []).some((o) => norm(o).split(' ').includes(want))))) return p;
@@ -264,7 +271,7 @@ function findPresent(cov, pool) {
 
 function evaluate(lob, state, pool) {
   const results = expectedFor(lob, state).map((cov) => {
-    const hit = findPresent(cov, pool);
+    const hit = findPresent(cov, pool, state);
     let page = hit ? hit.label : '';
     if (!hit && cov.expected) {
       const sim = similarLine(cov, pool);
@@ -282,7 +289,10 @@ function evaluate(lob, state, pool) {
   for (let k = results.length - 1; k >= 0; k--) if (results[k] === null) results.splice(k, 1);
   results.forEach((r) => { delete r.cov; });
   // Informational only: the sheet's "Removed" column is ambiguous (removed from the product vs. from test scope).
-  const stillThere = DATA.removed.filter((r) => norm(r.name).length > 12 && pool.some((p) => p.norm.includes(norm(r.name))))
+  // A name the model also lists as a CURRENT entry for this state was replaced by a new version, not removed (e.g. "Additional
+  // Insured - General Liability Coverages - Grantor Of Licenses": old code U, new code ...GrantorOfLicen2 E in every state).
+  const current = new Set((DATA.sbt || []).filter((e) => /^y$/i.test(String(e.writeBiz || '').replace(/\s+/g, '')) && isExpectedIn(e, state)).map((e) => norm(e.name)));
+  const stillThere = DATA.removed.filter((r) => norm(r.name).length > 12 && !current.has(norm(r.name)) && pool.some((p) => p.norm.includes(norm(r.name))))
     .map((r) => ({ category: r.category, name: r.name, code: '', form: '', availability: '', status: 'REMOVED_STILL_PRESENT', page: '' }));
   const all = results.concat(stillThere);
   const count = (st) => all.filter((r) => r.status === st).length;

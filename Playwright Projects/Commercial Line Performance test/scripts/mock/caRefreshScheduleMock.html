@@ -21,6 +21,7 @@
 <script>
 const hideMs = Number(new URLSearchParams(location.search).get('hideMs') ?? 1500);
 const btnDelay = Number(new URLSearchParams(location.search).get('btnDelay') ?? 0);
+const dupHidden = new URLSearchParams(location.search).get('dupHidden') === '1';
 window.__items = []; window.__saved = false;
 const $ = (id) => document.getElementById(id);
 function openParent() { $('parent').classList.add('show'); }
@@ -42,6 +43,9 @@ function saveParent() {
     // the dealer form re-renders the dialog as "Edit ..." and the Add Scheduled Item button only comes back after ?btnDelay= ms
     $('perr').textContent = 'At least one scheduled item is required';
     const b = $('btnAddItem'); b.style.display = 'none'; setTimeout(() => { b.style.display = ''; }, btnDelay);
+    // ?dupHidden=1 (PA/AZ Auto Dealers 11/03): the re-rendered "Edit ..." dialog also holds a HIDDEN "Add Scheduled Item"
+    // button ahead of the real one, so a plain first-match locator never becomes visible
+    if (dupHidden && !$('dupBtn')) b.insertAdjacentHTML('beforebegin', '<span id="dupBtn" style="display:none"><button>Add Scheduled Item</button></span>');
     return;
   }
   window.__saved = true; $('parent').classList.remove('show');

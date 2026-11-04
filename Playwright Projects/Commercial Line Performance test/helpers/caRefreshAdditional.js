@@ -158,6 +158,17 @@ async function exerciseDialog(page, modal, pool, rowName) {
 const OPT_READ = (e) => ({ label: (() => { const fs = e.closest('.FieldSpacing'); const l = fs && fs.querySelector('.FieldLabel'); return l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id; })(),
   cur: e.value, curText: e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '', disabled: e.disabled,
   opts: [...e.options].filter((o) => o.value && !/nothing selected|^select/i.test(o.textContent)).map((o) => ({ v: o.value, t: o.textContent.trim() })) });
+// The card's OTHER dropdowns (enabled flag + options): after a controlling change WriteBiz refills dependants with a second
+// call that can land after settle() - Special Types Collision "Coverage Type = ACV" was read with Deductible still disabled on
+// "Not Applicable" in PA/AZ/NC/NM while NE caught the 1,000-25,000 list (11/03). Wait (max 8 s) for the dependants to change.
+const depSig = (card, skip) => card.locator('select').evaluateAll((els, s) => els.map((e, i) => (i === s ? '' : `${e.disabled ? 'd' : 'e'}${e.options.length}`)).join(','), skip).catch(() => '');
+async function waitDependants(page, card, skip, before) {
+  if (!before || !/(^|,)d\d/.test(before)) return; // nothing was waiting on this change
+  for (let t = 0; t < 16; t++) {
+    if ((await depSig(card, skip)) !== before) { await settle(page, 600); return; }
+    await page.waitForTimeout(500);
+  }
+}
 async function exerciseCards(page, pool, label, maxCards = 40, opts = {}) {
   const touched = [];
   const ids = await page.evaluate(() => [...document.querySelectorAll('[id^="xacc_Card_"]')].filter((c) => c.offsetParent !== null && c.querySelector('select')).map((c) => c.id)).catch(() => []);
@@ -176,8 +187,10 @@ async function exerciseCards(page, pool, label, maxCards = 40, opts = {}) {
       const sel = card.locator('select').nth(si);
       for (const o of info.opts) {
         if (o.v === info.cur || /^no coverage$/i.test(o.t)) continue;
+        const before = await depSig(card, si);
         await sel.selectOption(o.v).catch(() => {});
         await settle(page, 1800);
+        await waitDependants(page, card, si, before);
         await snap(`${info.label} = ${o.t}`);
         if (si === 0) { // dependent dropdowns under this option of the controlling one
           const now = await card.locator('select').count().catch(() => 0);
@@ -186,8 +199,10 @@ async function exerciseCards(page, pool, label, maxCards = 40, opts = {}) {
             if (!usable(inf2)) continue;
             const sel2 = card.locator('select').nth(sj);
             for (const q of ((l) => (l.length > 4 ? [...l.slice(0, 3), l[l.length - 1]] : l))(inf2.opts.filter((x) => x.v !== inf2.cur && !/^no coverage$/i.test(x.t)))) { // first 3 + the last (highest limit: some values only appear under it - QA 10/30)
+              const before2 = await depSig(card, sj);
               await sel2.selectOption(q.v).catch(() => {});
               await settle(page, 1500);
+              await waitDependants(page, card, sj, before2);
               await snap(`${info.label} = ${o.t}; ${inf2.label} = ${q.t}`);
             }
             await restoreSelect(page, sel2, inf2);
@@ -262,10 +277,13 @@ async function addExpectedFromGrid(page, opts) {
         // Dialogs such as the Additional Insured forms need at least one scheduled item before they will save.
         if (await modal.isVisible().catch(() => false)) {
           console.log(`  schedule: dialog still open after first Save for "${row.name}"`);
-          const addItem = modal.locator('button:has-text("Add Scheduled Item"), button:has-text("Add Item"), button:has-text("Add New")').first();
           // After the first Save WriteBiz re-renders it as "Edit <coverage>" - on the slower dealer form the button was not back
-          // yet when it was counted, so Drive Other Car never got its items on Auto Dealers (10/30). Wait for it.
-          if (await addItem.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
+          // yet when it was counted, so Drive Other Car never got its items on Auto Dealers (10/30). Wait for it, and only take a
+          // VISIBLE one: the re-rendered dialog can also hold a hidden copy ahead of it (PA/AZ Auto Dealers 11/03).
+          const addItem = modal.locator('button:has-text("Add Scheduled Item"):visible, button:has-text("Add Item"):visible, button:has-text("Add New"):visible').first();
+          const addShown = await addItem.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+          if (!addShown) console.log(`  schedule: no visible "Add Scheduled Item" in "${row.name}" - buttons: ${JSON.stringify(await modal.evaluate((m) => [...m.querySelectorAll('button')].map((b) => `${b.textContent.trim().slice(0, 30)}${b.offsetParent ? '' : ' (hidden)'}`), undefined, { timeout: 3000 }).catch(() => []))}`);
+          if (addShown) {
             let saved = 0;
             for (let n = 0; n < 2; n++) { // two scheduled items for any scheduled coverage
               // After an item is saved WriteBiz re-renders the parent dialog (briefly hidden): wait for it, then make sure
