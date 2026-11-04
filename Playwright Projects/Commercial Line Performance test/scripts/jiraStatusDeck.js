@@ -34,7 +34,7 @@ const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
 const DEFECTS_JQL = 'project IN (GCCM, GCMDT, GCMDW, GCMR, SMART) AND type IN (Bug, Defect) AND status NOT IN (Closed, Rejected) ORDER BY assignee ASC, created DESC';
 const SEVERITY_FIELD = 'customfield_10137'; // "Severity" (GCCM / SMART bugs) — the open-defects table counts by it
 const HOURS_PER_DAY =Number(process.env.STATUS_DECK_HOURS_PER_DAY) || 8;
-const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate', SEVERITY_FIELD];
+const FIELDS = ['summary', 'issuetype', 'assignee', 'status', 'timeestimate', 'timeoriginalestimate', 'timespent', 'customfield_10020', 'priority', 'resolutiondate', 'duedate', 'issuelinks', SEVERITY_FIELD];
 
 async function search(jql) {
   const issues = [];
@@ -61,6 +61,11 @@ async function search(jql) {
       sprints: (f.customfield_10020 || []).filter(Boolean).map((s) => ({ name: s.name, state: s.state, start: s.startDate, end: s.endDate })),
       resolved: f.resolutiondate || null,
       severity: f[SEVERITY_FIELD] ? (f[SEVERITY_FIELD].value || f[SEVERITY_FIELD].name || String(f[SEVERITY_FIELD])) : '',
+      due: f.duedate || '',
+      // Open bugs/defects linked to this item — what a blocked item is waiting on.
+      openBugs: (f.issuelinks || []).map((l) => l.inwardIssue || l.outwardIssue)
+        .filter((o) => o && o.fields && /bug|defect/i.test((o.fields.issuetype || {}).name || '') && !/^(closed|done|rejected|resolved)$/i.test((o.fields.status || {}).name || ''))
+        .map((o) => o.key),
     };
   });
 }
@@ -263,6 +268,53 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     return `${st.charAt(0).toUpperCase()}${st.slice(1)}${note ? `; ${note}` : ''}`;
   };
   const lineOf = (i) => ({ t: `${nice(i.summary)} – ${statusText(i)}` });
+  // ── Leadership view helpers (2026-11-04): short "accomplished", detailed outstanding, blockers with their defects ──
+  const prio = (p) => { const t = String(p || '').toLowerCase(); return /must|critical|highest|blocker/.test(t) ? 'Critical' : /high/.test(t) ? 'High' : /medium/.test(t) ? 'Medium' : /low/.test(t) ? 'Low' : 'Unranked'; };
+  // Counted by the bug's Severity; a bug with no severity falls back to its priority.
+  const sevOf = (b) => prio(b.severity) !== 'Unranked' ? prio(b.severity) : prio(b.priority);
+  const bugByKey = new Map(bugs.map((b) => [b.key, b]));
+  const todayKey = NOW.toLocaleDateString('en-CA');
+  const SEV_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3, Unranked: 4 };
+  const defectText = (k) => {
+    const b = bugByKey.get(k);
+    if (!b) return k;
+    const sev = sevOf(b) === 'Unranked' ? '' : sevOf(b);
+    const late = b.due && b.due < todayKey ? Math.round((new Date(todayKey) - new Date(b.due)) / 864e5) : 0;
+    const when = late ? `${late}d overdue` : b.due ? `due ${fmtDate(new Date(`${b.due}T12:00:00`))}` : 'no due date';
+    return `${k} (${[sev, when].filter(Boolean).join(', ')})`;
+  };
+  // Worst first: overdue, then severity — so the top of a long blocker list is what leadership should see.
+  const blockRank = (i) => {
+    const bs = i.openBugs.map((k) => bugByKey.get(k)).filter(Boolean);
+    const overdue = bs.some((b) => b.due && b.due < todayKey) ? 0 : 1;
+    return overdue * 10 + Math.min(4, ...bs.map((b) => SEV_RANK[sevOf(b)]));
+  };
+  const blockerLine = (i) => {
+    const why = i.openBugs.length ? `blocked by ${i.openBugs.map(defectText).join(', ')}` : '';
+    const note = noteOf(i) ? firstLine(noteOf(i)) : '';
+    return { t: `${nice(i.summary)} — ${[why, note].filter(Boolean).join('; ') || 'impeded'}`, color: 'C00000' };
+  };
+  const blockerLines = (list, max = Infinity) => {
+    const sorted = [...list].sort((a, b) => blockRank(a) - blockRank(b));
+    const out = sorted.slice(0, max).map(blockerLine);
+    if (sorted.length > max) {
+      const rest = sorted.slice(max);
+      const digs = [...new Set(rest.map(digNo).filter(Boolean))];
+      const other = rest.filter((i) => !digNo(i)).map((i) => nice(i.summary));
+      out.push({ t: `+ ${rest.length} more blocked: ${[...(digs.length ? [`DIG ${digs.join(', ')}`] : []), ...other].join('; ')}`, color: 'C00000' });
+    }
+    return out;
+  };
+  // One short line: "9 completed — A, B, C, D (+5 more)"; DIG templates collapse into one entry.
+  const accomplished = (list) => {
+    if (!list.length) return [{ t: 'Nothing closed yet this week.' }];
+    const digs = [...new Set(list.map(digNo).filter(Boolean))];
+    const parts = [...list.filter((i) => !digNo(i)).map((i) => nice(i.summary)), ...(digs.length ? [`DIG templates ${digs.join(', ')}`] : [])];
+    return [{ t: `${list.length} completed — ${parts.slice(0, 4).join('; ')}${parts.length > 4 ? ` (+${parts.length - 4} more)` : ''}` }];
+  };
+  // Outstanding (not blocked) work, in progress first, then ready for QA, then not started.
+  const ORDER = (i) => (inProg(i) ? 0 : readyQa(i) ? 1 : 2);
+  const outstandingLines = (list) => list.filter((i) => !isImpeded(i)).sort((a, b) => ORDER(a) - ORDER(b) || b.rem - a.rem).map(lineOf);
   const hdr = { bold: true, fill: { color: 'D9E2F3' } };
   const tableOpts = { fontFace: FONT, color: '222222', fill: { color: 'FFFFFF' }, border: { type: 'solid', color: 'BFBFBF', pt: 0.5 } };
 
@@ -281,10 +333,10 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
 
     const cc = A.ClaimCenter;
     column(s, X1, Y, W1, H, 'ClaimCenter', COL.ClaimCenter, [
-      { head: 'Completed this week:', lines: cc.week.map(withPhase) },
-      { head: 'In progress:', lines: cc.s5.filter((i) => i.track !== 'Enhancement' && inProg(i)).sort((a, b) => b.rem - a.rem).map(lineOf) },
-      { head: 'Enhancement:', lines: cc.s5.filter((i) => i.track === 'Enhancement').sort((a, b) => b.rem - a.rem).map(lineOf) },
-      { head: 'Blockers:', lines: cc.imp.map((i) => ({ t: `${nice(i.summary)} — ${noteOf(i) ? firstLine(noteOf(i)) : 'Impeded'}` })) },
+      { head: 'Accomplished this week:', lines: accomplished(cc.week) },
+      { head: `Outstanding work (${S}):`, lines: outstandingLines(cc.s5.filter((i) => i.track !== 'Enhancement')) },
+      { head: 'Enhancements outstanding:', lines: outstandingLines(cc.s5.filter((i) => i.track === 'Enhancement')) },
+      { head: `Blockers (${cc.imp.length}):`, lines: blockerLines(cc.imp, 8) },
       riskSection('ClaimCenter'),
     ], 9.5, cc);
 
@@ -316,21 +368,22 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
     const open5 = sc.s5.filter((i) => !isImpeded(i));
     for (const [sys, lbl, blockedLbl] of [['ClaimCenter', 'CC', 'DIG letter'], ['BillingCenter', 'BC', 'BC']]) {
       const lines = [
-        [nTemplates(sc.imp, sys), (n) => `${n} ${blockedLbl} templates – Blocked due to defects`],
         [nTemplates(open5.filter((i) => inProg(i) && phase(i.summary) === 'Execution'), sys), (n) => `Testing for ${n} ${lbl} templates in progress`],
         [nTemplates(open5.filter((i) => inProg(i) && phase(i.summary) === 'Design'), sys), (n) => `Test design for ${n} ${lbl} templates in progress`],
         [nTemplates(open5.filter((i) => !inProg(i)), sys), (n) => `${n} ${lbl} templates not started / awaiting dev`],
       ];
       for (const [n, text] of lines) if (n) scOutstanding.push({ t: text(n) });
     }
-    scOutstanding.push(...sc.s5.filter((i) => !templateOf(i.summary)).sort((a, b) => b.rem - a.rem).map(lineOf));
+    scOutstanding.push(...sc.s5.filter((i) => !templateOf(i.summary) && !isImpeded(i)) // blocked ones are under Blockers
+     .sort((a, b) => b.rem - a.rem).map(lineOf));
     const scRisk = risk('SmartComm');
     const scTail = scRisk ? 1.75 : 1.2; // room under the column for the summary table (+ risk text)
     const scTextEnd = column(s, X2, Y, W2, H, 'SMARTCOMM', COL.SmartComm, [
-      { head: 'Completed this week:', lines: [
-        { t: `${sc.week.length} items — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
+      { head: 'Accomplished this week:', lines: [
+        { t: `${sc.week.length} items completed — ${sc.week.filter((i) => phase(i.summary) === 'Design').length} test design, ${sc.week.filter((i) => phase(i.summary) === 'Execution').length} test execution.` },
       ] },
       { head: `Outstanding work (${S}):`, lines: scOutstanding },
+      { head: `Blockers (${sc.imp.length} items, ${nTemplates(sc.imp, 'ClaimCenter') + nTemplates(sc.imp, 'BillingCenter')} templates):`, lines: blockerLines(sc.imp, 6) },
     ], 9.5, sc, H - scTail);
     const tblTop = Math.min(scTextEnd + 0.1, Y + H - scTail);
     s.addText('Overall Summary — templates (done / total):',{ x: X2, y: tblTop + 0.04, w: W2, h: 0.22, fontFace: FONT, fontSize: 10, bold: true, color: '000000', margin: [2, 6, 0, 6] });
@@ -346,19 +399,14 @@ function buildDeck({ items, doneItems, scAll, bugs, history = [], notes = {}, de
 
     const oi = A.OneInc;
     column(s, X3, Y, W3, 3.45, 'OneInc', COL.OneInc, [
-      ...[['Design', 'Test Design', 'Reviewed'], ['Execution', 'Test Execution', 'Tested'], ['', 'Other work', 'Done']].map(([p, head, verb]) => ({
-        head: `${head}:`,
-        lines: [...oi.week.filter((i) => phase(i.summary) === p).map((i) => ({ t: `${nice(i.summary)} – ${verb} and Closed` })),
-          ...oi.s5.filter((i) => phase(i.summary) === p).sort((a, b) => b.rem - a.rem).map(lineOf)],
-      })),
+      { head: 'Accomplished this week:', lines: accomplished(oi.week) },
+      { head: `Outstanding work (${S}):`, lines: outstandingLines(oi.s5) },
+      { head: `Blockers (${oi.imp.length}):`, lines: oi.imp.length ? blockerLines(oi.imp, 5) : [{ t: 'None' }] },
       { head: `Ready for QA (${N}):`, lines: oi.s6.filter(readyQa).map((i) => nice(i.summary))
         .reduce((acc, name, n) => { if (n % 2) acc[acc.length - 1].t += `, ${name}`; else acc.push({ t: name }); return acc; }, []) },
       riskSection('OneInc'),
     ], 9, oi);
 
-    const prio = (p) => { const t = String(p || '').toLowerCase(); return /must|critical|highest|blocker/.test(t) ? 'Critical' : /high/.test(t) ? 'High' : /medium/.test(t) ? 'Medium' : /low/.test(t) ? 'Low' : 'Unranked'; };
-    // Counted by the bug's Severity; a bug with no severity falls back to its priority. "None" only shows if needed.
-    const sevOf = (b) => prio(b.severity) !== 'Unranked' ? prio(b.severity) : prio(b.priority);
     const PR = ['Critical', 'High', 'Medium', 'Low', ...(bugs.some((b) => sevOf(b) === 'Unranked') ? ['Unranked'] : [])];
     const statuses = [...new Set(bugs.map((b) => b.status))].sort((a, b) => bugs.filter((x) => x.status === b).length - bugs.filter((x) => x.status === a).length);
     s.addShape(pptx.ShapeType.rect, { x: X3, y: Y + 3.5, w: W3, h: 0.36, fill: { color: 'E8A100' } });
