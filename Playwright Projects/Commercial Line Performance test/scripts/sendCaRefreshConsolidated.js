@@ -11,7 +11,7 @@ const ROOT = path.join(__dirname, '..');
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > -1 ? process.argv[i + 1] : d; };
 const states = (arg('states', '') || '').split(',').filter(Boolean);
 const to = (arg('to', process.env.TO_EMAIL || '') || '').split(',').map((s) => s.trim()).filter(Boolean);
-const dry = arg('dry', '0') === '1';
+const dry = process.argv.includes('--dry') && arg('dry', '1') !== '0'; // bare --dry counts as a dry run
 const LOBS = [['BUSINESS_AUTO', 'Business Auto'], ['AUTO_DEALERS', 'Auto Dealers']];
 const batchRoot = path.join(ROOT, 'runtime-data', 'ca-refresh', 'batch');
 
