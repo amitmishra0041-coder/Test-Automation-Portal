@@ -201,7 +201,7 @@ test('CA Submission', async ({ page }, testInfo) => {
   };
 
   // QA: select each non-default option of every card's controlling dropdown and verify the dependent terms/options.
-  async function crExercise(label) {
+  async function crExercise(label, cardOpts = {}) {
     if (!caRefreshOn || process.env.CA_REFRESH_EXERCISE === '0') return;
     try {
       // re-render from the server by re-opening the current Coverages sub-tab (a browser reload would re-post the form)
@@ -212,7 +212,7 @@ test('CA Submission', async ({ page }, testInfo) => {
         await page.waitForLoadState('domcontentloaded').catch(() => {});
         await dismissStatusModal();
       };
-      await exerciseCards(page, crPool, label, 40, { rerender });
+      await exerciseCards(page, crPool, label, 40, { rerender, ...cardOpts });
       await dismissStatusModal();
       await fillBlankRequiredSelects(page);
       await settleAndRefillRequired();
@@ -1489,8 +1489,13 @@ test('CA Submission', async ({ page }, testInfo) => {
       console.log('Number of Employees field not visible - skipping (may not be required for this LOB/state combo)');
     }
     await crSnap('State specific info - Coverages');
-    await crExercise('State specific info - Coverages');
+    await crExercise('State specific info - Coverages', { skip: /^Hired Auto/i });
     await crSetHiredNonOwned(); // re-assert Hired Auto / Non-Owned = Yes after anything above touched the page
+    // QA 11/04: the Hired Auto cards only render once Hired Auto = Yes (the set above), so they were never exercised - their
+    // deductibles were read only as "Not Applicable". Exercise them now (Coverage Type -> Collision etc.), then re-assert again.
+    await crSnap('State specific info - Hired Auto');
+    await crExercise('State specific info - Hired Auto', { only: /^Hired Auto/i });
+    await crSetHiredNonOwned();
     await safeNextClick();
     trackMilestone('State specific info - Coverages');
     await crSnap('State specific info - Additional coverages');

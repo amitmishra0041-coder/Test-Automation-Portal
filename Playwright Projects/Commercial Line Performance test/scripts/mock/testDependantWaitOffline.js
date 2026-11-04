@@ -30,6 +30,17 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
     const opts = acv ? ((acv.cards[0] || {}).terms || []).find((t) => t.label === 'Deductible') : null;
     check(`refill after ${delay} ms: ACV snapshot has the deductible list`, !!opts && opts.options.includes('25,000'), JSON.stringify(opts && opts.options));
     console.log(`   (${Math.round((Date.now() - t0) / 1000)} s)`);
+    check(`refill after ${delay} ms: disabled flag recorded (Not Applicable read while off)`, pool.every((p) => p.cards.every((c) => c.terms.every((t) => typeof t.disabled === 'boolean'))));
+  }
+  // the State specific info page is exercised in two passes: everything but the Hired Auto cards, then (once Hired Auto = Yes)
+  // only the Hired Auto cards (QA 11/04)
+  await page.setContent(['Hired Auto Collision', 'Uninsured Motorists Coverage'].map((t, i) => `<div id="xacc_Card_C${i}"><div class="xaccordion-sectionheader">${t}</div>
+    <div class="FieldSpacing"><span class="FieldLabel">Coverage Type</span><select><option value="a" selected>A</option><option value="b">B</option></select></div></div>`).join(''));
+  for (const [opts, want] of [[{ skip: /^Hired Auto/i }, ['Uninsured Motorists Coverage']], [{ only: /^Hired Auto/i }, ['Hired Auto Collision']]]) {
+    const pool = [];
+    await exerciseCards(page, pool, 'mock state page', 40, { rerender: async () => {}, ...opts });
+    const titles = [...new Set(pool.flatMap((p) => p.cards.map((c) => c.title)))];
+    check(`${opts.skip ? 'skip' : 'only'} Hired Auto: exercised ${JSON.stringify(want)}`, JSON.stringify(titles) === JSON.stringify(want), JSON.stringify(titles));
   }
   await browser.close();
   console.log(failed ? `\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');

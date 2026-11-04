@@ -6,7 +6,7 @@ const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, ImageRun, ShadingType, BorderStyle, HeadingLevel,
 } = require('docx');
 
-const COLORS = { PASS: '17692E', FAIL: '9B1C1C', FOUND: '17692E', MISSING: '9B1C1C', MISMATCH: '9B1C1C', MATCH: '17692E', NOT_OBSERVED: '667085', PARTIAL: '8A5A00', ADDED: '17692E', ALREADY_SELECTED: '17692E', ADD_FAILED: '9B1C1C', SKIPPED_RULE: '667085', NO_ADD_BUTTON: '9B1C1C', NO_MODEL_DATA: '667085', UNEXPECTED: '8A5A00', PC_ONLY: '3B5BA5', NOT_TESTED: '667085', REMOVED_STILL_PRESENT: '8A5A00', NOT_APPLICABLE: '667085' };
+const COLORS = { PASS: '17692E', FAIL: '9B1C1C', FOUND: '17692E', MISSING: '9B1C1C', MISMATCH: '9B1C1C', MATCH: '17692E', NOT_OBSERVED: '667085', PARTIAL: '8A5A00', ADDED: '17692E', ALREADY_SELECTED: '17692E', ADD_FAILED: '9B1C1C', SKIPPED_RULE: '667085', NO_ADD_BUTTON: '9B1C1C', NO_MODEL_DATA: '667085', UNEXPECTED: '8A5A00', PC_ONLY: '3B5BA5', NOT_TESTED: '667085', REMOVED_STILL_PRESENT: '8A5A00', NOT_APPLICABLE: '667085', SET_BY_STATE_PIP: '667085' };
 const FILLS = { PASS: 'E3F6E8', FAIL: 'FDE8E8', FOUND: 'E3F6E8', MATCH: 'E3F6E8', PARTIAL: 'FFF3D6', ADDED: 'E3F6E8', ALREADY_SELECTED: 'E3F6E8', ADD_FAILED: 'FDE8E8', NO_ADD_BUTTON: 'FDE8E8', MISMATCH: 'FDE8E8', MISSING: 'FDE8E8', UNEXPECTED: 'FFF3D6', REMOVED_STILL_PRESENT: 'FFF3D6' };
 const LINE = { style: BorderStyle.SINGLE, size: 4, color: 'BFC6D0' };
 const MAX_W = 620;
@@ -76,7 +76,7 @@ async function writeCaRefreshDoc(run, outFile) {
 
   const tc = v.termChecks || [];
   kids.push(heading('Coverage term and option validation'));
-  kids.push(para(`${s.termsChecked || 0} term(s) compared with the product model for ${run.state} (options taken from the WriteBiz dropdowns and Add-coverage dialogs); ${s.termMismatches || 0} mismatch(es) (WriteBiz offers an option the model does not list), ${s.termsPartial || 0} partial (model options not shown - usually a dropdown filtered by another selection), ${s.termsNoModelData || 0} with no model options for this state.`, { italics: true, color: '667085' }));
+  kids.push(para(`${s.termsChecked || 0} term(s) compared with the product model for ${run.state} (options taken from the WriteBiz dropdowns and Add-coverage dialogs); ${s.termMismatches || 0} mismatch(es) (WriteBiz offers an option the model does not list), ${s.termsPartial || 0} partial (model options not shown - usually a dropdown filtered by another selection), ${s.termsSetByStatePip || 0} vehicle PIP term(s) set by the state PIP coverage (read-only on the vehicle), ${s.termsNoModelData || 0} with no model options for this state. Only terms the product model makes available to WriteBiz agents in ${run.state} are listed.`, { italics: true, color: '667085' }));
   if (tc.length) {
     kids.push(table([new TableRow({ tableHeader: true, children: ['Coverage', 'Term', 'Product model options', 'WriteBiz options', 'Missing / extra', 'Result'].map((h, i) => cell(h, { w: [18, 16, 20, 20, 16, 10][i], bold: true, fill: 'E7EBF0' })) })]
       .concat(tc.map((t) => new TableRow({ children: [

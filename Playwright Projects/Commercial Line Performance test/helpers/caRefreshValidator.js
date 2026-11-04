@@ -89,7 +89,8 @@ async function readCards(page, rootSelector) {
       const sel = fs.querySelector('select');
       const input = fs.querySelector('input:not([type=hidden]):not([type=checkbox])');
       return { label, options: sel ? [...sel.options].map((o) => clean(o.textContent)).filter((o) => o && !/^nothing selected$/i.test(o)) : [],
-        selected: sel && sel.selectedOptions[0] ? clean(sel.selectedOptions[0].textContent) : (input ? clean(input.value) : ''), kind: sel ? 'select' : (input ? 'input' : 'text') };
+        selected: sel && sel.selectedOptions[0] ? clean(sel.selectedOptions[0].textContent) : (input ? clean(input.value) : ''), kind: sel ? 'select' : (input ? 'input' : 'text'),
+        disabled: !!(sel && sel.disabled) };
     }).filter((t) => t.label);
     const cards = [...root.querySelectorAll('[id^="xacc_Card_"]')].map((c) => ({ title: clean((c.querySelector('.xaccordion-sectionheader') || {}).textContent).replace(/\s+Save$/i, ''), terms: termsOf(c) }));
     if (!cards.length) {
@@ -200,8 +201,9 @@ function checkAllCards(state, pool) {
       const score = (m) => Object.keys(m.terms).filter((tn) => selects.some((x) => overlap(tn, x.label) >= 0.6)).length;
       const m = cands.slice().sort((a, b) => score(b) - score(a))[0];
       const ckey = canon(card.title);
-      const names = DATA.termNames && DATA.termNames[norm(m.name)];
-      if (names && card.terms.length) {
+      // only terms the model makes available to WriteBiz agents in this state (QA 11/04)
+      const names = DATA.termNames && (DATA.termNames[norm(m.name)] || []).filter((t) => t.states.includes(state)).map((t) => t.name);
+      if (names && names.length && card.terms.length) {
         const st = shownTerms.get(ckey) || shownTerms.set(ckey, { coverage: card.title, names, shown: new Set(), pages: new Set() }).get(ckey);
         card.terms.forEach((x) => st.shown.add(x.label));
         st.pages.add(p.label);
@@ -210,8 +212,9 @@ function checkAllCards(state, pool) {
         const t = selects.slice().sort((x, y) => jaccard(term, y.label) - jaccard(term, x.label))[0];
         if (!t || jaccard(term, t.label) < 0.6) continue; // term not shown in this snapshot
         const key = `${ckey}|${norm(term)}`;
-        const a = agg.get(key) || agg.set(key, { coverage: card.title, term, expected: opts.filter((o) => o.states.includes(state) && o.wb === 'Y').map((o) => o.option), observed: new Set(), pages: new Set(), contexts: new Set() }).get(key);
+        const a = agg.get(key) || agg.set(key, { coverage: card.title, term, expected: opts.filter((o) => o.states.includes(state) && o.wb === 'Y').map((o) => o.option), observed: new Set(), pages: new Set(), contexts: new Set(), enabled: false }).get(key);
         t.options.forEach((o) => a.observed.add(o));
+        if (!t.disabled) a.enabled = true;
         a.pages.add(p.label);
         if (p.context) a.contexts.add(p.context);
       }
@@ -229,15 +232,25 @@ function checkAllCards(state, pool) {
     const observed = [...a.observed];
     const seen = new Set(observed.map(normOpt));
     const want = new Set(a.expected.map(normOpt));
-    const missing = a.expected.filter((o) => !seen.has(normOpt(o)));
+    let missing = a.expected.filter((o) => !seen.has(normOpt(o)));
     let extra = observed.filter((o) => !want.has(normOpt(o)));
+    const notes = [];
     // A Yes/No switch the model lists only as "Yes" (Hired Auto Liability "If Any Basis"): "No" is the switch's off position,
     // not an extra product option.
     const yesNo = want.size && [...want].every((o) => o === 'yes') && observed.every((o) => /^(yes|no)$/i.test(o));
-    const note = yesNo && extra.length ? 'Yes/No switch: "No" is its off position' : undefined;
+    if (yesNo && extra.length) notes.push('Yes/No switch: "No" is its off position');
     if (yesNo) extra = [];
+    // "Not Applicable" is the placeholder value a term takes while another selection switches it off; WriteBiz lists it only in
+    // that disabled state, never as a choice - not an option an agent can miss (QA 11/04: cut the placeholder-only partials).
+    if (missing.length && missing.every((o) => /^not applicable$/i.test(o)) && observed.length) { notes.push('"Not Applicable" placeholder only appears while the term is switched off'); missing = []; }
+    // Vehicle-level PIP terms are read-only on the vehicle: WriteBiz fills them from the state PIP coverage selection
+    // (QA 11/04 - Special Types Personal Injury Protection depends on the state-specific PIP choice), so only that one value can
+    // show there; their options are checked on the state PIP card.
+    const vehiclePip = /^(private passenger|truck|special types?|auto dealers|public transportation|zone rated)\b.*personal injury protection/i.test(a.coverage);
     // Options WriteBiz offers that the model does not list = MISMATCH. Model options never seen on any snapshot = PARTIAL.
-    const status = !a.expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : 'MATCH';
+    let status = !a.expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : 'MATCH';
+    if (status === 'PARTIAL' && vehiclePip && !a.enabled) { status = 'SET_BY_STATE_PIP'; notes.push('read-only on the vehicle - WriteBiz sets it from the state PIP coverage selection'); }
+    const note = notes.join('; ') || undefined;
     out.push({ coverage: a.coverage, term: a.term, expected: a.expected, page: [...a.pages].join(', '), context: [...a.contexts].slice(0, 6).join(' | ') + (a.contexts.size > 6 ? ` (+${a.contexts.size - 6} more)` : ''), observed, missing, extra, status, ...(note ? { note } : {}) });
   }
   return out;
@@ -299,7 +312,7 @@ function evaluate(lob, state, pool) {
   return {
     results: all,
     termChecks,
-    summary: { termMismatches: termChecks.filter((t) => t.status === 'MISMATCH').length, termsChecked: termChecks.length, termsPartial: termChecks.filter((t) => t.status === 'PARTIAL').length, termsNoModelData: termChecks.filter((t) => t.status === 'NO_MODEL_DATA').length, found: count('FOUND'), missing: count('MISSING'), pcOnly: count('PC_ONLY'), notTested: count('NOT_TESTED'), unexpected: count('UNEXPECTED'), removedStillPresent: count('REMOVED_STILL_PRESENT'), notApplicable: count('NOT_APPLICABLE') },
+    summary: { termMismatches: termChecks.filter((t) => t.status === 'MISMATCH').length, termsChecked: termChecks.length, termsPartial: termChecks.filter((t) => t.status === 'PARTIAL').length, termsSetByStatePip: termChecks.filter((t) => t.status === 'SET_BY_STATE_PIP').length,termsNoModelData: termChecks.filter((t) => t.status === 'NO_MODEL_DATA').length, found: count('FOUND'), missing: count('MISSING'), pcOnly: count('PC_ONLY'), notTested: count('NOT_TESTED'), unexpected: count('UNEXPECTED'), removedStillPresent: count('REMOVED_STILL_PRESENT'), notApplicable: count('NOT_APPLICABLE') },
   };
 }
 

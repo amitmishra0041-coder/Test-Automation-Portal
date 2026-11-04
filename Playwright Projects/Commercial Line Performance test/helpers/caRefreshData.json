@@ -1,1636 +1,4208 @@
 {
  "termNames": {
   "added personal injury protection": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation",
-   "Medical Expenses Limit Per Person Maximum Amount",
-   "Work Loss Limit Per Person Maximum Weekly Limit"
+   {
+    "name": "Added Personal Injury Protection for Bodily Injury",
+    "states": [
+     "DE"
+    ]
+   },
+   {
+    "name": "Limit of Compensation",
+    "states": [
+     "DE"
+    ]
+   },
+   {
+    "name": "Medical Expenses Limit Per Person Maximum Amount",
+    "states": [
+     "UT"
+    ]
+   },
+   {
+    "name": "Work Loss Limit Per Person Maximum Weekly Limit",
+    "states": [
+     "UT"
+    ]
+   }
   ],
   "additional insured general liability coverages concessionaires trading under your name": [
-   "Manual Premium"
+   {
+    "name": "Manual Premium",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "additional insured general liability coverages grantor of franchise": [
-   "Manual Premium"
+   {
+    "name": "Manual Premium",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "additional insured general liability coverages lessor of leased equipment": [
-   "Manual Premium"
+   {
+    "name": "Manual Premium",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "additional insured general liability coverages owners of leased or rented land or premises": [
-   "Name Of Person Or Organization",
-   "Description Of Premises Or Land Leased Or Rented To You"
+   {
+    "name": "Name Of Person Or Organization",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Description Of Premises Or Land Leased Or Rented To You",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "addl insured genll liability covs lessor of leased equipmt automtc status when rqd in leased agrmt with you": [
-   "Manual Premium"
-  ],
-  "agricultural produce trailers seasonal": [
-   "End Of Operations",
-   "Produce Carried",
-   "Start Of Operations"
+   {
+    "name": "Manual Premium",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "audio visual and data electronic equipment coverage added limits": [
-   "Per \"Loss\" Limit"
-  ],
-  "auto dealer michigan catastrophic surcharge": [
-   "Michigan Catastrophic Claims Association Surcharge"
+   {
+    "name": "Per \"Loss\" Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers auto medical expense benefits": [
-   "Medical Expense Benefits Limit"
-  ],
-  "auto hacking expense": [
-   "Auto Hacking Expense Aggregate Limit",
-   "Per Incident Auto Hacking Expense Deductible",
-   "Vehicle Value Factor Override"
+   {
+    "name": "Medical Expense Benefits Limit",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "business interruption": [
-   "Business Income Coverage Type",
-   "Collision Coverage",
-   "Comprehensive Coverage",
-   "Description Of Business Activities Dependent On Scheduled Property",
-   "Business Income Coverage Waiting Period (Number Of Hours)",
-   "Extended Business Income Additional Coverage (Number Of Consecutive Days)",
-   "Specified Causes Of Loss Coverage"
+   {
+    "name": "Business Income Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Collision Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Comprehensive Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Description Of Business Activities Dependent On Scheduled Property",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Business Income Coverage Waiting Period (Number Of Hours)",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Extended Business Income Additional Coverage (Number Of Consecutive Days)",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Specified Causes Of Loss Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "colorado individually owned motor vehicles": [
-   "Description Of Individually Owned \"Private Passenger Auto\"",
-   "Individual Owner Of \"Private Passenger Auto\""
-  ],
-  "commercial auto experience rating modification": [
-   "Actual Liability Expected Loss Ratio",
-   "Actual Physical Damage Expected Loss Ratio",
-   "Expense Variation Applies"
-  ],
-  "commercial auto experience rating modification latest year": [
-   "Latest Loss Valuation Date",
-   "Policy With Same Carrier",
-   "Policy Year Effective Date",
-   "Total Includable Losses Limited By MSL (Liability Losses)",
-   "Total Indemnity Limited By MSL (Physical Damage Losses)",
-   "Latest Year Loss Development Factor Override"
-  ],
-  "commercial auto experience rating modification second latest year": [
-   "Second Latest Year Loss Development Factor Override",
-   "Latest Loss Valuation Date",
-   "Policy With Same Carrier",
-   "Policy Year Effective Date",
-   "Total Includable Losses Limited By MSL (Liability Losses)",
-   "Total Indemnity Limited By MSL (Physical Damage Losses)"
-  ],
-  "commercial auto experience rating modification third latest year": [
-   "Third Latest Year Loss Development Factor Override",
-   "Latest Loss Valuation Date",
-   "Policy With Same Carrier",
-   "Policy Year Effective Date",
-   "Total Includable Losses Limited By MSL (Liability Losses)",
-   "Total Indemnity Limited By MSL (Physical Damage Losses)"
+   {
+    "name": "Description Of Individually Owned \"Private Passenger Auto\"",
+    "states": [
+     "CO"
+    ]
+   },
+   {
+    "name": "Individual Owner Of \"Private Passenger Auto\"",
+    "states": [
+     "CO"
+    ]
+   }
   ],
   "coordination of benefits excess personal injury protection": [
-   "Excess PIP"
-  ],
-  "covered auto designation symbol": [
-   "Description Of Covered Auto Designation Symbol 10",
-   "Description Of Covered Auto Designation Symbol 32",
-   "Description Of Covered Auto Designation Symbol 72",
-   "Description Of Covered Auto Designation Symbol 73",
-   "Symbol 10",
-   "Symbol 32",
-   "Symbol 72",
-   "Symbol 73"
-  ],
-  "customer complaint legal defense": [
-   "Customer Complaint Legal Defense Aggregate Limit",
-   "Per Customer Complaint Legal Defense Limit",
-   "Manual Premium"
+   {
+    "name": "Excess PIP",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "dealers driveaway collision": [
-   "Collision Coverage Type",
-   "Coverage Type",
-   "Deductibe",
-   "Mileage",
-   "Per Car Per Trip Number",
-   "Price New At Factory To Dealer"
-  ],
-  "designated location s general liability aggregate limit for certain general liability": [
-   "Manual Premium"
-  ],
-  "designated location s products and work you performed aggregate limit for certain general liability": [
-   "Manual Premium"
-  ],
-  "drive away contractors": [
-   "Description Of Registration Plates",
-   "Number Of Plates"
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductibe",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Mileage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Per Car Per Trip Number",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Price New At Factory To Dealer",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "drive other car cov broadened cov for named individuals collision": [
-   "Deductible",
-   "Collision Coverage"
-  ],
-  "drive other car cov broadened cov for named individuals liability": [
-   "Coverage Type",
-   "Liability Limit"
-  ],
-  "drive other car cov broadened cov for named individuals medical expense benefits": [
-   "Medical Expense Benefits (Each Person) Limit"
-  ],
-  "drive other car cov broadened cov for named individuals medical payments": [
-   "Limit"
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Collision Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "drive other car cov broadened cov for named individuals other than collision": [
-   "Deductible",
-   "Other Than Collision Coverage",
-   "Losses Covered",
-   "Full Glass Coverage",
-   "Comprehensive Coverage",
-   "Deductible Type"
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Other Than Collision Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "drive other car cov broadened cov for named individuals underinsured motorists": [
-   "Combined Single Limit",
-   "Underinsured Motorists Coverage Type",
-   "Split Limit"
-  ],
-  "drive other car cov broadened cov for named individuals underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Limit"
-  ],
-  "drive other car cov broadened cov for named individuals uninsured motorists": [
-   "Combined Single Limit",
-   "Uninsured Motorists Coverage Type",
-   "Split Limit"
-  ],
-  "drive other car cov broadened cov for named individuals uninsured motorists property damage": [
-   "Uninsured Motorists Property Damage Coverage Deductible",
-   "Uninsured Motorists Property Damage Limit"
-  ],
-  "driving schools non owned autos": [
-   "Garaging Location",
-   "Garaging Location Override",
-   "Number Of Driving Instructors",
-   "Territory",
-   "Zip Code"
-  ],
-  "driving schools non owned coverages liability": [
-   "Coverage Type",
-   "Liability Limit",
-   "Liability Deductible"
-  ],
-  "driving schools non owned coverages medical expense benefits": [
-   "Limit"
-  ],
-  "driving schools non owned coverages medical payments": [
-   "Limit"
+   {
+    "name": "Combined Single Limit",
+    "states": [
+     "AZ",
+     "IA",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "UT",
+     "WI"
+    ]
+   }
   ],
   "employee benefits liability": [
-   "Coverage",
-   "Each Employee Deductible",
-   "Limits Of Insurance",
-   "Retroactive Date",
-   "Number Of Employees",
-   "Limit Of Insurance Employee Benefits Aggregate",
-   "Limits Of Insurance Each Employee",
-   "Manual Premium"
+   {
+    "name": "Each Employee Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Limits Of Insurance",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Retroactive Date",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Number Of Employees",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "employment practices liability insurance claims made coverage endorsement": [
-   "Number Of Employees",
-   "Coverage Effective Date",
-   "Coverage Expiration Date",
-   "Aggregate Limit",
-   "Deductible",
-   "Third Party Liability Coverage"
-  ],
-  "employment practices liability insurance claims made coverage endorsement refer to company": [
-   "Number Of Employees",
-   "Coverage Effective Date",
-   "Coverage Expiration Date",
-   "Aggregate Limit",
-   "Deductible",
-   "Third Party Liability Coverage",
-   "Manual Premium"
+   {
+    "name": "Number Of Employees",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Coverage Effective Date",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Coverage Expiration Date",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Aggregate Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Third Party Liability Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "excess attendant care": [
-   "Excess Attendant Care Coverage"
+   {
+    "name": "Excess Attendant Care Coverage",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "false pretense": [
-   "Limit Of Insurance",
-   "Total Inventory Value For Each Named Location",
-   "Named Location Number From Item Three Of The Declarations"
-  ],
-  "fellow employee": [
-   "Manual Premium"
-  ],
-  "fellow employee coverage for designated employees positions": [
-   "Manual Premium"
+   {
+    "name": "Limit Of Insurance",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Total Inventory Value For Each Named Location",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "fire fire and theft and limited specified causes of loss coverage for dealers": [
-   "All Interests In Any Auto Not Owned By You Or Any Creditor While In Your Possession Or Consignment For Sale",
-   "Covered Autos",
-   "Coverages",
-   "Deductible For Each Covered Auto For Loss Caused By Theft",
-   "Maximum Deductible For All Theft Loss In Any One Event",
-   "New Autos",
-   "Premium Basis",
-   "Reporting Basis",
-   "Used Autos, Demonstrators And Service Vehicles",
-   "Your Interest And The Interest Of Any Credit or Named As A Loss Payee",
-   "Your Interest In Covered Autos You Own",
-   "Your Interest Only In Financed Covered Autos"
-  ],
-  "funeral director medical payments coverage for hired and non owned autos": [
-   "Funeral Directors Medical Payments Coverage for Hired and Non-Owned Autos"
-  ],
-  "garage 500 dollar deductible for work you performed": [
-   "$500 Deductible For Work You Performed Coverage"
-  ],
-  "auto dealers 500 dollar deductible for work you performed": [
-   "$500 Deductible For Work You Performed Coverage"
-  ],
-  "garage acts errors or omissions liability": [
-   "Acts Errors Or Omissions Coverage Type",
-   "Limit"
+   {
+    "name": "All Interests In Any Auto Not Owned By You Or Any Creditor While In Your Possession Or Consignment For Sale",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Covered Autos",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Coverages",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible For Each Covered Auto For Loss Caused By Theft",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Maximum Deductible For All Theft Loss In Any One Event",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "New Autos",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Premium Basis",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Reporting Basis",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Used Autos, Demonstrators And Service Vehicles",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Your Interest And The Interest Of Any Credit or Named As A Loss Payee",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Your Interest In Covered Autos You Own",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Your Interest Only In Financed Covered Autos",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers acts errors or omissions liability": [
-   "Acts Errors Or Omissions Coverage Type",
-   "Limit"
-  ],
-  "garage added personal injury protection endorsement added pip": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation"
-  ],
-  "auto dealers added personal injury protection endorsement added pip": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation"
-  ],
-  "garage additional personal injury protection": [
-   "Added Personal Injury Protection Coverage"
-  ],
-  "auto dealers personal injury protection": [
-   "Added Personal Injury Protection Coverage",
-   "Accidental Death Benefits Coverage",
-   "First Party Benefits Coverage",
-   "Combination First Party Benefits Coverage",
-   "Covered by Workers Compensation",
-   "Personal Injury Protection Coverage",
-   "Deductible",
-   "Exclusion Of Loss Of Income Benefits",
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Funeral Expense Benefits Coverage",
-   "Medical Expense Benefits Coverage",
-   "Basic First Party Benefit Rating Basis",
-   "Work Loss Benefits Coverage"
-  ],
-  "garage broad form products": [
-   "Broad Form Products Coverage"
+   {
+    "name": "Acts Errors Or Omissions Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers broad form products": [
-   "Broad Form Products Coverage"
-  ],
-  "garage collision": [
-   "Collision Coverage Option",
-   "Collision Coverage Type",
-   "Deductible",
-   "Prior Year Average of Reported Values"
+   {
+    "name": "Broad Form Products Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers collision": [
-   "Collision Coverage Option",
-   "Collision Coverage Type",
-   "Deductible",
-   "Prior Year Average of Reported Values"
-  ],
-  "garage excess attendant care": [
-   "Excess Attendant Care Coverage",
-   "Manual Premium"
-  ],
-  "auto dealers excess attendant care": [
-   "Excess Attendant Care Coverage",
-   "Manual Premium"
-  ],
-  "garage garagekeepers coverage collision": [
-   "Manual Premium",
-   "Garagekeepers Collision Coverage Type",
-   "Maximum Limit Of Liability",
-   "Deductible"
+   {
+    "name": "Collision Coverage Option",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Prior Year Average of Reported Values",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers garagekeepers coverage collision": [
-   "Manual Premium",
-   "Garagekeepers Collision Coverage Type",
-   "Maximum Limit Of Liability",
-   "Deductible"
-  ],
-  "garage garagekeepers coverage other than collision": [
-   "Manual Premium",
-   "All Perils Deductible",
-   "Garagekeepers Other Than Collision Coverage Type",
-   "Deductible",
-   "Maximum Limit Of Liability"
+   {
+    "name": "Garagekeepers Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Maximum Limit Of Liability",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers garagekeepers coverage other than collision": [
-   "Manual Premium",
-   "All Perils Deductible",
-   "Garagekeepers Other Than Collision Coverage Type",
-   "Deductible",
-   "Maximum Limit Of Liability",
-   "Losses Covered",
-   "Deductible Type"
+   {
+    "name": "Garagekeepers Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Maximum Limit Of Liability",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "garage income loss benefits": [
-   "Income Loss Benefits",
-   "Rating Basis"
+   {
+    "name": "Income Loss Benefits",
+    "states": [
+     "VA"
+    ]
+   },
+   {
+    "name": "Rating Basis",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "auto dealers income loss benefits": [
-   "Income Loss Benefits",
-   "Rating Basis"
-  ],
-  "garage liability": [
-   "Other General Liability Aggregate Limit",
-   "Liability Coverage Type",
-   "Liability Deductible",
-   "Liability Limit",
-   "Products And Work You Performed Aggregate Limit"
-  ],
-  "auto dealers liability": [
-   "Other General Liability Aggregate Limit",
-   "Liability Coverage Type",
-   "Liability Deductible",
-   "Liability Limit",
-   "Products And Work You Performed Aggregate Limit"
+   {
+    "name": "Income Loss Benefits",
+    "states": [
+     "VA"
+    ]
+   },
+   {
+    "name": "Rating Basis",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "garage medical expense benefits": [
-   "Medical Expense Benefits Limit"
-  ],
-  "garage medical payments auto": [
-   "Medical Payments Coverage Limit - Auto"
+   {
+    "name": "Medical Expense Benefits Limit",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "auto dealers auto medical payments": [
-   "Medical Payments Coverage Limit - Auto"
-  ],
-  "garage medical payments locations and operations": [
-   "Medical Payments Coverage Limit - Locations And Operations"
+   {
+    "name": "Medical Payments Coverage Limit - Auto",
+    "states": [
+     "AZ",
+     "CO",
+     "IA",
+     "MD",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "WI"
+    ]
+   }
   ],
   "auto dealers locations and operations medical payments": [
-   "Medical Payments Coverage Limit - Locations And Operations"
-  ],
-  "garage other than collision": [
-   "All Perils Deductible",
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Physical Damage Classification"
+   {
+    "name": "Medical Payments Coverage Limit - Locations And Operations",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers other than collision": [
-   "All Perils Deductible",
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Physical Damage Classification",
-   "Losses Covered",
-   "Deductible Type"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Physical Damage Classification",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
-  "garage personal injury protection": [
-   "Accidental Death Benefits Coverage",
-   "First Party Benefits Coverage",
-   "Combination First Party Benefits Coverage",
-   "Covered by Workers Compensation",
-   "Personal Injury Protection Coverage",
-   "Deductible",
-   "Exclusion Of Loss Of Income Benefits",
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Funeral Expense Benefits Coverage",
-   "Medical Expense Benefits Coverage",
-   "Basic First Party Benefit Rating Basis",
-   "Work Loss Benefits Coverage"
-  ],
-  "garage personal injury protection endorsement pip": [
-   "Limit Of Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Personal Injury Protection coverage Deductible",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Personal Injury Protection For \"Bodily Injury\""
-  ],
-  "auto dealers personal injury protection endorsement pip": [
-   "Limit Of Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Personal Injury Protection coverage Deductible",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Personal Injury Protection For \"Bodily Injury\""
-  ],
-  "garage personal injury protection extraordinary medical benefits": [
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis"
+  "auto dealers personal injury protection": [
+   {
+    "name": "Accidental Death Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Combination First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection Coverage",
+    "states": [
+     "DE",
+     "MD",
+     "MI",
+     "UT"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "MD",
+     "UT"
+    ]
+   },
+   {
+    "name": "Funeral Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Medical Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Basic First Party Benefit Rating Basis",
+    "states": [
+     "MD",
+     "MI",
+     "PA",
+     "UT"
+    ]
+   },
+   {
+    "name": "Work Loss Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "auto dealers personal injury protection extraordinary medical benefits": [
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis"
-  ],
-  "garage tapes records and discs coverage comprehensive": [
-   "Number Of Autos"
+   {
+    "name": "Extraordinary Medical Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Rating Basis",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "auto dealers tapes records and discs coverage comprehensive": [
-   "Number Of Autos"
-  ],
-  "garage personal injury protection medical expenses": [
-   "PIP Medical Expense Limit"
-  ],
-  "garage pick up or delivery of autos": [
-   "Number of Driver Trips 51 - 200",
-   "Number of Driver Trips Over 200",
-   "PickUp or Delivery of Autos Coverage"
+   {
+    "name": "Number Of Autos",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers pickup or delivery of autos": [
-   "Number of Driver Trips 51 - 200",
-   "Number of Driver Trips Over 200",
-   "PickUp or Delivery of Autos Coverage"
-  ],
-  "garage property protection": [
-   "Property Protection Insurance Coverage",
-   "Deductible"
-  ],
-  "auto dealers property protection": [
-   "Property Protection Insurance Coverage",
-   "Deductible"
-  ],
-  "garage underinsured motorists": [
-   "Underinsured Motorists Coverage"
+   {
+    "name": "Number of Driver Trips 51 - 200",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Number of Driver Trips Over 200",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "PickUp or Delivery of Autos Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "auto dealers underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "garage underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Coverage Type"
-  ],
-  "auto dealers underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Coverage Type"
-  ],
-  "garage uninsured motorists": [
-   "Uninsured Motorists Coverage"
+   {
+    "name": "Underinsured Motorists Coverage",
+    "states": [
+     "AZ",
+     "IA",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "UT",
+     "WI"
+    ]
+   }
   ],
   "auto dealers uninsured motorists": [
-   "Uninsured Motorists Coverage"
-  ],
-  "garage uninsured motorists property damage": [
-   "Uninsured Motorists Property Damage Coverage"
-  ],
-  "auto dealers uninsured motorists property damage": [
-   "Uninsured Motorists Property Damage Coverage"
+   {
+    "name": "Uninsured Motorists Coverage",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "garagekeepers coverage collision cov": [
-   "Manual Premium",
-   "Collision Coverage Type",
-   "Deductible",
-   "Maximum Limit Of Liability"
-  ],
-  "garagekeepers coverage customers sound receiving equipment collision cov": [
-   "Collision Coverage Type",
-   "Deductible",
-   "Limit Of Insurance Or Maximum Limit Of Liability"
-  ],
-  "garagekeepers coverage customers sound receiving equipment other than collision cov": [
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Limit Of Insurance Or Maximum Limit Of Liability"
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Maximum Limit Of Liability",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "garagekeepers coverage other than collision cov": [
-   "Manual Premium",
-   "All Perils Deductible",
-   "Losses Covered",
-   "Deductible Type",
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Maximum Limit Of Liability"
-  ],
-  "general amending endorsement": [
-   "Manual Premium",
-   "Description"
-  ],
-  "gross receipts or mileage basis liability": [
-   "Liability Coverage Type",
-   "Estimated Total Gross Receipts Or Mileage",
-   "Liability Limit",
-   "Total Annual Gross Receipts Or Mileage - 3 Months Prior",
-   "Total Policy Premium 12 Months Prior",
-   "Total Policy Premium 12 Months Prior - Excluding Rentals",
-   "Total Policy Premium 12 Months Prior - Rentals",
-   "Total Policy Premium 3 Months Prior",
-   "Historical Gross Receipts Or Mileage",
-   "Estimated Or Audited Gross Receipts Or Mileage",
-   "Total Policy Premium 3 Months Prior - Excluding Rentals",
-   "Total Policy Premium 3 Months Prior - Rentals"
-  ],
-  "gross receipts or mileage basis medical expense benefits": [
-   "$100,000 Limit Liablity Premium",
-   "Medical Expense Benefits Limit",
-   "Manual Premium",
-   "Medical Expense Benefits Coverage"
-  ],
-  "gross receipts or mileage basis medical payments": [
-   "$100,000 Limit Liablity Premium",
-   "Medical Payments Limit",
-   "Manual Premium",
-   "Medical Payments Coverage"
-  ],
-  "hired auto autos leased hired rented or borrowed with drivers physical damage cov collision cov": [
-   "Deductible",
-   "Designated Or Covered \"Auto\" Vehicle Number",
-   "Designation Or Description Of Vehicles That Are Covered \"Autos\"",
-   "Estimated Annual Cost Of Hire",
-   "Limit Of Insurance",
-   "Manual Premium"
-  ],
-  "hired auto autos leased hired rented or borrowed with drivers physical damage cov comprehensive cov": [
-   "Deductible",
-   "Designated Or Covered \"Auto\" Vehicle Number",
-   "Designation Or Description Of Vehicles That Are Covered \"Autos\"",
-   "Estimated Annual Cost Of Hire",
-   "Limit Of Insurance",
-   "Manual Premium"
-  ],
-  "hired auto autos leased hired rented or borrowed with drivers physical damage cov specified cause of loss cov": [
-   "Deductible",
-   "Designated Or Covered \"Auto\" Vehicle Number",
-   "Designation Or Description Of Vehicles That Are Covered \"Autos\"",
-   "Estimated Annual Cost Of Hire",
-   "Limit Of Insurance",
-   "Manual Premium"
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Maximum Limit Of Liability",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "hired auto collision": [
-   "Collision Coverage Type",
-   "Deductible"
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "hired auto liability": [
-   "If Any Basis",
-   "Cost Of Hire - Insured Providing Excess",
-   "Cost Of Hire - Insured Providing Primary",
-   "Liability Coverage Type",
-   "Liability Limit",
-   "Liability Deductible",
-   "With Hold Harmless Agreement"
-  ],
-  "hired auto medical payments": [
-   "Medical Payments Limit"
+   {
+    "name": "If Any Basis",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Cost Of Hire - Insured Providing Excess",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Liability Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Liability Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "With Hold Harmless Agreement",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "hired auto other than collision": [
-   "Other Than Collision Coverage Type",
-   "Deductible"
-  ],
-  "hired auto rental reimbursement coverage collision": [
-   "Collision Coverage Type"
-  ],
-  "hired auto rental reimbursement coverage other than collision": [
-   "Other Than Collision Coverage Type"
-  ],
-  "hired auto truckers liability": [
-   "Cost Of Hire - Truckers - Insured Providing Excess",
-   "Cost Of Hire - Truckers - Insured Providing Primary",
-   "Liability Coverage Type",
-   "Liability Limit",
-   "Liability Deductible",
-   "Manual Premium",
-   "Total Number Of Trucks",
-   "Total Trucks Premium"
-  ],
-  "hired auto underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "hired auto uninsured motorists": [
-   "Uninsured Motorists Coverage"
-  ],
-  "illinois customer complaint legal defense coverage with no coverage for newly acquired or formed auto dealership": [
-   "Customer Complaint Legal Defense Aggregate Limit",
-   "Per Customer Complaint Legal Defense Limit",
-   "Manual Premium"
-  ],
-  "illinois employee benefits liability coverage with no coverage for newly acquired or formed auto dealership": [
-   "Limit Of Insurance Employee Benefits Aggregate",
-   "Coverage",
-   "Each Employee Deductible",
-   "Limits Of Insurance Each Employee",
-   "Manual Premium",
-   "Retroactive Date"
-  ],
-  "illinois extdd reporting period endt for emp bens liability coverage with no coverage for newly acqrd or formed auto dealership": [
-   "Manual Premium"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "iowa uninsured and underinsured motorists": [
-   "Paragraph B Applies",
-   "Paragraph B Does Not Apply"
-  ],
-  "leasing or rental concerns second level": [
-   "Limit Of Insurance",
-   "Manual Premium"
+   {
+    "name": "Paragraph B Applies",
+    "states": [
+     "IA"
+    ]
+   },
+   {
+    "name": "Paragraph B Does Not Apply",
+    "states": [
+     "IA"
+    ]
+   }
   ],
   "liability": [
-   "Other General Liability Aggregate Limit",
-   "Liability Coverage Type",
-   "Liability Deductible",
-   "Liability Limit",
-   "Products And Work You Performed Aggregate Limit"
-  ],
-  "limited contractual liability coverage for personal and advertising injury": [
-   "Manual Premium"
-  ],
-  "limited fungi or bacteria coverage for general liability": [
-   "Fungi and Bacteria Liability Aggregate Limit",
-   "Manual Premium"
-  ],
-  "limited product withdrawal expense endorsement": [
-   "Cut-off Date",
-   "Deductible Amount Per Product Withdrawal",
-   "Manual Premium",
-   "Participation Percentage Per Product Withdrawal",
-   "Product Withdrawal Aggregate Limit"
+   {
+    "name": "Other General Liability Aggregate Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Liability Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Liability Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Products And Work You Performed Aggregate Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "loss payable clause audio visual and data electronic equipment coverage added limits": [
-   "Per \"Loss\" Limit",
-   "Loss Payee"
+   {
+    "name": "Per \"Loss\" Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Loss Payee",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "medical payments": [
-   "Medical Payments Limit"
+   {
+    "name": "Medical Payments Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "IA",
+     "MD",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "WI"
+    ]
+   }
   ],
   "michigan catastrophic statutory fee": [
-   "Michigan Catastrophic Claims Association Statutory Fee"
+   {
+    "name": "Michigan Catastrophic Claims Association Statutory Fee",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "michigan catastrophic surcharge": [
-   "Michigan Catastrophic Claims Association Surcharge"
-  ],
-  "michigan coordination of personal injury protection": [
-   "Medical expenses (except expenses provided by Medicare)",
-   "Medical expenses and work loss benefits",
-   "Work loss benefits",
-   "Medical expenses (except expenses provided by Medicare or Medicaid)"
-  ],
-  "mobile homes contents": [
-   "Coverages",
-   "Deductible",
-   "Limit Of Insurance"
-  ],
-  "motor carrier coverage form trailer interchange coverage collision": [
-   "Collision Coverage Type",
-   "Collision Limit Of Liability",
-   "Collision Limit Of Liability In Excess Of $20,000",
-   "Collision Deductible"
-  ],
-  "motor carrier coverage form trailer interchange coverage comprehensive": [
-   "Comprehensive Limit Of Liability",
-   "Comprehensive Limit Of Liability In Excess Of $20,000",
-   "Comprehensive Deductible"
-  ],
-  "motor carrier coverage form trailer interchange coverage specified causes of loss": [
-   "Specified Causes Of Loss Limit Of Liability",
-   "Specified Causes Of Loss Limit Of Liability In Excess Of $20,000",
-   "Specified Causes Of Loss Deductible"
-  ],
-  "motor carrier endorsement": [
-   "Collision",
-   "Comprehensive",
-   "Estimated Annual Cost Of Hire For All States - Excess Coverage",
-   "Estimated Annual Cost Of Hire For All States - Primary Coverage",
-   "Estimated Yearly (Gross Receipts Or Mileage):",
-   "Rating Basis",
-   "Specified Causes Of Loss"
-  ],
-  "non owned auto liability": [
-   "Liability Coverage Type",
-   "Employees As Insureds",
-   "Liability Limit",
-   "Number Of Partners",
-   "Number Of Volunteers",
-   "Partnership As Named Insured",
-   "Social Service Agency",
-   "Volunteers As Insureds"
-  ],
-  "non owned auto liability extended employees": [
-   "Extended Coverage For Employees"
-  ],
-  "non owned auto liability extended partners": [
-   "Extended Coverage For Partners"
-  ],
-  "non owned auto liability extended volunteers": [
-   "Extended Coverage For Volunteers"
-  ],
-  "non owned auto medical payments": [
-   "Medical Payments Limit"
-  ],
-  "non owned auto underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "non owned auto uninsured motorists": [
-   "Uninsured Motorists Coverage"
-  ],
-  "non ownership liability coverage for volunteers": [
-   "Description Of Covered Volunteer Activity(ies)"
-  ],
-  "north carolina uninsured motorists": [
-   "Paragraph B Applies"
-  ],
-  "on hook coverage collision": [
-   "Collision Coverage Type",
-   "Deductible For Each Customer's Auto",
-   "Limit Of Insurance"
-  ],
-  "on hook coverage other than collision": [
-   "Deductible For All Perils For Each Customer's Auto",
-   "Other Than Collision Coverage Type",
-   "Deductible For Each Customer's Auto For Loss Caused By Theft Or Mischief Or Vandalism Deductible",
-   "Deductible Type",
-   "Losses Covered",
-   "Limit Of Insurance"
-  ],
-  "optional limits loss of use expenses": [
-   "Amount Per Day",
-   "Manual Premium",
-   "Maximum"
-  ],
-  "pennsylvania added and combination first party benefits endorsement": [
-   "Accidental Death Benefits Limit Of Liability (Per Insured)",
-   "Benefits",
-   "Funeral Expense Benefits Limit Of Liability (Per Insured)",
-   "Maximum Total Limit For All Benefits Limit Of Liability (Per Insured)",
-   "Medical Expense Benefits Limit Of Liability (Per Insured)",
-   "Work Loss Benefits Limit Of Liability (Per Insured)"
-  ],
-  "personal injury protection": [
-   "Attendant Care Coverage Is Provided In Excess Of The 56 Hours Per Week Under Medical Expenses Coverage.",
-   "Any \"auto\" owned by you",
-   "Any motor vehicle to which are attached dealer's license plates issued to you",
-   "Any motor vehicle designated in the Declarations of the policy by the letters P.I.P. and a motor vehicle the ownership of which is acquired during the policy period by you as a replacement therefor",
-   "Any private passenger \"auto\" owned by you",
-   "Name Of Persons"
+   {
+    "name": "Michigan Catastrophic Claims Association Surcharge",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "personal injury protection medical expenses": [
-   "PIP Medical Expense Limit"
+   {
+    "name": "PIP Medical Expense Limit",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "physical damage types of autos and interests in these autos": [
-   "New Autos",
-   "Used Autos, Demonstrators And Service Vehicles",
-   "Your Interest In Covered Autos You Own",
-   "Your Interest Only In Financed Covered Autos",
-   "Your Interest And The Interest Of Any Creditor Named As A Loss Payee",
-   "All Interests In Any Auto Not Owned By You Or Any Creditor While In Your Possession Or Consignment For Sale",
-   "Reporting Basis",
-   "Premium Basis"
-  ],
-  "physical damage coverage additional locations in transit": [
-   "Limit of Additional Locations Where You Store Covered Autos",
-   "Limit In Transit"
-  ],
-  "physical damage coverage autos held for sale by non dealers": [
-   "Additional locations where you store covered \"autos\"",
-   "Address Where You Conduct Operations",
-   "Adjustment Factor",
-   "All Interests In Any Auto Not Owned By You Or Any Creditor While In Your Possession On Consignment For Sale (COLL)",
-   "All Interests In Any Auto Not Owned By You Or Any Creditor While In Your Possession On Consignment For Sale (OTC)",
-   "Blanket Annual Collision Rates $50,001 to $100,000",
-   "Blanket Annual Collision Rates First $50,000",
-   "Blanket Annual Collision Rates Over $100,000",
-   "Blanket Annual Collision Rates Premium",
-   "Deductible For Each Cov­ered Auto",
-   "Limit Of Insurance",
-   "Collision Coverage Type",
-   "In transit",
-   "Loss Payee - Any loss is payable as interest may appear to you and:",
-   "New Autos (COLL)",
-   "New Autos (OTC)",
-   "Deductible For Each Covered Auto For Loss Caused By Theft Or Mischief Or Vandal­ism",
-   "Deductible For All Perils For Each Covered Auto",
-   "Maximum Deductible For All Loss In Any One Event",
-   "Maximum Deductible For Loss Caused By Theft Or Mischief Or Vandalism In Any One Event",
-   "Other Than Collision Coverage Type",
-   "Premium Basis - Reporting Or Nonreporting",
-   "Reporting Basis",
-   "Total Premium For All Locations",
-   "Used Autos Demonstrators (COLL)",
-   "Used Autos Demonstrators (OTC)",
-   "Your Interest and Interest of Creditor Named Loss Payee (COLL)",
-   "Your Interest and Interest of Creditor Named Loss Payee (OTC)",
-   "Your Interest In Covered Autos You Own (COLL)",
-   "Your Interest In Covered Autos You Own (OTC)",
-   "Your Interest In Financed Covered Autos (COLL)",
-   "Your Interest In Financed Covered Autos (OTC)"
+   {
+    "name": "New Autos",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Used Autos, Demonstrators And Service Vehicles",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Your Interest In Covered Autos You Own",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Your Interest Only In Financed Covered Autos",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Your Interest And The Interest Of Any Creditor Named As A Loss Payee",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "All Interests In Any Auto Not Owned By You Or Any Creditor While In Your Possession Or Consignment For Sale",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Reporting Basis",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Premium Basis",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "pip coverage": [
-   "Personal Injury Protection Coverage",
-   "Personal Injury Protection For \"Bodily Injury\"",
-   "Limit Of Compensation",
-   "Personal Injury Protection coverage Deductible",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Covered by Workers Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Accidental Death Benefits Limit",
-   "Combination First Party Benefits Limit",
-   "Extraordinary Medical Benefits Coverage Limit",
-   "First Party Benefits Coverage Deductible",
-   "First Party Benefits Coverage Type",
-   "Funeral Expense Benefits Limit",
-   "Medical Expense Benefits Limit",
-   "Personal Injury Protection Coverage Type",
-   "Work Loss Benefits Limit"
-  ],
-  "pollution liability broadened coverage for covered autos auto dealers coverage form": [
-   "Manual Premium"
-  ],
-  "pollution liability broadened coverage for covered autos business auto and motor carrier coverage forms": [
-   "Manual Premium"
-  ],
-  "private passenger added personal injury protection endorsement added pip": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation"
-  ],
-  "private passenger additional personal injury protection": [
-   "Added Personal Injury Protection Coverage"
-  ],
-  "private passenger auto death benefits and disability coverages detail death benefits": [
-   "A. Death Benefits Limit Of Insurance Principal Sum Per Insured"
-  ],
-  "private passenger auto death benefits and disability coverages detail disability": [
-   "Disability Benefits Description",
-   "Disability Benefits Weeks",
-   "B. Disability Maximum 52 Weeks Limit Of Insurance Weekly Indemnity"
-  ],
-  "private passenger auto loan lease gap coverage collision": [
-   "Collision Coverage"
-  ],
-  "private passenger auto loan lease gap coverage other than collision": [
-   "Other Than Collision Coverage"
+   {
+    "name": "Personal Injury Protection Coverage",
+    "states": [
+     "DE"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection For \"Bodily Injury\"",
+    "states": [
+     "DE"
+    ]
+   },
+   {
+    "name": "Limit Of Compensation",
+    "states": [
+     "DE"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection coverage Deductible",
+    "states": [
+     "DE"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection Coverage Deductible Applies To:",
+    "states": [
+     "DE"
+    ]
+   },
+   {
+    "name": "Covered by Workers Compensation",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Limit Of Insurance (Each Insured)",
+    "states": [
+     "TX"
+    ]
+   },
+   {
+    "name": "Accidental Death Benefits Limit",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Combination First Party Benefits Limit",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Coverage Limit",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "First Party Benefits Coverage Type",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Funeral Expense Benefits Limit",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Medical Expense Benefits Limit",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection Coverage Type",
+    "states": [
+     "UT"
+    ]
+   },
+   {
+    "name": "Work Loss Benefits Limit",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "private passenger collision": [
-   "Collision Coverage Option",
-   "Collision Coverage Type",
-   "Vehicle Symbol Character One",
-   "Vehicle Symbol Character Two",
-   "Deductible",
-   "Manual Premium",
-   "Percentage Of Miles Driven In Green Zone"
-  ],
-  "private passenger excess attendant care": [
-   "Excess Attendant Care Coverage",
-   "Manual Premium"
+   {
+    "name": "Collision Coverage Option",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "private passenger income loss benefits": [
-   "Income Loss Benefits",
-   "Percentage Of Miles Driven In Green Zone",
-   "Apply Additional Premium?",
-   "Rating Basis"
-  ],
-  "private passenger increased limits other than designated driver liability": [
-   "Covered Autos Liability Limit Of Insurance (Each Accident)",
-   "Manual Premium"
-  ],
-  "private passenger increased limits other than designated driver medical payments": [
-   "Auto Medical Payments Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "private passenger increased limits other than designated driver pip": [
-   "Personal Injury Protection Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "private passenger increased limits other than designated driver um": [
-   "UM/UIM Combined Liability Or UM/UIM Bodily Injury (Each Accident Or Each Person/Each Accident)",
-   "Manual Premium"
-  ],
-  "private passenger increased limits other than designated driver umpd": [
-   "UM/UIM Property Damage (Less $250 Deductible) (Each Accident)",
-   "Manual Premium"
-  ],
-  "private passenger liability": [
-   "Liability Coverage Type",
-   "Liability Deductible",
-   "Vehicle Symbol Character One",
-   "Vehicle Symbol Character Two",
-   "Liability Limit",
-   "Manual Premium",
-   "Percentage Of Miles Driven In Green Zone"
+   {
+    "name": "Income Loss Benefits",
+    "states": [
+     "VA"
+    ]
+   },
+   {
+    "name": "Apply Additional Premium?",
+    "states": [
+     "VA"
+    ]
+   },
+   {
+    "name": "Rating Basis",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "private passenger medical expense benefits": [
-   "Medical Expense Benefits Limit"
-  ],
-  "private passenger medical payments": [
-   "Medical Payments Limit",
-   "Manual Premium"
-  ],
-  "private passenger michigan catastrophic statutory fee": [
-   "Michigan Catastrophic Claims Association Statutory Fee"
-  ],
-  "private passenger michigan catastrophic surcharge": [
-   "Michigan Catastrophic Claims Association Surcharge"
+   {
+    "name": "Medical Expense Benefits Limit",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "private passenger other than collision": [
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Vehicle Symbol Character One",
-   "Vehicle Symbol Character Two",
-   "Full Glass Coverage",
-   "Manual Premium",
-   "Percentage Of Miles Driven In Green Zone",
-   "Deductible Type",
-   "Losses Covered"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "private passenger personal injury protection": [
-   "Accidental Death Benefits Coverage",
-   "First Party Benefits Coverage",
-   "Combination First Party Benefits Coverage",
-   "Covered by Workers Compensation",
-   "Personal Injury Protection Coverage",
-   "Deductible",
-   "Exclusion Of Loss Of Income Benefits",
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Funeral Expense Benefits Coverage",
-   "Medical Expense Benefits Coverage",
-   "Percentage Of Miles Driven In Green Zone",
-   "Basic First Party Benefit Rating Basis",
-   "Work Loss Benefits Coverage"
-  ],
-  "private passenger personal injury protection endorsement pip": [
-   "Personal Injury Protection coverage Deductible",
-   "Limit Of Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Percentage Of Miles Driven In GreenZone",
-   "Personal Injury Protection For \"Bodily Injury\""
+   {
+    "name": "Accidental Death Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Combination First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Covered by Workers Compensation",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection Coverage",
+    "states": [
+     "DE",
+     "MD",
+     "MI",
+     "UT"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "MD",
+     "UT"
+    ]
+   },
+   {
+    "name": "Funeral Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Medical Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Basic First Party Benefit Rating Basis",
+    "states": [
+     "DE",
+     "MD",
+     "MI",
+     "PA",
+     "UT"
+    ]
+   },
+   {
+    "name": "Work Loss Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "private passenger personal injury protection extraordinary medical benefits": [
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis"
+   {
+    "name": "Extraordinary Medical Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Rating Basis",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "private passenger personal injury protection medical expenses": [
-   "PIP Medical Expense Limit"
-  ],
-  "private passenger property protection": [
-   "Property Protection Insurance Coverage",
-   "Deductible"
+   {
+    "name": "PIP Medical Expense Limit",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "private passenger rental reimbursement coverage collision": [
-   "Collision Coverage Type"
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "private passenger rental reimbursement coverage other than collision": [
-   "Other Than Collision Coverage Type"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "private passenger towing labor": [
-   "Towing and Labor Limit",
-   "Manual Premium"
-  ],
-  "private passenger towing storage": [
-   "Towing and Storage Limit"
-  ],
-  "private passenger underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "private passenger underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Coverage Type"
-  ],
-  "private passenger uninsured motorists": [
-   "Manual Premium",
-   "Uninsured Motorists Coverage"
-  ],
-  "private passenger uninsured motorists property damage": [
-   "Manual Premium",
-   "Uninsured Motorists Property Damage Coverage"
+   {
+    "name": "Towing and Labor Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "property damage liability coverage buyback": [
-   "PD Liability Coverage Buyback"
+   {
+    "name": "PD Liability Coverage Buyback",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "property protection": [
-   "Property Protection Insurance Coverage"
-  ],
-  "public transporation personal injury protection medical expenses": [
-   "PIP Medical Expense Limit"
-  ],
-  "public transportation added personal injury protection endorsement added pip": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation"
-  ],
-  "public transportation additional personal injury protection": [
-   "Added Personal Injury Protection Coverage"
-  ],
-  "public transportation auto loan lease gap coverage collision": [
-   "Collision Coverage"
-  ],
-  "public transportation auto loan lease gap coverage other than collision": [
-   "Other Than Collision Coverage"
-  ],
-  "public transportation collision": [
-   "Collision Coverage Option",
-   "Collision Coverage Type",
-   "Deductible"
-  ],
-  "public transportation excess attendant care": [
-   "Excess Attendant Care Coverage",
-   "Manual Premium"
-  ],
-  "public transportation income loss benefits": [
-   "Income Loss Benefits",
-   "Rating Basis"
-  ],
-  "public transportation increased limits other than designated driver liability": [
-   "Covered Autos Liability Limit Of Insurance (Each Accident)",
-   "Manual Premium"
-  ],
-  "public transportation increased limits other than designated driver medical payments": [
-   "Auto Medical Payments Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "public transportation increased limits other than designated driver pip": [
-   "Personal Injury Protection Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "public transportation increased limits other than designated driver um": [
-   "UM/UIM Combined Liability Or UM/UIM Bodily Injury (Each Accident Or Each Person/Each Accident)",
-   "Manual Premium"
-  ],
-  "public transportation increased limits other than designated driver umpd": [
-   "UM/UIM Property Damage (Less $250 Deductible) (Each Accident)",
-   "Manual Premium"
-  ],
-  "public transportation liability": [
-   "Liability Coverage Type",
-   "Liability Deductible",
-   "Liability Limit",
-   "Voluntary Commuter Ride Sharing Agreements"
-  ],
-  "public transportation medical expense benefits": [
-   "Medical Expense Benefits Limit"
-  ],
-  "public transportation medical payments": [
-   "Medical Payments Limit"
-  ],
-  "public transportation michigan catastrophic statutory fee": [
-   "Michigan Catastrophic Claims Association Statutory Fee"
-  ],
-  "public transportation michigan catastrophic surcharge": [
-   "Michigan Catastrophic Claims Association Surcharge"
+   {
+    "name": "Property Protection Insurance Coverage",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "public transportation other than collision": [
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Deductible Type",
-   "Losses Covered"
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "public transportation personal injury protection": [
-   "Accidental Death Benefits Coverage",
-   "First Party Benefits Coverage",
-   "Combination First Party Benefits Coverage",
-   "Covered by Workers Compensation",
-   "Personal Injury Protection Coverage",
-   "Deductible",
-   "Exclusion Of Loss Of Income Benefits",
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Extraordinary Medical Benefits Seating Capacity",
-   "Funeral Expense Benefits Coverage",
-   "Medical Expense Benefits Coverage",
-   "Basic First Party Benefit Rating Basis",
-   "Work Loss Benefits Coverage"
-  ],
-  "public transportation personal injury protection endorsement pip": [
-   "Personal Injury Protection coverage Deductible",
-   "Limit Of Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Personal Injury Protection For \"Bodily Injury\""
+   {
+    "name": "Accidental Death Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Combination First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Seating Capacity",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Funeral Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Medical Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Work Loss Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "public transportation personal injury protection extraordinary medical benefits": [
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Extraordinary Medical Benefits Seating Capacity"
-  ],
-  "public transportation property protection": [
-   "Property Protection Insurance Coverage",
-   "Deductible"
-  ],
-  "public transportation rental reimbursement coverage collision": [
-   "Collision Coverage Type"
-  ],
-  "public transportation rental reimbursement coverage other than collision": [
-   "Other Than Collision Coverage Type"
-  ],
-  "public transportation underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "public transportation underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Coverage Type"
-  ],
-  "public transportation uninsured motorists": [
-   "Uninsured Motorists Coverage"
-  ],
-  "public transportation uninsured motorists property damage": [
-   "Uninsured Motorists Property Damage Coverage"
-  ],
-  "registration plates not issued for a specific auto": [
-   "Liability Description Of Plates",
-   "Medical Payments Description Of Plates",
-   "Personal Injury Protection Description Of Plates"
-  ],
-  "registration plates not issued for a specific auto transporter plates": [
-   "Description Of Plates",
-   "Number Of Plates"
+   {
+    "name": "Extraordinary Medical Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Rating Basis",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Seating Capacity",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "rental reimbursement": [
-   "Any One Day",
-   "Any One Period",
-   "No. Of Days"
-  ],
-  "repossessed autos": [
-   "Deductible For Each Covered Auto",
-   "Deductible For Each Covered Auto For Loss Caused By Theft Or Mischief Or Vandalism",
-   "Premium Basis - Reporting Or Nonreporting",
-   "Reporting Basis"
-  ],
-  "sexual abuse or sexual molestation liability": [
-   "Description Of Premise(s), Project(s), Contract(s) Or Agreement(s)",
-   "Sexual Abuse Or Sexual Molestation Liability Aggregate Limit",
-   "Sexual Abuse Or Sexual Molestation Liability Each Act Limit",
-   "Sexual Abuse Or Sexual Molestation Liability Each Act Deductible",
-   "Sexual Abuse Or Sexual Molestation Liability Premium"
-  ],
-  "sexual abuse or sexual molestation of any person committed by the insured liability": [
-   "Description Of Premise(s), Project(s), Contract(s) Or Agreement(s)",
-   "Sexual Abuse Or Sexual Molestation Liability Aggregate Limit",
-   "Sexual Abuse Or Sexual Molestation Liability Each Act Limit",
-   "Sexual Abuse Or Sexual Molestation Liability Each Act Deductible",
-   "Sexual Abuse Or Sexual Molestation Liability Premium"
-  ],
-  "single interest deductibles": [
-   "Collision Deductible",
-   "Comprehensive Deductible",
-   "Fire and Theft Deductible"
-  ],
-  "snowmobiles": [
-   "Exclusion 1.",
-   "Exclusion 2.",
-   "Exclusion 3."
-  ],
-  "special types added personal injury protection endorsement added pip": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation"
-  ],
-  "special types additional personal injury protection": [
-   "Added Personal Injury Protection Coverage"
-  ],
-  "special types auto loan lease gap coverage collision": [
-   "Collision Coverage"
-  ],
-  "special types auto loan lease gap coverage other than collision": [
-   "Other Than Collision Coverage"
+   {
+    "name": "Any One Day",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Any One Period",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "No. Of Days",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "special types collision": [
-   "Collision Coverage Option",
-   "Collision Coverage Type",
-   "Deductible"
-  ],
-  "special types excess attendant care": [
-   "Excess Attendant Care Coverage",
-   "Manual Premium"
+   {
+    "name": "Collision Coverage Option",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "special types income loss benefits": [
-   "Income Loss Benefits",
-   "Rating Basis"
-  ],
-  "special types increased limits other than designated driver liability": [
-   "Covered Autos Liability Limit Of Insurance (Each Accident)",
-   "Manual Premium"
-  ],
-  "special types increased limits other than designated driver medical payments": [
-   "Auto Medical Payments Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "special types increased limits other than designated driver pip": [
-   "Personal Injury Protection Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "special types increased limits other than designated driver um": [
-   "UM/UIM Combined Liability Or UM/UIM Bodily Injury (Each Accident Or Each Person/Each Accident)",
-   "Manual Premium"
-  ],
-  "special types increased limits other than designated driver umpd": [
-   "UM/UIM Property Damage (Less $250 Deductible) (Each Accident)",
-   "Manual Premium"
-  ],
-  "special types liability": [
-   "Liability Coverage Type",
-   "Liability Deductible",
-   "Employee As Insureds",
-   "Liability Limit",
-   "Number Of Employees",
-   "Partnership As Named Insured"
+   {
+    "name": "Income Loss Benefits",
+    "states": [
+     "VA"
+    ]
+   },
+   {
+    "name": "Rating Basis",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "special types medical expense benefits": [
-   "Medical Expense Benefits Limit"
-  ],
-  "special types medical payments": [
-   "Medical Payments Limit"
-  ],
-  "special types michigan catastrophic statutory fee": [
-   "Michigan Catastrophic Claims Association Statutory Fee"
-  ],
-  "special types michigan catastrophic surcharge": [
-   "Michigan Catastrophic Claims Association Surcharge"
+   {
+    "name": "Medical Expense Benefits Limit",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "special types other than collision": [
-   "All Perils Deductible",
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Full Glass Coverage",
-   "Physical Damage Classification",
-   "Deductible Type",
-   "Losses Covered"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Physical Damage Classification",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "special types personal injury protection": [
-   "Accidental Death Benefits Coverage",
-   "First Party Benefits Coverage",
-   "Combination First Party Benefits Coverage",
-   "Covered by Workers Compensation",
-   "Personal Injury Protection Coverage",
-   "Deductible",
-   "Exclusion Of Loss Of Income Benefits",
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Funeral Expense Benefits Coverage",
-   "Medical Expense Benefits Coverage",
-   "Basic First Party Benefit Rating Basis",
-   "Work Loss Benefits Coverage"
-  ],
-  "special types personal injury protection endorsement pip": [
-   "Personal Injury Protection coverage Deductible",
-   "Limit Of Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Personal Injury Protection For \"Bodily Injury\""
+   {
+    "name": "Accidental Death Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Combination First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Covered by Workers Compensation",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection Coverage",
+    "states": [
+     "DE",
+     "MD",
+     "MI",
+     "UT"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "MD",
+     "UT"
+    ]
+   },
+   {
+    "name": "Funeral Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Medical Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Basic First Party Benefit Rating Basis",
+    "states": [
+     "DE",
+     "MD",
+     "MI",
+     "PA",
+     "UT"
+    ]
+   },
+   {
+    "name": "Work Loss Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "special types personal injury protection extraordinary medical benefits": [
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis"
+   {
+    "name": "Extraordinary Medical Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Rating Basis",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "special types personal injury protection medical expenses": [
-   "PIP Medical Expense Limit"
-  ],
-  "special types property protection": [
-   "Property Protection Insurance Coverage",
-   "Deductible"
+   {
+    "name": "PIP Medical Expense Limit",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "special types rental reimbursement coverage collision": [
-   "Collision Coverage Type"
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "special types rental reimbursement coverage other than collision": [
-   "Other Than Collision Coverage Type"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "special types towing labor": [
-   "Towing and Labor Limit"
-  ],
-  "special types towing storage": [
-   "Towing and Storage Limit"
-  ],
-  "special types underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "special types underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Coverage Type"
-  ],
-  "special types uninsured motorists": [
-   "Uninsured Motorists Coverage"
-  ],
-  "special types uninsured motorists property damage": [
-   "Uninsured Motorists Property Damage Coverage"
+   {
+    "name": "Towing and Labor Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "stop gap employers liability coverage endorsement": [
-   "Bodily Injury By Accident Each Accident",
-   "Bodily Injury By Disease Aggregate Limit",
-   "Bodily Injury By Disease Each Employee",
-   "Manual Premium"
+   {
+    "name": "Bodily Injury By Accident Each Accident",
+    "states": [
+     "OH"
+    ]
+   },
+   {
+    "name": "Bodily Injury By Disease Aggregate Limit",
+    "states": [
+     "OH"
+    ]
+   },
+   {
+    "name": "Bodily Injury By Disease Each Employee",
+    "states": [
+     "OH"
+    ]
+   }
   ],
   "tapes records and discs": [
-   "Designation Or Description Of Covered \"Autos\""
-  ],
-  "texas supplementary death benefit": [
-   "Manual Premium"
-  ],
-  "trailer interchange coverage collision": [
-   "Collision Coverage Type",
-   "Collision Deductible",
-   "Collision Limit Of Liability",
-   "Collision Limit Of Liability In Excess Of $20,000"
-  ],
-  "trailer interchange coverage comprehensive": [
-   "Comprehensive Deductible",
-   "Comprehensive Limit Of Liability",
-   "Comprehensive Limit Of Liability In Excess Of $20,000"
-  ],
-  "trailer interchange coverage fire": [
-   "Fire Deductible",
-   "Fire Limit Of Liability",
-   "Manual Premium"
-  ],
-  "trailer interchange coverage fire and theft": [
-   "Fire And Theft Deductible",
-   "Fire And Theft Limit Of Liability",
-   "Manual Premium"
-  ],
-  "trailer interchange coverage specified causes of loss": [
-   "Specified Causes Of Loss Deductible",
-   "Specified Causes Of Loss Limit Of Liability",
-   "Specified Causes Of Loss Limit Of Liability In Excess Of $20,000"
-  ],
-  "trailer interchange fire and fire and theft coverages fire": [
-   "Fire Deductible",
-   "Fire Limit Of Liability",
-   "Manual Premium"
-  ],
-  "trailer interchange fire and fire and theft coverages fire and theft": [
-   "Fire And Theft Deductible",
-   "Fire And Theft Limit Of Liability",
-   "Manual Premium"
-  ],
-  "transportation of seasonal or migrant agricultural workers": [
-   "Transportation Of Seasonal Or Migrant Farm Workers Liability Deductible",
-   "Transportation Of Seasonal Or Migrant Farm Workers Fleet",
-   "Garaging Location",
-   "Garaging Location Override",
-   "Equipped with Mechanical Lift",
-   "Transportation Of Seasonal Or Migrant Farm Workers Liability Limit",
-   "Passenger Hazard Coverage",
-   "Passenger Hazard Coverage Class Code",
-   "Transportation Of Seasonal Or Migrant Farm Workers Primary Class Code",
-   "Transportation Of Seasonal Or Migrant Farm Workers Radius",
-   "Transportation Of Seasonal Or Migrant Farm Workers Seating Capacity",
-   "Transportation Of Seasonal Or Migrant Farm Workers Secondary Class Code",
-   "Territory",
-   "Zip Code",
-   "Zip Code Override"
-  ],
-  "truck added personal injury protection endorsement added pip": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation"
-  ],
-  "truck additional personal injury protection": [
-   "Added Personal Injury Protection Coverage"
-  ],
-  "truck auto loan lease gap coverage collision": [
-   "Collision Coverage"
-  ],
-  "truck auto loan lease gap coverage other than collision": [
-   "Other Than Collision Coverage"
+   {
+    "name": "Designation Or Description Of Covered \"Autos\"",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "truck collision": [
-   "Collision Coverage Option",
-   "Collision Coverage Type",
-   "Deductible",
-   "Vehicle Symbol Character One",
-   "Vehicle Symbol Character Two",
-   "Percentage Of Miles Driven In Green Zone"
-  ],
-  "truck excess attendant care": [
-   "Excess Attendant Care Coverage",
-   "Manual Premium"
+   {
+    "name": "Collision Coverage Option",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "truck income loss benefits": [
-   "Income Loss Benefits",
-   "Percentage Of Miles Driven In Green Zone",
-   "Rating Basis"
-  ],
-  "truck increased limits other than designtd driver liability": [
-   "Covered Autos Liability Limit Of Insurance (Each Accident)",
-   "Manual Premium"
-  ],
-  "truck increased limits other than designtd driver medical payments": [
-   "Auto Medical Payments Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "truck increased limits other than designtd driver pip": [
-   "Personal Injury Protection Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "truck increased limits other than designtd driver um": [
-   "UM/UIM Combined Liability Or UM/UIM Bodily Injury (Each Accident Or Each Person/Each Accident)",
-   "Manual Premium"
-  ],
-  "truck increased limits other than designtd driver umpd": [
-   "UM/UIM Property Damage (Less $250 Deductible) (Each Accident)",
-   "Manual Premium"
-  ],
-  "truck liability": [
-   "Liability Coverage Type",
-   "Vehicle Symbol Character One",
-   "Vehicle Symbol Character Two",
-   "Liability Deductible",
-   "Liability Limit",
-   "Percentage Of Miles Driven In Green Zone"
+   {
+    "name": "Income Loss Benefits",
+    "states": [
+     "VA"
+    ]
+   },
+   {
+    "name": "Rating Basis",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "truck medical expense benefits": [
-   "Medical Expense Benefits Limit"
-  ],
-  "truck medical payments": [
-   "Medical Payments Limit"
-  ],
-  "truck michigan catastrophic statutory fee": [
-   "Michigan Catastrophic Claims Association Statutory Fee"
-  ],
-  "truck michigan catastrophic surcharge": [
-   "Michigan Catastrophic Claims Association Surcharge"
+   {
+    "name": "Medical Expense Benefits Limit",
+    "states": [
+     "VA"
+    ]
+   }
   ],
   "truck other than collision": [
-   "Full Glass Coverage",
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Percentage Of Miles Driven In Green Zone",
-   "Vehicle Used In Logging Pulpwood Or Lumber Operations",
-   "Vehicle Symbol Character One",
-   "Vehicle Symbol Character Two",
-   "Deductible Type",
-   "Losses Covered"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Deductible Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Losses Covered",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "truck personal injury protection": [
-   "Accidental Death Benefits Coverage",
-   "First Party Benefits Coverage",
-   "Combination First Party Benefits Coverage",
-   "Covered by Workers Compensation",
-   "Personal Injury Protection Coverage",
-   "Deductible",
-   "Exclusion Of Loss Of Income Benefits",
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Funeral Expense Benefits Coverage",
-   "Medical Expense Benefits Coverage",
-   "Percentage Of Miles Driven In GreenZone",
-   "Basic First Party Benefit Rating Basis",
-   "Work Loss Benefits Coverage"
-  ],
-  "truck personal injury protection endorsement pip": [
-   "Personal Injury Protection coverage Deductible",
-   "Limit Of Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Percentage Of Miles Driven In GreenZone",
-   "Personal Injury Protection For \"Bodily Injury\""
+   {
+    "name": "Accidental Death Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Combination First Party Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Covered by Workers Compensation",
+    "states": [
+     "MI"
+    ]
+   },
+   {
+    "name": "Personal Injury Protection Coverage",
+    "states": [
+     "DE",
+     "MD",
+     "MI",
+     "UT"
+    ]
+   },
+   {
+    "name": "Deductible",
+    "states": [
+     "MD",
+     "UT"
+    ]
+   },
+   {
+    "name": "Funeral Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Medical Expense Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Basic First Party Benefit Rating Basis",
+    "states": [
+     "MD",
+     "MI",
+     "PA",
+     "UT"
+    ]
+   },
+   {
+    "name": "Work Loss Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "truck personal injury protection extraordinary medical benefits": [
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis"
+   {
+    "name": "Extraordinary Medical Benefits Coverage",
+    "states": [
+     "PA"
+    ]
+   },
+   {
+    "name": "Extraordinary Medical Benefits Rating Basis",
+    "states": [
+     "PA"
+    ]
+   }
   ],
   "truck personal injury protection medical expenses": [
-   "PIP Medical Expense Limit"
-  ],
-  "truck property protection": [
-   "Property Protection Insurance Coverage",
-   "Deductible"
+   {
+    "name": "PIP Medical Expense Limit",
+    "states": [
+     "MI"
+    ]
+   }
   ],
   "truck rental reimbursement coverage collision": [
-   "Collision Coverage Type"
+   {
+    "name": "Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "truck rental reimbursement coverage other than collision": [
-   "Other Than Collision Coverage Type"
-  ],
-  "truck towing labor": [
-   "Towing and Labor Limit"
-  ],
-  "truck towing storage": [
-   "Towing and Storage Limit"
-  ],
-  "truck underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "truck underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Coverage"
-  ],
-  "truck uninsured motorists": [
-   "Uninsured Motorists Coverage"
-  ],
-  "truck uninsured motorists property damage": [
-   "Uninsured Motorists Property Damage Coverage"
-  ],
-  "truckers uniform intermodal interchange endorsement form uiie 1": [
-   "Each Accident",
-   "Single Limit 'Bodily Injury' And 'Property Damage' (Or the Equivalent)"
+   {
+    "name": "Other Than Collision Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ],
   "underinsured motorists coverage": [
-   "Underinsured Motorists Coverage Combined Single Limit",
-   "Underinsured Motorists Coverage Type",
-   "Underinsured Motorists Coverage Split Limit"
-  ],
-  "underinsured motorists property damage coverage": [
-   "Underinsured Motorists Property Damage Limit"
+   {
+    "name": "Underinsured Motorists Coverage Combined Single Limit",
+    "states": [
+     "AZ",
+     "IA",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "UT",
+     "WI"
+    ]
+   },
+   {
+    "name": "Underinsured Motorists Coverage Type",
+    "states": [
+     "AZ",
+     "IA",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "UT",
+     "WI"
+    ]
+   }
   ],
   "uninsured motorists coverage": [
-   "At-Fault Liability Limits Type",
-   "Uninsured Motorists Coverage Combined Single Limit",
-   "Uninsured Motorists Coverage Type",
-   "Uninsured Motorists Deductible",
-   "Uninsured Motorists Coverage Split Limit"
-  ],
-  "uninsured motorists property damage coverage": [
-   "Uninsured Motorists Property Damage Coverage Deductible",
-   "Uninsured Motorist Property Damage Limit"
-  ],
-  "virginia medical expense and income loss benefits endorsement": [
-   "Section II Income Loss Benefits Limit Of Insurance $100 Per Week Each Person",
-   "Section I Medical Expense Benefits Limit Of Insurance Each Person"
-  ],
-  "worldwide general liability": [
-   "Manual Premium"
-  ],
-  "zone rated truck added personal injury protection endorsement added pip": [
-   "Added Personal Injury Protection for Bodily Injury",
-   "Limit of Compensation"
-  ],
-  "zone rated truck additional personal injury protection": [
-   "Added Personal Injury Protection Coverage"
-  ],
-  "zone rated truck auto loan lease gap coverage collision": [
-   "Collision Coverage"
-  ],
-  "zone rated truck auto loan lease gap coverage other than collision": [
-   "Other Than Collision Coverage"
-  ],
-  "zone rated truck collision": [
-   "Collision Coverage Option",
-   "Collision Coverage Type",
-   "Deductible"
-  ],
-  "zone rated truck excess attendant care": [
-   "Excess Attendant Care Coverage",
-   "Manual Premium"
-  ],
-  "zone rated truck income loss benefits": [
-   "Income Loss Benefits",
-   "Rating Basis"
-  ],
-  "zone rated truck increased limits other than designated driver liability": [
-   "Covered Autos Liability Limit Of Insurance (Each Accident)",
-   "Manual Premium"
-  ],
-  "zone rated truck increased limits other than designated driver medical payments": [
-   "Auto Medical Payments Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "zone rated truck increased limits other than designated driver pip": [
-   "Personal Injury Protection Limit Of Insurance (Each Person)",
-   "Manual Premium"
-  ],
-  "zone rated truck increased limits other than designated driver um": [
-   "UM/UIM Combined Liability Or UM/UIM Bodily Injury (Each Accident Or Each Person/Each Accident)",
-   "Manual Premium"
-  ],
-  "zone rated truck increased limits other than designated driver umpd": [
-   "UM/UIM Property Damage (Less $250 Deductible) (Each Accident)",
-   "Manual Premium"
-  ],
-  "zone rated truck liability": [
-   "Liability Coverage Type",
-   "Liability Deductible",
-   "Liability Limit"
-  ],
-  "zone rated truck medical expense benefits": [
-   "Medical Expense Benefits Limit"
-  ],
-  "zone rated truck medical payments": [
-   "Medical Payments Limit"
-  ],
-  "zone rated truck other than collision": [
-   "Other Than Collision Coverage Type",
-   "Deductible",
-   "Deductible Type",
-   "Losses Covered"
-  ],
-  "zone rated truck personal injury protection": [
-   "Accidental Death Benefits Coverage",
-   "First Party Benefits Coverage",
-   "Combination First Party Benefits Coverage",
-   "Covered by Workers Compensation",
-   "Personal Injury Protection Coverage",
-   "Deductible",
-   "Exclusion Of Loss Of Income Benefits",
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis",
-   "Funeral Expense Benefits Coverage",
-   "Medical Expense Benefits Coverage",
-   "Basic First Party Benefit Rating Basis",
-   "Work Loss Benefits Coverage"
-  ],
-  "zone rated truck personal injury protection endorsement pip": [
-   "Personal Injury Protection coverage Deductible",
-   "Limit Of Compensation",
-   "Limit Of Insurance (Each Insured)",
-   "Personal Injury Protection Coverage Deductible Applies To:",
-   "Personal Injury Protection For \"Bodily Injury\""
-  ],
-  "zone rated truck personal injury protection extraordinary medical benefits": [
-   "Extraordinary Medical Benefits Coverage",
-   "Extraordinary Medical Benefits Rating Basis"
-  ],
-  "zone rated truck property protection": [
-   "Property Protection Insurance Coverage",
-   "Deductible"
-  ],
-  "zone rated truck rental reimbursement coverage collision": [
-   "Collision Coverage Type"
-  ],
-  "zone rated truck rental reimbursement coverage other than collision": [
-   "Other Than Collision Coverage Type"
-  ],
-  "zone rated truck underinsured motorists": [
-   "Underinsured Motorists Coverage"
-  ],
-  "zone rated truck underinsured motorists property damage": [
-   "Underinsured Motorists Property Damage Coverage Type"
-  ],
-  "zone rated truck uninsured motorists": [
-   "Uninsured Motorists Coverage"
-  ],
-  "zone rated truck uninsured motorists property damage": [
-   "Uninsured Motorists Property Damage Coverage"
+   {
+    "name": "Uninsured Motorists Coverage Combined Single Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   },
+   {
+    "name": "Uninsured Motorists Coverage Type",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
   ]
  },
  "sbt": [

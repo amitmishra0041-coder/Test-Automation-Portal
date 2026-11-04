@@ -245,14 +245,28 @@ for (ncat, ncov), tmap in terms.items():
 
 # Every term name per coverage (Coverage Terms tab; includes free-text terms that have no option rows) so a dialog's terms can be
 # checked for presence. The tab is declared with ~1M blank rows, so only the first few thousand are read.
+# QA (Devyani, 11/04): only terms with "Donegal WriteBiz Availability For Agents" (col V) = Y, and only in the states marked Y -
+# the PolicyCenter-only terms (~70% of the tab) were reported as "term not shown" partials.
 term_names = {}
-for r in pm['Coverage Terms'].iter_rows(min_row=2, max_row=6000, values_only=True, max_col=60):
-    if r[4] and r[6]:  # every term (QA 10/30: no 'SBT Update 2025' filter on the Coverage Terms tab)
-        for nm in str(r[4]).split(chr(10)):
-            if nm.strip():
-                lst = term_names.setdefault(norm(nm), [])
-                if clean(r[6]) not in lst:
-                    lst.append(clean(r[6]))
+ct_hdr = next(pm['Coverage Terms'].iter_rows(min_row=1, max_row=1, values_only=True, max_col=60))
+CT_STATE_COLS = {ct_hdr[i]: i for i in range(23, 47) if ct_hdr[i] in TARGET_STATES}
+for row in pmr['Coverage Terms'].iter_rows(min_row=2, max_row=6000, max_col=60):
+    if len(row) < 47 or not row[4].value or not row[6].value:
+        continue  # every term (QA 10/30: no 'SBT Update 2025' filter on the Coverage Terms tab)
+    if state_now(row[21]) != 'Y':
+        continue
+    states = [st for st, c in CT_STATE_COLS.items() if state_now(row[c]) == 'Y']
+    if not states:
+        continue
+    term = clean(effective(row[6]))
+    for nm in str(effective(row[4]) or '').split(chr(10)):
+        if nm.strip() and term:
+            lst = term_names.setdefault(norm(nm), [])
+            hit = next((t for t in lst if t['name'] == term), None)
+            if hit:
+                hit['states'] = sorted(set(hit['states']) | set(states))
+            else:
+                lst.append({'name': term, 'states': states})
 
 # ── "SBT Update" = yes on the Coverages / Conditions / Exclusions tabs: the full CA Refresh set (the test-case
 #    precondition only lists some of it) ───────────────────────────────────────────────────────────────────────────

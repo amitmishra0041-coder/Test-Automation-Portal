@@ -177,6 +177,7 @@ async function exerciseCards(page, pool, label, maxCards = 40, opts = {}) {
     if (n++ >= maxCards) break;
     const card = page.locator(`[id="${id}"]`);
     const title = (await card.locator('.xaccordion-sectionheader').first().innerText().catch(() => id)).replace(/\s+Save$/i, '').trim();
+    if ((opts.only && !opts.only.test(title)) || (opts.skip && opts.skip.test(title))) { n--; continue; }
     const count = await card.locator('select').count().catch(() => 0);
     const infoAt = async (k) => card.locator('select').nth(k).evaluate(OPT_READ).catch(() => null);
     const usable = (info) => info && !/deductible/i.test(info.label) /* dependent outputs - changing them corrupts the card server-side */ && !info.disabled && info.cur && !/nothing selected|^select|^please select/i.test(info.curText) && /* a blank start cannot be restored */ info.opts.length >= 2 && info.opts.length <= 12 && !info.opts.every((o) => /^(yes|no)$/i.test(o.t)); // Yes/No switches are set by the flow, never toggled here
