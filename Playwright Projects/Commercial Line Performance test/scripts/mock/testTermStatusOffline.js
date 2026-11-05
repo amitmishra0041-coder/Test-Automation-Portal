@@ -29,5 +29,19 @@ check('only "Not Applicable" missing -> MATCH with a note', full.status === 'MAT
 const short = col(['1,000', '2,000']);
 check('real options missing -> still PARTIAL', short.status === 'PARTIAL' && short.missing.includes('25000'), `${short.status} / ${JSON.stringify(short.missing)}`);
 
-console.log(failed ? `\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');
+// 4. QA 11/05 rules
+const one = (lob, title, label, opts) => evaluate(lob, 'PA', [{ label: 'mock', text: '', norm: '', cards: [{ title, terms: [sel(label, opts)] }] }]).termChecks;
+const liab = (lob) => one(lob, 'Liability', 'Liability Limit', ['1,000,000']).filter((t) => /aggregate limit/i.test(t.term)).map((t) => t.term);
+check('Liability aggregate limits not expected on Business Auto', liab('BUSINESS_AUTO').length === 0, JSON.stringify(liab('BUSINESS_AUTO')));
+check('Liability aggregate limits still expected on Auto Dealers', liab('AUTO_DEALERS').length === 2, JSON.stringify(liab('AUTO_DEALERS')));
+const hl = one('BUSINESS_AUTO', 'Hired Auto Liability', 'Liability Coverage Type', ['Combined Single Limit']).find((t) => t.term === 'Liability Coverage Type' && t.expected.length) || {};
+check('Hired Auto Liability Coverage Type without "No Coverage" -> NOT_APPLICABLE', hl.status === 'NOT_APPLICABLE', `${hl.status} / ${hl.note}`);
+const lc = one('BUSINESS_AUTO', 'Truck Other Than Collision', 'Losses Covered', ['Comprehensive', 'Fire Only', 'Fire and Theft Only', 'Fire, Theft and Windstorm Only', 'Limited Specified Causes Of Loss', 'Specified Causes Of Loss']).find((t) => t.term === 'Losses Covered' && t.expected.length) || {};
+check('Truck Losses Covered without "No Coverage" -> NOT_APPLICABLE', lc.status === 'NOT_APPLICABLE', `${lc.status} / ${JSON.stringify(lc.missing)} / ${lc.note}`);
+const sc = one('BUSINESS_AUTO', 'Special Types Collision', 'Collision Coverage Type', ['No Coverage', 'ACV', 'Collision']).find((t) => t.term === 'Collision Coverage Type' && t.expected.length) || {};
+check('Special Types Blanket Collision (needs PolicyCenter) ignored -> MATCH with a note', sc.status === 'MATCH' && /6680/.test(sc.note || '') && !sc.expected.includes('Blanket Collision'), `${sc.status} / ${sc.note}`);
+const sc2 = one('BUSINESS_AUTO', 'Special Types Collision', 'Collision Coverage Type', ['No Coverage', 'ACV']).find((t) => t.term === 'Collision Coverage Type' && t.expected.length) || {};
+check('Special Types Collision also missing "Collision" -> still PARTIAL', sc2.status === 'PARTIAL' && JSON.stringify(sc2.missing) === '["Collision"]', `${sc2.status} / ${JSON.stringify(sc2.missing)}`);
+
+console.log(failed ?`\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');
 process.exit(failed ? 1 : 0);

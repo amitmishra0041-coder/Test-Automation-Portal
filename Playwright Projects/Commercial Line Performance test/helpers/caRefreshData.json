@@ -2427,7 +2427,8 @@
      "UT",
      "VA",
      "WI"
-    ]
+    ],
+    "lob": "AUTO_DEALERS"
    },
    {
     "name": "Liability Coverage Type",
@@ -2496,7 +2497,8 @@
      "UT",
      "VA",
      "WI"
-    ]
+    ],
+    "lob": "AUTO_DEALERS"
    }
   ],
   "loss payable clause audio visual and data electronic equipment coverage added limits": [

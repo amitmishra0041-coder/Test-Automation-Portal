@@ -259,6 +259,8 @@ for row in pmr['Coverage Terms'].iter_rows(min_row=2, max_row=6000, max_col=60):
     if not states:
         continue
     term = clean(effective(row[6]))
+    # AV "OOTB Availability Logic with Effective Dates": "Available only for Auto Dealers" (QA 11/05: Liability's aggregate limits)
+    dealers_only = bool(re.search(r'only for auto dealers', str(row[47].value or ''), re.I))
     for nm in str(effective(row[4]) or '').split(chr(10)):
         if nm.strip() and term:
             lst = term_names.setdefault(norm(nm), [])
@@ -266,7 +268,7 @@ for row in pmr['Coverage Terms'].iter_rows(min_row=2, max_row=6000, max_col=60):
             if hit:
                 hit['states'] = sorted(set(hit['states']) | set(states))
             else:
-                lst.append({'name': term, 'states': states})
+                lst.append({'name': term, 'states': states, **({'lob': 'AUTO_DEALERS'} if dealers_only else {})})
 
 # ── "SBT Update" = yes on the Coverages / Conditions / Exclusions tabs: the full CA Refresh set (the test-case
 #    precondition only lists some of it) ───────────────────────────────────────────────────────────────────────────

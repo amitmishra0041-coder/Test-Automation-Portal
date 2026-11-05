@@ -189,7 +189,21 @@ for (const m of DATA.modelTerms || []) { const k = canon(m.name); (modelByName.g
 // other selections (Coverage Type = No Coverage shows no deductibles; some values only under higher limits), so the options
 // seen across EVERY snapshot of the same coverage + term (default page and every exercised selection) are combined before
 // comparing; likewise a term counts as shown when any snapshot of the card shows it.
-function checkAllCards(state, pool) {
+// QA (Devyani, 11/05): options WriteBiz only offers on a Special Type vehicle with class code 6680 or 7925 - that vehicle is
+// added in PolicyCenter, not in this flow (common to Business Auto and Auto Dealers). Reported as not tested, never as partial.
+const CLASS_CODE_ONLY = [
+  { coverage: /^special types collision\b/i, term: /^collision coverage type$/i, option: /^blanket collision$/i },
+  { coverage: /^special types other than collision\b/i, term: /^other than collision coverage type$/i, option: /^inventory value or limit of insurance$/i },
+  { coverage: /^special types other than collision\b/i, term: /^deductible$/i, option: /^(250 \/ 1,000|500 \/ 2,500)$/i },
+];
+// QA (Devyani, 11/05): a missing "No Coverage" is not applicable here - Hired Auto Liability's Coverage Type is a PolicyCenter
+// choice, and Private Passenger / Truck Losses Covered always offers turning the coverage off.
+const NO_COVERAGE_NA = [
+  { coverage: /^hired auto liability\b/i, term: /^liability coverage type$/i, note: 'Hired Auto Liability Coverage Type is set in PolicyCenter' },
+  { coverage: /^(private passenger|truck) other than collision\b/i, term: /^losses covered$/i, note: '"No Coverage" is always available for Losses Covered' },
+];
+
+function checkAllCards(state, pool, lob) {
   const agg = new Map(); // coverage|term -> { coverage, term, expected, observed:Set, pages:Set, contexts:Set }
   const shownTerms = new Map(); // coverage -> { names, shown:Set, pages:Set }
   for (const p of pool) {
@@ -202,7 +216,7 @@ function checkAllCards(state, pool) {
       const m = cands.slice().sort((a, b) => score(b) - score(a))[0];
       const ckey = canon(card.title);
       // only terms the model makes available to WriteBiz agents in this state (QA 11/04)
-      const names = DATA.termNames && (DATA.termNames[norm(m.name)] || []).filter((t) => t.states.includes(state)).map((t) => t.name);
+      const names = DATA.termNames && (DATA.termNames[norm(m.name)] || []).filter((t) => t.states.includes(state) && (!t.lob || !lob || t.lob === lob)).map((t) => t.name);
       if (names && names.length && card.terms.length) {
         const st = shownTerms.get(ckey) || shownTerms.set(ckey, { coverage: card.title, names, shown: new Set(), pages: new Set() }).get(ckey);
         card.terms.forEach((x) => st.shown.add(x.label));
@@ -248,7 +262,13 @@ function checkAllCards(state, pool) {
     // show there; their options are checked on the state PIP card.
     const vehiclePip = /^(private passenger|truck|special types?|auto dealers|public transportation|zone rated)\b.*personal injury protection/i.test(a.coverage);
     // Options WriteBiz offers that the model does not list = MISMATCH. Model options never seen on any snapshot = PARTIAL.
-    let status = !a.expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : 'MATCH';
+    const classOnly = missing.filter((o) => CLASS_CODE_ONLY.some((r) => r.coverage.test(a.coverage) && r.term.test(a.term) && r.option.test(o)));
+    // QA 11/05: anything that needs a PolicyCenter edit first is ignored - dropped from the expected options, note only
+    if (classOnly.length) { notes.push(`ignored: ${classOnly.join(', ')} - only for Special Type class codes 6680 / 7925 (needs PolicyCenter)`); missing = missing.filter((o) => !classOnly.includes(o)); a.expected = a.expected.filter((o) => !classOnly.includes(o)); }
+    const noCov = NO_COVERAGE_NA.find((r) => r.coverage.test(a.coverage) && r.term.test(a.term));
+    const noCovOnly = noCov && missing.length && missing.every((o) => /^no coverage$/i.test(o));
+    if (noCovOnly) { notes.push(`"No Coverage" not applicable: ${noCov.note}`); missing = []; }
+    let status = !a.expected.length ? 'NO_MODEL_DATA' : extra.length ? 'MISMATCH' : missing.length ? 'PARTIAL' : noCovOnly ? 'NOT_APPLICABLE' : 'MATCH';
     if (status === 'PARTIAL' && vehiclePip && !a.enabled) { status = 'SET_BY_STATE_PIP'; notes.push('read-only on the vehicle - WriteBiz sets it from the state PIP coverage selection'); }
     const note = notes.join('; ') || undefined;
     out.push({ coverage: a.coverage, term: a.term, expected: a.expected, page: [...a.pages].join(', '), context: [...a.contexts].slice(0, 6).join(' | ') + (a.contexts.size > 6 ? ` (+${a.contexts.size - 6} more)` : ''), observed, missing, extra, status, ...(note ? { note } : {}) });
@@ -298,7 +318,7 @@ function evaluate(lob, state, pool) {
     if (cov.optional && !hit) return null; // unclassified and not on screen: nothing to report
     return { category: cov.category, name: cov.name, source: cov.source || '', code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
   });
-  const termChecks = checkAllCards(state, pool);
+  const termChecks = checkAllCards(state, pool, lob);
   for (let k = results.length - 1; k >= 0; k--) if (results[k] === null) results.splice(k, 1);
   results.forEach((r) => { delete r.cov; });
   // Informational only: the sheet's "Removed" column is ambiguous (removed from the product vs. from test scope).
@@ -312,7 +332,7 @@ function evaluate(lob, state, pool) {
   return {
     results: all,
     termChecks,
-    summary: { termMismatches: termChecks.filter((t) => t.status === 'MISMATCH').length, termsChecked: termChecks.length, termsPartial: termChecks.filter((t) => t.status === 'PARTIAL').length, termsSetByStatePip: termChecks.filter((t) => t.status === 'SET_BY_STATE_PIP').length,termsNoModelData: termChecks.filter((t) => t.status === 'NO_MODEL_DATA').length, found: count('FOUND'), missing: count('MISSING'), pcOnly: count('PC_ONLY'), notTested: count('NOT_TESTED'), unexpected: count('UNEXPECTED'), removedStillPresent: count('REMOVED_STILL_PRESENT'), notApplicable: count('NOT_APPLICABLE') },
+    summary: { termMismatches: termChecks.filter((t) => t.status === 'MISMATCH').length, termsChecked: termChecks.length, termsPartial: termChecks.filter((t) => t.status === 'PARTIAL').length, termsSetByStatePip: termChecks.filter((t) => t.status === 'SET_BY_STATE_PIP').length, termsNotTested: termChecks.filter((t) => t.status === 'NOT_TESTED').length, termsNotApplicable: termChecks.filter((t) => t.status === 'NOT_APPLICABLE').length, termsNoModelData: termChecks.filter((t) => t.status === 'NO_MODEL_DATA').length, found: count('FOUND'), missing: count('MISSING'), pcOnly: count('PC_ONLY'), notTested: count('NOT_TESTED'), unexpected: count('UNEXPECTED'), removedStillPresent: count('REMOVED_STILL_PRESENT'), notApplicable: count('NOT_APPLICABLE') },
   };
 }
 
