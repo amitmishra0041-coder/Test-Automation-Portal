@@ -43,5 +43,16 @@ check('Special Types Blanket Collision (needs PolicyCenter) ignored -> MATCH wit
 const sc2 = one('BUSINESS_AUTO', 'Special Types Collision', 'Collision Coverage Type', ['No Coverage', 'ACV']).find((t) => t.term === 'Collision Coverage Type' && t.expected.length) || {};
 check('Special Types Collision also missing "Collision" -> still PARTIAL', sc2.status === 'PARTIAL' && JSON.stringify(sc2.missing) === '["Collision"]', `${sc2.status} / ${JSON.stringify(sc2.missing)}`);
 
-console.log(failed ?`\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');
+// 5. QA 11/05: PolicyCenter-only forms (all model rows WriteBiz = N) and terms shown only after a PC change are skipped
+const res = evaluate('BUSINESS_AUTO', 'PA', [{ label: 'mock', text: '', norm: '', cards: [] }]).results;
+for (const f of ['CA 20 19', 'CA 20 33', 'CA 23 24']) {
+  const r = res.find((x) => x.name.startsWith(f)) || {};
+  check(`${f} not on WriteBiz -> PC_ONLY with a comment`, r.status === 'PC_ONLY' && /PolicyCenter only/.test(r.page), `${r.status} / ${r.page}`);
+}
+const ca9905 = res.find((x) => x.name.startsWith('CA 99 05')) || {};
+check('CA 99 05 (WriteBiz = Y) not seen -> still MISSING', ca9905.status === 'MISSING', ca9905.status);
+const pdc = run('PA', [{ title: 'Special Types Other Than Collision', terms: [sel('Losses Covered', ['Comprehensive'])] }]).find((t) => t.term === 'Physical Damage Classification') || {};
+check('Physical Damage Classification not shown -> NOT_APPLICABLE with a comment', pdc.status === 'NOT_APPLICABLE' && /6680/.test(pdc.note || ''), `${pdc.status} / ${pdc.note}`);
+
+console.log(failed ? `\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');
 process.exit(failed ? 1 : 0);

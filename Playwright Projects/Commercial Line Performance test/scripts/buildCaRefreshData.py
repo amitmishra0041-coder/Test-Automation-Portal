@@ -306,8 +306,15 @@ codes = {c['code'] for c in sbt if c['code']} | {c.get('code') for lob in ('BUSI
          for c in [enrich(sec['category'], n) for n in sec['coverages']]}
 clause = {k: v for k, v in clause.items() if k in codes}
 
+# "Donegal WriteBiz Availability For Agents" of every model row per form number (CA2033 -> ['N']): a precondition mapping
+# form whose rows are all N is PolicyCenter-only (QA 11/05: CA 20 19, CA 20 33, CA 23 24 - add in PC, then verify in WB).
+form_wb = {}
+for _fm, _rows in _by_form.items():
+    form_wb[_fm] = sorted({re.sub(r'\s+', '', str(r[10] or '')).upper() or '-' for r in _rows})
+
 data = {
     'termNames': term_names,
+    'formWriteBiz': form_wb,
     'sbt': sbt,
     'clauseRules': clause,
     'modelTerms': model_terms,

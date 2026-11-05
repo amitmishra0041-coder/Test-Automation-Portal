@@ -203,6 +203,11 @@ const NO_COVERAGE_NA = [
   { coverage: /^(private passenger|truck) other than collision\b/i, term: /^losses covered$/i, note: '"No Coverage" is always available for Losses Covered' },
 ];
 
+// QA 11/05: terms WriteBiz shows only after a PolicyCenter change - skipped with a comment, never partial.
+const TERM_PC_ONLY = [
+  { coverage: /^special types other than collision\b/i, term: /^physical damage classification$/i, note: 'shown only for Special Type class codes 6680 / 7925, set up in PolicyCenter - not validated here' },
+];
+
 function checkAllCards(state, pool, lob) {
   const agg = new Map(); // coverage|term -> { coverage, term, expected, observed:Set, pages:Set, contexts:Set }
   const shownTerms = new Map(); // coverage -> { names, shown:Set, pages:Set }
@@ -239,6 +244,8 @@ function checkAllCards(state, pool, lob) {
     const shown = [...st.shown];
     for (const nm of st.names) {
       const ok = shown.some((l) => jaccard(nm, l) >= 0.6);
+      const skip = !ok && TERM_PC_ONLY.find((r) => r.coverage.test(st.coverage) && r.term.test(nm));
+      if (skip) { out.push({ coverage: st.coverage, term: nm, expected: [], observed: [], missing: [], extra: [], page: [...st.pages].join(', '), context: '', status: 'NOT_APPLICABLE', note: skip.note }); continue; }
       out.push({ coverage: st.coverage, term: nm, expected: [], observed: [], missing: [], extra: [], page: [...st.pages].join(', '), context: '', status: ok ? 'MATCH' : 'PARTIAL', note: ok ? 'term shown' : 'term not shown on any snapshot of this coverage' });
     }
   }
@@ -277,6 +284,9 @@ function checkAllCards(state, pool, lob) {
 }
 
 // "Auto Dealers X" in the precondition is "Garage X" on the screens; a leading form number is not part of the name.
+// A precondition mapping form whose product-model rows are all WriteBiz Availability For Agents = N (QA 11/05).
+const formKey = (name) => { const m = /\b(CAD?)\s?(\d{2})\s?(\d{2})\b/i.exec(name); return m ? (m[1] + m[2] + m[3]).toUpperCase() : null; };
+const formPcOnly = (cov) => { const f = cov.mappingForm && (DATA.formWriteBiz || {})[formKey(cov.name)]; return !!(f && f.length && !f.includes('Y')); };
 const isFormNumberName = (cov) => cov.mappingForm || /^\s*CAD?\s?\d{2}\s?\d{2}\b/i.test(cov.name);
 
 // A coverage is PRESENT only when WriteBiz shows it as a coverage card title or an Additional Coverages grid row with the
@@ -314,6 +324,7 @@ function evaluate(lob, state, pool) {
     if (!cov.expected) status = hit ? 'UNEXPECTED' : 'NOT_APPLICABLE';
     else if (hit) status = 'FOUND';
     else if (needsOtherVehicle(cov, state)) status = 'NOT_TESTED';
+    else if (formPcOnly(cov)) { status = 'PC_ONLY'; page = 'PolicyCenter only (WriteBiz Availability For Agents = N for this form): add it in PolicyCenter, then verify in WriteBiz - not validated here'; }
     else status = wbVisible(cov) && !qaPcOnly(cov) ? 'MISSING' : 'PC_ONLY';
     if (cov.optional && !hit) return null; // unclassified and not on screen: nothing to report
     return { category: cov.category, name: cov.name, source: cov.source || '', code: cov.code || '', form: cov.form || '', availability: (cov.availability || {})[state] || '', status, page, cov };
