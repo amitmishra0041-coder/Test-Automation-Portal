@@ -12,7 +12,8 @@ const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > -1 
 const states = (arg('states', '') || '').split(',').filter(Boolean);
 const to = (arg('to', process.env.TO_EMAIL || '') || '').split(',').map((s) => s.trim()).filter(Boolean);
 const dry = process.argv.includes('--dry') && arg('dry', '1') !== '0'; // bare --dry counts as a dry run
-const LOBS = [['BUSINESS_AUTO', 'Business Auto'], ['AUTO_DEALERS', 'Auto Dealers']];
+// --lobs BUSINESS_AUTO sends one line only (e.g. a single re-validated run while the other line is still running)
+const LOBS = [['BUSINESS_AUTO', 'Business Auto'], ['AUTO_DEALERS', 'Auto Dealers']].filter(([l]) => !arg('lobs') || arg('lobs').split(',').includes(l));
 const batchRoot = path.join(ROOT, 'runtime-data', 'ca-refresh', 'batch');
 
 const runsFor = (state, lob) => fs.readdirSync(batchRoot).sort().map((b) => path.join(batchRoot, b, `${state}-${lob}.log`)).filter((f) => fs.existsSync(f)).map((log) => {
@@ -38,10 +39,10 @@ for (const st of states) {
     const r = pick(st, lob);
     if (r) files.push({ filename: path.basename(r.doc), path: r.doc });
     const v = (r && r.v) || {};
-    rows.push(`<tr>${k === 0 ? `<td rowspan="2"><b>${st}</b></td>` : ''}<td>${name}</td><td>${outcome(r)}</td><td align="right">${v.found ?? ''}</td><td align="right">${v.missing ?? ''}</td><td align="right">${v.termMismatches ?? ''}</td><td align="right">${v.termsChecked ?? ''}</td><td align="right">${r ? `${v.additionsAdded ?? 0}/${(v.additionsAdded ?? 0) + (v.additionsFailed ?? 0)}` : ''}</td><td>${r ? esc(path.basename(r.doc)) : ''}</td></tr>`);
+    rows.push(`<tr>${k === 0 ? `<td rowspan="${LOBS.length}"><b>${st}</b></td>` : ''}<td>${name}</td><td>${outcome(r)}</td><td align="right">${v.found ?? ''}</td><td align="right">${v.missing ?? ''}</td><td align="right">${v.termMismatches ?? ''}</td><td align="right">${v.termsChecked ?? ''}</td><td align="right">${r ? `${v.additionsAdded ?? 0}/${(v.additionsAdded ?? 0) + (v.additionsFailed ?? 0)}` : ''}</td><td>${r ? esc(path.basename(r.doc)) : ''}</td></tr>`);
   });
 }
-const html = `<p>CA Refresh (ABP-593) results on WriteBiz Test, rating only, for ${states.join(', ')}. The Business Auto and Auto Dealers result documents for each state are attached.</p>
+const html = `<p>CA Refresh (ABP-593) results on WriteBiz Test, rating only, for ${states.join(', ')}. The ${LOBS.map(([, n]) => n).join(' and ')} result document${LOBS.length > 1 ? 's' : ''} for each state ${LOBS.length > 1 ? 'are' : 'is'} attached.${arg('note') ? ` ${esc(arg('note'))}` : ''}</p>
 <table border="1" cellpadding="4" style="border-collapse:collapse;font-family:Calibri,Arial;font-size:13px">
 <tr style="background:#003a70;color:#fff"><th>State</th><th>Line</th><th>Run</th><th>Found</th><th>Missing</th><th>Term mismatches</th><th>Terms checked</th><th>Additions added</th><th>Document</th></tr>
 ${rows.join('\n')}</table>
