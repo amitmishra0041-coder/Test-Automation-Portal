@@ -50,7 +50,10 @@ module.exports = defineConfig({
           // gives the app a moment between actions without the "simulate
           // human typing" cost these automated regression runs don't need.
           slowMo: 20
-        }
+        },
+        // Headless runs use the full Chromium build in its new headless mode: the default headless shell left the WriteBiz
+        // Account Details dialog open after Next (CA Refresh NE/NM 11/05).
+        ...(process.env.PW_HEADLESS === '1' ? { channel: 'chromium' } : {}),
       } 
     },
     // Temporarily disabled for focused debugging

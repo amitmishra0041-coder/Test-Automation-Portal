@@ -638,13 +638,22 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
       console.log('Coverage dropdown not visible after 20s - diagnosing page state');
       console.log('Current URL: ' + page.url());
 
-      const addLaterBtn3 = page.getByRole('button', { name: 'Add Later' });
-      if (await addLaterBtn3.isVisible().catch(() => false)) {
-          console.log('Account Details modal still open - clicking Add Later and retrying Next');
-          await addLaterBtn3.click();
-          await safeNextClick(page);
-          await page.waitForLoadState('domcontentloaded');
-          await coverageDropdown.waitFor({ state: 'visible', timeout: 15000 });
+      const addLaterBtn3 = page.getByRole('button', { name: 'Add Later' }).first();
+      // Headless (CA Refresh batch 11/05): every field filled, no validation message, the dialog simply still open after Next.
+      const detailsOpen = await page.locator('.modal.show').filter({ hasText: 'Account Details' }).first().isVisible().catch(() => false);
+      if (detailsOpen || await addLaterBtn3.isVisible().catch(() => false)) {
+          console.log('Account Details modal still open - retrying Next');
+          if (await addLaterBtn3.isVisible().catch(() => false)) await addLaterBtn3.click().catch(() => {});
+          for (let i = 1; i <= 3; i++) {
+              await dismissStatusModal(page);
+              await safeNextClick(page);
+              await page.waitForLoadState('domcontentloaded');
+              await page.waitForTimeout(800);
+              await dismissStatusModal(page);
+              if (await coverageDropdown.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) break;
+              console.log('Account Details Next retry ' + i + ' - qualification still not shown');
+          }
+          await coverageDropdown.waitFor({ state: 'visible', timeout: 5000 });
       } else {
           const errorVisible = await page.locator('.alert-danger, .validation-error, .field-error').first().isVisible().catch(() => false);
           if (errorVisible) {
