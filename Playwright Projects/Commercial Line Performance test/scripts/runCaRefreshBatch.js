@@ -19,6 +19,7 @@ const lobs = pairs.length ? [...new Set(pairs.map((x) => x[1]))] : lobsDefault;
 const env = arg('env', 'test');
 const until = arg('until', 'RATING'); // RATING | ISSUANCE
 const sendEmail = arg('email', '1') !== '0';
+const shareRoot = arg('share', String.raw`V:\Amit Int\CARefresh\Results`) === '0' ? '' : arg('share', String.raw`V:\Amit Int\CARefresh\Results`);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const outDir = path.join(ROOT, 'runtime-data', 'ca-refresh', 'batch', stamp);
 fs.mkdirSync(outDir, { recursive: true });
@@ -69,6 +70,11 @@ const mail = async (state, results) => {
       const r = await runOne(state, lob);
       results.push(r);
       say(`${state} ${lob}: ${r.status} | doc=${path.basename(r.doc || '-')} | ${r.validation} ${r.err ? '| ' + r.err : ''}`);
+      // QA reads the documents from the team share: copy each one there as soon as its run reaches rating (--share 0 = off)
+      if (shareRoot && r.doc && fs.existsSync(r.doc) && /OK Quote Rated Successfully/.test(fs.readFileSync(r.log, 'utf8'))) {
+        const d = new Date(); const dir = path.join(shareRoot, `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        try { fs.mkdirSync(dir, { recursive: true }); fs.copyFileSync(r.doc, path.join(dir, path.basename(r.doc))); say(`  copied to ${dir}`); } catch (e) { say(`  copy to ${dir} failed: ${e.message}`); }
+      }
       noDocStreak = r.doc ? 0 : noDocStreak + 1;
       if (noDocStreak >= 2) break;
     }
