@@ -24,7 +24,7 @@ module.exports = defineConfig({
   expect: { timeout: 40 * 1000 },
 
   use: {
-    headless: false,
+    headless: process.env.PW_HEADLESS === '1', // headed by default; batch runners set PW_HEADLESS=1 (CA Refresh batch)
     ignoreHTTPSErrors: true,
     actionTimeout: 60 * 1000,
     navigationTimeout: 60 * 1000,
