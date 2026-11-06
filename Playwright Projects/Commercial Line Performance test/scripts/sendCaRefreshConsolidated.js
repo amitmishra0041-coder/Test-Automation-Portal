@@ -52,7 +52,7 @@ For a run that stopped before rating, pages after the stop were not visited, so 
 
 // ~1.5-2 MB per document: 22 documents are ~40 MB, over the mail limit. Copy them to the team share and link the folder;
 // attach only when the total is small enough.
-const shareDir = path.join(arg('share', String.raw`V:\Amit Int\CARefresh\Results`), new Date().toISOString().slice(0, 10));
+const shareDir = path.join(arg('share', String.raw`V:\Amit Int\CARefresh\Results`), arg('share-date', '') || new Date().toISOString().slice(0, 10)); // --share-date: one folder for a multi-day batch
 const totalMb = files.reduce((n, f) => n + fs.statSync(f.path).size, 0) / 1048576;
 const attach = totalMb <= 20;
 const shareNote = `<p style="font-family:Calibri,Arial;font-size:13px"><b>Documents:</b> ${attach ? 'attached, and also' : `${files.length} documents (${totalMb.toFixed(0)} MB, too large to attach)`} saved in <b>${esc(shareDir)}</b></p>`;

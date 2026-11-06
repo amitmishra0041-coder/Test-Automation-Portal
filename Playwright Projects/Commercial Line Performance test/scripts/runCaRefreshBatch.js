@@ -72,7 +72,8 @@ const mail = async (state, results) => {
       say(`${state} ${lob}: ${r.status} | doc=${path.basename(r.doc || '-')} | ${r.validation} ${r.err ? '| ' + r.err : ''}`);
       // QA reads the documents from the team share: copy each one there as soon as its run reaches rating (--share 0 = off)
       if (shareRoot && r.doc && fs.existsSync(r.doc) && /OK Quote Rated Successfully/.test(fs.readFileSync(r.log, 'utf8'))) {
-        const d = new Date(); const dir = path.join(shareRoot, `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        // --share-date 2026-11-05 keeps a multi-day batch in one dated folder (default: today)
+        const d = new Date(); const dir = path.join(shareRoot, arg('share-date', '') || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
         try { fs.mkdirSync(dir, { recursive: true }); fs.copyFileSync(r.doc, path.join(dir, path.basename(r.doc))); say(`  copied to ${dir}`); } catch (e) { say(`  copy to ${dir} failed: ${e.message}`); }
       }
       noDocStreak = r.doc ? 0 : noDocStreak + 1;
