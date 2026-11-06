@@ -20,6 +20,7 @@ function server() {
   const auth = createAuth({ dataDir: dir, packaged: false, sendMail: async () => { throw new Error('no mail in tests'); } });
   auth.mount(app);
   app.post('/api/run', (req, res) => res.json({ as: req.body.requestedBy }));
+  app.get('/reports/oneinc/Logs/x.log', (req, res) => res.json({ as: req.authEmail }));
   app.get('/api/who', (req, res) => res.json({ as: req.authEmail, header: req.get('x-runner-user') || null }));
   return new Promise((resolve) => { const s = app.listen(0, () => resolve({ s, auth, url: `http://127.0.0.1:${s.address().port}` })); });
 }
@@ -85,4 +86,22 @@ test('sessions survive a restart (stored hashed, not as the token)', async () =>
   const b = await server();
   assert.strictEqual((await call(b.url + '/api/who', 'GET', null, ok.cookie)).json.as, 'r@donegalgroup.com');
   b.s.close();
+});
+
+test('report link token: opens a /reports link in a browser with no session, and only that', async () => {
+  const { s, url } = await server();
+  await call(url + '/api/auth/request', 'POST', { email: 'rl@donegalgroup.com' });
+  const ok = await call(url + '/api/auth/verify', 'POST', { email: 'rl@donegalgroup.com', code: lastCode('rl@donegalgroup.com') });
+  const rt = (await call(url + '/api/auth/link-token', 'GET', null, ok.cookie)).json.rt;
+  assert.ok(rt);
+  assert.strictEqual((await call(url + '/api/auth/link-token')).status, 401); // no token for the signed-out
+  assert.strictEqual((await call(url + '/reports/oneinc/Logs/x.log')).status, 401);
+  const viaLink = await call(url + '/reports/oneinc/Logs/x.log?rt=' + encodeURIComponent(rt));
+  assert.strictEqual(viaLink.json.as, 'rl@donegalgroup.com');
+  assert.match(viaLink.cookie, /^runner_session=/); // the browser is now signed in (report screenshots load)
+  assert.strictEqual((await call(url + '/reports/oneinc/Logs/x.log', 'GET', null, viaLink.cookie)).status, 200);
+  // Tampered or used outside /reports → refused.
+  assert.strictEqual((await call(url + '/reports/oneinc/Logs/x.log?rt=' + encodeURIComponent(rt.slice(0, -2) + 'xx'))).status, 401);
+  assert.strictEqual((await call(url + '/api/who?rt=' + encodeURIComponent(rt))).status, 401);
+  s.close();
 });

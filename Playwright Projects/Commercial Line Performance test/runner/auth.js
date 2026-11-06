@@ -23,6 +23,7 @@ const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_TRIES = 5;
 const CODES_PER_WINDOW = 3;
 const SESSION_TTL_MS = 14 * 864e5;
+const LINK_TTL_MS = 12 * 3600e3; // report links opened outside the app window (see linkToken)
 const COOKIE = 'runner_session';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -53,6 +54,28 @@ function createAuth({ dataDir, packaged, sendMail }) {
     if (!s || s.expires < Date.now()) return null;
     if (s.expires - Date.now() < SESSION_TTL_MS / 2) { s.expires = Date.now() + SESSION_TTL_MS; persist(); }
     return s.email;
+  }
+  // Report links (/reports/...) opened OUTSIDE the app window — the desktop app hands target=_blank links to the default
+  // browser, which has no session cookie, so the log/HTML/CSV links answered "Sign in first." (2026-11-06). The page adds
+  // ?rt=<link token> (signed with this process's key, 12 h, names the signed-in person); the first /reports request
+  // carrying it starts a normal session in that browser, so the report's own relative links (screenshots) work too.
+  function linkToken(email) {
+    const payload = Buffer.from(`${email}|${Date.now() + LINK_TTL_MS}`).toString('base64url');
+    return payload + '.' + crypto.createHmac('sha256', internalKey).update(payload).digest('base64url');
+  }
+  function linkEmail(rt) {
+    const [payload, sig] = String(rt || '').split('.');
+    if (!payload || !sig) return null;
+    const want = crypto.createHmac('sha256', internalKey).update(payload).digest('base64url');
+    if (want.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(want), Buffer.from(sig))) return null;
+    const [email, exp] = Buffer.from(payload, 'base64url').toString().split('|');
+    return EMAIL_RE.test(email || '') && Number(exp) > Date.now() ? email : null;
+  }
+  function startSession(res, email) {
+    const token = crypto.randomBytes(32).toString('base64url');
+    sessions[sha(token)] = { email, expires: Date.now() + SESSION_TTL_MS };
+    persist();
+    setCookie(res, token, SESSION_TTL_MS);
   }
   function setCookie(res, token, maxAgeMs) {
     res.setHeader('Set-Cookie', `${COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(maxAgeMs / 1000)}`);
@@ -115,7 +138,11 @@ function createAuth({ dataDir, packaged, sendMail }) {
       if (!enabled) return next();
       if (req.path === '/' || req.path.startsWith('/api/auth/')) return next();
       const internal = req.get('x-runner-internal') === internalKey && EMAIL_RE.test(String(req.get('x-runner-user') || ''));
-      const email = internal ? String(req.get('x-runner-user')).toLowerCase() : sessionEmail(req);
+      let email = internal ? String(req.get('x-runner-user')).toLowerCase() : sessionEmail(req);
+      if (!email && req.method === 'GET' && req.path.startsWith('/reports/') && req.query.rt) {
+        email = linkEmail(req.query.rt);
+        if (email) startSession(res, email);
+      }
       if (!email) return res.status(401).json({ error: 'Sign in first.', signIn: true });
       req.authEmail = email;
       // Whatever identity a request names, it acts as the signed-in person.
@@ -127,11 +154,17 @@ function createAuth({ dataDir, packaged, sendMail }) {
       if (req.get('x-runner-user')) req.headers['x-runner-user'] = email;
       next();
     });
+    // Under /api/auth/, so the gate skips it — it reads the session itself.
+    app.get('/api/auth/link-token', (req, res) => {
+      if (!enabled) return res.json({ rt: null });
+      const email = sessionEmail(req);
+      return email ? res.json({ rt: linkToken(email) }) : res.status(401).json({ error: 'Sign in first.', signIn: true });
+    });
   }
 
   // Headers for the server's own calls to itself, acting as an already signed-in user.
   const internalHeaders = (email) => ({ 'X-Runner-Internal': internalKey, 'X-Runner-User': email });
-  return { enabled, mount, sessionEmail, internalHeaders };
+  return { enabled, mount, sessionEmail, internalHeaders, linkToken };
 }
 
 module.exports = { createAuth };

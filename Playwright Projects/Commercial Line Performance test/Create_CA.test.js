@@ -12,7 +12,7 @@ const { processCoverageDropdowns, processAllAddCoverageButtons, fillBlankRequire
 const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
 const { addExpectedFromGrid, exerciseCards } = require('./helpers/caRefreshAdditional');
-const { repairVehicleErrors, repairCoverageErrors, repairGridCoverageErrors, removeBlankVehicles } = require('./helpers/caRefreshVehicleRepair');
+const { repairVehicleErrors, repairCoverageErrors, repairGridCoverageErrors, removeBlankVehicles, repostField } = require('./helpers/caRefreshVehicleRepair');
 const fs   = require('fs');
 const path = require('path');
 
@@ -359,6 +359,18 @@ test('CA Submission', async ({ page }, testInfo) => {
       crAdditions.push(note);
       const back = page.getByRole('button', { name: /Return to Summary/i }).first();
       if (await back.isVisible().catch(() => false)) { await back.click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(1200); await dismissStatusModal(); }
+      // CO 11/06: Return to Summary asks "Please Review - Returning to the Summary screen will not save any data changes" with
+      // Cancel / Navigate to Summary / Remove Vehicle and Return to Summary. Cancel (below) kept the stuck vehicle open: remove it.
+      const rm = page.locator('.modal.show').last().getByRole('button', { name: /Remove Vehicle and Return to Summary/i });
+      if (await rm.isVisible().catch(() => false)) {
+        await rm.click({ timeout: 5000 }).catch(() => {});
+        // then "Confirm - Are you sure you want to remove this Vehicle and Return to Summary?" Yes / No
+        const yes = page.locator('.modal.show').filter({ hasText: /remove this Vehicle/i }).last().getByRole('button', { name: /^\s*Yes\s*$/ });
+        if (await yes.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) await yes.click({ timeout: 5000 }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded').catch(() => {}); await page.waitForTimeout(1500); await dismissStatusModal();
+        note.detail += ' (vehicle removed with "Remove Vehicle and Return to Summary"; its Coverages were still read and validated)';
+        console.log('Special Type vehicle removed with "Remove Vehicle and Return to Summary"');
+      }
       for (let i = 0; i < 4; i++) { // leave no dialog or half-filled vehicle behind
         const top = page.locator('.modal.show').last();
         if (!await top.isVisible().catch(() => false)) break;
@@ -954,6 +966,25 @@ test('CA Submission', async ({ page }, testInfo) => {
         return b ? !b.disabled && !b.classList.contains('disabled') : true;
       }, { timeout: 15000 }).catch(() => {});
       await dismissStatusModal();
+      // CO Business Auto 11/06: Next stayed disabled on the Special Type Coverages sub-tab with no dialog open. Name what is
+      // blank, and re-send / set any disabled blank required dropdown the way the state-level CO UMPD limit needed.
+      if (caRefreshOn && await btn.evaluate(el => el.disabled || el.classList.contains('disabled')).catch(() => false)) {
+        const blanks = await page.evaluate(() => [...document.querySelectorAll('select[data-requiredmessage], input[data-requiredmessage]')]
+          .filter((s) => !s.value && ((s.closest('.bootstrap-select') || s).getClientRects().length || s.closest('[id^="xacc_Card_"]')))
+          .map((s) => ({ id: s.id, req: (s.getAttribute('data-requiredmessage') || '').replace(/ is required$/, ''), disabled: s.disabled, card: (s.closest('[id^="xacc_Card_"]') || {}).id || '' }))).catch(() => []);
+        console.log(`Next disabled: blank required fields ${JSON.stringify(blanks)}`);
+        for (const b of blanks.filter((x) => x.disabled && x.req && !/^this field$/i.test(x.req))) console.log(`Next disabled: re-sent "${b.req}" -> ${JSON.stringify(await repostField(page, b.req, dismissStatusModal))}`);
+        // CO 11/06: the Special Types UMPD card renders "Uninsured Motorists Property Damage Coverage" as a DISABLED, blank,
+        // required number box (txt_CA7Wanted30_integerWithCommas, "This field is required") - nothing on the page can fill it.
+        // Forcing a value into it (tried 11/06: 15,000) enables Next, but WriteBiz then answers every Next with "An Error has
+        // Occured" - the vehicle cannot be saved. The Special Type recovery removes it instead (see runSpecialOnce's catch).
+        if (blanks.some((x) => !x.disabled)) await fillBlankRequiredSelects(page, 'Next disabled');
+        const ok = await page.waitForFunction(() => {
+          const b = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
+          return b ? !b.disabled && !b.classList.contains('disabled') : true;
+        }, { timeout: 15000 }).then(() => true).catch(() => false);
+        console.log(`Next disabled: enabled after repair = ${ok}`);
+      }
     }
     let clicked = false;
     for (let attempt = 1; attempt <= 4 && !clicked; attempt++) {

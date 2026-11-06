@@ -1332,6 +1332,22 @@
 <script>
 (function () {
   'use strict';
+  // Report links (/reports/...) that open in a new tab: the desktop app sends those to the default browser, which is not
+  // signed in ("Sign in first.", 2026-11-06), so the link carries a short-lived sign-in token (runner/auth.js linkToken).
+  // Fetched ahead (a window.open after an await would be popup-blocked) and refreshed every 30 minutes.
+  var reportRt = null;
+  function refreshReportRt() {
+    fetch('/api/auth/link-token').then(function (r) { return r.ok ? r.json() : {}; }).then(function (j) { reportRt = j.rt || null; }).catch(function () {});
+  }
+  refreshReportRt();
+  setInterval(refreshReportRt, 30 * 60 * 1000);
+  document.addEventListener('click', function (ev) {
+    var a = ev.target && ev.target.closest ? ev.target.closest('a[href^="/reports/"]') : null;
+    if (!a || !reportRt || a.classList.contains('oi-open')) return;
+    var href = a.getAttribute('href').replace(/([?&])rt=[^&]*&?/, '$1').replace(/[?&]$/, '');
+    a.setAttribute('href', href + (href.indexOf('?') < 0 ? '?' : '&') + 'rt=' + encodeURIComponent(reportRt));
+  }, true);
+
   // OneInc Word documents: the desktop app opens the file on V: directly (a browser download lands in Downloads as
   // "<id> (2).docx", which Word refused to open for the team, 2026-10-28); the shared web Runner still downloads it.
   document.addEventListener('click', function (ev) {

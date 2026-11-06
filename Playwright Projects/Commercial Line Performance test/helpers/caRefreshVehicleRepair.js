@@ -25,25 +25,53 @@ async function repostField(page, field, dismiss) {
     // The field exists but is DISABLED and blank (OH / CO 10/30: "Uninsured Motorists Property Damage Limit", recalculated
     // from the Uninsured Motorists card above it). Re-send the controlling dropdown of the card just before it so WriteBiz
     // recalculates and enables it; the caller's blank-fill then sets it.
-    const ctl = await page.evaluate((f) => {
+    // CO Business Auto 11/06: the disabled blank field is "ddl_CA7UninsuredMotoristPropertyDamageLimitText2" in card
+    // xacc_Card_CA7UninsuredMotoristPropertyDamage1 (options No Coverage / 15,000 ... 100,000). Candidates, in order: the
+    // enabled selects of its OWN card, then those of the card before it; after each re-send, stop once the field has a value.
+    const found = await page.evaluate((f) => {
       const norm = (t) => (t || '').replace(/\s+/g, ' ').trim().toLowerCase();
       const dis = [...document.querySelectorAll('select')].find((s) => s.disabled && norm(s.getAttribute('data-requiredmessage')).replace(/ is required$/, '') === norm(f));
-      const card = dis && dis.closest('[id^="xacc_Card_"]');
+      if (!dis) return null;
+      const card = dis.closest('[id^="xacc_Card_"]');
       let prev = card && card.previousElementSibling;
       while (prev && !(prev.id || '').startsWith('xacc_Card_')) prev = prev.previousElementSibling;
-      const sel = prev && [...prev.querySelectorAll('select')].find((s) => !s.disabled && s.id);
-      return sel ? sel.id : null;
+      const sels = (c) => (c ? [...c.querySelectorAll('select')].filter((s) => !s.disabled && s.id && s !== dis).map((s) => s.id) : []);
+      const desc = (c) => (c ? [...c.querySelectorAll('select')].map((s) => `${s.id}${s.disabled ? '(disabled)' : ''}=${(s.selectedOptions[0] || {}).textContent || ''}`) : []);
+      return { target: dis.id, candidates: [...sels(card), ...sels(prev)], card: card && card.id, cardSelects: desc(card), prevCard: prev && prev.id, prevSelects: desc(prev) };
     }, field).catch(() => null);
-    if (ctl) {
-      const sel = page.locator(`[id="${ctl}"]`);
-      const info = await sel.evaluate((e) => ({ cur: e.value, opts: [...e.options].filter((o) => o.value).map((o) => o.value) })).catch(() => null);
-      if (info && info.cur) {
+    if (found) {
+      done.diag = found;
+      const target = page.locator(`[id="${found.target}"]`);
+      const targetSet = () => target.evaluate((e) => !!e.value).catch(() => false);
+      const fillTarget = async () => { // once WriteBiz enables it: first real option that is not "No Coverage"
+        const v = await target.evaluate((e) => (e.disabled ? null : ([...e.options].find((o) => o.value && !/no coverage/i.test(o.textContent)) || {}).value)).catch(() => null);
+        if (v) { await target.selectOption(v).catch(() => {}); await page.waitForTimeout(1200); await dismiss(); }
+      };
+      for (const ctl of found.candidates) {
+        const sel = page.locator(`[id="${ctl}"]`);
+        const info = await sel.evaluate((e) => ({ cur: e.value, opts: [...e.options].filter((o) => o.value).map((o) => o.value) })).catch(() => null);
+        if (!info || !info.cur) continue;
         const other = info.opts.find((v) => v !== info.cur);
-        if (other) { await sel.selectOption(other).catch(() => {}); await page.waitForTimeout(800); await dismiss(); }
+        if (other) { await sel.selectOption(other).catch(() => {}); await page.waitForTimeout(1000); await dismiss(); }
         await sel.selectOption(info.cur).catch(() => {});
-        await page.waitForTimeout(1200);
+        await page.waitForTimeout(1500);
         await dismiss();
-        done.push(`${ctl} (controls the disabled field)`);
+        await fillTarget();
+        done.push(`${ctl} (re-sent for the disabled field)`);
+        if (await targetSet()) { done.push(`${found.target} now set`); break; }
+      }
+      // Last resort: WriteBiz never enabled it - enable it, pick a real limit and fire the page's own change handler.
+      if (!await targetSet()) {
+        const r = await target.evaluate((e) => {
+          const o = [...e.options].find((x) => x.value && !/no coverage/i.test(x.textContent)) || [...e.options].find((x) => x.value);
+          if (!o) return null;
+          e.disabled = false; e.value = o.value;
+          try { if (window.jQuery) { window.jQuery(e).selectpicker && window.jQuery(e).selectpicker('refresh'); window.jQuery(e).trigger('change'); } else e.dispatchEvent(new Event('change', { bubbles: true })); } catch (x) { e.dispatchEvent(new Event('change', { bubbles: true })); }
+          return o.textContent.trim();
+        }).catch(() => null);
+        await page.waitForTimeout(1500);
+        await dismiss();
+        if (r) done.push(`${found.target} force-set to "${r}" (was disabled)`);
       }
     }
   }
@@ -61,6 +89,19 @@ async function repostField(page, field, dismiss) {
     done.push(id);
   }
   return done;
+}
+
+// Diagnostic: every control whose label / required message / nearby text names `field` (id, disabled, visible, value, options).
+async function describeField(page, field) {
+  return page.evaluate((f) => {
+    const norm = (t) => (t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const want = norm(f);
+    return [...document.querySelectorAll('select, input:not([type=hidden]), textarea')].filter((s) => {
+      const fs = s.closest('.FieldSpacing, .form-group, tr');
+      return norm(s.getAttribute('data-requiredmessage')).includes(want) || (fs && norm(fs.textContent).includes(want));
+    }).slice(0, 6).map((s) => ({ tag: s.tagName, id: s.id, req: s.getAttribute('data-requiredmessage') || '', disabled: s.disabled, visible: !!((s.closest('.bootstrap-select') || s).getClientRects().length), value: s.value,
+      card: ((s.closest('[id^="xacc_Card_"]') || {}).id || ''), opts: s.options ? [...s.options].map((o) => `${o.value}=${o.textContent.trim()}`).slice(0, 8) : undefined }));
+  }, field).catch((e) => e.message);
 }
 
 // deps: { safeNextClick, fillBlanks(tag) -> number filled, dismiss(), log(msg) }
@@ -198,7 +239,11 @@ async function repairCoverageErrors(page, deps, maxFixes = 3) {
     await dismiss();
     await page.waitForTimeout(1500);
     await fillBlanks(`coverage fix ${fix}`);
-    for (const f of fields) log(`coverage fix: re-sent "${f}" -> ${JSON.stringify(await repostField(page, f, dismiss))}`);
+    for (const f of fields) {
+      const done = await repostField(page, f, dismiss);
+      log(`coverage fix: re-sent "${f}" -> ${JSON.stringify(done)}${done.diag ? ` | card ${JSON.stringify(done.diag)}` : ''}`);
+      if (!done.length) log(`coverage fix: controls named "${f}": ${JSON.stringify(await describeField(page, f))}`);
+    }
     await fillBlanks(`coverage fix ${fix} (after re-send)`);
     await safeNextClick(); // Coverages -> Additional Coverages (may itself raise the box: the loop handles it)
     await page.waitForLoadState('domcontentloaded').catch(() => {});
@@ -288,6 +333,7 @@ async function repairGridCoverageErrors(page, deps, maxFixes = 3) {
         }
       }
       log(`grid coverage fix: "${cov}" filled ${JSON.stringify(filled)}`);
+      if (!filled.length) log(`grid coverage fix: "${cov}" dialog controls: ${JSON.stringify(await dlg.evaluate((m) => [...m.querySelectorAll('select, input:not([type=hidden]), textarea')].map((s) => ({ tag: s.tagName, id: s.id, req: s.getAttribute('data-requiredmessage') || '', disabled: s.disabled, visible: !!(s.offsetParent || (s.closest('.bootstrap-select') || s).getClientRects().length), value: s.value, opts: s.options ? [...s.options].map((o) => `${o.value}=${o.textContent.trim()}`).slice(0, 8) : undefined }))).catch((e) => e.message))}`);
       await dlg.locator('button:has-text("Save")').first().click({ timeout: 5000 }).catch(() => {});
       await dlg.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
       await dismiss();
