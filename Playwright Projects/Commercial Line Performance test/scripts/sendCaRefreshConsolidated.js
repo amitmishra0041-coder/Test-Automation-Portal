@@ -29,6 +29,9 @@ const shareDir = path.join(arg('share', String.raw`V:\Amit Int\CARefresh\Results
 // --validated-only 1 (11/07): only the documents scripts/runCaRefreshValidated.js published to the share (each run checked before
 // publishing); a state + line with none there is listed as not validated, and nothing is copied to the share.
 const validatedOnly = arg('validated-only', '0') === '1';
+// links that work without the V: mapping (V: = \\dmi-win-fs1\Public)
+const uncOf = (p) => p.replace(/^V:\\/i, '\\\\dmi-win-fs1\\Public\\');
+const hrefOf = (p) => 'file:' + encodeURI(uncOf(p).replace(/\\/g, '/'));
 const published = new Set(validatedOnly && fs.existsSync(shareDir) ? fs.readdirSync(shareDir) : []);
 const pick = (state, lob) => {
   const r = runsFor(state, lob);
@@ -48,10 +51,13 @@ for (const st of states) {
     const r = pick(st, lob);
     if (r) files.push({ filename: path.basename(r.doc), path: r.doc });
     const v = (r && r.v) || {};
-    rows.push(`<tr>${k === 0 ? `<td rowspan="${LOBS.length}"><b>${st}</b></td>` : ''}<td>${name}</td><td>${outcome(r)}</td><td align="right">${v.found ?? ''}</td><td align="right">${v.missing ?? ''}</td><td align="right">${v.termMismatches ?? ''}</td><td align="right">${v.termsChecked ?? ''}</td><td align="right">${r ? `${v.additionsAdded ?? 0}/${(v.additionsAdded ?? 0) + (v.additionsFailed ?? 0)}` : ''}</td><td>${r ? esc(path.basename(r.doc)) : ''}</td></tr>`);
+    rows.push(`<tr>${k === 0 ? `<td rowspan="${LOBS.length}"><b>${st}</b></td>` : ''}<td>${name}</td><td>${outcome(r)}</td><td align="right">${v.found ?? ''}</td><td align="right">${v.missing ?? ''}</td><td align="right">${v.termMismatches ?? ''}</td><td align="right">${v.termsChecked ?? ''}</td><td align="right">${r ? `${v.additionsAdded ?? 0}/${(v.additionsAdded ?? 0) + (v.additionsFailed ?? 0)}` : ''}</td><td>${r ? `<a href="${hrefOf(path.join(shareDir, path.basename(r.doc)))}">${esc(path.basename(r.doc))}</a>` : ''}</td></tr>`);
   });
 }
+const obsLines = arg('observations') && fs.existsSync(arg('observations')) ? fs.readFileSync(arg('observations'), 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean) : [];
+const obsHtml = obsLines.length ? `<div style="font-family:Calibri,Arial;font-size:13px"><p><b>Observations</b></p>${obsLines.map((l) => (l.startsWith('# ') ? `<p style="margin:8px 0 2px"><b>${esc(l.slice(2))}</b></p>` : `<p style="margin:2px 0 2px 16px">&bull; ${esc(l)}</p>`)).join('')}</div>` : '';
 const html = `<p>CA Refresh (ABP-593) results on WriteBiz Test, rating only, for ${states.join(', ')}. The ${LOBS.map(([, n]) => n).join(' and ')} result document${LOBS.length > 1 ? 's' : ''} for each state ${LOBS.length > 1 ? 'are' : 'is'} __ATTACH_WORD__.${arg('note') ? ` ${esc(arg('note'))}` : ''}</p>
+${obsHtml}
 <table border="1" cellpadding="4" style="border-collapse:collapse;font-family:Calibri,Arial;font-size:13px">
 <tr style="background:#003a70;color:#fff"><th>State</th><th>Line</th><th>Run</th><th>Found</th><th>Missing</th><th>Term mismatches</th><th>Terms checked</th><th>Additions added</th><th>Document</th></tr>
 ${rows.join('\n')}</table>
@@ -63,7 +69,7 @@ For a run that stopped before rating, pages after the stop were not visited, so 
 // attach only when the total is small enough.
 const totalMb = files.reduce((n, f) => n + fs.statSync(f.path).size, 0) / 1048576;
 const attach = totalMb <= 20;
-const shareNote = `<p style="font-family:Calibri,Arial;font-size:13px"><b>Documents:</b> ${attach ? 'attached, and also' : `${files.length} documents (${totalMb.toFixed(0)} MB, too large to attach)`} saved in <b>${esc(shareDir)}</b></p>`;
+const shareNote = `<p style="font-family:Calibri,Arial;font-size:13px"><b>Documents:</b> ${attach ? 'attached, and also' : `${files.length} documents (${totalMb.toFixed(0)} MB, too large to attach)`} saved in <a href="${hrefOf(shareDir)}"><b>${esc(uncOf(shareDir))}</b></a> (V: drive: ${esc(shareDir)})</p>`;
 
 (async () => {
   if (!dry && !validatedOnly) { fs.mkdirSync(shareDir, { recursive: true }); for (const f of files) fs.copyFileSync(f.path, path.join(shareDir, f.filename)); }
