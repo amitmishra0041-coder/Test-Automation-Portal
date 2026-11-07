@@ -467,6 +467,24 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
   await clickIfExists('Account not listed'); await page.waitForTimeout(500);
   await clickIfExists('Continue'); await page.waitForTimeout(800);
   await dismissStatusModal(page);
+  // CA Refresh CO 11/06 (twice in a row, WriteBiz Test slow - five "Loading" bubbles): after Accept As-Is the "Account
+  // Information" form (address, phone, email) was still open with its Next unpressed, so the account-search step ("Account
+  // not listed") never came and Business Description timed out. Press that form's Next again and redo the follow-up steps.
+  for (let retry = 1; retry <= 3; retry++) {
+    if (await page.getByRole('textbox', { name: 'Business Description' }).isVisible().catch(() => false)) break;
+    const acctForm = page.locator('.modal.show').filter({ hasText: /Account Mailing Address/i }).last();
+    if (!await acctForm.isVisible().catch(() => false)) break;
+    console.log(`Account Information form still open after Accept As-Is - pressing its Next again (retry ${retry})`);
+    await acctForm.getByRole('button', { name: /^\s*Next/ }).first().click({ timeout: 10000 }).catch((e) => console.log(`  Next: ${e.message.split('\n')[0]}`));
+    await page.waitForLoadState('domcontentloaded').catch(() => {});
+    await page.waitForTimeout(1500 * retry);
+    await dismissStatusModal(page);
+    await clickIfExists('Accept As-Is'); await page.waitForTimeout(2000);
+    await clickIfExists('Use Suggested'); await page.waitForTimeout(500);
+    await clickIfExists('Account not listed'); await page.waitForTimeout(500);
+    await clickIfExists('Continue'); await page.waitForTimeout(800);
+    await dismissStatusModal(page);
+  }
 
   // ── Business details ─────────────────────────────────────────────────────────
   const businessDescField = page.getByRole('textbox', { name: 'Business Description' });
@@ -485,6 +503,10 @@ async function createAccountAndQualify(page, { writeBizUrl, testState, clickIfEx
         .map(el => el.name || el.id || el.placeholder || '(unnamed)').slice(0, 10),
     })).catch(() => ({}));
     console.log('Business Description field not visible after 30s - page diagnostic: ' + JSON.stringify(diag));
+    // 11/07: both logins got WriteBiz's "An unexpected error occurred while processing your request" here - put the box text in
+    // the log so the validated batch reports it as WriteBiz trouble, not a tool problem
+    const wbErr = await page.locator('.modal.show').filter({ hasText: /unexpected error|error has occ?ur/i }).last().innerText({ timeout: 2000 }).catch(() => '');
+    if (wbErr) console.log('WriteBiz error box: ' + wbErr.replace(/\s+/g, ' ').trim().slice(0, 200));
   }
   await businessDescField.waitFor({ state: 'visible', timeout: bizDescVisible ? 1000 : 15000 });
   await businessDescField.fill('test desc');

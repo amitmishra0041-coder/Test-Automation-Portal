@@ -212,7 +212,11 @@ test('CA Submission', async ({ page }, testInfo) => {
         await page.waitForLoadState('domcontentloaded').catch(() => {});
         await dismissStatusModal();
       };
-      await exerciseCards(page, crPool, label, 40, { rerender, ...cardOpts });
+      // CA_REFRESH_EXERCISE_SKIP=<regex> leaves matching cards alone (11/07: testing whether exercising the Uninsured Motorists
+      // cards is what leaves "Uninsured Motorists Property Damage" required, disabled and blank - TN Private Passenger, CO)
+      const envSkip = process.env.CA_REFRESH_EXERCISE_SKIP ? new RegExp(process.env.CA_REFRESH_EXERCISE_SKIP, 'i') : null;
+      const skip = envSkip && cardOpts.skip ? new RegExp(`(?:${cardOpts.skip.source})|(?:${envSkip.source})`, 'i') : (envSkip || cardOpts.skip);
+      await exerciseCards(page, crPool, label, 40, { rerender, ...cardOpts, ...(skip ? { skip } : {}) });
       await dismissStatusModal();
       await fillBlankRequiredSelects(page);
       await settleAndRefillRequired();
@@ -289,7 +293,14 @@ test('CA Submission', async ({ page }, testInfo) => {
       await page.getByRole('button', { name: 'Confirm' }).click({ timeout: 10000 });
       await dismissStatusModal();
       await page.waitForTimeout(1500);
-      if (!await specialFormReady()) throw new Error('Special Type form did not open after Confirm');
+      if (!await specialFormReady()) {
+        // AZ / IA Auto Dealers 11/06-07: WriteBiz was still creating the vehicle (spinner up) when this gave up; the recovery's reload
+        // mid-create left a half-made vehicle whose Details save then hung WriteBiz for good. Let the create finish first.
+        console.log('Special Type form not open yet - waiting for WriteBiz to finish creating the vehicle');
+        await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 120000 }).catch(() => {});
+        if (!await page.locator('#ddl_ClassType').waitFor({ state: 'attached', timeout: 45000 }).then(() => true).catch(() => false)) throw new Error('Special Type form did not open after Confirm');
+        console.log('Special Type form opened late - carrying on');
+      }
       }
       // generic fill: VIN, then required selects / inputs / class lookups, a few passes (selects reload their dependants)
       // The special-type form is a cascade: Class Type unlocks Vehicle Type, then Supplementary Type, Class Code, Dealer Classification;
@@ -979,6 +990,14 @@ test('CA Submission', async ({ page }, testInfo) => {
         // Forcing a value into it (tried 11/06: 15,000) enables Next, but WriteBiz then answers every Next with "An Error has
         // Occured" - the vehicle cannot be saved. The Special Type recovery removes it instead (see runSpecialOnce's catch).
         if (blanks.some((x) => !x.disabled)) await fillBlankRequiredSelects(page, 'Next disabled');
+        // TN 11/07: Private Passenger "Uninsured Motorists Property Damage Coverage" is a DISABLED, blank, required TEXT box
+        // (txt_CA7Wanted21) - WriteBiz defect: the model's options (Included / Not Provided / Provided) are all agents-N. Unlike CO's
+        // number box (15,000 -> "An Error has Occured"), try the model's own value "Provided" in it; logged as forced.
+        for (const b of blanks.filter((x) => x.disabled && /property damage coverage$/i.test(x.req) && /^txt_/.test(x.id) && !/integerWithCommas/i.test(x.id))) {
+          const set = await page.locator(`[id="${b.id}"]`).evaluate((e) => { e.disabled = false; e.value = 'Provided'; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; }).catch((err) => `failed: ${err.message.slice(0, 80)}`);
+          await page.waitForTimeout(2000); await dismissStatusModal();
+          console.log(`Next disabled: ${b.id} force-set to "${set}" (was disabled, blank) - WRITEBIZ DEFECT`);
+        }
         const ok = await page.waitForFunction(() => {
           const b = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim().startsWith('Next') && b.classList.contains('btn-primary'));
           return b ? !b.disabled && !b.classList.contains('disabled') : true;
@@ -1021,6 +1040,9 @@ test('CA Submission', async ({ page }, testInfo) => {
       // stuck behind a modal). Name the blocker so a stuck page is visible.
       const blockers = await page.locator('.modal.show .modal-title').allTextContents().catch(() => []);
       console.log(`WARNING safeNextClick: Next not clickable after 4 attempts - forcing click; open dialog(s): ${JSON.stringify(blockers.map(s => s.trim()))}`);
+      // SD Business Auto 11/07: two "Attention" boxes blocked the Special Type Next - log what they SAY, not just the title
+      const bodies = await page.locator('.modal.show').evaluateAll((ms) => ms.map((m) => (m.querySelector('.modal-body') || m).innerText.replace(/\s+/g, ' ').trim().slice(0, 220)).filter(Boolean)).catch(() => []);
+      if (bodies.length) console.log(`  dialog text: ${JSON.stringify(bodies)}`);
       await btn.click({ force: true });
     }
   }
@@ -1756,6 +1778,10 @@ test('CA Submission', async ({ page }, testInfo) => {
   } catch (error) {
     testFailed = true;
     console.error('Test execution failed:', error.message);
+    // 11/07: WriteBiz's own error boxes ("Failed to create CA7CommAuto submission", "error while loading your screen", ...) were
+    // only on the screenshot - put every open box's text in the log so the validated batch can tell WriteBiz trouble from tool bugs
+    const openBoxes = await page.locator('.modal.show').evaluateAll((ms) => ms.map((m) => (m.querySelector('.modal-body') || m).innerText.replace(/\s+/g, ' ').trim().slice(0, 200)).filter(Boolean)).catch(() => []);
+    if (openBoxes.length) console.error(`Open WriteBiz box(es) at failure: ${JSON.stringify(openBoxes)}`);
     console.error('Stack:', error.stack);
 
     try {

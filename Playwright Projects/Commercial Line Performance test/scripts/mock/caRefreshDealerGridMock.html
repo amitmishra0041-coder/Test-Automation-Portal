@@ -21,9 +21,18 @@
 <script>
 const P = new URLSearchParams(location.search).get('p') || 'additional';
 const srv = JSON.parse(localStorage.getItem('srv') || '{"bi":"","ded":""}');
-const go = (p) => { location.href = location.pathname + '?p=' + p + (onLeaveQ ? '&on=leave' : '') + (paged ? '&paged=1' : ''); };
+// keep every test setting (on, paged, stale, twice, disabledPip) across the mock's own page changes
+const go = (p) => { const q = new URLSearchParams(location.search); q.set('p', p); location.href = location.pathname + '?' + q.toString(); };
 const onLeaveQ = new URLSearchParams(location.search).get('on') === 'leave';
 const paged = new URLSearchParams(location.search).get('paged') === '1';
+// ?stale=1 (DE Auto Dealers 11/07): an empty box with no fields stays open on the page, later in the DOM than the edit dialog
+// ?twice=1 (DE Auto Dealers 11/07): WriteBiz raises the Attention box twice - a fieldless copy stays open over the grid and
+// blocks every click on the page until it is closed
+if (new URLSearchParams(location.search).get('twice') === '1') document.addEventListener('click', (e) => {
+  const errs = document.getElementById('dgic-modal-activityimpediments');
+  if (errs && errs.classList.contains('show') && !document.getElementById('att2')) document.body.insertAdjacentHTML('beforeend', '<div class="modal show" id="att2" style="position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:9999"><b>Attention</b><div>Errors Missing required field</div><button onclick="this.parentElement.remove()">Close</button></div>');
+}, true);
+if (new URLSearchParams(location.search).get('stale') === '1') document.body.insertAdjacentHTML('beforeend', '<div class="modal show" id="staleBox"><h4 class="modal-title">Notice</h4><button>Close</button></div>');
 const app = document.getElementById('app');
 if (P === 'additional') {
   // ?paged=1: DataTables-style grid, 10 rows per page, the PIP endorsement row on page 2 (only the current page is in the DOM)
@@ -41,7 +50,7 @@ if (P === 'additional') {
   app.innerHTML = `<h3>Dealer Locations</h3><table><tbody><tr><td>1</td><td>MAIN ST</td><td>Franchised Private Passenger Auto Dealer</td><td><button data-action="Edit" title="Edit the Dealer" onclick="go('coverages')"><i class="fas fa-edit"></i></button></td></tr></tbody></table>`;
 } else if (P === 'vehicles') app.innerHTML = '<h3>Vehicles</h3>';
 else app.innerHTML = '<h3>Coverages</h3><button onclick="go(\'additional\')">Next</button>';
-function openPip() { document.getElementById('selBI').value = srv.bi; document.getElementById('selDed').value = srv.ded; document.getElementById('pipDlg').classList.add('show'); }
+function openPip() { document.getElementById('selBI').value = srv.bi; document.getElementById('selDed').value = srv.ded; if (new URLSearchParams(location.search).get('disabledPip') === '1' && !srv.bi) { /* DE Auto Dealers 11/07: both required fields disabled + blank */ document.getElementById('selBI').disabled = true; document.getElementById('selDed').disabled = true; } document.getElementById('pipDlg').classList.add('show'); }
 function savePip() {
   srv.bi = document.getElementById('selBI').value; srv.ded = document.getElementById('selDed').value;
   localStorage.setItem('srv', JSON.stringify(srv)); document.getElementById('pipDlg').classList.remove('show');

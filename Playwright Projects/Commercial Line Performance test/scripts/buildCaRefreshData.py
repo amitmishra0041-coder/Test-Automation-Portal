@@ -24,10 +24,13 @@ def effective(c):
     v = c.value
     if v is None:
         return None
-    if getattr(c.font, 'strike', False):
-        return ''
+    cell_struck = bool(getattr(c.font, 'strike', False))
     if isinstance(v, CellRichText):
-        return ''.join(p if isinstance(p, str) else (p.text if not p.font.strike else '') for p in v).strip()
+        # Plain runs take the cell font, formatted runs their own: a struck cell font with an un-struck "Y" run is "N̶ / Y" =
+        # now Y (QA 11/06: Truck Towing Labor PA "N / Y" was read as fully struck, so its options were never checked).
+        return ''.join((p if not cell_struck else '') if isinstance(p, str) else (p.text if not p.font.strike else '') for p in v).strip()
+    if cell_struck:
+        return ''
     return v
 
 

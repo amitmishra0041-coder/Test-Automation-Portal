@@ -4130,6 +4130,31 @@
     ]
    }
   ],
+  "truck towing labor": [
+   {
+    "name": "Towing and Labor Limit",
+    "states": [
+     "AZ",
+     "CO",
+     "DE",
+     "IA",
+     "MD",
+     "MI",
+     "NC",
+     "NE",
+     "NM",
+     "OH",
+     "PA",
+     "SC",
+     "SD",
+     "TN",
+     "TX",
+     "UT",
+     "VA",
+     "WI"
+    ]
+   }
+  ],
   "underinsured motorists coverage": [
    {
     "name": "Underinsured Motorists Coverage Combined Single Limit",
@@ -14992,6 +15017,7 @@
        "SD",
        "TN",
        "TX",
+       "UT",
        "WI"
       ]
      }
@@ -15580,7 +15606,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -15634,7 +15660,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -15715,7 +15741,7 @@
       "code": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "value": null,
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -15813,6 +15839,7 @@
       "default": false,
       "wb": "N",
       "states": [
+       "AZ",
        "UT"
       ]
      },
@@ -16466,7 +16493,8 @@
        "MD",
        "OH",
        "SC",
-       "SD"
+       "SD",
+       "TN"
       ]
      },
      {
@@ -25414,6 +25442,7 @@
        "SD",
        "TN",
        "TX",
+       "UT",
        "WI"
       ]
      },
@@ -25424,9 +25453,19 @@
       "default": false,
       "wb": "Y",
       "states": [
+       "AZ",
+       "CO",
        "IA",
+       "MD",
+       "NC",
+       "NE",
+       "NM",
        "OH",
+       "SC",
        "SD",
+       "TN",
+       "TX",
+       "UT",
        "WI"
       ]
      },
@@ -25466,7 +25505,7 @@
       "code": "10000",
       "value": "10000",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -31914,7 +31953,7 @@
       "code": "100",
       "value": "100",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -31941,7 +31980,7 @@
       "code": "250",
       "value": "250",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -33365,7 +33404,7 @@
       "code": "FullCoverage",
       "value": "FullCoverage",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": []
      },
      {
@@ -33562,7 +33601,7 @@
       "code": "50",
       "value": "50",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -33589,7 +33628,7 @@
       "code": "100",
       "value": "100",
       "default": true,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -38400,6 +38439,7 @@
        "SD",
        "TN",
        "TX",
+       "UT",
        "WI"
       ]
      }
@@ -38453,6 +38493,7 @@
        "SD",
        "TN",
        "TX",
+       "UT",
        "WI"
       ]
      },
@@ -40311,7 +40352,7 @@
       "code": "510000",
       "value": "510000",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": []
      },
      {
@@ -43580,7 +43621,9 @@
       "value": "2500",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "MI"
+      ]
      }
     ],
     "Collision Coverage Option": [
@@ -45719,6 +45762,7 @@
        "SD",
        "TN",
        "TX",
+       "UT",
        "WI"
       ]
      }
@@ -46011,6 +46055,7 @@
        "DE",
        "IA",
        "MD",
+       "MI",
        "NC",
        "NE",
        "NM",
@@ -46037,6 +46082,7 @@
        "DE",
        "IA",
        "MD",
+       "MI",
        "NC",
        "NE",
        "NM",
@@ -46621,7 +46667,7 @@
       "code": "NotApplicable",
       "value": "NotApplicable",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": []
      },
      {
@@ -46629,7 +46675,7 @@
       "code": "No",
       "value": "No",
       "default": true,
-      "wb": null,
+      "wb": "N",
       "states": []
      },
      {
@@ -46637,7 +46683,7 @@
       "code": "Yes",
       "value": "Yes",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": []
      }
     ],
@@ -49522,7 +49568,9 @@
       "value": "2500",
       "default": false,
       "wb": "N",
-      "states": []
+      "states": [
+       "MI"
+      ]
      }
     ],
     "Collision Coverage Option": [
@@ -51058,6 +51106,7 @@
        "SD",
        "TN",
        "TX",
+       "UT",
        "WI"
       ]
      }
@@ -51481,6 +51530,7 @@
        "DE",
        "IA",
        "MD",
+       "MI",
        "NC",
        "NE",
        "NM",
@@ -51507,6 +51557,7 @@
        "DE",
        "IA",
        "MD",
+       "MI",
        "NC",
        "NE",
        "NM",
@@ -54288,7 +54339,9 @@
       "value": "2500",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "MI"
+      ]
      }
     ]
    }
@@ -55687,7 +55740,19 @@
       "default": false,
       "wb": "N",
       "states": [
-       "IA"
+       "AZ",
+       "CO",
+       "IA",
+       "MD",
+       "NC",
+       "NM",
+       "OH",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "WI"
       ]
      },
      {
@@ -55808,6 +55873,7 @@
        "SD",
        "TN",
        "TX",
+       "UT",
        "WI"
       ]
      }
@@ -56748,7 +56814,7 @@
       "code": "PerAutoAndPerOccurrenceDeductible_ApplicableToTheftMischiefAndVandalism",
       "value": null,
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -56802,7 +56868,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -56881,7 +56947,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -56935,7 +57001,7 @@
       "code": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "value": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -66105,7 +66171,9 @@
       "value": "2500",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "MI"
+      ]
      }
     ],
     "Vehicle Symbol Character One": [
@@ -69054,6 +69122,7 @@
        "DE",
        "IA",
        "MD",
+       "MI",
        "NC",
        "NE",
        "NM",
@@ -69080,6 +69149,7 @@
        "DE",
        "IA",
        "MD",
+       "MI",
        "NC",
        "NE",
        "NM",
@@ -69271,7 +69341,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalism",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -69323,7 +69393,7 @@
       "code": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "value": "ComprehensiveDeductibleForTheftMischiefAndVandalismWithFullGlassCoverage",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -69404,7 +69474,7 @@
       "code": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "value": "SpecifiedCausesOfLossTheftMischiefAndVandalismDeductible",
       "default": false,
-      "wb": null,
+      "wb": "N",
       "states": [
        "AZ",
        "CO",
@@ -71317,7 +71387,26 @@
       "value": "NoCoverage",
       "default": true,
       "wb": "Y",
-      "states": []
+      "states": [
+       "AZ",
+       "CO",
+       "DE",
+       "IA",
+       "MD",
+       "MI",
+       "NC",
+       "NE",
+       "NM",
+       "OH",
+       "PA",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "VA",
+       "WI"
+      ]
      },
      {
       "option": "50",
@@ -71325,7 +71414,26 @@
       "value": "50",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "AZ",
+       "CO",
+       "DE",
+       "IA",
+       "MD",
+       "MI",
+       "NC",
+       "NE",
+       "NM",
+       "OH",
+       "PA",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "VA",
+       "WI"
+      ]
      },
      {
       "option": "100",
@@ -71333,7 +71441,26 @@
       "value": "100",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "AZ",
+       "CO",
+       "DE",
+       "IA",
+       "MD",
+       "MI",
+       "NC",
+       "NE",
+       "NM",
+       "OH",
+       "PA",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "VA",
+       "WI"
+      ]
      },
      {
       "option": "200",
@@ -71341,7 +71468,26 @@
       "value": "200",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "AZ",
+       "CO",
+       "DE",
+       "IA",
+       "MD",
+       "MI",
+       "NC",
+       "NE",
+       "NM",
+       "OH",
+       "PA",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "VA",
+       "WI"
+      ]
      },
      {
       "option": "300",
@@ -71349,7 +71495,26 @@
       "value": "300",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "AZ",
+       "CO",
+       "DE",
+       "IA",
+       "MD",
+       "MI",
+       "NC",
+       "NE",
+       "NM",
+       "OH",
+       "PA",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "VA",
+       "WI"
+      ]
      },
      {
       "option": "700",
@@ -71357,7 +71522,26 @@
       "value": "700",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "AZ",
+       "CO",
+       "DE",
+       "IA",
+       "MD",
+       "MI",
+       "NC",
+       "NE",
+       "NM",
+       "OH",
+       "PA",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "VA",
+       "WI"
+      ]
      },
      {
       "option": "1000",
@@ -71365,7 +71549,26 @@
       "value": "1000",
       "default": false,
       "wb": "Y",
-      "states": []
+      "states": [
+       "AZ",
+       "CO",
+       "DE",
+       "IA",
+       "MD",
+       "MI",
+       "NC",
+       "NE",
+       "NM",
+       "OH",
+       "PA",
+       "SC",
+       "SD",
+       "TN",
+       "TX",
+       "UT",
+       "VA",
+       "WI"
+      ]
      },
      {
       "option": "500",
@@ -76966,7 +77169,26 @@
           "value": "NoCoverage",
           "default": true,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "50",
@@ -76974,7 +77196,26 @@
           "value": "50",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "100",
@@ -76982,7 +77223,26 @@
           "value": "100",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "200",
@@ -76990,7 +77250,26 @@
           "value": "200",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "300",
@@ -76998,7 +77277,26 @@
           "value": "300",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "700",
@@ -77006,7 +77304,26 @@
           "value": "700",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "1000",
@@ -77014,7 +77331,26 @@
           "value": "1000",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "500",
@@ -78476,7 +78812,26 @@
           "value": "NoCoverage",
           "default": true,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "50",
@@ -78484,7 +78839,26 @@
           "value": "50",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "100",
@@ -78492,7 +78866,26 @@
           "value": "100",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "200",
@@ -78500,7 +78893,26 @@
           "value": "200",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "300",
@@ -78508,7 +78920,26 @@
           "value": "300",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "700",
@@ -78516,7 +78947,26 @@
           "value": "700",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "1000",
@@ -78524,7 +78974,26 @@
           "value": "1000",
           "default": false,
           "wb": "Y",
-          "states": []
+          "states": [
+           "AZ",
+           "CO",
+           "DE",
+           "IA",
+           "MD",
+           "MI",
+           "NC",
+           "NE",
+           "NM",
+           "OH",
+           "PA",
+           "SC",
+           "SD",
+           "TN",
+           "TX",
+           "UT",
+           "VA",
+           "WI"
+          ]
          },
          {
           "option": "500",

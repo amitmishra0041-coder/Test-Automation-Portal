@@ -33,6 +33,30 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
   const srv2 = await page.evaluate(() => JSON.parse(localStorage.getItem('srv') || '{}'));
   check('box raised on leaving the tab, row on grid page 2: repaired, on Vehicles', ok2 && /p=vehicles/.test(page.url()));
   check('box raised on leaving the tab: both fields saved', !!srv2.bi && !!srv2.ded, JSON.stringify(srv2));
+  // DE Auto Dealers 11/07: an empty box already open must not be taken for the coverage's edit dialog
+  await page.goto(`${BASE}?p=additional&stale=1`);
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(`${BASE}?p=additional&stale=1`);
+  await saveTab();
+  const ok3 = await repairGridCoverageErrors(page, { saveTab, dismiss, log: (m) => console.log('   ' + m) });
+  const srv3 = await page.evaluate(() => JSON.parse(localStorage.getItem('srv') || '{}'));
+  check('empty box already open: the PIP edit dialog is filled anyway', ok3 && !!srv3.bi && !!srv3.ded, JSON.stringify(srv3));
+  // DE Auto Dealers 11/07: a second, fieldless Attention box stays open over the grid and swallows the edit click
+  await page.goto(`${BASE}?p=additional&twice=1`);
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(`${BASE}?p=additional&twice=1`);
+  await saveTab();
+  const ok4 = await repairGridCoverageErrors(page, { saveTab, dismiss, log: (m) => console.log('   ' + m) });
+  const srv4 = await page.evaluate(() => JSON.parse(localStorage.getItem('srv') || '{}'));
+  check('second Attention box over the grid: closed, PIP dialog filled', ok4 && !!srv4.bi && !!srv4.ded, JSON.stringify(srv4));
+  // DE Auto Dealers 11/07: both required PIP fields are DISABLED and blank in the dialog - forced as the last resort
+  await page.goto(`${BASE}?p=additional&disabledPip=1`);
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(`${BASE}?p=additional&disabledPip=1`);
+  await saveTab();
+  const ok5 = await repairGridCoverageErrors(page, { saveTab, dismiss, log: (m) => console.log('   ' + m) });
+  const srv5 = await page.evaluate(() => JSON.parse(localStorage.getItem('srv') || '{}'));
+  check('disabled required PIP fields: force-set, saved, on Vehicles', ok5 && !!srv5.bi && !!srv5.ded && /p=vehicles/.test(page.url()), JSON.stringify(srv5));
   await page.goto(`${BASE}?p=vehicles`);
   check('no Errors box: returns true', await repairGridCoverageErrors(page, { saveTab, dismiss, log: () => {} }) === true);
   await browser.close();

@@ -29,7 +29,7 @@ const say = (s) => { fs.appendFileSync(summaryFile, s + '\n'); };
 const runOne = (state, lob) => new Promise((resolve) => {
   const log = path.join(outDir, `${state}-${lob}.log`);
   const out = fs.openSync(log, 'w');
-  const p = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['playwright', 'test', 'Create_CA.test.js', '--project=chromium', '--retries=0', '--output=test-results-qa'], {
+  const p = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['playwright', 'test', 'Create_CA.test.js', '--project=chromium', '--retries=0', `--output=${arg('output', 'test-results-qa')}`], {
     cwd: ROOT, shell: process.platform === 'win32', stdio: ['ignore', out, out],
     env: { ...process.env, PW_HEADLESS: arg('headless', '1') === '0' ? '' : '1', TEST_ENV: env, TEST_STATE: state, CA_REFRESH: '1', CA_REFRESH_LOB: lob, TEST_DATA_TAG: `CARefresh-${lob}`, CA_REFRESH_STOP_AT: until === 'RATING' ? 'RATING' : '' },
   });

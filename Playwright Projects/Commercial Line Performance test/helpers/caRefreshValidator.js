@@ -90,7 +90,7 @@ async function readCards(page, rootSelector) {
       const input = fs.querySelector('input:not([type=hidden]):not([type=checkbox])');
       return { label, options: sel ? [...sel.options].map((o) => clean(o.textContent)).filter((o) => o && !/^nothing selected$/i.test(o)) : [],
         selected: sel && sel.selectedOptions[0] ? clean(sel.selectedOptions[0].textContent) : (input ? clean(input.value) : ''), kind: sel ? 'select' : (input ? 'input' : 'text'),
-        disabled: !!(sel && sel.disabled) };
+        disabled: !!(sel && sel.disabled), visible: fs.getClientRects().length > 0 };
     }).filter((t) => t.label);
     const cards = [...root.querySelectorAll('[id^="xacc_Card_"]')].map((c) => ({ title: clean((c.querySelector('.xaccordion-sectionheader') || {}).textContent).replace(/\s+Save$/i, ''), terms: termsOf(c) }));
     if (!cards.length) {
@@ -197,10 +197,9 @@ const CLASS_CODE_ONLY = [
   { coverage: /^special types other than collision\b/i, term: /^deductible$/i, option: /^(250 \/ 1,000|500 \/ 2,500)$/i },
 ];
 // QA (Devyani, 11/05): a missing "No Coverage" is not applicable here - Hired Auto Liability's Coverage Type is a PolicyCenter
-// choice, and Private Passenger / Truck Losses Covered always offers turning the coverage off.
+// choice. QA 11/06: Losses Covered without "No Coverage" is PARTIAL again (it was NOT_APPLICABLE for Private Passenger / Truck).
 const NO_COVERAGE_NA = [
   { coverage: /^hired auto liability\b/i, term: /^liability coverage type$/i, note: 'Hired Auto Liability Coverage Type is set in PolicyCenter' },
-  { coverage: /^(private passenger|truck) other than collision\b/i, term: /^losses covered$/i, note: '"No Coverage" is always available for Losses Covered' },
 ];
 
 // QA 11/05: terms WriteBiz shows only after a PolicyCenter change - skipped with a comment, never partial.

@@ -17,6 +17,12 @@
   <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsCollision"> Broadened Coverage For Named Individuals Collision</label><br>
   <label><input type="checkbox" id="cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision"> Broadened Coverage For Named Individuals Other Than Collision</label><br>
   <span class="FieldSpacing">Name <input type="text" id="txtName"></span>
+  <!-- ?terms=1 (QA 11/06): the item's own terms, shown for the ticked coverage; Deductible Type follows Losses Covered -->
+  <div id="colTerms" style="display:none"><div class="FieldSpacing"><span class="FieldLabel">Deductible</span>
+    <select><option selected>Not Applicable</option><option>50</option><option>100</option><option>500</option></select></div></div>
+  <div id="otcTerms" style="display:none"><div class="FieldSpacing"><span class="FieldLabel">Losses Covered</span>
+    <select id="lc"><option selected>Comprehensive</option><option>Specified Causes Of Loss</option></select></div>
+    <div class="FieldSpacing"><span class="FieldLabel">Deductible Type</span><select id="dt"><option>Comprehensive All Perils Deductible</option></select></div></div>
   <button onclick="saveItem()">Save</button></div>
 <script>
 const hideMs = Number(new URLSearchParams(location.search).get('hideMs') ?? 1500);
@@ -24,6 +30,14 @@ const btnDelay = Number(new URLSearchParams(location.search).get('btnDelay') ?? 
 const dupHidden = new URLSearchParams(location.search).get('dupHidden') === '1';
 // ?brokenFirst=1 (PA Auto Dealers 11/04): the first time the coverage dialog is open its items never save - only a second try works
 const brokenFirst = new URLSearchParams(location.search).get('brokenFirst') === '1';
+const withTerms = new URLSearchParams(location.search).get('terms') === '1';
+if (withTerms) {
+  const show = () => { $('colTerms').style.display = $('cbCA7DOCCovBroadCovForNamedIndivsCollision').checked ? '' : 'none'; $('otcTerms').style.display = $('cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision').checked ? '' : 'none'; };
+  document.addEventListener('change', (e) => {
+    if (e.target.type === 'checkbox') show();
+    if (e.target.id === 'lc') $('dt').innerHTML = e.target.value === 'Specified Causes Of Loss' ? '<option>Specified Causes Of Loss All Perils Deductible</option>' : '<option>Comprehensive All Perils Deductible</option><option>Comprehensive All Perils Deductible With Full Glass Coverage</option>';
+  });
+}
 let opens = 0;
 window.__items = []; window.__saved = false;
 const $ = (id) => document.getElementById(id);
@@ -33,7 +47,7 @@ function addItem() {
   if (!$('parent').classList.contains('show')) return;
   if (brokenFirst && opens < 2) return;
   ['cbCA7DOCCovBroadCovForNamedIndivsCollision', 'cbCA7DOCCovBroadCovForNamedIndivsOthThanCollision'].forEach((i) => { $(i).checked = false; });
-  $('txtName').value = ''; $('item').classList.add('show');
+  $('txtName').value = ''; $('colTerms').style.display = 'none'; $('otcTerms').style.display = 'none'; $('item').classList.add('show');
 }
 function saveItem() {
   const picks = [...$('item').querySelectorAll('input[type=checkbox]')].filter((c) => c.checked).map((c) => c.id.replace(/^cbCA7DOCCovBroadCovForNamedIndivs/, ''));

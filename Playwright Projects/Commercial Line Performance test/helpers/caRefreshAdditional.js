@@ -2,7 +2,7 @@
 // grid (Type | Selected | Coverage Name | Actions[+]). For each expected name that has a row: click "+", record the
 // dialog's terms and options (compared with the product model later), fill the required terms, Save, then confirm
 // the row shows as selected. Results feed the run's Word document.
-const { readCards, norm } = require('./caRefreshValidator');
+const { readCards, norm, DATA } = require('./caRefreshValidator');
 
 const tokens = (s) => norm(String(s).replace(/\(.*?\)/g, '')).split(' ').filter((t) => t.length > 2);
 // share of the GRID name's words that appear in the expected (precondition) name
@@ -25,7 +25,7 @@ async function fillDialog(modal, effectiveDate) {
   for (const sel of await modal.locator('select:visible').all()) {
     const val = await sel.evaluate((e) => ([...e.options].find((o) => o.value && !/nothing selected|^select/i.test(o.textContent)) || {}).value).catch(() => null);
     const cur = await sel.inputValue().catch(() => '');
-    if (val && !cur) await sel.selectOption(val).catch(() => {});
+    if (val && !cur) await sel.selectOption(val, { timeout: 10000 }).catch(() => {});
   }
   await modal.page().waitForTimeout(900); // choosing a dropdown value re-renders the dialog and clears typed text - fill text after it settles
   // Checkbox groups ("Coverages" on a scheduled item) need at least one ticked.
@@ -51,7 +51,7 @@ async function createContact(page) {
   if (!await dlg.waitFor({ state: 'visible', timeout: 4000 }).then(() => true).catch(() => false)) { console.log('  Add New: no contact dialog appeared; modals: ' + (await page.locator('.modal.show .modal-title, .modal.show .modal-header').allInnerTexts().catch(() => [])).join(' | ').slice(0, 200)); return false; }
   for (const sel of await dlg.locator('select:visible').all()) {
     const hasExisting = await sel.evaluate((e) => [...e.options].some((o) => /existing location/i.test(o.textContent))).catch(() => false);
-    if (hasExisting) { await sel.selectOption({ index: 1 }).catch(() => {}); await page.waitForTimeout(800); }
+    if (hasExisting) { await sel.selectOption({ index: 1 }, { timeout: 10000 }).catch(() => {}); await page.waitForTimeout(800); }
   }
   // Name goes in after the address (picking an existing location re-renders the form). It is the input next to the "Name" label.
   const nameBox = dlg.locator('xpath=.//*[normalize-space(text())="Name"]/following::input[not(@type="hidden")][1]');
@@ -78,11 +78,53 @@ async function completeDialog(page, modal, effectiveDate) {
 // the first with "...Named Individuals Collision", the second with "...Named Individuals Other Than Collision".
 const ITEM_PICKS = [
   { row: /drive other car.*named individuals/i, picks: [/(named individuals collision|indivscollision)\s*$/i, /(named individuals other than collision|indivsoththancollision)\s*$/i] },
+  // (Garagekeepers items need no pick: each one shows the Collision AND Other Than Collision terms together - PA 11/06)
 ];
+
+// QA 11/06: a scheduled item's terms are those of a product-model sub-coverage ("Garagekeepers Coverage Collision Cov",
+// "Drive Other Car Cov Broadened Cov For Named Individuals Other Than Collision") - they were never compared. Pick the
+// sub-coverage whose terms the item shows, Other Than Collision vs Collision decided by the item's own selections.
+const SCHEDULE_SUBS = [
+  { row: /^garagekeepers$/i, prefix: /^garagekeepers coverage (collision|other than collision) cov$/ },
+  // line-level Drive Other Car dialog only: the vehicle "Coverage for Named Individuals" item is a single name term (PA 11/06)
+  { row: /drive other car.*named individuals/i, prefix: /^drive other car cov broadened cov for named individuals / },
+];
+const scheduleSubs = (rowName) => {
+  const s = SCHEDULE_SUBS.find((x) => x.row.test(rowName) && !(x.skip && x.skip.test(rowName)));
+  return s ? (DATA.modelTerms || []).filter((m) => s.prefix.test(norm(m.name))) : [];
+};
+const jac = (a, b) => { const ta = new Set(norm(a).split(' ')); const tb = new Set(norm(b).split(' ')); const u = new Set([...ta, ...tb]); return u.size ? [...ta].filter((t) => tb.has(t)).length / u.size : 0; };
+async function scheduleTitles(dlg, rowName, cards) {
+  const subs = scheduleSubs(rowName);
+  if (!subs.length) return cards.map((c) => ({ ...c, title: rowName }));
+  // what the item is set to: selected options + ticked boxes ("Named Individuals Other Than Collision")
+  const hint = await dlg.evaluate((m) => [...m.querySelectorAll('select')].map((s) => (s.selectedOptions[0] ? s.selectedOptions[0].textContent : '')).concat([...m.querySelectorAll('input[type=checkbox]:checked')].map((b) => ((b.id && document.querySelector(`label[for="${b.id}"]`)) || b.closest('label') || b.parentElement || {}).textContent || '')).join(' | ')).catch(() => '');
+  const otc = /other than collision|oththancollision/i.test(hint);
+  // WriteBiz lists every sub-coverage in the item as a checkbox row labelled with its model name ("Drive Other Car Cov Broadened
+  // Cov For Named Individuals Collision"), followed by that sub-coverage's terms (PA 11/06 live dialog): split the terms there.
+  const byName = new Map(subs.map((m) => [norm(m.name), m.name]));
+  const split = [];
+  for (const c of cards) {
+    let cur = null;
+    for (const t of c.terms) {
+      const nm = byName.get(norm(t.label));
+      if (nm) { cur = { ...c, title: nm, terms: [] }; split.push(cur); continue; }
+      if (cur) cur.terms.push(t);
+    }
+  }
+  if (split.length) return split.filter((c) => c.terms.length);
+  // otherwise (no name rows): only the terms the item shows - the other coverage's terms can sit hidden in the same dialog
+  return cards.map((c0) => ({ ...c0, terms: c0.terms.filter((t) => t.visible !== false) })).filter((c) => c.terms.length).map((c) => {
+    const labels = c.terms.map((t) => t.label);
+    const score = (m) => Object.keys(m.terms).filter((tn) => labels.some((l) => jac(tn, l) >= 0.6)).length + (/other than collision/i.test(m.name) === otc ? 0.5 : 0);
+    const best = subs.slice().sort((a, b) => score(b) - score(a))[0];
+    return { ...c, title: best && score(best) >= 1 ? best.name : rowName };
+  });
+}
 async function pickItemCoverage(dlg, re) {
   for (const sel of await dlg.locator('select:visible').all()) {
     const v = await sel.evaluate((e, src) => { const r = new RegExp(src, 'i'); const o = [...e.options].find((x) => x.value && r.test(x.textContent.trim())); return o ? o.value : null; }, re.source).catch(() => null);
-    if (v) { await sel.selectOption(v).catch(() => {}); await dlg.page().waitForTimeout(900); return true; }
+    if (v) { await sel.selectOption(v, { timeout: 10000 }).catch(() => {}); await dlg.page().waitForTimeout(900); return true; }
   }
   const boxes = await dlg.locator('input[type="checkbox"]:visible').all();
   for (const b of boxes) {
@@ -106,11 +148,14 @@ async function closeAllModals(page) {
 
 // Wait until WriteBiz has finished reacting to a change (status overlay gone, network quiet), close an "An error has
 // occurred" box if one pops up, then leave a short margin. Changing dropdowns faster than this leaves dependants blank.
+// WriteBiz "An error has occurred" boxes seen while exercising (exerciseCards stops a card at its first one - NC 11/07)
+let wbErrors = 0;
 async function settle(page, extra = 1200) {
   await page.locator('#dgic-status-message').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
   const err = page.locator('.modal.show').filter({ hasText: 'An error has occurred' }).first();
   if (await err.isVisible().catch(() => false)) {
+    wbErrors++;
     console.log('  "An error has occurred" box after a dropdown change - closing it');
     await err.getByRole('button', { name: /close/i }).click({ timeout: 3000 }).catch(() => {});
     await page.waitForTimeout(500);
@@ -121,17 +166,21 @@ async function settle(page, extra = 1200) {
 // Put a dropdown back to the option it started on and prove it (several tries, each with a full settle).
 async function restoreSelect(page, sel, info) {
   for (let k = 0; k < 4; k++) {
-    await sel.selectOption({ label: info.curText }).catch(() => sel.selectOption(info.cur).catch(() => {}));
+    await sel.selectOption({ label: info.curText }, { timeout: 10000 }).catch(() => sel.selectOption(info.cur, { timeout: 10000 }).catch(() => {}));
     await settle(page, 1500);
     const now = await sel.evaluate((e) => (e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '')).catch(() => '');
     if (now === info.curText) return true;
+    console.log(`    restore "${info.label}" to "${info.curText}": attempt ${k + 1} shows "${now}"${await sel.isDisabled({ timeout: 2000 }).catch(() => false) ? ' (disabled)' : ''}`);
   }
   console.log(`  could not restore "${info.label}" to "${info.curText}"`);
   return false;
 }
 
 // Select each option of every (small) dropdown in the dialog, record the terms/options it then shows, put the default back.
-async function exerciseDialog(page, modal, pool, rowName) {
+// opts.root: selector of THIS dialog (a scheduled item is a nested dialog - '.modal.show' alone is its parent);
+// opts.titleFor(cards): the model coverage the dialog's terms belong to (re-worked out per selection).
+async function exerciseDialog(page, modal, pool, rowName, opts = {}) {
+  const root = opts.root || '.modal.show';
   const sels = await modal.locator('select:visible').all();
   for (const sel of sels.slice(0, 6)) {
     const info = await sel.evaluate((e) => {
@@ -139,13 +188,27 @@ async function exerciseDialog(page, modal, pool, rowName) {
       return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, cur: e.value, curText: e.selectedOptions[0] ? e.selectedOptions[0].textContent.trim() : '',
         opts: [...e.options].filter((o) => o.value && !/nothing selected|^select/i.test(o.textContent)).map((o) => ({ v: o.value, t: o.textContent.trim() })) };
     }).catch(() => null);
-    if (!info || info.opts.length < 2 || info.opts.length > 8) continue;
+    if (!info || info.opts.length < 2 || info.opts.length > 8 || (opts.skip && opts.skip(info))) continue;
     for (const o of info.opts) {
       if (o.v === info.cur) continue;
-      await sel.selectOption(o.v).catch(() => {});
+      await sel.selectOption(o.v, { timeout: 10000 }).catch(() => {});
       await settle(page, 1200);
-      const cards = await readCards(page, '.modal.show');
-      pool.push({ label: `Add coverage: ${rowName}`, context: `${info.label} = ${o.t}`, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title: rowName })) });
+      const snapDlg = async (context) => { const cards = await readCards(page, root); pool.push({ label: `Add coverage: ${rowName}`, context, text: '', norm: '', shot: '', cards: opts.titleFor ? await opts.titleFor(cards) : cards.map((c) => ({ ...c, title: rowName })) }); };
+      await snapDlg(`${info.label} = ${o.t}`);
+      // Under a Coverage Type that switches the coverage on, every Losses Covered choice with the Deductible Type / Deductible
+      // it brings (QA 11/06: Garagekeepers item "Other Than Collision Coverage Type = Limit Of Liability" was never tried that way).
+      if (/coverage type|coverage$/i.test(info.label) && !/^(no coverage|no)$/i.test(o.t)) {
+        for (const dep of await modal.locator('select:visible').all()) {
+          const d = await dep.evaluate((e) => { const fs = e.closest('.FieldSpacing'); const l = fs && fs.querySelector('.FieldLabel');
+            return { label: l ? l.textContent.replace(/\s+/g, ' ').trim() : e.id, disabled: e.disabled, cur: e.value, opts: [...e.options].filter((x) => x.value && !/nothing selected|^select/i.test(x.textContent)).map((x) => ({ v: x.value, t: x.textContent.trim() })) }; }).catch(() => null);
+          if (!d || d.disabled || !/losses covered/i.test(d.label)) continue;
+          for (const q of d.opts.filter((x) => x.v !== d.cur && !/^(no coverage|not applicable)$/i.test(x.t))) {
+            await dep.selectOption(q.v, { timeout: 10000 }).catch(() => {});
+            await settle(page, 2500); // Deductible Type / Deductible are refilled by a second WriteBiz call
+            await snapDlg(`${info.label} = ${o.t}; ${d.label} = ${q.t}`);
+          }
+        }
+      }
     }
     await restoreSelect(page, sel, info);
   }
@@ -161,10 +224,16 @@ const OPT_READ = (e) => ({ label: (() => { const fs = e.closest('.FieldSpacing')
 // The card's OTHER dropdowns (enabled flag + options): after a controlling change WriteBiz refills dependants with a second
 // call that can land after settle() - Special Types Collision "Coverage Type = ACV" was read with Deductible still disabled on
 // "Not Applicable" in PA/AZ/NC/NM while NE caught the 1,000-25,000 list (11/03). Wait (max 8 s) for the dependants to change.
-const depSig = (card, skip) => card.locator('select').evaluateAll((els, s) => els.map((e, i) => (i === s ? '' : `${e.disabled ? 'd' : 'e'}${e.options.length}`)).join(','), skip).catch(() => '');
-async function waitDependants(page, card, skip, before) {
-  if (!before || !/(^|,)d\d/.test(before)) return; // nothing was waiting on this change
-  for (let t = 0; t < 16; t++) {
+// The signature also carries each dependant's option texts: Losses Covered -> Deductible Type swaps the options of an already
+// enabled dropdown (QA 11/06: Special Types "Losses Covered = Specified Causes Of Loss" was read before its deductible types came).
+const depSig = (card, skip) => card.locator('select').evaluateAll((els, s) => els.map((e, i) => (i === s ? '' : `${e.disabled ? 'd' : 'e'}${e.options.length}:${[...e.options].map((o) => o.textContent.trim()).join('/')}`)).join(','), skip).catch(() => '');
+// Dropdowns that drive other terms of the card: after changing one, wait for the card's dependants even when none was disabled.
+const CONTROLLING = /coverage type|losses covered|coverage$/i;
+async function waitDependants(page, card, skip, before, label) {
+  if (!before) return;
+  const waiting = /(^|,)d\d/.test(before);
+  if (!waiting && !CONTROLLING.test(label || '')) return; // nothing was waiting on this change
+  for (let t = 0; t < (waiting ? 16 : 8); t++) {
     if ((await depSig(card, skip)) !== before) { await settle(page, 600); return; }
     await page.waitForTimeout(500);
   }
@@ -178,40 +247,68 @@ async function exerciseCards(page, pool, label, maxCards = 40, opts = {}) {
     const card = page.locator(`[id="${id}"]`);
     const title = (await card.locator('.xaccordion-sectionheader').first().innerText().catch(() => id)).replace(/\s+Save$/i, '').trim();
     if ((opts.only && !opts.only.test(title)) || (opts.skip && opts.skip.test(title))) { n--; continue; }
+    console.log(`  exercise card: ${title}`); // log heartbeat - the validated batch treats 5 silent minutes as a stalled run
     const count = await card.locator('select').count().catch(() => 0);
     const infoAt = async (k) => card.locator('select').nth(k).evaluate(OPT_READ).catch(() => null);
     const usable = (info) => info && !/deductible/i.test(info.label) /* dependent outputs - changing them corrupts the card server-side */ && !info.disabled && info.cur && !/nothing selected|^select|^please select/i.test(info.curText) && /* a blank start cannot be restored */ info.opts.length >= 2 && info.opts.length <= 12 && !info.opts.every((o) => /^(yes|no)$/i.test(o.t)); // Yes/No switches are set by the flow, never toggled here
     const snap = async (context) => { const cards = await readCards(page, `#${id}`); pool.push({ label, context, text: '', norm: '', shot: '', cards: cards.map((c) => ({ ...c, title })) }); };
-    for (let si = 0; si < count && si < 8; si++) {
+    // The other cards of the page under this selection: a controlling change can enable a sibling card (QA 11/06: Special Types
+    // Towing Labor stays disabled on "No Coverage" until the vehicle has Collision / Other Than Collision).
+    const snapOthers = async (context) => { const cards = (await readCards(page)).filter((c) => c.title !== title && c.terms.some((t) => t.kind === 'select' && !t.disabled)); if (cards.length) pool.push({ label, context: `${title}: ${context}`, text: '', norm: '', shot: '', cards }); };
+    // Inside the controlling option a dependant may start blank (dealer Other Than Collision: Losses Covered is empty right after
+    // Coverage Type = Inventory Value Or Limit Of Insurance, so Deductible Type was never read under any Losses Covered - QA 11/06).
+    // Restoring the controlling dropdown resets it, so a blank start is fine there.
+    const usableDep = (info) => info && !/deductible/i.test(info.label) && !info.disabled && info.opts.length >= 2 && info.opts.length <= 12 && !info.opts.every((o) => /^(yes|no)$/i.test(o.t));
+    const blankStart = (info) => !info.cur || /nothing selected|^select|^please select/i.test(info.curText);
+    // NC Auto Dealers 11/07: UM Combined Single Limit 750,000 (Without UIM) made WriteBiz error on that and every later change, the
+    // card could not be restored and broke the dealer step and vehicles 4 runs running. At the first WriteBiz error: stop this card.
+    const errs0 = wbErrors;
+    const errored = () => wbErrors > errs0;
+    for (let si = 0; si < count && si < 8 && !errored(); si++) {
       const info = await infoAt(si);
       if (!usable(info)) continue;
       const sel = card.locator('select').nth(si);
       for (const o of info.opts) {
+        if (errored()) break;
         if (o.v === info.cur || /^no coverage$/i.test(o.t)) continue;
         const before = await depSig(card, si);
-        await sel.selectOption(o.v).catch(() => {});
+        await sel.selectOption(o.v, { timeout: 10000 }).catch((e) => console.log(`    ${title}: could not select ${info.label} = ${o.t} - ${e.message.split(String.fromCharCode(10))[0].slice(0, 120)}`));
         await settle(page, 1800);
-        await waitDependants(page, card, si, before);
+        await waitDependants(page, card, si, before, info.label);
         await snap(`${info.label} = ${o.t}`);
+        console.log(`    ${title}: ${info.label} = ${o.t}`); // heartbeat for the batch watchdog
+        if (si === 0) await snapOthers(`${info.label} = ${o.t}`);
         if (si === 0) { // dependent dropdowns under this option of the controlling one
           const now = await card.locator('select').count().catch(() => 0);
-          for (let sj = 1; sj < now && sj < 6; sj++) {
+          for (let sj = 1; sj < now && sj < 6 && !errored(); sj++) {
             const inf2 = await infoAt(sj);
-            if (!usable(inf2)) continue;
+            if (!usableDep(inf2)) continue;
             const sel2 = card.locator('select').nth(sj);
-            for (const q of ((l) => (l.length > 4 ? [...l.slice(0, 3), l[l.length - 1]] : l))(inf2.opts.filter((x) => x.v !== inf2.cur && !/^no coverage$/i.test(x.t)))) { // first 3 + the last (highest limit: some values only appear under it - QA 10/30)
+            const cand = inf2.opts.filter((x) => x.v !== inf2.cur && !/^no coverage$/i.test(x.t));
+            // Every Losses Covered / Coverage Type choice (each one sets its own Deductible Types - QA 11/06; not PIP's many
+            // "... Benefits Coverage" dropdowns - that made the PA PIP card run 15+ min); for limits the
+            // first 3 + the last (highest limit: some values only appear under it - QA 10/30).
+            const picks = /losses covered|coverage type/i.test(inf2.label) || cand.length <= 4 ? cand : [...cand.slice(0, 3), cand[cand.length - 1]];
+            for (const q of picks) {
+              if (errored()) break;
               const before2 = await depSig(card, sj);
-              await sel2.selectOption(q.v).catch(() => {});
+              await sel2.selectOption(q.v, { timeout: 10000 }).catch((e) => console.log(`    ${title}: could not select ${inf2.label} = ${q.t} - ${e.message.split(String.fromCharCode(10))[0].slice(0, 120)}`));
               await settle(page, 1500);
-              await waitDependants(page, card, sj, before2);
+              await waitDependants(page, card, sj, before2, inf2.label);
               await snap(`${info.label} = ${o.t}; ${inf2.label} = ${q.t}`);
+              console.log(`    ${title}: ${info.label} = ${o.t}; ${inf2.label} = ${q.t}`);
             }
-            await restoreSelect(page, sel2, inf2);
+            if (!blankStart(inf2)) await restoreSelect(page, sel2, inf2);
           }
         }
       }
+      if (errored()) console.log(`    ${title}: WriteBiz error while exercising ${info.label} - stopped exercising this card, restoring it`);
       await restoreSelect(page, sel, info);
       touched.push({ id, si, label: info.label, curText: info.curText, title });
+      // NC / MI Auto Dealers 11/07: a card whose coverage is OFF by default (Coverage Type = No Coverage) has had its dependants
+      // read under every Coverage Type option above. Exercising them again on their own raced the Coverage Type restore - Losses
+      // Covered could not be put back, WriteBiz kept the coverage on with a blank Deductible and refused the dealer location.
+      if (si === 0 && /^(no coverage|no|not applicable)$/i.test(info.curText) && info.opts.some((o) => o.v !== info.cur && !/^no coverage$/i.test(o.t))) break;
     }
   }
   if (touched.length) await verifyAgainstServer(page, touched, opts.rerender);
@@ -239,7 +336,7 @@ async function verifyAgainstServer(page, touched, rerender) {
     console.log(`  exercise: server kept ${wrong.length} exercised value(s) (attempt ${attempt}): ${wrong.map((w) => `${w.title}: ${w.label} = ${w.now} (want ${w.curText})`).join('; ')}`);
     for (const w of wrong) {
       const sel = page.locator(`[id="${w.id}"] select`).nth(w.si || 0);
-      await sel.selectOption({ label: w.curText }).catch(() => {});
+      await sel.selectOption({ label: w.curText }, { timeout: 10000 }).catch(() => {});
       await settle(page, 2500);
     }
   }
@@ -336,8 +433,27 @@ async function addExpectedFromGridOnce(page, opts) {
                 console.log(`  scheduled item ${n + 1} of "${row.name}": ${ok ? 'picked' : 'could NOT pick'} ${want[n]}`);
                 if (!ok && opts.shotDir) await page.screenshot({ path: require('path').join(opts.shotDir, `schedule-item-${n + 1}-pick-failed.png`) }).catch(() => {});
                 if (!ok) console.log('  schedule dialog dump: ' + JSON.stringify(await top.evaluate((m) => ({ selects: [...m.querySelectorAll('select')].map((e) => ({ id: e.id, vis: !!e.offsetParent, opts: [...e.options].map((o) => o.textContent.trim()).slice(0, 8) })), boxes: [...m.querySelectorAll('input[type=checkbox],input[type=radio]')].map((e) => ({ id: e.id, name: e.name, vis: !!e.offsetParent, txt: ((e.closest('label') || e.parentElement || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) })), text: m.innerText.replace(/\s+/g, ' ').slice(0, 400) }), undefined, { timeout: 3000 }).catch((e) => ({ err: String(e.message).slice(0, 150), modals: 0 }))));
-                const cards2 = await readCards(page, '.modal.show').catch(() => []);
-                pool.push({ label: `Add coverage: ${row.name}`, context: `scheduled item ${n + 1}: Named Individuals ${n === 0 ? 'Collision' : 'Other Than Collision'}`, text: '', norm: '', shot: '', cards: cards2.map((c) => ({ ...c, title: row.name })) });
+              }
+              // The item's own terms (QA 11/06: Garagekeepers / Drive Other Car Named Individuals options were never verified):
+              // read THIS item dialog - readCards(page, '.modal.show') returned the parent - exercise its dropdowns, keep its HTML.
+              if (scheduleSubs(row.name).length) {
+                await settle(page, 1500); // ticking the item's coverage re-renders the item with that coverage's terms
+                const itemSel = `[data-cr-item="${tag}"]`;
+                const titleFor = (cards) => scheduleTitles(top, row.name, cards);
+                const cards2 = await readCards(page, itemSel).catch(() => []);
+                const titled = await titleFor(cards2);
+                console.log(`  scheduled item ${n + 1} of "${row.name}": terms read as ${JSON.stringify([...new Set(titled.map((c) => c.title))])} (${cards2.reduce((k, c) => k + c.terms.length, 0)} terms)`);
+                pool.push({ label: `Add coverage: ${row.name}`, context: `scheduled item ${n + 1}`, text: '', norm: '', shot: '', cards: titled });
+                if (opts.shotDir) require('fs').writeFileSync(require('path').join(opts.shotDir, `schedule-${norm(row.name).replace(/ /g, '_').slice(0, 40)}-${norm(label).replace(/ /g, '_').slice(0, 30)}-item-${n + 1}.html`), await top.evaluate((m) => m.outerHTML).catch(() => ''));
+                const modalsNow = await page.locator('.modal.show').count();
+                // the item's coverage picker (Named Individuals Collision / Other Than Collision ...) stays on the item's pick
+                const skip = (info) => info.opts.some((o) => /named individuals|indivs|garagekeepers/i.test(o.t));
+                await exerciseDialog(page, top, pool, row.name, { root: itemSel, titleFor, skip }).catch((e) => console.log(`  exerciseDialog (item ${n + 1}): ${e.message.split(String.fromCharCode(10))[0]}`));
+                // a re-rendered item dialog loses its tag - re-pin it, or the Save loop below would count a vanished dialog as saved
+                if (await top.count() === 0 && await page.locator('.modal.show').count() >= modalsNow) {
+                  await page.locator('.modal.show').last().evaluate((m, t) => m.setAttribute('data-cr-item', t), tag).catch(() => {});
+                  console.log(`  scheduled item ${n + 1} of "${row.name}": item dialog re-rendered during the exercise - re-pinned`);
+                }
               }
               for (let attempt = 0; attempt < 3; attempt++) {
                 await completeDialog(page, top, effectiveDate);
@@ -388,4 +504,4 @@ async function addExpectedFromGridOnce(page, opts) {
   return [...done];
 }
 
-module.exports = { addExpectedFromGrid, readGrid, exerciseCards };
+module.exports = { addExpectedFromGrid, readGrid, exerciseCards, scheduleTitles };

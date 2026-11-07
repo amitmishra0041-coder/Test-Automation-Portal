@@ -139,8 +139,13 @@ async function repairVehicleErrors(page, deps, maxFixes = 4) {
     await page.waitForLoadState('domcontentloaded').catch(() => {});
     const errBox = page.locator('.modal.show').filter({ hasText: /Errors/ }).first();
     if (!await errBox.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) return true; // Next accepted
+    // MI Auto Dealers 11/07: the box can be collapsed ("▶3: (VIN) ...: 2 fields need attention") with no field names - expand
+    // its rows so the repair knows which fields to fill
+    for (const t of await errBox.locator('[data-toggle="collapse"], [data-bs-toggle="collapse"], .collapsed').all().catch(() => [])) await t.click({ timeout: 2000 }).catch(() => {});
+    for (const t of await errBox.getByText(/^\s*[▶►]/).all().catch(() => [])) await t.click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(600);
     const text = (await errBox.innerText().catch(() => '')).replace(/\s+/g, ' ');
-    const veh = Number((/(?:^|\s)(\d+):\s*\(/.exec(text) || [])[1] || 0);
+    const veh = Number((/(?:^|[\s▶►])(\d+):\s*\(/.exec(text) || [])[1] || 0);
     const field = (/Missing required field "(.*?)"(?=\s*(?:Edit\b|Close\b|Location \d|\d+:|[A-Z][A-Za-z ]*:|$))/.exec(text) || [])[1] || '';
     log(`Vehicles Next refused (fix ${fix}): ${text.slice(0, 260)}`);
     if (fix === maxFixes) break;
@@ -274,6 +279,17 @@ async function repairGridCoverageErrors(page, deps, maxFixes = 3) {
     const covs = [...new Set([...text.matchAll(/:\s*([^:]+?)\s+-\s+Missing required field "/g)].map((m) => m[1].replace(/\s+Coverage$/i, '').trim()))];
     await box.locator('#ActivityImpediments_dialog_btn_0, button:has-text("Close")').first().click({ timeout: 5000 }).catch(() => {});
     await box.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    // DE Auto Dealers 11/07: WriteBiz can raise the Attention box TWICE - the second stayed open over the grid and swallowed the
+    // click on the coverage's edit button ("dialog did not open; open modals: Attention [0 fields] x2"). Close every one.
+    const closeAttention = async () => {
+      for (let k = 0; k < 5; k++) {
+        const att = page.locator('.modal.show').filter({ hasText: /Attention|Missing required field/i }).filter({ hasNot: page.locator('select, input:not([type=hidden])') }).first();
+        if (!await att.isVisible().catch(() => false)) break;
+        await att.locator('#ActivityImpediments_dialog_btn_0, button:has-text("Close"), button:has-text("OK")').first().click({ timeout: 4000 }).catch(() => {});
+        await att.waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
+      }
+    };
+    await closeAttention();
     // the sub-tab link is <a class="nav-link" value="Static|...AdditionalCoverages.aspx">Additional Coverages</a>
     const subTab = page.locator('a.nav-link[value*="AdditionalCoverages"]:visible').or(page.locator('a.nav-link:visible').filter({ hasText: /^\s*Additional Coverages\s*$/ })).first();
     // After "Save Auto Dealers" WriteBiz shows the list of dealer LOCATIONS (DE 10/30: one row "Franchised Private Passenger
@@ -313,9 +329,19 @@ async function repairGridCoverageErrors(page, deps, maxFixes = 3) {
         continue;
       }
       const row = page.locator('table tbody tr').nth(idx);
+      // DE Auto Dealers 11/07: '.modal.show'.last() right after the click was an empty box already open on the page (0 controls),
+      // not the coverage's edit dialog - wait for the dialog that carries the coverage name, or a NEW one with fields.
+      await closeAttention(); // a box raised again while the location / sub-tab loaded would swallow the edit click
+      const before = await page.locator('.modal.show').count();
       await row.locator('button[data-action="Edit"], [title*="Edit" i], i.fa-edit, i.fa-pen-to-square').first().click({ timeout: 5000 }).catch(() => {});
-      const dlg = page.locator('.modal.show').last();
-      if (!await dlg.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false)) { log(`grid coverage fix: "${cov}" dialog did not open`); continue; }
+      const covRe = new RegExp(cov.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'), 'i');
+      let dlg = page.locator('.modal.show').filter({ hasText: covRe }).filter({ has: page.locator('select, input:not([type=hidden])') }).last();
+      let opened = await dlg.waitFor({ state: 'visible', timeout: 12000 }).then(() => true).catch(() => false);
+      if (!opened && await page.locator('.modal.show').count() > before) {
+        dlg = page.locator('.modal.show').filter({ has: page.locator('select, input:not([type=hidden])') }).last();
+        opened = await dlg.isVisible().catch(() => false);
+      }
+      if (!opened) { log(`grid coverage fix: "${cov}" dialog did not open; open modals: ${JSON.stringify(await page.locator('.modal.show').evaluateAll((ms) => ms.map((m) => `${(m.querySelector('.modal-title, .modal-header') || m).textContent.replace(/\s+/g, ' ').trim().slice(0, 70)} [${m.querySelectorAll('select, input:not([type=hidden])').length} fields]`)).catch(() => []))}`); continue; }
       await page.waitForTimeout(800);
       const filled = [];
       for (let round = 0; round < 3; round++) { // each pick can reload the next dropdown
@@ -332,10 +358,29 @@ async function repairGridCoverageErrors(page, deps, maxFixes = 3) {
           await dismiss();
         }
       }
+      // DE Auto Dealers 11/07: the PIP Endorsement's required "Personal Injury Protection For Bodily Injury" and Deductible are
+      // DISABLED and blank in the dialog (WriteBiz defect, like CO's UMPD Limit) - nothing above can pick them. Same last resort
+      // as CO: enable, set the first real option, fire WriteBiz's change handler. Logged as forced so the result says so.
+      if (!filled.length) {
+        const forced = await dlg.evaluate((m) => [...m.querySelectorAll('select')].filter((s) => s.disabled && !s.value && [...s.options].some((o) => o.value)).map((s) => {
+          const o = [...s.options].find((x) => x.value && !/no coverage|not applicable/i.test(x.textContent)) || [...s.options].find((x) => x.value);
+          s.disabled = false; s.value = o.value;
+          // no change event: on the live DE dialog (11/07) it started WriteBiz's "Updating terms..." call, which never finished and
+          // left the dialog unsaved - the values go up with the dialog's Save instead
+          const $j = window.jQuery || window.$;
+          if ($j) { try { $j(s).selectpicker && $j(s).selectpicker('refresh'); } catch (e) { /* plain select */ } }
+          return `${s.id}=${o.textContent.trim()} (was disabled)`;
+        })).catch(() => []);
+        if (forced.length) { filled.push(...forced); await page.waitForTimeout(1500); await dismiss(); log(`grid coverage fix: "${cov}" force-set ${JSON.stringify(forced)}`); }
+      }
       log(`grid coverage fix: "${cov}" filled ${JSON.stringify(filled)}`);
       if (!filled.length) log(`grid coverage fix: "${cov}" dialog controls: ${JSON.stringify(await dlg.evaluate((m) => [...m.querySelectorAll('select, input:not([type=hidden]), textarea')].map((s) => ({ tag: s.tagName, id: s.id, req: s.getAttribute('data-requiredmessage') || '', disabled: s.disabled, visible: !!(s.offsetParent || (s.closest('.bootstrap-select') || s).getClientRects().length), value: s.value, opts: s.options ? [...s.options].map((o) => `${o.value}=${o.textContent.trim()}`).slice(0, 8) : undefined }))).catch((e) => e.message))}`);
       await dlg.locator('button:has-text("Save")').first().click({ timeout: 5000 }).catch(() => {});
-      await dlg.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+      if (!await dlg.waitFor({ state: 'hidden', timeout: 30000 }).then(() => true).catch(() => false)) {
+        const busy = await page.locator('#dgic-status-message').innerText({ timeout: 2000 }).catch(() => '');
+        log(`grid coverage fix: "${cov}" dialog did not save - WRITEBIZ DEFECT: required fields disabled${busy ? `; WriteBiz busy: "${busy.replace(/\s+/g, ' ').trim().slice(0, 60)}"` : ''}`);
+        await dlg.locator('button:has-text("Close"), button:has-text("Cancel")').first().click({ timeout: 4000 }).catch(() => {});
+      }
       await dismiss();
     }
     await saveTab();

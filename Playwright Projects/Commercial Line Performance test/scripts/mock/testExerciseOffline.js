@@ -43,7 +43,9 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
     const dom = await page.evaluate(() => [...document.querySelectorAll('[id^="xacc_Card_"] .FieldSpacing:first-of-type select')].map((s) => s.selectedOptions[0].textContent));
     check(`fix (${fails} failed restore post(s)): server back on defaults`, srv.CollisionGRD === 'No Coverage' && srv.GKOTC === 'No Coverage', JSON.stringify(srv));
     check(`fix (${fails} failed restore post(s)): page shows defaults after re-render`, dom.filter((t, i) => i % 1 === 0).every((t) => t === 'No Coverage' || t === 'Nothing selected'), JSON.stringify(dom));
-    check(`fix (${fails}): every non-default option was exercised`, pool.length === 3, `${pool.length} option snapshots: ${pool.map((p) => p.context).join(' | ')}`);
+    // the card's own snapshots; "<card>: ..." entries are the other cards re-read under that selection (QA 11/06)
+    const own = pool.filter((p) => !/^[^=]*: /.test(p.context || ''));
+    check(`fix (${fails}): every non-default option was exercised`, own.length === 3, `${own.length} option snapshots: ${own.map((p) => p.context).join(' | ')}`);
   }
   await browser.close();
   console.log(failed ? `\n${failed} check(s) FAILED` : '\nALL CHECKS PASSED');

@@ -39,7 +39,7 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
   for (const [opts, want] of [[{ skip: /^Hired Auto/i }, ['Uninsured Motorists Coverage']], [{ only: /^Hired Auto/i }, ['Hired Auto Collision']]]) {
     const pool = [];
     await exerciseCards(page, pool, 'mock state page', 40, { rerender: async () => {}, ...opts });
-    const titles = [...new Set(pool.flatMap((p) => p.cards.map((c) => c.title)))];
+    const titles = [...new Set(pool.filter((p) => !/^[^=]*: /.test(p.context || '')).flatMap((p) => p.cards.map((c) => c.title)))]; // own snapshots only
     check(`${opts.skip ? 'skip' : 'only'} Hired Auto: exercised ${JSON.stringify(want)}`, JSON.stringify(titles) === JSON.stringify(want), JSON.stringify(titles));
   }
   await browser.close();

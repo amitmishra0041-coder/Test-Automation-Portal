@@ -37,7 +37,8 @@ check('Liability aggregate limits still expected on Auto Dealers', liab('AUTO_DE
 const hl = one('BUSINESS_AUTO', 'Hired Auto Liability', 'Liability Coverage Type', ['Combined Single Limit']).find((t) => t.term === 'Liability Coverage Type' && t.expected.length) || {};
 check('Hired Auto Liability Coverage Type without "No Coverage" -> NOT_APPLICABLE', hl.status === 'NOT_APPLICABLE', `${hl.status} / ${hl.note}`);
 const lc = one('BUSINESS_AUTO', 'Truck Other Than Collision', 'Losses Covered', ['Comprehensive', 'Fire Only', 'Fire and Theft Only', 'Fire, Theft and Windstorm Only', 'Limited Specified Causes Of Loss', 'Specified Causes Of Loss']).find((t) => t.term === 'Losses Covered' && t.expected.length) || {};
-check('Truck Losses Covered without "No Coverage" -> NOT_APPLICABLE', lc.status === 'NOT_APPLICABLE', `${lc.status} / ${JSON.stringify(lc.missing)} / ${lc.note}`);
+// QA 11/06 reversed the 11/05 rule: Losses Covered without "No Coverage" is PARTIAL
+check('Truck Losses Covered without "No Coverage" -> PARTIAL (QA 11/06)', lc.status === 'PARTIAL' && JSON.stringify(lc.missing) === '["No Coverage"]', `${lc.status} / ${JSON.stringify(lc.missing)} / ${lc.note}`);
 const sc = one('BUSINESS_AUTO', 'Special Types Collision', 'Collision Coverage Type', ['No Coverage', 'ACV', 'Collision']).find((t) => t.term === 'Collision Coverage Type' && t.expected.length) || {};
 check('Special Types Blanket Collision (needs PolicyCenter) ignored -> MATCH with a note', sc.status === 'MATCH' && /6680/.test(sc.note || '') && !sc.expected.includes('Blanket Collision'), `${sc.status} / ${sc.note}`);
 const sc2 = one('BUSINESS_AUTO', 'Special Types Collision', 'Collision Coverage Type', ['No Coverage', 'ACV']).find((t) => t.term === 'Collision Coverage Type' && t.expected.length) || {};
