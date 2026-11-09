@@ -35,6 +35,10 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${na
   c = await open({ waitMs: 2500, tries: 2 });
   check('no location ever offered: returns [] (the flow then fails loudly)', Array.isArray(c) && c.length === 0, JSON.stringify(c));
 
+  await page.goto(`${BASE}?prefill=1`);
+  c = await open({ waitMs: 8000 });
+  check('Vehicle Prefill dialog over the page (WI): closed first, tab opens, location returned', c.length === 1 && /CLAutoDealers/.test(page.url()), JSON.stringify(c));
+
   await page.goto(`${BASE}?existing=1`);
   const t0 = Date.now();
   c = await open({ waitMs: 20000, tries: 1 });

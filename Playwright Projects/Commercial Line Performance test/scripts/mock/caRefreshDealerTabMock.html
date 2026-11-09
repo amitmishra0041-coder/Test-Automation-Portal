@@ -2,12 +2,13 @@
 <html><head><meta charset="utf-8"><title>Dealer tab mock</title></head>
 <body>
 <!-- Mimics WriteBiz's ajax tab: clicking li#CLAutoDealers swaps the content after a delay, and the "Add New Location" list is filled later still.
-     ?overlay=1  a status overlay covers the page for 3 s     ?none=1  the list never gets a location     ?already=1  starts on the Auto Dealers tab     ?existing=1  the grid already lists a location, the list stays empty -->
+     ?overlay=1  a status overlay covers the page for 3 s     ?none=1  the list never gets a location     ?already=1  starts on the Auto Dealers tab     ?prefill=1  a Vehicle Prefill dialog covers the tab until Cancel     ?existing=1  the grid already lists a location, the list stays empty -->
 <div id="dgic-status-message" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:9"><button>OK</button></div>
 <ul>
   <li id="CLAutoDealers" onclick="goDealers()"><a class="nav-link" href="#t"><i></i>&nbsp;&nbsp;Auto Dealers</a></li>
   <li id="CLAutoVehicles"><a class="nav-link" href="#v">Vehicles</a></li>
 </ul>
+<div id="prefill" class="modal show" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:8"><div>Vehicle Prefill <button onclick="document.getElementById('prefill').style.display='none'">Cancel</button></div></div>
 <div id="content">Vehicles - Summary</div>
 <script>
   const q = new URLSearchParams(location.search);
@@ -19,6 +20,7 @@
     }, 1500);
   }
   function goDealers() { setTimeout(() => { history.replaceState(null, '', '?p=CLAutoDealers' + location.search.replace('?', '&')); dealers(); }, 1500); }
+  if (q.has('prefill')) document.getElementById('prefill').style.display = 'block'; // a dialog over the page swallows the tab click
   if (q.has('overlay')) {
     const o = document.getElementById('dgic-status-message'); o.style.display = 'block';
     setTimeout(() => { o.style.display = 'none'; }, 3000);

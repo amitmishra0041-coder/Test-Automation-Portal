@@ -71,7 +71,7 @@ function termSummary(t) {
 }
 
 // Login -> search the quote on the landing page -> open its account -> open the quote row. Same screens as accountCreationHelper.
-async function openSubmission(page, { writeBizUrl, state, sub, dismiss, log = () => {}, dump = async () => {} }) {
+async function openSubmission(page, { writeBizUrl, state, sub, dismiss, log = () => {}, dump = async () => {}, relogin = false }) {
   // same order as createAccountAndQualify: the state's own login, the generic one, then the DE login (most states have no login of their own)
   const own = { u: process.env['WB_USER_' + state], p: process.env['WB_PASS_' + state] };
   const generic = { u: process.env.WB_USER, p: process.env.WB_PASS };
@@ -80,16 +80,19 @@ async function openSubmission(page, { writeBizUrl, state, sub, dismiss, log = ()
   if (!user || !pass) throw new Error(`Missing credentials for ${state}: set WB_USER / WB_PASS or WB_USER_${state} / WB_PASS_${state} in .env`);
   await page.goto(writeBizUrl);
   const u = page.getByRole('textbox', { name: 'User ID:' }).or(page.getByRole('textbox', { name: 'Username' })).first();
-  await u.waitFor({ state: 'visible' });
-  await u.fill(user);
-  await page.getByRole('textbox', { name: 'Password:' }).or(page.getByRole('textbox', { name: 'Password' })).first().fill(pass);
-  const legacy = page.locator('#btnLogin');
-  if (await legacy.isVisible({ timeout: 2000 }).catch(() => false)) await legacy.click(); else await page.getByRole('button', { name: 'Log In' }).click();
-  await page.waitForLoadState('domcontentloaded');
-  await dismiss();
+  // already signed in (a run reopening its own quote from a stuck page): the address lands on the landing page, no login form
+  const loginForm = await u.waitFor({ state: 'visible', timeout: relogin ? 8000 : 30000 }).then(() => true).catch((e) => { if (!relogin) throw e; return false; });
+  if (loginForm) {
+    await u.fill(user);
+    await page.getByRole('textbox', { name: 'Password:' }).or(page.getByRole('textbox', { name: 'Password' })).first().fill(pass);
+    const legacy = page.locator('#btnLogin');
+    if (await legacy.isVisible({ timeout: 2000 }).catch(() => false)) await legacy.click(); else await page.getByRole('button', { name: 'Log In' }).click();
+    await page.waitForLoadState('domcontentloaded');
+    await dismiss();
+  }
   await page.locator('#btn_CreateClient').waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
   await dump('landing');
-  log('Logged in');
+  log(loginForm ? 'Logged in' : 'Already signed in');
   // landing dashboard: "Quote / Policy Number" box + Search button (seen live 10/29)
   await page.locator('#txtQuoteNumber').fill(sub);
   await page.locator('#btn_Search').click();

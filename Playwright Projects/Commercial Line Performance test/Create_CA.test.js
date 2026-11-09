@@ -531,7 +531,17 @@ test('CA Submission', async ({ page }, testInfo) => {
     // Never run the dealer steps on another page (DE 10/30 ran them on Vehicles after an off-by-one Next): open the tab and WAIT for
     // its "Add New Location" list - 9 runs 11/04-11/07 read it straight after the click, saw nothing, skipped the whole dealer
     // step and still said "Location Added" (the WriteBiz grid then read "No Locations found").
-    const choices = await openAutoDealersTab(page, { dismiss: dismissStatusModal, log: (m) => console.log(m) });
+    let choices = await openAutoDealersTab(page, { dismiss: dismissStatusModal, log: (m) => console.log(m) });
+    // WI 11/09: Next from State-Specific Info lands on a Vehicles page that WriteBiz answers with "An unexpected error occurred" - every tab
+    // click from there fails (the same tab opens fine from a freshly opened quote). Reopen this quote from the landing page, then the tab.
+    if (!choices.length && !(await dealerGridState(page)).rows && !/CLAutoDealers/i.test(page.url())) {
+      const quoteNo = ((await page.locator('body').innerText().catch(() => '')).match(/\b(\d{10})-\d+\s*:/) || [])[1];
+      if (quoteNo) {
+        console.log(`Auto Dealers: not reachable from ${page.url()} - reopening quote ${quoteNo} from the landing page`);
+        await resumeRun.openSubmission(page, { writeBizUrl, state: testState, sub: quoteNo, dismiss: dismissStatusModal, log: (m) => console.log(m), relogin: true });
+        choices = await openAutoDealersTab(page, { dismiss: dismissStatusModal, log: (m) => console.log(m), tries: 2 });
+      }
+    }
     await crSnap('Auto Dealers - Locations');
     console.log(`Dealer location options: ${JSON.stringify(choices.map((c) => c.text))}`);
     // A submission can already have its dealer location (WriteBiz adds one with the class defaults, or an earlier run did): its
@@ -548,6 +558,7 @@ test('CA Submission', async ({ page }, testInfo) => {
       await page.waitForTimeout(1500);
       await dismissStatusModal();
     }
+    if (existingLocation && !picked) throw new Error('AUTO_DEALERS_LOCATION_NOT_OPENED: the dealer location on the grid could not be opened for edit, so none of its coverages could be checked');
     for (let attempt = 1; attempt <= 2 && !picked; attempt++) {
       await page.locator('#ddlAddNewDealer').selectOption(choices[0].value).catch((e) => console.log(`Dealer location select failed: ${e.message.split('\n')[0]}`));
       await page.waitForTimeout(1500);

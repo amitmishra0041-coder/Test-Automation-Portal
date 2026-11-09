@@ -9,11 +9,28 @@ const dealerChoices = (page) => page.locator('#ddlAddNewDealer option')
   .evaluateAll((os) => os.filter((o) => o.value && !/add new/i.test(o.textContent)).map((o) => ({ value: o.value, text: o.textContent.trim() })))
   .catch(() => []);
 
+// A dialog open over the page swallows the tab click (WI: Next from State-Specific Info lands on Vehicles with the "Vehicle Prefill" dialog
+// open - every click on the Auto Dealers tab hit its backdrop, the address never changed). Closes any open dialog except the status
+// message (its Cancel / Close button) and logs what it was.
+async function closeBlockingDialogs(page, log = () => {}) {
+  for (let k = 0; k < 4; k++) {
+    const dlg = page.locator('.modal.show:not(#dgic-status-message)').filter({ visible: true }).last();
+    if (!await dlg.isVisible().catch(() => false)) return;
+    const title = ((await dlg.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').trim().slice(0, 90);
+    const btn = dlg.locator('button:has-text("Cancel"), button:has-text("Close")').first();
+    log(`Auto Dealers: closing the open dialog "${title}"`);
+    await btn.click({ timeout: 5000 }).catch((e) => log(`Auto Dealers: dialog button: ${e.message.split('\n')[0]}`));
+    await dlg.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500);
+  }
+}
+
 // Opens the Auto Dealers tab (when not already on it) and waits until the list offers a location. Returns the choices ([] = none
 // after `tries` tries, or the grid already lists a location - check dealerGridState). Clicks the tab by its own id; the last tries force the click past an overlay.
 async function openAutoDealersTab(page, { dismiss = async () => {}, log = () => {}, tries = 4, waitMs = 30000 } = {}) {
   for (let attempt = 1; attempt <= tries; attempt++) {
     await dismiss();
+    await closeBlockingDialogs(page, log);
     let choices = await dealerChoices(page);
     if (!(choices.length && /CLAutoDealers/i.test(page.url()))) {
       log(`Auto Dealers: opening the tab (try ${attempt}/${tries}, on ${page.url()})`);
