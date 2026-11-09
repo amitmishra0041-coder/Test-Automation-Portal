@@ -1,0 +1,28 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Dealer tab mock</title></head>
+<body>
+<!-- Mimics WriteBiz's ajax tab: clicking li#CLAutoDealers swaps the content after a delay, and the "Add New Location" list is filled later still.
+     ?overlay=1  a status overlay covers the page for 3 s     ?none=1  the list never gets a location     ?already=1  starts on the Auto Dealers tab     ?existing=1  the grid already lists a location, the list stays empty -->
+<div id="dgic-status-message" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:9"><button>OK</button></div>
+<ul>
+  <li id="CLAutoDealers" onclick="goDealers()"><a class="nav-link" href="#t"><i></i>&nbsp;&nbsp;Auto Dealers</a></li>
+  <li id="CLAutoVehicles"><a class="nav-link" href="#v">Vehicles</a></li>
+</ul>
+<div id="content">Vehicles - Summary</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  function dealers() {
+    document.getElementById('content').innerHTML = '<select id="ddlAddNewDealer"><option value="">Add New Location</option></select>' + (q.has('existing') ? '<table><tbody><tr><td>1</td><td>200 PUBLIC SQ, CLEVELAND OH</td><td>Franchised</td><td>Full Covered</td><td>7304</td><td><i class="fa-edit">e</i></td></tr></tbody></table>' : '<table><tbody><tr><td colspan="6">No Locations found.</td></tr></tbody></table>');
+    if (!q.has('none') && !q.has('existing')) setTimeout(() => {
+      const o = document.createElement('option'); o.value = '255630'; o.textContent = '1) MAIN ST, NEWARK DE';
+      document.getElementById('ddlAddNewDealer').appendChild(o);
+    }, 1500);
+  }
+  function goDealers() { setTimeout(() => { history.replaceState(null, '', '?p=CLAutoDealers' + location.search.replace('?', '&')); dealers(); }, 1500); }
+  if (q.has('overlay')) {
+    const o = document.getElementById('dgic-status-message'); o.style.display = 'block';
+    setTimeout(() => { o.style.display = 'none'; }, 3000);
+  }
+  if (q.has('already')) { history.replaceState(null, '', '?p=CLAutoDealers&already=1'); dealers(); }
+</script>
+</body></html>

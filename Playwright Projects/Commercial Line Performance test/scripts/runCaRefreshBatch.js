@@ -26,12 +26,22 @@ fs.mkdirSync(outDir, { recursive: true });
 const summaryFile = path.join(outDir, 'summary.txt');
 const say = (s) => { fs.appendFileSync(summaryFile, s + '\n'); };
 
+// --resume 1: reuse each run's existing submission (the quote in its saved test-data-<state>-CARefresh-<lob>.json) and redo only the
+// Auto Dealers step - no new account (saves ~25 of ~40 min); the result document is rebuilt from the old results + the new step.
+const resume = arg('resume', '0') === '1';
+const resumeQuote = (state, lob) => {
+  if (!resume) return '';
+  try { return String(JSON.parse(fs.readFileSync(path.join(ROOT, 'runtime-data', `test-data-${state}-CARefresh-${lob}.json`), 'utf8')).quoteNumber || '').replace(/D/g, ''); } catch (e) { return ''; }
+};
+
 const runOne = (state, lob) => new Promise((resolve) => {
   const log = path.join(outDir, `${state}-${lob}.log`);
+  if (resume && !resumeQuote(state, lob)) { fs.writeFileSync(log, `RESUME_NO_BASELINE: no saved quote for ${state} ${lob}
+`); return resolve({ state, lob, doc: '', validation: '', status: 'FAIL', err: 'RESUME_NO_BASELINE: no saved quote to resume', log }); }
   const out = fs.openSync(log, 'w');
   const p = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['playwright', 'test', 'Create_CA.test.js', '--project=chromium', '--retries=0', `--output=${arg('output', 'test-results-qa')}`], {
     cwd: ROOT, shell: process.platform === 'win32', stdio: ['ignore', out, out],
-    env: { ...process.env, PW_HEADLESS: arg('headless', '1') === '0' ? '' : '1', TEST_ENV: env, TEST_STATE: state, CA_REFRESH: '1', CA_REFRESH_LOB: lob, TEST_DATA_TAG: `CARefresh-${lob}`, CA_REFRESH_STOP_AT: until === 'RATING' ? 'RATING' : '' },
+    env: { ...process.env, PW_HEADLESS: arg('headless', '1') === '0' ? '' : '1', TEST_ENV: env, TEST_STATE: state, CA_REFRESH: '1', CA_REFRESH_LOB: lob, TEST_DATA_TAG: `CARefresh-${lob}`, CA_REFRESH_STOP_AT: until === 'RATING' ? 'RATING' : '', CA_RESUME_QUOTE: resumeQuote(state, lob) },
   });
   const killer = setTimeout(() => { try { process.platform === 'win32' ? spawn('taskkill', ['/PID', String(p.pid), '/T', '/F']) : p.kill('SIGKILL'); } catch (e) { /* ignore */ } }, 70 * 60 * 1000); // the test itself stops at 60 min
   p.on('close', () => {
@@ -73,7 +83,7 @@ const mail = async (state, results) => {
       // QA reads the documents from the team share: copy each one there as soon as its run reaches rating (--share 0 = off)
       if (shareRoot && r.doc && fs.existsSync(r.doc) && /OK Quote Rated Successfully/.test(fs.readFileSync(r.log, 'utf8'))) {
         // --share-date 2026-11-05 keeps a multi-day batch in one dated folder (default: today)
-        const d = new Date(); const dir = path.join(shareRoot, arg('share-date', '') || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        const d = new Date(); const dir = path.join(shareRoot, (arg('share-date', '') || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`) + (resume ? '-updated' : '')); // resumed runs: their own dated folder
         try { fs.mkdirSync(dir, { recursive: true }); fs.copyFileSync(r.doc, path.join(dir, path.basename(r.doc))); say(`  copied to ${dir}`); } catch (e) { say(`  copy to ${dir} failed: ${e.message}`); }
       }
       noDocStreak = r.doc ? 0 : noDocStreak + 1;

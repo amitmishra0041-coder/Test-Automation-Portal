@@ -13,6 +13,8 @@ const caRefresh = require('./helpers/caRefreshValidator');
 const { writeCaRefreshDoc } = require('./helpers/caRefreshReport');
 const { addExpectedFromGrid, exerciseCards } = require('./helpers/caRefreshAdditional');
 const { repairVehicleErrors, repairCoverageErrors, repairGridCoverageErrors, removeBlankVehicles, repostField } = require('./helpers/caRefreshVehicleRepair');
+const { openAutoDealersTab, dealerGridState } = require('./helpers/caRefreshDealerLocation');
+const resumeRun = require('./helpers/caRefreshResume');
 const fs   = require('fs');
 const path = require('path');
 
@@ -66,6 +68,15 @@ test('CA Submission', async ({ page }, testInfo) => {
     addCoverageTimings: []
   };
 
+  // CA_RESUME_QUOTE=<quote number>: reuse that run's submission (Auto Dealers step redone, result document rebuilt) instead of a new
+  // account + submission. The previous run's saved data is read (and backed up) BEFORE this start-up rewrites the data file.
+  const resumeQuote = process.env.CA_REFRESH === '1' ? String(process.env.CA_RESUME_QUOTE || '').trim() : '';
+  let resumeBase = null;
+  if (resumeQuote) {
+    resumeBase = resumeRun.prepare({ runtimeDir: RUNTIME_DIR, state: testState, lob: process.env.CA_REFRESH_LOB === 'AUTO_DEALERS' ? 'AUTO_DEALERS' : 'BUSINESS_AUTO', tag: process.env.TEST_DATA_TAG, quote: resumeQuote });
+    Object.assign(global.testData, resumeBase.prev);
+    console.log(`CA Refresh RESUME: reusing submission ${resumeQuote}; previous results backed up in ${resumeBase.backup}`);
+  }
   const testDataFile = path.join(RUNTIME_DIR, `test-data-${testState}${process.env.TEST_DATA_TAG ? '-' + process.env.TEST_DATA_TAG : ''}.json`);
   fs.writeFileSync(testDataFile, JSON.stringify(global.testData, null, 2));
   console.log(`Initialized test data for ${testState}`);
@@ -122,13 +133,17 @@ test('CA Submission', async ({ page }, testInfo) => {
   const crAdditions  = [];
   const stopAtRating = caRefreshOn && /^rat/i.test(process.env.CA_REFRESH_STOP_AT || ''); // default: run through to issuance
   const crShotDir    = path.join(RUNTIME_DIR, 'ca-refresh', `${testState}-${caRefreshLob}`);
-  if (caRefreshOn) { fs.rmSync(crShotDir, { recursive: true, force: true }); fs.mkdirSync(crShotDir, { recursive: true }); }
+  if (caRefreshOn) { if (!resumeBase) fs.rmSync(crShotDir, { recursive: true, force: true }); fs.mkdirSync(crShotDir, { recursive: true }); } // a resumed run keeps its snapshots
   const crSnap = async (label) => { if (caRefreshOn) await caRefresh.snapshot(page, label, crPool, crShotDir); };
 
   async function crWriteDoc(status, error) {
     if (!caRefreshOn) return;
     try {
       const validation = caRefresh.evaluate(caRefreshLob, testState, crPool);
+      if (resumeBase) { // pages that were not redone keep the previous run's term checks; the redone Auto Dealers pages bring their own
+        validation.termChecks = resumeRun.mergeTermChecks(resumeBase.prev.caRefresh.termChecks, validation.termChecks, /Auto Dealers/i);
+        Object.assign(validation.summary, resumeRun.termSummary(validation.termChecks));
+      }
       // A coverage that was added through its "+" button (and shows selected) is present, even when the page does not
       // print the form number / wording the precondition uses.
       for (const r of validation.results) {
@@ -153,7 +168,7 @@ test('CA Submission', async ({ page }, testInfo) => {
         executedAt: new Date().toISOString(), status: overall,
         error: error || (overall !== status ? `${s.missing} expected coverage(s) not found in WriteBiz, ${s.termMismatches} term/option mismatch(es) vs the product model, ${s.additionsFailed} additional coverage(s) that could not be added` : ''),
         milestones: global.testData.milestones, validation, shots: crPool.map((p) => ({ label: p.label, file: p.shot })),
-      }, path.join(RUNTIME_DIR, 'ca-refresh', `CARefresh_${caRefreshLob}_${testState}_${envName}_${Date.now()}.docx`));
+      }, path.join(RUNTIME_DIR, 'ca-refresh', ...(resumeBase ? ['updated'] : []), `CARefresh_${caRefreshLob}_${testState}_${envName}_${Date.now()}.docx`)); // a resumed run's document goes in its own folder
       // One line per run for the Runner's CA Refresh results history (newest last).
       try {
         fs.appendFileSync(path.join(RUNTIME_DIR, 'ca-refresh', 'history.jsonl'), JSON.stringify({
@@ -513,30 +528,43 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   async function addDealerLocation() {
     await dismissStatusModal();
-    // Never run the dealer steps on another page (DE 10/30 ran them on Vehicles after an off-by-one Next): open the tab.
-    if (!/CLAutoDealers/i.test(page.url())) {
-      console.log(`Auto Dealers: not on the Auto Dealers tab (${page.url()}) - opening it`);
-      await page.locator('a:visible, li:visible').filter({ hasText: /^\s*Auto Dealers\s*$/ }).first().click({ timeout: 8000 }).catch(() => {});
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-      await dismissStatusModal();
-    }
+    // Never run the dealer steps on another page (DE 10/30 ran them on Vehicles after an off-by-one Next): open the tab and WAIT for
+    // its "Add New Location" list - 9 runs 11/04-11/07 read it straight after the click, saw nothing, skipped the whole dealer
+    // step and still said "Location Added" (the WriteBiz grid then read "No Locations found").
+    const choices = await openAutoDealersTab(page, { dismiss: dismissStatusModal, log: (m) => console.log(m) });
     await crSnap('Auto Dealers - Locations');
-    const opts = await page.locator('#ddlAddNewDealer option').allInnerTexts().catch(() => []);
-    console.log(`Dealer location options: ${JSON.stringify(opts)}`);
-    const optValue = await page.locator('#ddlAddNewDealer option').evaluateAll((os) => (os.find((o) => o.value && !/add new/i.test(o.textContent)) || {}).value).catch(() => null);
-    await page.locator('#ddlAddNewDealer').selectOption(optValue).catch((e) => console.log(`Dealer location select failed: ${e.message.split('\n')[0]}`));
-    await page.waitForTimeout(1500);
-    await dismissStatusModal();
-    // Dealer Details: each dropdown reloads the next, so pick the first real option in order.
-    for (const id of ['ddlClassification', 'ddlFranchised', 'ddlCoverageType', 'ddlClassCode']) {
+    console.log(`Dealer location options: ${JSON.stringify(choices.map((c) => c.text))}`);
+    // A submission can already have its dealer location (WriteBiz adds one with the class defaults, or an earlier run did): its
+    // Details / Coverages / Additional Coverages were then never walked. Open it from the grid instead of adding another.
+    const gridNow = await dealerGridState(page);
+    const existingLocation = gridNow.rows > 0;
+    if (!existingLocation && !choices.length) throw new Error('AUTO_DEALERS_LOCATION_NOT_ADDED: the Auto Dealers tab offered no location to add, so no dealer location (and none of its coverages) could be checked');
+    let picked = 0;
+    if (existingLocation) {
+      console.log(`Auto Dealers: ${gridNow.rows} location(s) already on the grid - opening the first one`);
+      const row = page.locator('table tbody tr:visible').filter({ hasNotText: /No Locations found/i }).first();
+      await row.locator('button[data-action="Edit"], [title*="Edit" i], i.fa-edit, i.fa-pen-to-square').first().click({ timeout: 10000 }).catch((e) => console.log(`Dealer location edit click: ${e.message.split('\n')[0]}`));
+      picked = await page.locator('#ddlClassification').waitFor({ state: 'attached', timeout: 30000 }).then(() => 1).catch(() => 0);
+      await page.waitForTimeout(1500);
       await dismissStatusModal();
-      const sel = page.locator(`#${id}`);
-      const val = await sel.evaluate((e) => ([...e.options].find((o) => o.value && !e.disabled) || {}).value).catch(() => null);
-      if (!val) { console.log(`Dealer details ${id}: no selectable option (disabled or empty) - skipping`); continue; }
-      await sel.selectOption(val).catch((e) => console.log(`Dealer details ${id}: ${e.message.split('\n')[0]}`));
-      await page.waitForTimeout(1200);
-      console.log(`Dealer details ${id}: selected ${val}`);
     }
+    for (let attempt = 1; attempt <= 2 && !picked; attempt++) {
+      await page.locator('#ddlAddNewDealer').selectOption(choices[0].value).catch((e) => console.log(`Dealer location select failed: ${e.message.split('\n')[0]}`));
+      await page.waitForTimeout(1500);
+      await dismissStatusModal();
+      // Dealer Details: each dropdown reloads the next, so pick the first real option in order.
+      for (const id of ['ddlClassification', 'ddlFranchised', 'ddlCoverageType', 'ddlClassCode']) {
+        await dismissStatusModal();
+        const sel = page.locator(`#${id}`);
+        const val = await sel.evaluate((e) => ([...e.options].find((o) => o.value && !e.disabled) || {}).value).catch(() => null);
+        if (!val) { console.log(`Dealer details ${id}: no selectable option (disabled or empty) - skipping`); continue; }
+        await sel.selectOption(val).catch((e) => console.log(`Dealer details ${id}: ${e.message.split('\n')[0]}`));
+        await page.waitForTimeout(1200);
+        console.log(`Dealer details ${id}: selected ${val}`);
+        picked++;
+      }
+    }
+    if (!picked) throw new Error('AUTO_DEALERS_LOCATION_NOT_ADDED: the dealer location form did not load, so none of its coverages could be checked');
     await dismissStatusModal();
     // Rating rejects a dealer with no plates / no employees ("must be greater than 0").
     await page.locator('#txtTotalDealerPlates').fill('2').catch(() => {});
@@ -571,13 +599,18 @@ test('CA Submission', async ({ page }, testInfo) => {
     // Injury Protection Endorsement PIP Coverage - Missing required field ...' box came on the Vehicles click, not on Save),
     // so after every attempt to leave: on Vehicles = done; an Errors box = repair (pre-selected grid row's dialog, then the
     // Coverages sub-tab) and leave again.
+    let dealerGridEmpty = false;
     const leaveDealers = async () => {
       const save = page.getByRole('button', { name: /Save Auto Dealers/ });
       if (await save.isVisible({ timeout: 5000 }).catch(() => false)) {
         await save.click({ timeout: 10000 }).catch(() => {});
         await page.waitForLoadState('domcontentloaded').catch(() => {});
         await dismissStatusModal();
-        console.log('Auto Dealers saved');
+        // The location grid appears after Save: it must list the location (WI 11/07 read "No Locations found").
+        let grid = { empty: false, rows: 0 };
+        for (let k = 0; k < 8; k++) { grid = await dealerGridState(page); if (grid.rows || /CLAutoVehicles/i.test(page.url())) break; await page.waitForTimeout(1000); }
+        dealerGridEmpty = grid.empty && !grid.rows;
+        console.log(`Auto Dealers saved - ${grid.rows} location(s) on the grid${dealerGridEmpty ? ' ("No Locations found")' : ''}`);
       } else if (!/CLAutoVehicles/i.test(page.url())) { await safeNextClick().catch(() => {}); await dismissStatusModal(); }
       if (!/CLAutoVehicles/i.test(page.url()) && !await dealerErr().isVisible().catch(() => false)) {
         await page.getByRole('link', { name: 'Vehicles' }).or(page.locator('a:has-text("Vehicles"), li:has-text("Vehicles")')).first().click({ timeout: 8000 }).catch(() => {});
@@ -599,6 +632,36 @@ test('CA Submission', async ({ page }, testInfo) => {
       }
     }
     console.log(`After Auto Dealers: ${page.url()}`);
+    if (dealerGridEmpty) throw new Error('AUTO_DEALERS_LOCATION_NOT_ADDED: the Auto Dealers grid still says "No Locations found" after Save Auto Dealers');
+  }
+
+  // CA_RESUME_QUOTE: the previous run's pages and additions are loaded, its quote is reopened, only the Auto Dealers step is redone,
+  // and the result document is rebuilt from old + new (crWriteDoc merges the term checks). Nothing else of the submission is touched.
+  async function runResume() {
+    if (caRefreshLob !== 'AUTO_DEALERS') throw new Error('RESUME_UNSUPPORTED: only the Auto Dealers step can be redone on an existing submission');
+    const old = await resumeRun.loadPool(page.context(), crShotDir, resumeBase.prev);
+    const isDealer = (p) => /^Auto Dealers\b/i.test(p.label);
+    const firstDealer = Math.min(...old.filter(isDealer).map((p) => p.n), Infinity);
+    const before = old.filter((p) => !isDealer(p) && p.n < firstDealer);
+    const after = old.filter((p) => !isDealer(p) && p.n > firstDealer);
+    crPool.push(...before);
+    crAdditions.push(...(resumeBase.prev.caRefresh.additions || []).filter((a) => !/^Auto Dealers/i.test(a.page || '')));
+    console.log(`CA Refresh RESUME: ${before.length} earlier page(s) kept before Auto Dealers, ${after.length} after; ${old.filter(isDealer).length} Auto Dealers snapshot(s) replaced`);
+    await resumeRun.openSubmission(page, { writeBizUrl, state: testState, sub: resumeQuote, dismiss: dismissStatusModal, log: (m) => console.log(m) });
+    await addDealerLocation();
+    // the previous run's Auto Dealers snapshots are the ones now replaced (backed up already): drop their files only once the redo worked
+    for (const p of old.filter(isDealer)) for (const ext of ['png', 'html', 'txt']) fs.rmSync(path.join(crShotDir, `${p.file}.${ext}`), { force: true });
+    // the new Auto Dealers snapshots (appended last) go ahead of the pages that followed them in the previous run
+    const fresh = crPool.splice(before.length);
+    crPool.push(...fresh, ...after);
+    const ms = global.testData.milestones;
+    const k = ms.findIndex((m) => m.name === 'Auto Dealers - Location Added');
+    trackMilestone('Auto Dealers - Location Added (redone on the existing submission)');
+    if (k >= 0) ms.splice(k, 1, ms.pop());
+    global.testData.status = 'PASSED';
+    global.testData.error = undefined;
+    saveTestData();
+    await crWriteDoc('PASS');
   }
 
   // A second window opening mid-run (e.g. a dealer location / form popup) steals focus from the flow - make it visible.
@@ -1159,6 +1222,7 @@ test('CA Submission', async ({ page }, testInfo) => {
 
   try {
 
+    if (resumeBase) { await runResume(); return; }
     await createAccountAndQualify(page, { writeBizUrl, testState, clickIfExists, trackMilestone });
 
     await page.waitForLoadState('domcontentloaded');
@@ -1806,7 +1870,7 @@ test('CA Submission', async ({ page }, testInfo) => {
         fs.appendFileSync(path.join(dir, 'history.jsonl'), JSON.stringify({ time: new Date().toISOString(), lob: caRefreshLob, state: testState, env: envName, status: 'SKIPPED', error: error.message, doc: '' }) + String.fromCharCode(10));
       } catch (e) { console.log(`Could not record unsupported state: ${e.message}`); }
       console.log(`SKIPPED ${testState}: ${error.message}`);
-    } else if (!/^CA Refresh:/.test(error.message)) await crWriteDoc('FAIL', error.message);
+    } else if (!/^CA Refresh:/.test(error.message) && !resumeBase) await crWriteDoc('FAIL', error.message); // a failed resume leaves the previous results as they were
     console.log(`Test data written with failure info`);
     throw error;
   }
