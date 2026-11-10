@@ -373,6 +373,12 @@
   .oi-bar .p { background: var(--green); } .oi-bar .f { background: var(--red); } .oi-bar .b { background: #d97706; }
   .oi-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .oi-story-row { cursor: pointer; } .oi-story-row:hover td { background: var(--hover, rgba(127,127,127,.06)); }
+  /* Regression tab (reuses the OneInc table / status styles) */
+  #tab-regression a { color: var(--accent); }
+  .rg-auto { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); white-space: nowrap; }
+  .rg-auto.AUTOMATED { color: var(--green); } .rg-auto.PARTIAL { color: var(--accent); } .rg-auto.MANUAL { color: var(--muted); }
+  .rg-need { font-size: 11.5px; color: #d97706; margin-top: 2px; } .rg-ok { font-size: 11.5px; color: var(--green); }
+  .rg-feat-row { cursor: pointer; } .rg-feat-row:hover td { background: var(--hover, rgba(127,127,127,.06)); } .rg-feat-row.sel td { background: var(--hover, rgba(127,127,127,.10)); }
   .oi-story-det td { background: var(--hover, rgba(127,127,127,.04)); }
   .oi-story-det table { width: 100%; margin: 6px 0 10px; }
   .stats-table .num { text-align: right; font-family: var(--mono); color: var(--accent-2); white-space: nowrap; }
@@ -558,6 +564,7 @@
   <button class="tab-btn" data-tab="pdfCompare" title="PDF Compare"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h7l4 4v10H8zM5 7v14h10"/></svg><span class="tab-label">PDF Compare</span></button>
   <button class="tab-btn" data-tab="smartComm" title="SmartCOMM Validator"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM9 14l2 2 4-4"/></svg><span class="tab-label">SmartCOMM Validator</span></button>
   <button class="tab-btn" data-tab="oneInc" title="OneInc Payments"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18v10H3zM3 11h18M7 15h3"/></svg><span class="tab-label">OneInc Payments</span></button>
+  <button class="tab-btn" data-tab="regression" title="Regression (ClaimCenter)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM8 9l2 2 4-4M8 15h8"/></svg><span class="tab-label">Regression (ClaimCenter)</span></button>
   <div class="nav-group">Reporting</div>
   <button class="tab-btn" data-tab="jiraReport" title="Jira Sprint Report"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/></svg><span class="tab-label">Jira Sprint Report</span></button>
   <button class="tab-btn" data-tab="stats" title="Usage Stats"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/></svg><span class="tab-label">Usage Stats</span></button>
@@ -946,6 +953,46 @@
       <div class="out-toolbar"><h2 style="margin:0">Current run</h2><div><button id="oneIncAllRunsToggle" type="button">Show all runs</button> <button id="oneIncRefreshBtn">Refresh</button></div></div>
       <div id="oneIncCurrentRun" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
       <div id="oneIncRuns" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- ── Regression tab (ClaimCenter-Automation tests/Regression, helpers/regression/catalog.json) ───── -->
+  <div class="tab-panel" id="tab-regression">
+    <div class="page-head"><h1>Regression (ClaimCenter)</h1><p>The 85 cases of <b>Regression Test Design V1.0</b> plus the <b>RX</b> cases added beyond it (other LOBs and integrations), by card / feature, against ClaimCenter Cloud. <b>Automated</b> cases run end to end; <b>Partial</b> cases run every ClaimCenter step and list the steps a person still does (outside channels, mailboxes, phones, multi-day waits). Cases that write to shared things (batches, message queues, Contact Manager, outside vendors) stay BLOCKED until their opt-in switch is set. Each case files or reuses its own test claims and writes steps, checks and screenshots to its result. The browser runs visible on the computer running this Runner.</p></div>
+    <div class="card">
+      <div class="out-toolbar"><h2 style="margin:0">Coverage by feature</h2><span class="muted" style="font-size:12px">click a feature to filter the cases below · last result of every case, from any run</span></div>
+      <div class="oi-table-wrap" style="margin-top:10px;max-height:380px"><table class="stats-table oi-table" id="regFeatTable"><thead><tr><th>Feature</th><th>Cases</th><th>Automated</th><th>Partial</th><th>Manual</th><th>Last results</th><th></th></tr></thead><tbody><tr><td colspan="7"><span class="stats-empty">Loading…</span></td></tr></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="field-label">Tier (select one)</div>
+      <div class="chips" id="regTierChips"></div>
+      <label class="oi-finish">Parallel browsers
+        <select id="regWorkers" style="width:auto;min-width:0;padding:1px 4px"><option selected>1</option><option>2</option></select>
+        (1 recommended: money cases share test claims and same-day reserve limits)</label>
+      <label class="oi-finish"><input type="checkbox" id="regAllowExternal"> Allow cases that send to outside vendors (Metro TC027, Symbility TC066) — TEST only</label>
+      <div class="oi-filters">
+        <select id="regFFeature"><option value="">All features</option></select>
+        <select id="regFAuto"><option value="">All automation</option><option>AUTOMATED</option><option>PARTIAL</option><option>MANUAL</option></select>
+        <select id="regFStatus"><option value="">Any last status</option><option>PASS</option><option>FAIL</option><option>BLOCKED</option><option>NOT EXECUTED</option></select>
+        <select id="regFData"><option value="">Any test data</option><option value="ready">Test data ready</option><option value="missing">Test data missing</option></select>
+        <input type="search" id="regFText" placeholder="Search id, name, rule">
+        <button type="button" id="regSelVisible">Select visible runnable</button>
+        <button type="button" id="regSelNone">Clear</button>
+        <span class="muted" id="regCount"></span>
+      </div>
+      <div class="oi-table-wrap"><table class="stats-table oi-table" id="regTable"><thead><tr><th></th><th>Case</th><th>Name</th><th>Feature</th><th>Automation</th><th>Last status</th><th></th></tr></thead><tbody><tr><td colspan="7"><span class="stats-empty">Loading…</span></td></tr></tbody></table></div>
+      <div class="actions">
+        <button class="run" id="regRunBtn" disabled>Run selected</button>
+        <button class="run" id="regRunAllBtn" disabled>Run all automated</button>
+        <button class="run" id="regRerunBtn" disabled>Re-run failed/blocked</button>
+        <button class="stop" id="regStopBtn" disabled>Stop</button>
+      </div>
+      <div class="error-msg" id="regError"></div>
+      <div class="muted" id="regNote" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="out-toolbar"><h2 style="margin:0">Recent runs</h2><button id="regRefreshBtn" type="button">Refresh</button></div>
+      <div id="regRuns" style="margin-top:12px"><span class="stats-empty">Loading…</span></div>
     </div>
   </div>
 
@@ -1385,6 +1432,7 @@
       if (btn.dataset.tab === 'admin') loadAdmin();
       if (btn.dataset.tab === 'assistant' && window.__loadAgent) window.__loadAgent();
       if (btn.dataset.tab === 'oneInc' && window.__loadOneInc) window.__loadOneInc();
+      if (btn.dataset.tab === 'regression' && window.__loadRegression) window.__loadRegression();
       try { localStorage.setItem('runnerActiveTab', btn.dataset.tab); } catch (_) { /* ignore */ }
     });
   });
@@ -3617,6 +3665,7 @@
     document.getElementById('smartCommStopBtn').disabled = stopDisabled;
     document.getElementById('jiraReportStopBtn').disabled = stopDisabled;
     if (window.__oneIncSetRunning) window.__oneIncSetRunning(isRunning, stopDisabled);
+    if (window.__regSetRunning) window.__regSetRunning(isRunning, stopDisabled);
     if (!list.length) progressWrap.classList.remove('show', 'indeterminate');
     renderSessionBanner(list, queueLabels, emailOk);
   }
@@ -4082,6 +4131,151 @@
     renderTiers();
     // The saved-tab restore clicks the tab before this block exists — load now if we're already on it.
     if ($('tab-oneInc').classList.contains('active')) load(false);
+  })();
+
+
+  // ── Regression tab ──────────────────────────────────────────────────────
+  // GET /api/regression/catalog: the 85 cases (automation status, limitation, test data each needs and what is missing on
+  // the chosen tier, last result). Runs the selected runnable cases / whole features (suite 'regression'). Results are
+  // re-read every 20s while a regression run of mine is going (each case writes its result as it finishes).
+  (function () {
+    var rg = { tier: 'test', data: null, selected: new Set(), open: {}, detail: {}, feature: '', loaded: false, polling: null };
+    var $ = function (id) { return document.getElementById(id); };
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    var runnable = function (c) { return c.status !== 'MANUAL'; };
+    var lastOf = function (c) { return c.last ? c.last.status : 'NOT EXECUTED'; };
+    var badge = function (c) { return c.id.indexOf('RX') === 0 ? ' <span class="rg-auto" title="Added beyond Regression Test Design V1.0">ADDED</span>' : ''; };
+    function renderTiers() {
+      var box = $('regTierChips'); box.innerHTML = '';
+      ['test', 'dev'].forEach(function (t) {
+        var c = chip(t.toUpperCase(), rg.tier === t);
+        c.addEventListener('click', function () { rg.tier = t; $('regAllowExternal').disabled = t !== 'test'; renderTiers(); load(); });
+        box.appendChild(c);
+      });
+    }
+    function filtered() {
+      var ff = $('regFFeature').value || rg.feature, fa = $('regFAuto').value, fs = $('regFStatus').value, fd = $('regFData').value, q = $('regFText').value.toLowerCase();
+      return rg.data.cases.filter(function (c) {
+        return (!ff || c.feature === ff) && (!fa || c.status === fa) && (!fs || lastOf(c) === fs) &&
+          (!fd || (fd === 'ready' ? runnable(c) && !c.missing.length : c.missing.length > 0)) &&
+          (!q || (c.id + ' ' + c.name + ' ' + c.feature + ' ' + (c.limitation || '')).toLowerCase().indexOf(q) >= 0);
+      });
+    }
+    function bar(f) {
+      var n = f.PASS + f.FAIL + f.BLOCKED, run = f.AUTOMATED + f.PARTIAL;
+      if (!n) return '<span class="muted">not run</span>';
+      var w = function (k) { return (100 * f[k] / run).toFixed(1) + '%'; };
+      return '<div class="oi-bar" title="' + f.PASS + ' pass · ' + f.FAIL + ' fail · ' + f.BLOCKED + ' blocked of ' + run + ' runnable"><span class="p" style="width:' + w('PASS') + '"></span><span class="f" style="width:' + w('FAIL') + '"></span><span class="b" style="width:' + w('BLOCKED') + '"></span></div>' +
+        '<span class="oi-num muted" style="font-size:11.5px">' + f.PASS + '/' + f.FAIL + '/' + f.BLOCKED + '</span>';
+    }
+    function renderFeatures() {
+      var fs = rg.data.features, tot = { total: 0, AUTOMATED: 0, PARTIAL: 0, MANUAL: 0 };
+      fs.forEach(function (f) { ['total', 'AUTOMATED', 'PARTIAL', 'MANUAL'].forEach(function (k) { tot[k] += f[k]; }); });
+      $('regFeatTable').querySelector('tbody').innerHTML = fs.map(function (f) {
+        var canRun = f.AUTOMATED + f.PARTIAL > 0;
+        return '<tr class="rg-feat-row' + (rg.feature === f.feature ? ' sel' : '') + '" data-feat="' + esc(f.feature) + '"><td><b>' + esc(f.feature) + '</b></td><td class="oi-num">' + f.total + '</td><td class="oi-num">' + f.AUTOMATED + '</td><td class="oi-num">' + f.PARTIAL + '</td><td class="oi-num">' + f.MANUAL + '</td><td>' + bar(f) + '</td>' +
+          '<td>' + (canRun ? '<button type="button" data-runfeat="' + esc(f.feature) + '">Run feature</button>' : '<span class="muted" style="font-size:11.5px">manual only</span>') + '</td></tr>';
+      }).join('') + '<tr><td><b>Total</b></td><td class="oi-num"><b>' + tot.total + '</b></td><td class="oi-num"><b>' + tot.AUTOMATED + '</b></td><td class="oi-num"><b>' + tot.PARTIAL + '</b></td><td class="oi-num"><b>' + tot.MANUAL + '</b></td><td colspan="2" class="muted">' + (tot.AUTOMATED + tot.PARTIAL) + ' of ' + tot.total + ' runnable</td></tr>';
+      var sel = $('regFFeature');
+      if (sel.options.length <= 1) fs.forEach(function (f) { var o = document.createElement('option'); o.value = f.feature; o.textContent = f.feature; sel.appendChild(o); });
+    }
+    function renderTable() {
+      if (!rg.data) return;
+      var rows = filtered();
+      $('regCount').textContent = rows.length + ' shown · ' + rg.selected.size + ' selected';
+      $('regTable').querySelector('tbody').innerHTML = rows.map(function (c) {
+        var st = lastOf(c), canRun = runnable(c);
+        var data = !canRun ? '' : c.missing.length ? '<div class="rg-need">Needs test data: ' + esc(c.missing.join(', ').replace(/\|/g, ' or ')) + ' (BLOCKED until set)</div>' : '<div class="rg-ok">Test data ready</div>';
+        var why = c.last && c.last.reason ? '<div class="oi-why">' + esc(String(c.last.reason).slice(0, 260)) + '</div>' : '';
+        var lim = '<div class="oi-why">' + (c.status === 'MANUAL' ? '<b>Why manual:</b> ' : c.status === 'PARTIAL' ? '<b>Manual part' + (c.manualSteps && c.manualSteps.length ? ' (steps ' + esc(c.manualSteps.join(', ')) + ')' : '') + ':</b> ' : '<b>Note:</b> ') + esc(c.limitation) + '</div>';
+        return '<tr><td>' + (canRun ? '<input type="checkbox" data-id="' + esc(c.id) + '"' + (rg.selected.has(c.id) ? ' checked' : '') + '>' : '') + '</td>' +
+          '<td class="mono">' + esc(c.id) + '</td><td>' + esc(c.name) + badge(c) + why + lim + data + '</td><td>' + esc(c.feature) + '</td>' +
+          '<td><span class="rg-auto ' + esc(c.status) + '">' + esc(c.status) + '</span></td>' +
+          '<td><span class="oi-st ' + esc(st.replace(' ', '-')) + '">' + esc(st) + '</span>' + (c.last && c.last.claim ? '<div class="oi-why">' + esc(c.last.claim) + '</div>' : '') + '</td>' +
+          '<td><button type="button" data-det="' + esc(c.id) + '">' + (rg.open[c.id] ? 'hide' : 'details') + '</button></td></tr>' + (rg.open[c.id] ? detailRow(c) : '');
+      }).join('') || '<tr><td colspan="7"><span class="stats-empty">No cases match.</span></td></tr>';
+      updateButtons();
+    }
+    function detailRow(c) {
+      var info = '<div class="grid"><div><b>Reuses</b><pre>' + esc((c.reuses || []).join('\n') || '-') + '</pre></div><div><b>Test data</b><pre>' + esc(((c.requires || []).map(function (r) { return 'required: ' + r.replace(/\|/g, ' or '); }).concat((c.optional || []).map(function (r) { return 'optional: ' + r; }))).join('\n') || '-') + '</pre></div></div>' +
+        (c.spec ? '<div class="muted">Spec: ' + esc(c.spec) + '</div>' : '');
+      if (!c.last) return '<tr class="oi-det"><td></td><td colspan="6">' + info + '<div class="muted">Not run yet.</div></td></tr>';
+      var r = rg.detail[c.id];
+      if (!r) { fetch('/api/regression/results/' + encodeURIComponent(c.id)).then(function (x) { return x.json(); }).then(function (d) { rg.detail[c.id] = d; renderTable(); }); return '<tr class="oi-det"><td></td><td colspan="6">' + info + 'Loading result…</td></tr>'; }
+      var checks = (r.checks || []).map(function (k) { return '<li><span class="oi-st ' + esc(k.result) + '">' + esc(k.result) + '</span> ' + esc(k.description) + ' — expected ' + esc(k.expected) + '; actual ' + esc(k.actual) + (k.screenshotUrl ? ' — <a href="' + k.screenshotUrl + '" target="_blank">screenshot</a>' : '') + '</li>'; }).join('');
+      var steps = (r.stepsExecuted || []).map(function (x, i) { var u = (r.stepShotUrls || [])[i]; return '<li>' + esc(x) + (u ? ' — <a href="' + u + '" target="_blank">screenshot</a>' : '') + '</li>'; }).join('');
+      return '<tr class="oi-det"><td></td><td colspan="6">' + info + (checks ? '<b>Checks</b><ul>' + checks + '</ul>' : '') + (steps ? '<b>Steps</b><ol>' + steps + '</ol>' : '') +
+        (r.notes ? '<b>Left for manual / notes</b><pre>' + esc(r.notes) + '</pre>' : '') +
+        '<div class="muted">Run ' + esc(r.runId) + (r.claim ? ' · claim ' + esc(r.claim) : '') + (r.loginUsed ? ' · as ' + esc(r.loginUsed) : '') + ' · ' + esc(r.finishedAt) + ' (' + ((r.durationMs || 0) / 1000).toFixed(0) + 's) · screenshots stay available until the next run</div>' +
+        (r.stack ? '<pre>' + esc(r.stack) + '</pre>' : '') + '</td></tr>';
+    }
+    function updateButtons() {
+      $('regRunBtn').disabled = anyRunning || rg.selected.size === 0;
+      $('regRunAllBtn').disabled = anyRunning || !rg.data;
+      $('regRerunBtn').disabled = anyRunning || !rg.data || !rg.data.cases.some(function (c) { return runnable(c) && c.last && /FAIL|BLOCKED/.test(c.last.status); });
+    }
+    function renderRuns() {
+      fetch('/api/regression/history').then(function (r) { return r.json(); }).then(function (d) {
+        var runs = d.runs || [];
+        $('regRuns').innerHTML = runs.length ? '<table class="stats-table"><thead><tr><th>Run</th><th>Finished</th><th>Pass</th><th>Fail</th><th>Blocked</th><th>Cases</th></tr></thead><tbody>' + runs.map(function (x) {
+          return '<tr><td class="mono">' + esc(x.runId) + '</td><td>' + esc(String(x.finishedAt || '').replace('T', ' ').slice(0, 19)) + '</td><td class="oi-num">' + x.PASS + '</td><td class="oi-num">' + x.FAIL + '</td><td class="oi-num">' + x.BLOCKED + '</td><td style="font-size:12px">' +
+            x.cases.map(function (k) { return '<span class="oi-st ' + esc(k.status) + '" title="' + esc(k.reason || '') + '">' + esc(k.tcId) + '</span>'; }).join(' ') + '</td></tr>';
+        }).join('') + '</tbody></table>' : '<span class="stats-empty">No regression runs yet.</span>';
+      }).catch(function () { $('regRuns').innerHTML = '<span class="stats-empty">Could not load run history.</span>'; });
+    }
+    function load() {
+      fetch('/api/regression/catalog?tier=' + encodeURIComponent(rg.tier)).then(function (r) { return r.json(); }).then(function (d) {
+        if (d.error) { $('regError').textContent = d.error; return; }
+        $('regError').textContent = '';
+        rg.data = d; rg.loaded = true; rg.detail = {};
+        renderFeatures(); renderTable();
+      }).catch(function (e) { $('regError').textContent = 'Could not load the regression catalog: ' + e.message; });
+      renderRuns();
+    }
+    function queue(job) {
+      $('regError').textContent = '';
+      job.tier = rg.tier; job.workers = $('regWorkers').value; job.allowExternal = rg.tier === 'test' && $('regAllowExternal').checked;
+      fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ suite: 'regression', jobs: [job], requestedBy: myEmail }) })
+        .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+        .then(function (res) {
+          if (!res.ok) { if (res.body && res.body.fix && typeof runProblem === 'function') runProblem(res.body); $('regError').textContent = (res.body && res.body.error) || 'Failed to queue run'; return; }
+          $('regNote').textContent = 'Queued — results appear here as each case finishes (refreshing every 20s).';
+          clearInterval(rg.polling);
+          rg.polling = setInterval(function () { if ($('tab-regression').classList.contains('active')) load(); }, 20000);
+        });
+    }
+    $('regFeatTable').addEventListener('click', function (e) {
+      var f = e.target.getAttribute && e.target.getAttribute('data-runfeat');
+      if (f) { e.stopPropagation(); if (confirm('Run every automated / partial case of "' + f + '" on ' + rg.tier.toUpperCase() + '?')) queue({ mode: 'features', features: [f] }); return; }
+      var row = e.target.closest && e.target.closest('tr.rg-feat-row'); if (!row) return;
+      var ft = row.getAttribute('data-feat'); rg.feature = rg.feature === ft ? '' : ft; $('regFFeature').value = rg.feature; renderFeatures(); renderTable();
+    });
+    $('regTable').addEventListener('change', function (e) {
+      var id = e.target.getAttribute && e.target.getAttribute('data-id'); if (!id) return;
+      if (e.target.checked) rg.selected.add(id); else rg.selected.delete(id); renderTable();
+    });
+    $('regTable').addEventListener('click', function (e) {
+      var id = e.target.getAttribute && e.target.getAttribute('data-det'); if (!id) return;
+      rg.open[id] = !rg.open[id]; renderTable();
+    });
+    ['regFAuto', 'regFStatus', 'regFData'].forEach(function (id) { $(id).addEventListener('change', renderTable); });
+    $('regFFeature').addEventListener('change', function () { rg.feature = $('regFFeature').value; renderFeatures(); renderTable(); });
+    $('regFText').addEventListener('input', renderTable);
+    $('regSelVisible').addEventListener('click', function () { filtered().forEach(function (c) { if (runnable(c)) rg.selected.add(c.id); }); renderTable(); });
+    $('regSelNone').addEventListener('click', function () { rg.selected.clear(); renderTable(); });
+    $('regRunBtn').addEventListener('click', function () { queue({ mode: 'ids', ids: Array.from(rg.selected) }); });
+    $('regRunAllBtn').addEventListener('click', function () { if (confirm('Run all ' + rg.data.cases.filter(runnable).length + ' automated / partial cases on ' + rg.tier.toUpperCase() + '? This files many claims and takes several hours.')) queue({ mode: 'all' }); });
+    $('regRerunBtn').addEventListener('click', function () { queue({ mode: 'ids', ids: rg.data.cases.filter(function (c) { return runnable(c) && c.last && /FAIL|BLOCKED/.test(c.last.status); }).map(function (c) { return c.id; }) }); });
+    $('regStopBtn').addEventListener('click', function () { stopAll(); });
+    $('regRefreshBtn').addEventListener('click', load);
+    es.addEventListener('job-end', function (ev) {
+      var d = JSON.parse(ev.data);
+      if (d.reportUrls && d.reportUrls.kind === 'regression') { clearInterval(rg.polling); rg.polling = null; $('regNote').textContent = 'Run ' + d.reportUrls.runId + ' finished.'; load(); }
+    });
+    window.__regSetRunning = function (isRunning, stopDisabled) { $('regStopBtn').disabled = stopDisabled; if (rg.loaded) updateButtons(); };
+    window.__loadRegression = function () { load(); };
+    renderTiers();
+    if ($('tab-regression').classList.contains('active')) load();
   })();
 
 })();
