@@ -412,6 +412,28 @@ const CLAIMS_STEPS = {
 const CLAIMS_PLATFORMS = ['cloud']; // CC_ENV — claims are created on cloud only (user, 2026-11-03)
 const CLAIMS_TIERS = ['test', 'dev'];         // CC_TIER
 
+// Regression Test Design V1.0 (85 cases across 36 cards) + RX cases added beyond it (LOB / integration variants) — ClaimCenter-Automation's tests/Regression specs, cloud only.
+// The case list, automation status (AUTOMATED / PARTIAL / MANUAL), limitations and the test data each case needs live in
+// that repo's helpers/regression/catalog.json (read fresh on every request, so a git pull there shows up without a
+// restart); each case's last result is results/regression/latest/<TC>.json, written by the specs themselves.
+const REGRESSION_TIERS = ['test', 'dev'];
+const REGRESSION_CATALOG = path.join(CLAIMS_DIR, 'helpers', 'regression', 'catalog.json');
+const REGRESSION_RESULTS = path.join(CLAIMS_DIR, 'results', 'regression');
+const REGRESSION_ID_RE = /^(TC|RX)\d{3}$/; // TC = Regression Test Design V1.0, RX = cases added beyond it
+function loadRegressionCatalog() {
+  return JSON.parse(fs.readFileSync(REGRESSION_CATALOG, 'utf8'));
+}
+// Which of a case's required env vars are missing for a tier. "A|B" = either one. POLICY_* vars also count when set
+// per tier (POLICY_X_TEST), the way claimCenterBase.getNextPolicy reads them. Looks at this process's environment
+// (Settings) and ClaimCenter-Automation/.env.
+function regressionMissing(c, tier, claimsEnv) {
+  const has = (v) => [v, `${v}_${String(tier).toUpperCase()}`].some((k) => String(process.env[k] || claimsEnv[k] || '').trim());
+  return (c.requires || []).filter((req) => !req.split('|').some(has));
+}
+function readRegressionLatest(id) {
+  try { return JSON.parse(fs.readFileSync(path.join(REGRESSION_RESULTS, 'latest', `${id}.json`), 'utf8')); } catch (e) { return null; }
+}
+
 // Migration-reconciliation tier options — same CC_TIER axis as the claims
 // suite, but a separate constant since the two projects' tier support can
 // (and currently does — see cc-migration-reconciliation's own README) drift
@@ -666,6 +688,67 @@ function signedInSettings(req) {
   return { ...s, email: req.authEmail, name: String(s.email || '').toLowerCase() === req.authEmail ? s.name : '' };
 }
 
+// ── Regression tab: catalog + readiness + last result per case ──────────────────────────────────────────────────
+app.get('/api/regression/catalog', (req, res) => {
+  let catalog;
+  try { catalog = loadRegressionCatalog(); } catch (e) {
+    return res.status(501).json({ error: `Regression catalog not found at ${REGRESSION_CATALOG} — git pull ClaimCenter-Automation (needs helpers/regression/catalog.json).` });
+  }
+  const tier = REGRESSION_TIERS.includes(String(req.query.tier)) ? String(req.query.tier) : 'test';
+  let claimsEnv = {};
+  try { claimsEnv = require('dotenv').parse(fs.readFileSync(path.join(CLAIMS_DIR, '.env'))); } catch (_) { /* none */ }
+  const cases = catalog.map((c) => {
+    const last = readRegressionLatest(c.id);
+    return {
+      id: c.id, feature: c.feature, name: c.name, priority: c.priority, status: c.status, spec: c.spec, steps: c.steps,
+      manualSteps: c.manualSteps, limitation: c.limitation, reuses: c.reuses, requires: c.requires, optional: c.optional,
+      missing: c.status === 'MANUAL' ? [] : regressionMissing(c, tier, claimsEnv),
+      last: last ? { status: last.status, reason: last.reason || '', claim: last.claim || '', finishedAt: last.finishedAt, runId: last.runId, durationMs: last.durationMs } : null,
+    };
+  });
+  const features = [];
+  for (const c of cases) {
+    let f = features.find((x) => x.feature === c.feature);
+    if (!f) features.push(f = { feature: c.feature, total: 0, AUTOMATED: 0, PARTIAL: 0, MANUAL: 0, PASS: 0, FAIL: 0, BLOCKED: 0 });
+    f.total++; f[c.status]++;
+    if (c.last && f[c.last.status] !== undefined) f[c.last.status]++;
+  }
+  res.json({ tier, tiers: REGRESSION_TIERS, cases, features });
+});
+
+// One case's latest evidence: steps, checks (expected / actual / PASS-FAIL), screenshot links.
+app.get('/api/regression/results/:id', (req, res) => {
+  const id = String(req.params.id || '');
+  if (!REGRESSION_ID_RE.test(id)) return res.status(400).json({ error: 'bad case id' });
+  const r = readRegressionLatest(id);
+  if (!r) return res.status(404).json({ error: `${id} has not run yet` });
+  const url = (p) => (p ? `/api/regression/shot?p=${encodeURIComponent(p)}` : null);
+  res.json({ ...r, stepShotUrls: (r.stepShots || []).map(url), checks: (r.checks || []).map((c) => ({ ...c, screenshotUrl: url(c.screenshot) })) });
+});
+
+// Screenshots live under ClaimCenter-Automation/test-results (Playwright clears that folder on the next run, so only the
+// most recent run's shots are still there). Served only from inside that repo.
+app.get('/api/regression/shot', (req, res) => {
+  const p = path.resolve(String(req.query.p || ''));
+  const root = path.resolve(CLAIMS_DIR) + path.sep;
+  if (!p.startsWith(root) || !/\.png$/i.test(p) || !fs.existsSync(p)) return res.status(404).end();
+  res.sendFile(p);
+});
+
+// Last 300 case results across runs (newest first) — the Runs card.
+app.get('/api/regression/history', (req, res) => {
+  let lines = [];
+  try { lines = fs.readFileSync(path.join(REGRESSION_RESULTS, 'history.jsonl'), 'utf8').split('\n').filter(Boolean); } catch (_) { /* none yet */ }
+  const recs = lines.slice(-300).map((l) => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean).reverse();
+  const runs = {};
+  for (const r of recs) {
+    const x = runs[r.runId] = runs[r.runId] || { runId: r.runId, finishedAt: r.finishedAt, PASS: 0, FAIL: 0, BLOCKED: 0, cases: [] };
+    if (x[r.status] !== undefined) x[r.status]++;
+    x.cases.push(r);
+  }
+  res.json({ runs: Object.values(runs).slice(0, 15) });
+});
+
 app.get('/api/config', (req, res) => {
   res.json({
     packagedBuild: PACKAGED,
@@ -762,7 +845,7 @@ app.get('/api/entitlements', (req, res) => {
 // ── Admin console (admin-only): read/write the shared admin config on V: ─────
 // All tools (keys) the Admin tab can grant/revoke, with friendly labels for the UI.
 const SUITE_LABELS = {
-  policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator',
+  policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator', regression: 'Regression (ClaimCenter)',
   jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
   updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
 };
@@ -976,7 +1059,7 @@ app.get('/api/stream', (req, res) => {
 // up held by 2 DIFFERENT people instead of one person's own backlog hogging both (added 2026-10-05).
 const SUITE_MAX_PARALLEL = 2;
 const STAGGER_MS = 60000;
-const SUITES = ['policy', 'claims', 'reconciliation', 'updateValidation', 'pdfCompare', 'smartComm', 'jiraReport', 'oneInc'];
+const SUITES = ['policy', 'claims', 'reconciliation', 'updateValidation', 'pdfCompare', 'smartComm', 'jiraReport', 'oneInc', 'regression'];
 
 function makePool() { return { queue: [], running: [], staggerTimer: null }; }
 const pools = {};
@@ -1504,6 +1587,47 @@ function buildPdfCompareJob(j) {
 // 'story' | 'rerun'. Scenario ids go through a temp file (a full selection is ~120 ids — too long to trust to a
 // shell command line) and every value is pattern-checked first, since it ends up on that command line.
 const ONEINC_ID_RE = /^GCCM-\d+\/[A-Za-z0-9-]+\/TC-?\d+(#\d+)?$/;
+// Regression tab: runs ClaimCenter-Automation's "Regression" Playwright project on the selected cases (or every
+// automated case of the selected features). The selection travels in REG_GREP (an env var — spawn runs with shell:true,
+// so a "|" on the command line would be a shell pipe); the project's config turns it into its grep. MANUAL cases are
+// never sent. Workers default to 1: the money cases share the financialRules claim registry (2 reserve actions per claim
+// per day), and two FNOLs at once against the same tier policy can collide on claimant numbers.
+function buildRegressionJob(j) {
+  const catalog = loadRegressionCatalog();
+  const tier = String(j.tier || 'test').toLowerCase();
+  if (!REGRESSION_TIERS.includes(tier)) throw new Error(`Unknown tier "${j.tier}"`);
+  let picked;
+  if (j.mode === 'features') {
+    const feats = (Array.isArray(j.features) ? j.features : []).map(String);
+    if (!feats.length) throw new Error('Pick at least one feature');
+    const known = new Set(catalog.map((c) => c.feature));
+    const bad = feats.find((f) => !known.has(f));
+    if (bad) throw new Error(`"${bad}" is not a feature in the regression catalog`);
+    picked = catalog.filter((c) => feats.includes(c.feature) && c.status !== 'MANUAL');
+  } else if (j.mode === 'all') {
+    picked = catalog.filter((c) => c.status !== 'MANUAL');
+  } else {
+    const ids = (Array.isArray(j.ids) ? j.ids : []).map((s) => String(s).trim().toUpperCase());
+    if (!ids.length) throw new Error('Select at least one automated case');
+    const badId = ids.find((s) => !REGRESSION_ID_RE.test(s));
+    if (badId) throw new Error(`"${badId}" is not a regression case id`);
+    picked = catalog.filter((c) => ids.includes(c.id) && c.status !== 'MANUAL');
+  }
+  if (!picked.length) throw new Error('No automated cases in that selection (manual cases are not run)');
+  const greps = [...new Set(picked.map((c) => c.grep).filter(Boolean))];
+  const workers = Math.max(1, Math.min(2, parseInt(j.workers, 10) || 1));
+  const runId = `Regression_${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')}`;
+  const what = j.mode === 'features' ? `${j.features.join(', ')} (${picked.length} cases)` : j.mode === 'all' ? `all automated (${picked.length})` : `${picked.length} case(s): ${picked.map((c) => c.id).join(' ')}`;
+  return {
+    label: `Regression · ${what.length > 120 ? what.slice(0, 117) + '…' : what} · cloud/${tier}${workers > 1 ? ` · ${workers} workers` : ''}`,
+    cwd: CLAIMS_DIR,
+    cmd: 'npx',
+    args: ['playwright', 'test', '--project', 'Regression', `--workers=${workers}`],
+    env: { CC_ENV: 'cloud', CC_TIER: tier, REG_GREP: greps.join('|'), REG_RUN_ID: runId, ...(j.allowExternal && tier === 'test' ? { REG_ALLOW_EXTERNAL: '1' } : {}) },
+    reportUrls: { kind: 'regression', runId },
+  };
+}
+
 function buildOneIncJob(j) {
   if (!fs.existsSync(ONEINC_SCRIPT)) throw new Error(`runOneInc.js not found at ${ONEINC_SCRIPT} — git pull ClaimCenter-Automation`);
   const tier = String(j.tier || 'test').toLowerCase();
@@ -1654,6 +1778,7 @@ function runBlocker(suite, jobs, identity) {
   }
   if (suite === 'claims') return need(['CC_USER', 'CC_PASS'], 'Claims (ClaimCenter)');
   if (suite === 'oneInc') return need(['CC_USER', 'CC_PASS'], 'OneInc Payments');
+  if (suite === 'regression') return need(['CC_USER', 'CC_PASS'], 'Regression (ClaimCenter)');
   if (suite === 'smartComm' && !list.every((j) => j && /^s3/.test(String(j.mode || '')))) return need(['CC_USER', 'CC_PASS'], 'SmartCOMM validation'); // admin login: only some templates need it
   if (suite === 'jiraReport') return need(['JIRA_EMAIL', 'JIRA_API_TOKEN'], 'The Jira Sprint Report');
   return null;
@@ -1686,6 +1811,7 @@ app.post('/api/run', (req, res) => {
         : suite === 'smartComm' ? buildSmartCommJob(j)
         : suite === 'jiraReport' ? buildJiraReportJob(j)
         : suite === 'oneInc' ? buildOneIncJob(j)
+        : suite === 'regression' ? buildRegressionJob(j)
         : buildPolicyJob(j)
     ));
   } catch (e) {
@@ -1760,7 +1886,7 @@ app.get('/api/stats', (req, res) => {
     if (!byUser[key].lastTs || r.ts > byUser[key].lastTs) byUser[key].lastTs = r.ts;
   }
   const toolLabels = {
-    policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator',
+    policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator', regression: 'Regression (ClaimCenter)',
     jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
     updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
   };
