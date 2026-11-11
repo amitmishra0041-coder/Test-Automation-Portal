@@ -13,7 +13,7 @@ const path = require('path');
 const axios = require('axios');
 
 const SUITE_LABELS = {
-  policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator', jiraReport: 'Jira Sprint Report',
+  policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator', jiraReport: 'Jira Tools',
   reconciliation: 'Migration Reconciliation', updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
 };
 const SUITES = Object.keys(SUITE_LABELS);

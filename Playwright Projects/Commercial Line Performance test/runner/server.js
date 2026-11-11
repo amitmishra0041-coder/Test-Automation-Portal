@@ -846,7 +846,7 @@ app.get('/api/entitlements', (req, res) => {
 // All tools (keys) the Admin tab can grant/revoke, with friendly labels for the UI.
 const SUITE_LABELS = {
   policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator', regression: 'Regression (ClaimCenter)',
-  jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
+  jiraReport: 'Jira Tools', reconciliation: 'Migration Reconciliation',
   updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
 };
 app.get('/api/admin', (req, res) => {
@@ -1928,7 +1928,7 @@ app.get('/api/stats', (req, res) => {
   }
   const toolLabels = {
     policy: 'Policy Tests', claims: 'Claims (ClaimCenter)', smartComm: 'SmartCOMM Validator', regression: 'Regression (ClaimCenter)',
-    jiraReport: 'Jira Sprint Report', reconciliation: 'Migration Reconciliation',
+    jiraReport: 'Jira Tools', reconciliation: 'Migration Reconciliation',
     updateValidation: 'Data Update & Dropdown Validation', pdfCompare: 'PDF Compare', oneInc: 'OneInc Payments',
   };
   res.json({

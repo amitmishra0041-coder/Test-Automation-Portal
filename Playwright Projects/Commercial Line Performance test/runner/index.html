@@ -566,7 +566,7 @@
   <button class="tab-btn" data-tab="oneInc" title="OneInc Payments"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18v10H3zM3 11h18M7 15h3"/></svg><span class="tab-label">OneInc Payments</span></button>
   <button class="tab-btn" data-tab="regression" title="Regression (ClaimCenter)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM8 9l2 2 4-4M8 15h8"/></svg><span class="tab-label">Regression (ClaimCenter)</span></button>
   <div class="nav-group">Reporting</div>
-  <button class="tab-btn" data-tab="jiraReport" title="Jira Sprint Report"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/></svg><span class="tab-label">Jira Sprint Report</span></button>
+  <button class="tab-btn" data-tab="jiraReport" title="Jira Tools"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/></svg><span class="tab-label">Jira Tools</span></button>
   <button class="tab-btn" data-tab="stats" title="Usage Stats"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/></svg><span class="tab-label">Usage Stats</span></button>
   <div class="nav-group">Account</div>
   <button class="tab-btn" data-tab="settings" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4"/></svg><span class="tab-label">Settings</span></button>
@@ -996,10 +996,16 @@
     </div>
   </div>
 
-  <!-- ── Jira Sprint Report tab ─────────────────────────────────────────────── -->
+  <!-- ── Jira Tools tab (sub-tabs: Sprint Report / SMARTCOMM Ready for QA / EBT Feedback / Custom Queries) ── -->
   <div class="tab-panel" id="tab-jiraReport">
-    <div class="page-head"><h1>Jira Sprint Report</h1><p>Pull the selected tracks from Jira and email the sprint / pending-work workbook or status deck.</p></div>
-    <div class="card">
+    <div class="page-head"><h1>Jira Tools</h1><p>Sprint reports, SMARTCOMM card moves, EBT feedback filing and custom Jira queries.</p></div>
+    <div class="chips" id="jiraSubTabs" role="tablist" style="margin-bottom:12px;">
+      <button type="button" class="chip selected" role="tab" data-sub="sprint">Sprint Report</button>
+      <button type="button" class="chip" role="tab" data-sub="promote">SMARTCOMM Ready for QA</button>
+      <button type="button" class="chip" role="tab" data-sub="ebt">EBT Feedback</button>
+      <button type="button" class="chip" role="tab" data-sub="queries">Custom Queries</button>
+    </div>
+    <div class="card" data-jira-sub="sprint">
       <div class="warn-banner" id="jiraReportConfigWarn" style="display:none">
         <b>Jira isn't set up yet</b> — enter your Jira email and API token on the <b>Settings</b> tab
         (Jira credentials) and Save. On a dev machine, <code>JIRA_EMAIL</code> / <code>JIRA_API_TOKEN</code> in this project's <code>.env</code> work too.
@@ -1047,7 +1053,7 @@
       <div class="error-msg" id="jiraReportError"></div>
       <div class="report-links" id="jiraReportReportLinks"></div>
     </div>
-    <div class="card" id="smartPromoteCard">
+    <div class="card" id="smartPromoteCard" data-jira-sub="promote" style="display:none">
       <h2>SMARTCOMM — move QA cards to Ready for QA</h2>
       <p class="hint">QA Test Design / Test Execution cards still in <b>To Do</b> whose BA (Requirements) or Dev card is <b>Done</b>. Find lists them (nothing changes); Move updates only the ticked cards. A preview is emailed every Monday.</p>
       <div class="actions">
@@ -1058,7 +1064,7 @@
       <div id="promoteList" style="max-height:420px;overflow:auto;margin-top:8px;"></div>
     </div>
 
-    <div class="card" id="ebtCard">
+    <div class="card" id="ebtCard" data-jira-sub="ebt" style="display:none">
       <h2>EBT feedback — log a GCCM defect and update the tracker</h2>
       <p class="hint">Upload a business EBT feedback email (.msg or .eml). Check the preview, then file it. This creates a GCCM Bug labelled <b>EBT</b> and assigned to you, with the reporter, the email and its screenshots in the description. It also fills the next <b>EBT.GCCM.FD</b> row of the CC-CM EBT Feedback Tracker.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Outlook: drag the email from your inbox to the desktop (that saves a .msg) and pick it here, or use File &gt; Save As. Jira: summary "EBT.GCCM.FD.0NN: &lt;subject&gt;", like SMART-1750. Tracker: S:\Shared Folders\Guidewire Cloud Initiative\QA\EBT\GW CC-CM Cloud Migration EBT Feedback Tracker.xlsx. Only that one row changes, so the Summary pivot and the dropdowns stay as they are. A backup is taken before every save. The tracker must be closed in Excel. If someone has it open, nothing is filed.</span></span></p>
       <div class="actions">
@@ -1103,7 +1109,7 @@
     </div>
 
 
-    <div class="card">
+    <div class="card" data-jira-sub="queries" style="display:none">
       <h2>Add a new query</h2>
       <p class="hint">Adds a new track backed by your own JQL — shows up as a chip immediately.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Adds a new track backed by your own JQL — it's saved to scripts/jiraTracks.custom.json and shows up as a chip above immediately (no restart needed). Sprint is grouped by each issue's own current sprint (no fixed Sprint 4/5/6 numbering, since that needs specific sprint IDs this form can't look up for you).</span></span></p>
 
@@ -1285,7 +1291,7 @@
   <div id="runPanels">
   <div class="card">
     <h2>Status</h2>
-    <div class="session-banner" id="sessionBanner">Enter your email in the Report Email field (SmartCOMM or Jira Sprint Report tab) to run anything — this tool supports up to 2 people running jobs at once.</div>
+    <div class="session-banner" id="sessionBanner">Enter your email in the Report Email field (SmartCOMM or Jira Tools tab) to run anything — this tool supports up to 2 people running jobs at once.</div>
     <div class="stats-row" style="margin-top:14px">
       <div class="stat passed"><div class="n" id="statPassed">0</div><div class="l">Passed</div></div>
       <div class="stat failed"><div class="n" id="statFailed">0</div><div class="l">Failed</div></div>
@@ -1524,7 +1530,7 @@
   var queueLabels = [];
 
   // ── Identity (so this shared, single-server tool can tell teammates apart) ─
-  // Reuses the existing "Report Email" fields (SmartCOMM tab, Jira Sprint Report tab) instead of adding a
+  // Reuses the existing "Report Email" fields (SmartCOMM tab, Jira Tools tab) instead of adding a
   // separate field just for this — whichever one has something typed in it is who you are to this tool.
   // SmartCOMM's wins if both are filled in (it's the one most people here already use day to day).
   function isValidEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
@@ -3268,6 +3274,17 @@
       }).catch(function () { st.textContent = 'Move failed'; });
   });
 
+  // ── Jira Tools sub-tabs: one card per tool; the last one opened is remembered in this browser ──
+  function showJiraSub(name) {
+    var tabs = document.querySelectorAll('#jiraSubTabs .chip');
+    if (!document.querySelector('#jiraSubTabs .chip[data-sub="' + name + '"]')) name = 'sprint';
+    tabs.forEach(function (b) { var on = b.getAttribute('data-sub') === name; b.classList.toggle('selected', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    document.querySelectorAll('#tab-jiraReport [data-jira-sub]').forEach(function (c) { c.style.display = c.getAttribute('data-jira-sub') === name ? '' : 'none'; });
+    try { localStorage.setItem('jiraSubTab', name); } catch (e) { /* storage blocked */ }
+  }
+  document.querySelectorAll('#jiraSubTabs .chip').forEach(function (b) { b.addEventListener('click', function () { showJiraSub(b.getAttribute('data-sub')); }); });
+  (function () { var saved = null; try { saved = localStorage.getItem('jiraSubTab'); } catch (e) { /* storage blocked */ } showJiraSub(saved || 'sprint'); })();
+
   // ── EBT feedback -> GCCM defect + tracker row (scripts/ebt/ebtFiling.js) ──
   var ebtToken = null;
   function ebtEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -3827,7 +3844,7 @@
     var el = document.getElementById('sessionBanner');
     el.classList.remove('full', 'mine');
     if (!emailOk) {
-      el.textContent = 'Enter your email in the Report Email field (SmartCOMM or Jira Sprint Report tab) to run anything — this tool supports up to 2 people running jobs at once.';
+      el.textContent = 'Enter your email in the Report Email field (SmartCOMM or Jira Tools tab) to run anything — this tool supports up to 2 people running jobs at once.';
       return;
     }
     var distinctRunning = [];
