@@ -142,6 +142,42 @@ const TOOLS = {
     },
   },
 
+  // Outstanding SMART / GCCM bugs, one sheet per project. "Description" is the Jira summary (one line per bug).
+  // Closed-type statuses are dropped here, not in JQL: a status name a project doesn't have makes the whole JQL fail.
+  'report.outstandingDefects': {
+    title: 'Write outstanding SMART and GCCM defects to Excel (one sheet per project)',
+    risk: 'report',
+    params: {},
+    async run(_args, ctx) {
+      const DONE = new Set(['rejected', 'done', 'closed', 'fixed', 'ready for retest']);
+      const bugs = (await searchJql('project IN (GCCM, SMART) AND type IN (Bug, Defect) ORDER BY project ASC, duedate ASC, key ASC',
+        ['summary', 'assignee', 'status', 'duedate'], ctx)).filter((b) => !DONE.has(b.fields.status.name.toLowerCase()));
+      const ExcelJS = require('exceljs');
+      const wb = new ExcelJS.Workbook();
+      const counts = {};
+      for (const proj of ['GCCM', 'SMART']) {
+        const ws = wb.addWorksheet(proj);
+        ws.columns = [['Bug #', 'key', 13], ['Description', 'summary', 80], ['Assignee', 'assignee', 24], ['Status', 'status', 20], ['Due Date', 'due', 12]]
+          .map(([header, key, width]) => ({ header, key, width }));
+        const mine = bugs.filter((b) => b.key.startsWith(`${proj}-`));
+        for (const b of mine) {
+          const f = b.fields;
+          const row = ws.addRow({ summary: (f.summary || '').trim(), assignee: f.assignee ? f.assignee.displayName : 'Unassigned', status: f.status.name,
+            due: f.duedate ? new Date(`${f.duedate}T00:00:00`) : '' });
+          row.getCell('key').value = { text: b.key, hyperlink: browse(b.key) };
+          row.getCell('key').font = { color: { argb: 'FF0563C1' }, underline: true };
+        }
+        ws.getColumn('due').numFmt = 'mm/dd/yyyy';
+        ws.getRow(1).font = { bold: true }; ws.autoFilter = { from: 'A1', to: 'E1' }; ws.views = [{ state: 'frozen', ySplit: 1 }];
+        counts[proj] = mine.length;
+      }
+      fs.mkdirSync(REPORT_DIR, { recursive: true });
+      const file = path.join(REPORT_DIR, `Outstanding_Defects_${new Date().toLocaleDateString('en-CA')}_${ctx.taskId.slice(-6)}.xlsx`);
+      await wb.xlsx.writeFile(file);
+      return { file: path.basename(file), rows: bugs.length, byProject: counts };
+    },
+  },
+
   'report.statusDeck': {
     title: 'Generate the QA status deck (PowerPoint)',
     risk: 'report',
