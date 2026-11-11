@@ -938,6 +938,29 @@ app.post('/api/jiraReport/promote/move', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// EBT feedback (scripts/ebt/ebtFiling.js): upload a business email (.msg/.eml) -> preview the GCCM Bug + tracker row
+// -> file it (creates the Jira defect assigned to the Runner's Jira user, then fills the next EBT.GCCM.FD row).
+const ebtFiling = () => require(path.join(POLICY_DIR, 'scripts', 'ebt', 'ebtFiling.js'));
+app.post('/api/ebt/preview', async (req, res) => {
+  const { filename, data } = req.body || {};
+  if (!/\.(msg|eml)$/i.test(String(filename || '')) || !data) return res.status(400).json({ error: 'Upload an Outlook .msg or an .eml file.' });
+  try { res.json(await ebtFiling().preview(Buffer.from(String(data), 'base64'), filename)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/ebt/file', async (req, res) => {
+  if (!jiraConfigured()) return res.status(400).json({ error: 'Jira isn\'t set up yet — enter your Jira email and API token on the Settings tab.' });
+  const { token, form, requestedBy } = req.body || {};
+  try {
+    const r = await ebtFiling().file(String(token || ''), form || {});
+    console.log(`[ebt] ${requestedBy || 'someone'} filed ${r.id} as ${r.jira.key}; tracker ${r.tracker.ok ? 'updated' : 'NOT updated: ' + r.tracker.error}`);
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/ebt/retryTracker', async (req, res) => {
+  try { res.json(await ebtFiling().retryTracker(String((req.body || {}).token || ''))); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // The deck's header objective + per-area "Risk & Dependencies" text (statusNotes.saveDeckText).
 app.post('/api/jiraReport/deckText', (req, res) => {
   const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));

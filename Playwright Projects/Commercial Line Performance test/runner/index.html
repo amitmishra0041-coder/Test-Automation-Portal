@@ -1058,6 +1058,42 @@
       <div id="promoteList" style="max-height:420px;overflow:auto;margin-top:8px;"></div>
     </div>
 
+    <div class="card" id="ebtCard">
+      <h2>EBT feedback — log a GCCM defect and update the tracker</h2>
+      <p class="hint">Upload a business EBT feedback email (.msg or .eml). Check the preview, then file it. This creates a GCCM Bug labelled <b>EBT</b> and assigned to you, with the reporter, the email and its screenshots in the description. It also fills the next <b>EBT.GCCM.FD</b> row of the CC-CM EBT Feedback Tracker.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Outlook: drag the email from your inbox to the desktop (that saves a .msg) and pick it here, or use File &gt; Save As. Jira: summary "EBT.GCCM.FD.0NN: &lt;subject&gt;", like SMART-1750. Tracker: S:\Shared Folders\Guidewire Cloud Initiative\QA\EBT\GW CC-CM Cloud Migration EBT Feedback Tracker.xlsx. Only that one row changes, so the Summary pivot and the dropdowns stay as they are. A backup is taken before every save. The tracker must be closed in Excel. If someone has it open, nothing is filed.</span></span></p>
+      <div class="actions">
+        <input type="file" id="ebtFile" accept=".msg,.eml" />
+        <span class="hint" id="ebtStatus"></span>
+      </div>
+      <div id="ebtPreview" style="display:none;margin-top:10px;">
+        <div class="warn-banner" id="ebtWarn" style="display:none"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 14px;max-width:900px;">
+          <label>Feedback ID<br><input type="text" id="ebtId" readonly style="width:100%"></label>
+          <label>Reporter<br><input type="text" id="ebtReporter" style="width:100%"></label>
+          <label>Reported<br><input type="date" id="ebtReported" style="width:100%"></label>
+          <label>LOB<br><select id="ebtLob" style="width:100%"></select></label>
+          <label>Feature<br><select id="ebtFeature" style="width:100%"></select></label>
+          <label>System<br><select id="ebtSystem" style="width:100%"></select></label>
+          <label>Initial Priority<br><select id="ebtPriority" style="width:100%"></select></label>
+          <label>Workstream<br><select id="ebtWorkstream" style="width:100%"><option>CC</option><option>CM</option></select></label>
+        </div>
+        <div class="field-label">Summary (the Feedback ID is added in front)</div>
+        <input type="text" id="ebtTitle" style="width:100%;max-width:900px">
+        <div class="field-label">Email text for the Jira description (edit if needed, e.g. trim long signatures)</div>
+        <textarea id="ebtBody" rows="10" style="width:100%;max-width:900px;"></textarea>
+        <div class="field-label">Screenshots to attach (small signature logos are unticked)</div>
+        <div id="ebtImages" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+        <div class="field-label">Tracker comments (optional)</div>
+        <input type="text" id="ebtComments" style="width:100%;max-width:900px">
+        <div class="actions" style="margin-top:10px;">
+          <button class="run" id="ebtFileBtn" type="button">Create GCCM defect &amp; update tracker</button>
+          <button class="run" id="ebtRetryBtn" type="button" style="display:none">Retry tracker update</button>
+        </div>
+        <div id="ebtResult" class="hint" style="margin-top:8px;"></div>
+        <div class="hint" id="ebtRecent" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
 
     <div class="card">
       <h2>Add a new query</h2>
@@ -3222,6 +3258,82 @@
         st.textContent = moved + ' of ' + keys.length + ' moved to Ready for QA' + (other.length ? ' — ' + other.join('; ') : '');
         promoteRows = promoteRows.filter(function (r) { return keys.indexOf(r.key) < 0; }); renderPromote();
       }).catch(function () { st.textContent = 'Move failed'; });
+  });
+
+  // ── EBT feedback -> GCCM defect + tracker row (scripts/ebt/ebtFiling.js) ──
+  var ebtToken = null;
+  function ebtEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function ebtFill(id, list, value) {
+    var sel = document.getElementById(id), opts = list.slice();
+    if (value && opts.indexOf(value) < 0) opts.unshift(value);
+    sel.innerHTML = (value ? '' : '<option value="">— choose —</option>') + opts.map(function (v) { return '<option' + (v === value ? ' selected' : '') + '>' + ebtEsc(v) + '</option>'; }).join('');
+  }
+  function ebtPost(url, body) {
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (b) { if (!r.ok) throw new Error(b.error || ('HTTP ' + r.status)); return b; }); });
+  }
+  function ebtShowResult(r) {
+    var j = r.jira, t = r.tracker, h = '<b>' + ebtEsc(r.id) + '</b> → <a href="' + j.url + '" target="_blank">' + j.key + '</a> (assigned to ' + ebtEsc(j.assignee) + ', ' + j.attached.length + ' screenshot(s))';
+    if (t.ok) h += ' · tracker updated' + (t.row ? ' (row ' + t.row + ')' : '');
+    else {
+      var row = t.row || {};
+      h += '<div class="error-msg" style="display:block">Tracker NOT updated: ' + ebtEsc(t.error) + '<br>Close the tracker and press Retry, or enter by hand: ' +
+        ebtEsc([row.id, row.lob, row.feature, row.system, row.description, row.priority, row.jiraId, row.reporter, row.workstream, row.status].join(' | ')) + '</div>';
+    }
+    document.getElementById('ebtResult').innerHTML = h;
+    document.getElementById('ebtRetryBtn').style.display = t.ok ? 'none' : '';
+    document.getElementById('ebtFileBtn').disabled = true;
+  }
+  document.getElementById('ebtFile').addEventListener('change', function () {
+    var f = this.files[0], st = document.getElementById('ebtStatus');
+    if (!f) return;
+    st.textContent = 'Reading ' + f.name + '...';
+    document.getElementById('ebtPreview').style.display = 'none';
+    var rd = new FileReader();
+    rd.onload = function () {
+      ebtPost('/api/ebt/preview', { filename: f.name, data: String(rd.result).split(',')[1] }).then(function (p) {
+        ebtToken = p.token; st.textContent = '';
+        var s = p.suggested, L = p.tracker.lists;
+        document.getElementById('ebtId').value = s.id;
+        document.getElementById('ebtReporter').value = s.reporter;
+        var d = new Date(s.reported); document.getElementById('ebtReported').value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+        ebtFill('ebtLob', L.lob, s.lob); ebtFill('ebtFeature', L.feature, s.feature); ebtFill('ebtSystem', L.system, s.system); ebtFill('ebtPriority', L.priority, s.priority);
+        document.getElementById('ebtWorkstream').value = s.workstream;
+        document.getElementById('ebtTitle').value = s.title;
+        document.getElementById('ebtBody').value = p.email.body;
+        document.getElementById('ebtComments').value = '';
+        document.getElementById('ebtImages').innerHTML = p.images.filter(function (im) { return im.isImage; }).map(function (im) {
+          return '<label style="border:1px solid var(--border,#ccc);border-radius:6px;padding:6px;max-width:240px;font-size:12px;"><input type="checkbox" class="ebtImg" value="' + im.i + '"' + (im.checked ? ' checked' : '') + '> ' + ebtEsc(im.filename) + ' (' + Math.round(im.size / 1024) + ' KB)' +
+            (im.dataUrl ? '<br><img src="' + im.dataUrl + '" style="max-width:228px;max-height:150px;margin-top:4px;">' : '') + '</label>';
+        }).join('') || '<span class="empty">No images in this email.</span>';
+        var warn = [];
+        if (p.tracker.lockedBy) warn.push('The tracker is open in Excel by <b>' + ebtEsc(p.tracker.lockedBy) + '</b> — it has to be closed before filing.');
+        p.tracker.duplicates.forEach(function (x) { warn.push('Looks already filed: <b>' + ebtEsc(x.id) + '</b> ' + ebtEsc(x.description) + ' (' + ebtEsc(x.jiraId) + ')'); });
+        var w = document.getElementById('ebtWarn'); w.innerHTML = warn.join('<br>'); w.style.display = warn.length ? '' : 'none';
+        document.getElementById('ebtRecent').innerHTML = 'From <b>' + ebtEsc(p.email.fromName) + '</b> ' + ebtEsc(p.email.fromEmail) + ' · last tracker entries: ' +
+          p.tracker.recent.slice(-4).map(function (x) { return ebtEsc(x.id + ' (' + x.jiraId + ')'); }).join(', ');
+        document.getElementById('ebtResult').innerHTML = '';
+        document.getElementById('ebtRetryBtn').style.display = 'none';
+        document.getElementById('ebtFileBtn').disabled = false;
+        document.getElementById('ebtPreview').style.display = '';
+      }).catch(function (e) { st.textContent = e.message; });
+    };
+    rd.readAsDataURL(f);
+  });
+  document.getElementById('ebtFileBtn').addEventListener('click', function () {
+    if (!ebtToken) return;
+    var v = function (id) { return document.getElementById(id).value.trim(); };
+    if (!v('ebtFeature')) { document.getElementById('ebtResult').textContent = 'Choose a Feature first.'; return; }
+    var imgs = []; document.querySelectorAll('.ebtImg').forEach(function (c) { if (c.checked) imgs.push(+c.value); });
+    if (!confirm('Create a GCCM Bug "' + v('ebtId') + ': ' + v('ebtTitle') + '" assigned to you, with ' + imgs.length + ' screenshot(s), and add it to the EBT tracker?')) return;
+    var btn = this; btn.disabled = true; document.getElementById('ebtResult').textContent = 'Creating the Jira defect...';
+    ebtPost('/api/ebt/file', { token: ebtToken, requestedBy: document.getElementById('jiraReportEmail').value.trim(), form: {
+      title: v('ebtTitle'), body: document.getElementById('ebtBody').value, reporter: v('ebtReporter'), reported: v('ebtReported') + 'T12:00:00',
+      lob: v('ebtLob'), feature: v('ebtFeature'), system: v('ebtSystem'), priority: v('ebtPriority'), workstream: v('ebtWorkstream'), comments: v('ebtComments'), images: imgs } })
+      .then(ebtShowResult).catch(function (e) { btn.disabled = false; document.getElementById('ebtResult').textContent = e.message; });
+  });
+  document.getElementById('ebtRetryBtn').addEventListener('click', function () {
+    ebtPost('/api/ebt/retryTracker', { token: ebtToken }).then(ebtShowResult).catch(function (e) { document.getElementById('ebtResult').textContent = e.message; });
   });
 
   function updateJiraReportPreview() {
