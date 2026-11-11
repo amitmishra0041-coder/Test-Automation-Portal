@@ -41,6 +41,25 @@ async function searchJql(jql, fields, { signal } = {}) {
 const sevName = (v) => (v ? v.value || v.name || String(v) : '');
 const browse = (key) => `https://${jira().site}/browse/${key}`;
 
+async function emailOutstandingDefects(file, to, { total, counts, sections, byProj, PROJECTS }) {
+  const host = process.env.SMTP_HOST || process.env.EMAIL_SMTP_HOST;
+  const from = process.env.FROM_EMAIL || process.env.EMAIL_FROM;
+  if (!host || !from) throw new Error('SMTP_HOST / FROM_EMAIL not set — spreadsheet saved but not emailed.');
+  if (!to) throw new Error('No email address to send to.');
+  const td = 'padding:5px 10px;border:1px solid #ccc;';
+  const tables = sections.map(([title, label, rows]) => {
+    const body = rows.map(([name, test]) => { const n = PROJECTS.map((p) => byProj[p].filter(test).length);
+      return `<tr><td style="${td}">${name}</td>${n.map((v) => `<td style="${td}text-align:right;">${v}</td>`).join('')}<td style="${td}text-align:right;"><b>${n.reduce((a, b) => a + b, 0)}</b></td></tr>`; }).join('');
+    const tot = PROJECTS.map((p) => byProj[p].filter((b) => rows.some(([, t]) => t(b))).length);
+    return `<h3 style="color:#1F4E78;margin:18px 0 6px;">${title}</h3><table style="border-collapse:collapse;font-size:13px;"><tr style="background:#1F4E78;color:#fff;"><th style="${td}">${label}</th>${PROJECTS.map((p) => `<th style="${td}">${p}</th>`).join('')}<th style="${td}">Total</th></tr>${body}<tr style="background:#DDEBF7;font-weight:bold;"><td style="${td}">Total</td>${tot.map((v) => `<td style="${td}text-align:right;">${v}</td>`).join('')}<td style="${td}text-align:right;">${tot.reduce((a, b) => a + b, 0)}</td></tr></table>`;
+  }).join('');
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const html = `<div style="font-family:Arial,sans-serif;max-width:720px;"><h2 style="color:#1F3864;">Outstanding SMART / GCCM Defects — ${today}</h2>
+<p><b>${total}</b> outstanding (${PROJECTS.map((p) => `${p} ${counts[p]}`).join(', ')}); excludes Rejected, Done, Closed, Fixed and Ready for Retest. The full list (one sheet per project + Stats) is attached.</p>${tables}</div>`;
+  await require('nodemailer').createTransport({ host, port: Number(process.env.SMTP_PORT || process.env.EMAIL_SMTP_PORT) || 25, secure: false, tls: { rejectUnauthorized: false } })
+    .sendMail({ from, to, subject: `Outstanding SMART / GCCM Defects - ${today}`, html, attachments: [{ filename: `Outstanding_Defects_${new Date().toLocaleDateString('en-CA')}.xlsx`, path: file }] });
+}
+
 // ── tools ───────────────────────────────────────────────────────────────────────────────────────────────
 const TOOLS = {
   'jira.impededStories': {
@@ -203,11 +222,22 @@ const TOOLS = {
       table('Outstanding defects by severity', 'Severity', sevs.map((s) => [s, (b) => sev(b) === s]));
       table('Outstanding defects by severity with no due date', 'Severity', sevs.map((s) => [s, (b) => sev(b) === s && !b.fields.duedate]));
       let lo = 0;
-      table('Defect aging (days since created)', 'Age', AGING.map(([name, hi]) => { const from = lo; lo = hi + 1; return [name, (b) => ageDays(b) >= from && ageDays(b) <= hi]; }));
+      const aging = AGING.map(([name, hi]) => { const from = lo; lo = hi + 1; return [name, (b) => ageDays(b) >= from && ageDays(b) <= hi]; });
+      table('Defect aging (days since created)', 'Age', aging);
       fs.mkdirSync(REPORT_DIR, { recursive: true });
       const file = path.join(REPORT_DIR, `Outstanding_Defects_${new Date().toLocaleDateString('en-CA')}_${ctx.taskId.slice(-6)}.xlsx`);
       await wb.xlsx.writeFile(file);
-      return { file: path.basename(file), rows: bugs.length, byProject: counts };
+      // Always emailed to whoever ran it (their own Runner email; nobody else, so no approval step).
+      let emailedTo = '', emailError = '';
+      const to = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(ctx.user || '')) ? ctx.user : process.env.JIRA_EMAIL;
+      try {
+        const sections = [['Outstanding defects by severity', 'Severity', sevs.map((v) => [v, (b) => sev(b) === v])],
+          ['Outstanding defects by severity with no due date', 'Severity', sevs.map((v) => [v, (b) => sev(b) === v && !b.fields.duedate])],
+          ['Defect aging (days since created)', 'Age', aging]];
+        await emailOutstandingDefects(file, to, { total: bugs.length, counts, sections, byProj, PROJECTS });
+        emailedTo = to;
+      } catch (e) { emailError = e.message; }
+      return { file: path.basename(file), rows: bugs.length, byProject: counts, emailedTo, ...(emailError ? { emailError } : {}) };
     },
   },
 
