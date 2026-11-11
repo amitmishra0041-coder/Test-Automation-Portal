@@ -427,7 +427,7 @@ function loadRegressionCatalog() {
 // per tier (POLICY_X_TEST), the way claimCenterBase.getNextPolicy reads them. Looks at this process's environment
 // (Settings) and ClaimCenter-Automation/.env.
 function regressionMissing(c, tier, claimsEnv) {
-  const has = (v) => [v, `${v}_${String(tier).toUpperCase()}`].some((k) => String(process.env[k] || claimsEnv[k] || '').trim());
+  const has = (v) => [v, `${v}_${String(tier).toUpperCase()}`].some((k) => { const v = String(process.env[k] || claimsEnv[k] || '').trim(); return v && !/XXXX/i.test(v); }); // XXXX = .env placeholder
   return (c.requires || []).filter((req) => !req.split('|').some(has));
 }
 function readRegressionLatest(id) {

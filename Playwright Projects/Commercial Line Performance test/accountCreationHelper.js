@@ -23,6 +23,9 @@ const CA_PROVEN_ADDRESSES = {
   DE: { street: 'Main St', city: 'Newark', zip: '19711' },
   IA: { street: 'Cremin Mountains', city: 'Iowa City', zip: '50613' },
   PA: { street: 'Main St', city: 'Carlisle', zip: '17013' },
+  // WI 11/09: random WI ZIPs (Brookfield 53005 twice) were refused with "Location 1 must have the Commercial Auto Line (v7)
+  // territory code set"; Germantown 53022 passed the Locations step (quotes 3002776403, 3002781064).
+  WI: { street: 'Main St', city: 'Germantown', zip: '53022' },
 };
 
 function getRandomAddressByState(state) {
