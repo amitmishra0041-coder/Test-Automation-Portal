@@ -142,35 +142,68 @@ const TOOLS = {
     },
   },
 
-  // Outstanding SMART / GCCM bugs, one sheet per project. "Description" is the Jira summary (one line per bug).
+  // Outstanding SMART / GCCM bugs, one sheet per project, plus a Stats sheet (by severity, by severity with no due
+  // date, aging since created). "Description" is the Jira summary (one line per bug).
   // Closed-type statuses are dropped here, not in JQL: a status name a project doesn't have makes the whole JQL fail.
   'report.outstandingDefects': {
-    title: 'Write outstanding SMART and GCCM defects to Excel (one sheet per project)',
+    title: 'Write outstanding SMART and GCCM defects to Excel (one sheet per project + Stats)',
     risk: 'report',
     params: {},
     async run(_args, ctx) {
       const DONE = new Set(['rejected', 'done', 'closed', 'fixed', 'ready for retest']);
+      const PROJECTS = ['GCCM', 'SMART'];
       const bugs = (await searchJql('project IN (GCCM, SMART) AND type IN (Bug, Defect) ORDER BY project ASC, duedate ASC, key ASC',
-        ['summary', 'assignee', 'status', 'duedate'], ctx)).filter((b) => !DONE.has(b.fields.status.name.toLowerCase()));
+        ['summary', 'assignee', 'status', 'duedate', 'created', 'priority', SEVERITY_FIELD], ctx)).filter((b) => !DONE.has(b.fields.status.name.toLowerCase()));
+      const sev = (b) => sevName(b.fields[SEVERITY_FIELD]) || 'Not set';
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const ageDays = (b) => Math.floor((today - new Date(b.fields.created.slice(0, 10) + 'T00:00:00')) / 86400000);
+      const AGING = [['0-7 days', 7], ['8-14 days', 14], ['15-30 days', 30], ['31-60 days', 60], ['61-90 days', 90], ['90+ days', Infinity]];
       const ExcelJS = require('exceljs');
       const wb = new ExcelJS.Workbook();
+      const stats = wb.addWorksheet('Stats');
       const counts = {};
-      for (const proj of ['GCCM', 'SMART']) {
+      const byProj = {};
+      for (const proj of PROJECTS) {
         const ws = wb.addWorksheet(proj);
-        ws.columns = [['Bug #', 'key', 13], ['Description', 'summary', 80], ['Assignee', 'assignee', 24], ['Status', 'status', 20], ['Due Date', 'due', 12]]
-          .map(([header, key, width]) => ({ header, key, width }));
-        const mine = bugs.filter((b) => b.key.startsWith(`${proj}-`));
+        ws.columns = [['Bug #', 'key', 13], ['Description', 'summary', 80], ['Severity', 'severity', 11], ['Assignee', 'assignee', 24], ['Status', 'status', 20],
+          ['Due Date', 'due', 12], ['Created', 'created', 12], ['Age (days)', 'age', 10]].map(([header, key, width]) => ({ header, key, width }));
+        const mine = byProj[proj] = bugs.filter((b) => b.key.startsWith(`${proj}-`));
         for (const b of mine) {
           const f = b.fields;
-          const row = ws.addRow({ summary: (f.summary || '').trim(), assignee: f.assignee ? f.assignee.displayName : 'Unassigned', status: f.status.name,
-            due: f.duedate ? new Date(`${f.duedate}T00:00:00`) : '' });
+          const row = ws.addRow({ summary: (f.summary || '').trim(), severity: sev(b), assignee: f.assignee ? f.assignee.displayName : 'Unassigned', status: f.status.name,
+            due: f.duedate ? new Date(`${f.duedate}T00:00:00`) : '', created: new Date(f.created.slice(0, 10) + 'T00:00:00'), age: ageDays(b) });
           row.getCell('key').value = { text: b.key, hyperlink: browse(b.key) };
           row.getCell('key').font = { color: { argb: 'FF0563C1' }, underline: true };
         }
-        ws.getColumn('due').numFmt = 'mm/dd/yyyy';
-        ws.getRow(1).font = { bold: true }; ws.autoFilter = { from: 'A1', to: 'E1' }; ws.views = [{ state: 'frozen', ySplit: 1 }];
+        for (const k of ['due', 'created']) ws.getColumn(k).numFmt = 'mm/dd/yyyy';
+        ws.getRow(1).font = { bold: true }; ws.autoFilter = { from: 'A1', to: 'H1' }; ws.views = [{ state: 'frozen', ySplit: 1 }];
         counts[proj] = mine.length;
       }
+      // Stats: three tables, a column per project + Total.
+      const ORDER = ['Critical', 'High', 'Medium', 'Low'];
+      const sevs = [...ORDER, ...[...new Set(bugs.map(sev))].filter((v) => !ORDER.includes(v)).sort()];
+      const head = { font: { bold: true, color: { argb: 'FFFFFFFF' } }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } } };
+      const border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      stats.columns = [{ width: 30 }, ...PROJECTS.map(() => ({ width: 12 })), { width: 12 }];
+      stats.addRow([`Outstanding defects as of ${today.toLocaleDateString('en-US')} (excludes Rejected, Done, Closed, Fixed, Ready for Retest)`]).font = { italic: true };
+      const table = (title, label, rows) => {
+        stats.addRow([]);
+        stats.addRow([title]).font = { bold: true, size: 13 };
+        const h = stats.addRow([label, ...PROJECTS, 'Total']);
+        h.eachCell((c) => { c.font = head.font; c.fill = head.fill; c.border = border; });
+        const tot = PROJECTS.map(() => 0);
+        for (const [name, test] of rows) {
+          const n = PROJECTS.map((p) => byProj[p].filter(test).length);
+          n.forEach((v, i) => { tot[i] += v; });
+          stats.addRow([name, ...n, n.reduce((a, b) => a + b, 0)]).eachCell((c) => { c.border = border; });
+        }
+        const t = stats.addRow(['Total', ...tot, tot.reduce((a, b) => a + b, 0)]);
+        t.eachCell((c) => { c.font = { bold: true }; c.border = border; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }; });
+      };
+      table('Outstanding defects by severity', 'Severity', sevs.map((s) => [s, (b) => sev(b) === s]));
+      table('Outstanding defects by severity with no due date', 'Severity', sevs.map((s) => [s, (b) => sev(b) === s && !b.fields.duedate]));
+      let lo = 0;
+      table('Defect aging (days since created)', 'Age', AGING.map(([name, hi]) => { const from = lo; lo = hi + 1; return [name, (b) => ageDays(b) >= from && ageDays(b) <= hi]; }));
       fs.mkdirSync(REPORT_DIR, { recursive: true });
       const file = path.join(REPORT_DIR, `Outstanding_Defects_${new Date().toLocaleDateString('en-CA')}_${ctx.taskId.slice(-6)}.xlsx`);
       await wb.xlsx.writeFile(file);
