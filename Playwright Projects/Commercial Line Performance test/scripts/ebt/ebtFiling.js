@@ -9,7 +9,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { parseEmail, cleanSubject } = require('./emailParse');
 const tracker = require('./tracker');
-const { createDefect } = require('./jiraDefect');
+const { createDefect, getStatuses, findSimilar } = require('./jiraDefect');
 
 const BACKUP_DIR = path.join(__dirname, '..', '..', 'runtime-data', 'ebt', 'tracker-backups');
 const pending = new Map();
@@ -61,10 +61,15 @@ async function preview(buf, name) {
   }
   const subject = cleanSubject(email.subject);
   const t = await tracker.inspect({ subject });
+  // Open SMART / GCCM bugs that may already cover this feedback (offered before a new defect is filed).
+  let similar = [], similarError = '';
+  try { similar = await findSimilar(subject, email.body); } catch (e) { similarError = e.message; }
   const token = crypto.randomUUID();
-  pending.set(token, { at: Date.now(), email, subject });
+  pending.set(token, { at: Date.now(), email, subject, similar });
   return {
     token,
+    similar,
+    similarError,
     email: { subject: email.subject, fromName: email.fromName, fromEmail: email.fromEmail, to: email.to, sent: email.sent, body: email.body, forwardedBy: email.forwardedBy || '' },
     images: email.attachments.map((a, i) => ({
       i, filename: a.filename, size: a.data.length, isImage: a.isImage,
@@ -107,6 +112,16 @@ async function file(token, form) {
   if (t.lockedBy) throw new Error(`The tracker is open in Excel by ${t.lockedBy} — close it first so the row can be added (nothing was filed).`);
   p.id = t.nextId;
   p.form = form;
+  // Existing bug chosen: no new defect — the tracker row points at that key with its current status.
+  const existing = String(form.existingKey || '').trim().toUpperCase();
+  if (existing) {
+    if (!/^(SMART|GCCM)-\d+$/.test(existing)) throw new Error(`"${existing}" is not a SMART or GCCM key.`);
+    const st = await getStatuses([existing]);
+    if (!st[existing]) throw new Error(`${existing} was not found in Jira.`);
+    form.status = st[existing];
+    p.jira = { key: existing, url: `https://${String(process.env.JIRA_SITE || 'donegalgroup.atlassian.net').replace(/^https?:\/\//, '').replace(/\/.*$/, '')}/browse/${existing}`, existing: true, attached: [] };
+    return finishTracker(p);
+  }
   const images = (form.images || []).map((i) => p.email.attachments[+i]).filter(Boolean);
   p.jira = await createDefect({
     id: p.id,
@@ -119,11 +134,17 @@ async function file(token, form) {
   return finishTracker(p);
 }
 
+// Current JIRA status of every key already in the tracker (refreshed into column K on each filing).
+async function currentStatuses() {
+  try { return await getStatuses((await tracker.listEntries()).map((e) => e.jiraId)); }
+  catch (e) { console.warn(`[ebt] status refresh skipped: ${e.message}`); return null; }
+}
+
 async function finishTracker(p) {
   try {
-    const r = await tracker.addRow(trackerRow(p), { backupDir: BACKUP_DIR });
+    const r = await tracker.addRow(trackerRow(p), { backupDir: BACKUP_DIR, statuses: await currentStatuses() });
     p.trackerDone = true;
-    return { id: p.id, jira: p.jira, tracker: { ok: true, row: r.row, file: r.file } };
+    return { id: p.id, jira: p.jira, tracker: { ok: true, row: r.row, file: r.file, statusChanges: r.statusChanges } };
   } catch (e) {
     return { id: p.id, jira: p.jira, tracker: { ok: false, error: e.message, row: trackerRow(p) } };
   }
@@ -136,4 +157,10 @@ async function retryTracker(token) {
   return finishTracker(p);
 }
 
-module.exports = { preview, file, retryTracker, reporterName, guessFeature };
+// Status refresh on its own (Runner button / weekly deck refresh).
+async function syncTrackerStatuses() {
+  const statuses = await getStatuses((await tracker.listEntries()).map((e) => e.jiraId));
+  return tracker.syncStatuses(statuses, { backupDir: BACKUP_DIR });
+}
+
+module.exports = { preview, file, retryTracker, syncTrackerStatuses, reporterName, guessFeature };

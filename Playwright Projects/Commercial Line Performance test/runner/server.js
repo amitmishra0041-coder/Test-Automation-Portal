@@ -956,6 +956,24 @@ app.post('/api/ebt/file', async (req, res) => {
     res.json(r);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.post('/api/ebt/syncStatuses', async (req, res) => {
+  if (!jiraConfigured()) return res.status(400).json({ error: 'Jira isn\'t set up yet.' });
+  try { res.json(await ebtFiling().syncTrackerStatuses()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Weekly deck: refresh tracker statuses from JIRA (best effort), then write a dated copy of the newest
+// "EBT Status Summary*.pptx" (scripts/ebt/deckUpdate.js; EBT_DECK_DIR, default Desktop\EBT PPT).
+app.post('/api/ebt/deck', async (req, res) => {
+  let sync = null, statuses = null;
+  if (jiraConfigured()) {
+    try { sync = await ebtFiling().syncTrackerStatuses(); } catch (e) {
+      sync = { error: e.message };
+      // Tracker locked: the deck still shows JIRA's current statuses.
+      try { statuses = await require(path.join(POLICY_DIR, 'scripts', 'ebt', 'jiraDefect.js')).getStatuses((await require(path.join(POLICY_DIR, 'scripts', 'ebt', 'tracker.js')).listEntries()).map((x) => x.jiraId)); } catch { /* deck from tracker as-is */ }
+    }
+  }
+  try { res.json({ ...(await require(path.join(POLICY_DIR, 'scripts', 'ebt', 'deckUpdate.js')).updateDeck(undefined, { statuses })), sync }); }
+  catch (e) { res.status(500).json({ error: e.message, sync }); }
+});
 app.post('/api/ebt/retryTracker', async (req, res) => {
   try { res.json(await ebtFiling().retryTracker(String((req.body || {}).token || ''))); }
   catch (e) { res.status(500).json({ error: e.message }); }

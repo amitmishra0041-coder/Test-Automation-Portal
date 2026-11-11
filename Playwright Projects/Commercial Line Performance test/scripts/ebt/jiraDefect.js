@@ -100,4 +100,40 @@ async function createDefect(opts) {
   return { key, url: `https://${site()}/browse/${key}`, assignee: user.displayName, attached };
 }
 
-module.exports = { createDefect, buildDescription, myself };
+// Jira status -> the tracker's Status list (Values!J). Names the tracker already has pass straight through.
+const TRACKER_STATUSES = ['New', 'Open', 'Fixed', 'In Business Review', 'Ready for Retest', 'Rejected', 'Re-Open', 'To Do', 'Deferred', 'Impeded', 'Closed'];
+const STATUS_MAP = { 'In Progress': 'Open', 'In Review': 'Open', Pending: 'Open', Backlog: 'To Do', 'Ready for QA': 'Ready for Retest', 'Awaiting Prod Deployment': 'Fixed', Done: 'Closed', Retired: 'Closed' };
+const trackerStatus = (s) => (TRACKER_STATUSES.includes(s) ? s : STATUS_MAP[s] || s);
+
+// { 'GCCM-1393': 'Fixed', ... } for the given keys (unknown / deleted keys are simply absent).
+async function getStatuses(keys) {
+  keys = [...new Set(keys.filter((k) => /^[A-Z][A-Z0-9]+-\d+$/.test(k)))];
+  const out = {};
+  for (let i = 0; i < keys.length; i += 100) {
+    const r = await jira('POST', '/rest/api/3/search/jql', { jql: `key in (${keys.slice(i, i + 100).join(',')})`, fields: ['status'], maxResults: 100 });
+    (r.issues || []).forEach((x) => { out[x.key] = trackerStatus(x.fields.status.name); });
+  }
+  return out;
+}
+
+// Open bugs in SMART / GCCM that look like the same issue: OR-search the subject's key words (plus claim / policy
+// numbers anywhere in the email), then rank by how many of those terms each summary contains.
+const STOP = new Set('about after again also because been before being below between both cannot could does doing down during each from further have having here into itself just more most other over same should some such than that their them then there these they this those through under until very were what when where which while with would your issue issues claim claims test testing please thanks thank good morning afternoon hello team when getting error unable able new'.split(' '));
+async function findSimilar(subject, body = '', { projects = ['SMART', 'GCCM'], limit = 6 } = {}) {
+  const ids = [...new Set((`${subject}\n${body}`.match(/\b[A-Z]{2,4}-[A-Z]{2}-\d{2}-\d{2}-\d{6,7}\b/g) || []))].slice(0, 3);
+  const words = [...new Set(String(subject).toLowerCase().match(/[a-z0-9]{4,}/g) || [])].filter((w) => !STOP.has(w)).slice(0, 8);
+  const terms = [...ids, ...words];
+  if (!terms.length) return [];
+  const jql = `project in (${projects.join(',')}) AND issuetype in (Bug, Defect) AND statusCategory != Done AND (` +
+    terms.map((t) => `text ~ "\\"${t}\\""`).join(' OR ') + ') ORDER BY created DESC';
+  const r = await jira('POST', '/rest/api/3/search/jql', { jql, fields: ['summary', 'status', 'created', 'assignee'], maxResults: 50 });
+  return (r.issues || []).map((x) => {
+    const s = x.fields.summary.toLowerCase();
+    const sw = new Set(s.match(/[a-z0-9]+/g) || []);
+    const hit = words.filter((w) => sw.has(w)).length + ids.filter((i) => s.includes(i.toLowerCase())).length * 3;
+    return { key: x.key, summary: x.fields.summary.trim(), status: x.fields.status.name, created: x.fields.created.slice(0, 10),
+      assignee: x.fields.assignee ? x.fields.assignee.displayName : '', score: hit, url: `https://${site()}/browse/${x.key}` };
+  }).filter((x) => x.score >= Math.max(Math.min(2, terms.length), Math.ceil(words.length * 0.4))).sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+module.exports = { createDefect, buildDescription, myself, getStatuses, trackerStatus, findSimilar };

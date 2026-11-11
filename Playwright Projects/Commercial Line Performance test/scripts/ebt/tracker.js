@@ -127,14 +127,71 @@ function buildCell(col, r, style, value) {
   return `<c r="${col}${r}"${s} t="inlineStr"><is><t xml:space="preserve">${xmlEscape(value)}</t></is></c>`;
 }
 
+// statuses: { 'GCCM-1393': 'Fixed', ... } (current JIRA status per key). Rewrites column K of every filed row whose
+// JIRA ID is in the map and whose Status differs. Returns the new sheet XML and the list of changes.
+function applyStatuses(xml, rows, statuses) {
+  const changes = [];
+  if (!statuses) return { xml, changes };
+  rows.forEach((x) => {
+    const want = statuses[x.vals.jiraId];
+    if (!want || !x.vals.description || want === x.vals.status) return;
+    const old = x.cells.K;
+    const style = old ? (old.match(/ s="(\d+)"/) || [])[1] : '';
+    const cell = buildCell('K', x.r, style, want);
+    if (old) xml = xml.replace(old, cell);
+    else {
+      const next = ['L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'].map((c) => x.cells[c]).find(Boolean);
+      const rowNow = xml.match(new RegExp(`<row r="${x.r}"[^>]*?(?:/>|>[\\s\\S]*?</row>)`))[0];
+      xml = xml.replace(rowNow, next ? rowNow.replace(next, cell + next) : rowNow.replace(/<\/row>$/, `${cell}</row>`));
+    }
+    changes.push({ id: x.vals.id, jiraId: x.vals.jiraId, from: x.vals.status, to: want });
+  });
+  return { xml, changes };
+}
+
+// Refresh only the Status column from JIRA (no new row).
+async function syncStatuses(statuses, { backupDir } = {}) {
+  const file = trackerPath();
+  const owner = lockOwner(file);
+  if (owner) throw new Error(`The tracker is open in Excel by ${owner} — close it, then retry.`);
+  const original = fs.readFileSync(file);
+  const { zip, sheetPath, xml, ss } = await open(file);
+  const { xml: newXml, changes } = applyStatuses(xml, readRows(xml, ss), statuses);
+  if (!changes.length) return { file, changes };
+  zip.file(sheetPath, newXml);
+  await save(file, zip, original, backupDir);
+  return { file, changes };
+}
+
+async function save(file, zip, original, backupDir) {
+  const pivots = Object.keys(zip.files).filter((n) => /^xl\/pivotCache\/pivotCacheDefinition\d+\.xml$/.test(n));
+  for (const p of pivots) {
+    const px = await zip.file(p).async('string');
+    if (!/refreshOnLoad=/.test(px)) zip.file(p, px.replace(/<pivotCacheDefinition /, '<pivotCacheDefinition refreshOnLoad="1" '));
+  }
+  const out = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+  if (backupDir) {
+    fs.mkdirSync(backupDir, { recursive: true });
+    fs.writeFileSync(path.join(backupDir, `${path.basename(file, '.xlsx')}.${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`), original);
+  }
+  if (lockOwner(file)) throw new Error('The tracker was opened in Excel while saving — nothing was written; retry once it is closed.');
+  try { fs.writeFileSync(file, out); } catch (e) {
+    if (/EBUSY|EPERM|EACCES/.test(e.code || '')) throw new Error('The tracker is locked (open in Excel or read-only for you) — close it and retry.');
+    throw e;
+  }
+}
+
 // row: { id, reported (Date), lob, feature, system, description, priority, jiraId, reporter, workstream, status, comments }
 // Fills the row whose column A is row.id (or appends it). Refuses to overwrite a row that already has a description.
-async function addRow(row, { backupDir } = {}) {
+// statuses (optional): JIRA statuses to refresh on the existing rows in the same save (see applyStatuses).
+async function addRow(row, { backupDir, statuses } = {}) {
   const file = trackerPath();
   const owner = lockOwner(file);
   if (owner) throw new Error(`The tracker is open in Excel by ${owner} — ask them to close it (or close it yourself), then retry.`);
   const original = fs.readFileSync(file);
-  const { zip, sheetPath, xml, ss } = await open(file);
+  const { zip, sheetPath, xml: rawXml, ss } = await open(file);
+  const synced = applyStatuses(rawXml, readRows(rawXml, ss), statuses);
+  const xml = synced.xml;
   const rows = readRows(xml, ss);
   let target = rows.find((x) => x.vals.id === row.id);
   if (target && target.vals.description) throw new Error(`${row.id} is already used in the tracker ("${target.vals.description}")`);
@@ -169,28 +226,23 @@ async function addRow(row, { backupDir } = {}) {
     newXml = existingEmpty ? xml.replace(existingEmpty.xml, rowXml) : xml.replace(last.xml, last.xml + rowXml);
   }
   zip.file(sheetPath, newXml);
-
-  // Summary pivot: refresh on open so the counts include the new row.
-  const pivots = Object.keys(zip.files).filter((n) => /^xl\/pivotCache\/pivotCacheDefinition\d+\.xml$/.test(n));
-  for (const p of pivots) {
-    const px = await zip.file(p).async('string');
-    if (!/refreshOnLoad=/.test(px)) zip.file(p, px.replace(/<pivotCacheDefinition /, '<pivotCacheDefinition refreshOnLoad="1" '));
-  }
-
-  const out = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
-  if (backupDir) {
-    fs.mkdirSync(backupDir, { recursive: true });
-    fs.writeFileSync(path.join(backupDir, `${path.basename(file, '.xlsx')}.${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`), original);
-  }
-  if (lockOwner(file)) throw new Error('The tracker was opened in Excel while saving — nothing was written; retry once it is closed.');
-  try { fs.writeFileSync(file, out); } catch (e) {
-    if (/EBUSY|EPERM|EACCES/.test(e.code || '')) throw new Error('The tracker is locked (open in Excel or read-only for you) — close it and retry.');
-    throw e;
-  }
+  await save(file, zip, original, backupDir);
   // Read back what landed.
   const check = readRows((await open(file)).xml, ss).find((x) => x.vals.id === row.id);
   if (!check || check.vals.jiraId !== String(row.jiraId || '')) throw new Error(`Saved, but ${row.id} did not read back as expected — check the tracker`);
-  return { file, row: check.r };
+  return { file, row: check.r, statusChanges: synced.changes };
 }
 
-module.exports = { inspect, addRow, trackerPath, excelDate };
+// Every filed entry (numbered row with a description), Reported as an ISO date — for the weekly status deck.
+async function listEntries() {
+  const file = trackerPath();
+  if (!fs.existsSync(file)) throw new Error(`Tracker not found: ${file} (is the S: drive connected?)`);
+  const { xml, ss } = await open(file);
+  return readRows(xml, ss).filter((x) => x.r > 1 && ID_RE.test(x.vals.id) && x.vals.description).map((x) => {
+    const n = Number(x.vals.reported);
+    const reported = n > 0 ? new Date(Date.UTC(1899, 11, 30) + n * 86400000).toISOString().slice(0, 10) : x.vals.reported;
+    return { ...x.vals, reported };
+  });
+}
+
+module.exports = { inspect, addRow, syncStatuses, listEntries, trackerPath, excelDate };
