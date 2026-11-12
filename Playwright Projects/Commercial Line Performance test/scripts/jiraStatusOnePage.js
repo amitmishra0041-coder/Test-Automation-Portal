@@ -241,19 +241,35 @@ function buildOnePage({ items, doneItems, scAll = [], bugs = [], emails = [] }) 
       .filter(([, l]) => l.length).map(([label, l, color]) => ({ label: `${label} (${by({ 'In progress': 'inprog', Blocked: 'blocked', 'Ready to test': 'ready', 'Not started': 'todo' }[label]).length})`, lines: l, color }));
   };
 
+  // Open-defects table (status x severity), under whichever column has the least text that week. Severity is the
+  // bug's Severity field, else its priority; the busiest statuses get a row each, the rest share "Other".
+  const sevName = (p) => { const t = String(p || '').toLowerCase(); return /must|critical|highest|blocker/.test(t) ? 'Critical' : /high/.test(t) ? 'High' : /medium/.test(t) ? 'Medium' : /low/.test(t) ? 'Low' : 'Unranked'; };
+  const sevOf = (b) => (sevName(b.severity) !== 'Unranked' ? sevName(b.severity) : sevName(b.priority));
+  const SEV = ['Critical', 'High', 'Medium', 'Low', ...(bugs.some((b) => sevOf(b) === 'Unranked') ? ['Unranked'] : [])];
+  const MAX_ST = 6;
+  const stCount = new Map(); for (const b of bugs) stCount.set(b.status, (stCount.get(b.status) || 0) + 1);
+  const stNames = [...stCount.keys()].sort((x, y) => stCount.get(y) - stCount.get(x));
+  const shown = stNames.length > MAX_ST ? stNames.slice(0, MAX_ST - 1) : stNames;
+  const defRows = shown.map((st) => [st, bugs.filter((b) => b.status === st)]);
+  if (stNames.length > shown.length) defRows.push(['Other', bugs.filter((b) => !shown.includes(b.status))]);
+  const DEF_ROW = 0.17, DEF_HEAD = 0.27;
+  const DEF_H = bugs.length ? DEF_HEAD + (defRows.length + 2) * DEF_ROW : 0; // + header and Grand Total rows
+
   // columns
-  const top = 2.13, H = 4.87, W = 4.05, GAP = 0.19;
-  const cols = data.map((a) => {
+  const top = 2.13, FULL_H = 4.87, W = 4.05, GAP = 0.19;
+  const colParas = data.map((a) => {
     const done = completedLines(a); const groups = remainingGroups(a);
-    const paras = [{ head: `Completed this week (${a.done.length})`, color: G }, ...done.map((t) => ({ t })),
+    return [{ head: `Completed this week (${a.done.length})`, color: G }, ...done.map((t) => ({ t })),
       { head: `Remaining work (${a.open.length} items, ${hrs(sum(a.open))})`, color: a.color === G ? N : a.color },
       ...groups.flatMap((g) => [{ sub: g.label, color: g.color }, ...g.lines.map((t) => (typeof t === 'string' ? { t, color: g.color === RED ? RED : D } : t))])];
+  });
+  const estLines = (paras, fs) => { const cpl = ((W - 0.45) * 72) / (fs * 0.435); let n = 0; for (const p of paras) n += p.head ? 1.5 : p.sub ? 1.15 : Math.ceil((String(p.t).length + 3) / cpl) * 1.02; return n; };
+  const defCol = colParas.map((p) => estLines(p, 10.5)).reduce((best, n, i, all) => (n < all[best] ? i : best), 0);
+  const colH = (ci) => (ci === defCol && DEF_H ? FULL_H - DEF_H - 0.08 : FULL_H);
+  const cols = colParas.map((paras, ci) => {
+    const H = colH(ci);
     // Largest font (10.5 → 7.5 pt) whose estimated wrapped height fits the column.
-    const fits = (fs) => {
-      const cpl = ((W - 0.45) * 72) / (fs * 0.435); let n = 0;
-      for (const p of paras) n += p.head ? 1.5 : p.sub ? 1.15 : Math.ceil((String(p.t).length + 3) / cpl) * 1.02;
-      return n * fs * 1.21 <= (H - 0.5) * 72;
-    };
+    const fits = (fs) => estLines(paras, fs) * fs * 1.21 <= (H - (H < FULL_H ? 0.62 : 0.5)) * 72;
     let fs = 10.5; while (fs > 7.5 && !fits(fs)) fs -= 0.5;
     return { paras, fs };
   });
@@ -261,7 +277,7 @@ function buildOnePage({ items, doneItems, scAll = [], bugs = [], emails = [] }) 
   const minFs = Math.min(...cols.map((c) => c.fs));
   data.forEach((a, ci) => {
     const x = 0.4 + ci * (W + GAP);
-    const { paras } = cols[ci]; const fs = Math.min(cols[ci].fs, minFs + 1);
+    const { paras } = cols[ci]; const fs = Math.min(cols[ci].fs, minFs + 1); const H = colH(ci);
     s.addShape('rect', { x, y: top, w: W, h: H, fill: { color: 'FFFFFF' }, line: { color: GR, width: 0.75 } });
     s.addShape('rect', { x, y: top, w: W, h: 0.36, fill: { color: a.color } });
     s.addText(a.label, { x: x + 0.12, y: top, w: W - 0.2, h: 0.36, fontFace: F, fontSize: 13, bold: true, color: 'FFFFFF', isTextBox: true, margin: 0 });
@@ -273,12 +289,26 @@ function buildOnePage({ items, doneItems, scAll = [], bugs = [], emails = [] }) 
     });
     s.addText(runs, { x: x + 0.05, y: top + 0.42, w: W - 0.1, h: H - 0.46, fontFace: F, valign: 'top', isTextBox: true, margin: [2, 6, 2, 6] });
   });
+  if (DEF_H) {
+    const x = 0.4 + defCol * (W + GAP), y = top + FULL_H - DEF_H;
+    const cell = (text, o = {}) => ({ text: String(text), options: o });
+    const hd = { bold: true, fill: { color: L }, color: N };
+    const count = (list, sv) => { const n = list.filter((b) => sevOf(b) === sv).length; return n ? n : ''; };
+    s.addShape('rect', { x, y, w: W, h: DEF_HEAD, fill: { color: A } });
+    s.addText(`Open Defects (CC & SmartComm) – ${bugs.length}`, { x: x + 0.12, y, w: W - 0.2, h: DEF_HEAD, fontFace: F, fontSize: 11.5, bold: true, color: 'FFFFFF', isTextBox: true, margin: 0 });
+    const rows = [[cell('Status', { ...hd, align: 'left' }), ...SEV.map((sv) => cell({ Critical: 'Crit.', Medium: 'Med.', Unranked: 'None' }[sv] || sv, hd)), cell('Total', hd)],
+      ...defRows.map(([st, list]) => [cell(st, { align: 'left' }), ...SEV.map((sv) => cell(count(list, sv), sv === 'Critical' ? { color: RED, bold: true } : {})), cell(list.length, { bold: true })]),
+      [cell('Grand Total', { bold: true, align: 'left', fill: { color: 'F2F2F2' } }), ...SEV.map((sv) => cell(count(bugs, sv) || 0, { bold: true, fill: { color: 'F2F2F2' } })), cell(bugs.length, { bold: true, fill: { color: 'F2F2F2' } })]];
+    const nw = (W - 1.55) / (SEV.length + 1);
+    s.addTable(rows, { x, y: y + DEF_HEAD, w: W, colW: [1.55, ...SEV.map(() => nw), nw], rowH: DEF_ROW, fontFace: F, fontSize: 8, color: D, align: 'center', valign: 'middle',
+      margin: [1, 5, 1, 5], fill: { color: 'FFFFFF' }, border: { type: 'solid', color: GR, pt: 0.5 } });
+  }
   const used = emails.filter((e) => Object.keys(e.byKey || {}).length || (e.named || []).length);
   const src = used.length ? `QA status emails (${used.map((e) => `${(String(e.from).match(/,\s*(\S+)/) || String(e.from).match(/^(\S+)/) || ['', 'email'])[1]} ${new Date(e.received).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}`).join(', ')})` : 'defects linked in Jira';
   s.addText(`Hours are Jira remaining estimates and exclude regression, performance and automation work and deferred items.  Status details: Jira and ${src}.`,
     { x: 0.4, y: 7.05, w: 12.5, h: 0.3, fontFace: F, fontSize: 9, italic: true, color: '7F7F7F', isTextBox: true, margin: 0 });
 
-  return { pptx, onePage: { sprint: S, hours: Object.fromEntries(data.map((a) => [a.key, Math.round(sum(a.open))])), completedThisWeek: data.reduce((n, a) => n + a.done.length, 0), statusSource: src } };
+  return { pptx, onePage: { sprint: S, hours: Object.fromEntries(data.map((a) => [a.key, Math.round(sum(a.open))])), completedThisWeek: data.reduce((n, a) => n + a.done.length, 0), statusSource: src, openDefects: bugs.length } };
 }
 
 module.exports = { buildOnePage, outlookNotes, businessNote };
