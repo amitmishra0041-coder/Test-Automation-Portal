@@ -1,5 +1,7 @@
 // Generates the QA Sprint Status deck (PowerPoint) from Jira and, when JIRA_REPORT_EMAIL_TO is set, emails it.
 //
+// DEFAULT OUTPUT (2026-11-11): one management page built by jiraStatusOnePage.js from the data collected here.
+// The three slides described below are produced only with STATUS_DECK_LAYOUT=classic.
 // Slide 1 "QA Status Summary - ClaimCenter": ClaimCenter (incl. enhancements) | SMARTCOMM | OneInc columns (completed this
 //   sprint, in progress, spillovers), SmartCOMM's design/execution summary, and the open-defects table.
 // Slide 2 "Day-by-Day Progress": per track, the items completed and started on each of the last 5 working days.
@@ -636,7 +638,21 @@ async function generateStatusDeck(outputPath, { emailTo } = {}) {
   console.log(`Open items: ${data.items.length}, done this sprint: ${data.doneItems.length}, SmartComm overall: ${data.scAll.length}, open defects: ${data.bugs.length}`);
   const saved = statusNotes.load();
   if (saved.count) console.log(`Weekly notes: ${saved.count} item(s), saved ${saved.savedAt}`);
-  const { pptx, summary } = buildDeck({ ...data, notes: saved.notes || {}, deckText: saved.deckText || {} });
+  const classic = buildDeck({ ...data, notes: saved.notes || {}, deckText: saved.deckText || {} });
+  const summary = classic.summary;
+  // Default (2026-11-11): the one-page management slide (jiraStatusOnePage.js). STATUS_DECK_LAYOUT=classic keeps
+  // the three-slide deck (summary + day-by-day + week-by-week).
+  let pptx = classic.pptx;
+  if (!/^classic$/i.test(process.env.STATUS_DECK_LAYOUT || '')) {
+    const onePage = require('./jiraStatusOnePage');
+    // Status emails dropped on the Jira tab; Outlook's newest daily status only when none of them covers Jira keys.
+    const emails = statusNotes.emails().filter((e) => e.fresh);
+    if (!emails.some((e) => Object.keys(e.byKey || {}).length)) { const o = onePage.outlookNotes(); if (o) emails.unshift(o); }
+    for (const e of emails) console.log(`Status email: ${e.from} - "${e.subject}" (${Object.keys(e.byKey || {}).length} cards, ${(e.named || []).length} named lines)`);
+    const r = onePage.buildOnePage({ ...data, emails });
+    pptx = r.pptx;
+    console.log(`One-page status: ${JSON.stringify(r.onePage)}`);
+  }
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   await pptx.writeFile({ fileName: outputPath });
   console.log(`Deck written: ${outputPath}`);
@@ -651,4 +667,4 @@ if (require.main === module) {
   generateStatusDeck(out, { emailTo: process.env.JIRA_REPORT_EMAIL_TO }).catch((e) => { console.error(e.message); process.exit(1); });
 }
 
-module.exports = { generateStatusDeck, DEFECTS_JQL };
+module.exports = { generateStatusDeck, DEFECTS_JQL, collect, buildDeck };

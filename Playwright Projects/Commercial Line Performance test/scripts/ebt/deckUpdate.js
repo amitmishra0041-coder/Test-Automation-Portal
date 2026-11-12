@@ -1,7 +1,8 @@
 // scripts/ebt/deckUpdate.js — refresh the weekly "EBT Status Summary" deck from the EBT feedback tracker.
 // Takes the NEWEST "EBT Status Summary*.pptx" in the deck folder (the user edits it between meetings), writes a
 // dated copy next to it (never overwrites: "... - 11-11 v2.pptx" if today's name is taken) and fills it via
-// PowerPoint (updateEbtDeck.ps1). Usage: node scripts/ebt/deckUpdate.js [deckFolderOrFile]
+// PowerPoint (updateEbtDeck.ps1). Slide 1 is the layout in ebtSlide.js: put in once, then only its numbers and
+// graphs are refreshed. Usage: node scripts/ebt/deckUpdate.js [deckFolderOrFile]
 'use strict';
 
 const fs = require('fs');
@@ -9,6 +10,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const tracker = require('./tracker');
+const { writeSlide, slideData } = require('./ebtSlide');
 
 const DEFAULT_DIR = process.env.EBT_DECK_DIR || path.join(os.homedir(), 'Desktop', 'EBT PPT');
 const STATUS_ORDER = ['New', 'Open', 'To Do', 'In Business Review', 'Fixed', 'Ready for Retest', 'Re-Open', 'Impeded', 'Deferred', 'Rejected', 'Closed'];
@@ -36,17 +38,19 @@ async function updateDeck(dirOrFile = DEFAULT_DIR, { statuses } = {}) {
   const out = outputName(src);
   const entries = (await tracker.listEntries()).map((e) => (statuses && statuses[e.jiraId] ? { ...e, status: statuses[e.jiraId] } : e));
   const tmp = path.join(os.tmpdir(), `ebt-deck-${Date.now()}.json`);
+  // The slide-1 layout as a one-slide deck (used only when the source deck isn't in that layout yet).
+  const slideFile = await writeSlide(path.join(os.tmpdir(), `ebt-slide-${Date.now()}.pptx`));
   fs.writeFileSync(tmp, JSON.stringify({
-    entries, statusOrder: STATUS_ORDER,
+    entries, statusOrder: STATUS_ORDER, slide: slideData(entries, STATUS_ORDER),
     jiraSite: String(process.env.JIRA_SITE || 'donegalgroup.atlassian.net').replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
     refreshed: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
   }), 'utf8');
   try {
     execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'updateEbtDeck.ps1'),
-      '-Source', src, '-Out', out, '-DataJson', tmp], { stdio: 'pipe', timeout: 180000 });
+      '-Source', src, '-Out', out, '-DataJson', tmp, '-SlideFile', slideFile], { stdio: 'pipe', timeout: 180000 });
   } catch (e) {
     throw new Error(`PowerPoint update failed: ${String(e.stderr || e.message).trim().split('\n').slice(0, 3).join(' ')}`);
-  } finally { fs.rmSync(tmp, { force: true }); }
+  } finally { fs.rmSync(tmp, { force: true }); fs.rmSync(slideFile, { force: true }); }
   const jira = entries.filter((e) => /^[A-Z][A-Z0-9]+-\d+$/.test(e.jiraId)).length;
   return { source: src, output: out, observations: entries.length, jira };
 }

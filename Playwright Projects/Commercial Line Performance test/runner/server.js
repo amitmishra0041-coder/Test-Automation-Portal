@@ -986,6 +986,23 @@ app.post('/api/jiraReport/deckText', (req, res) => {
   const t = statusNotes.saveDeckText({ objective: String(objective || '').slice(0, 1000), risks: risks || {} }, { savedBy: String(savedBy || '').slice(0, 200) });
   res.json({ savedAt: t.savedAt });
 });
+// Status emails for the one-page deck (statusNotes.ingestEmailFile): drop the QA leads' emails (.msg / .eml);
+// one is kept per sender + subject, and the deck uses those from the last 10 days alongside live Jira data.
+app.get('/api/jiraReport/statusEmails', (req, res) => {
+  const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
+  res.json({ emails: statusNotes.emails().map((e) => ({ id: e.id, from: e.from, subject: e.subject, received: e.received, fresh: e.fresh, cards: Object.keys(e.byKey || {}).length, lines: (e.named || []).length })) });
+});
+app.post('/api/jiraReport/statusEmail', (req, res) => {
+  const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
+  const { filename, data, savedBy } = req.body || {};
+  if (!data || !/\.(msg|eml)$/i.test(String(filename || ''))) return res.status(400).json({ error: 'Drop an Outlook email (.msg) or an .eml file.' });
+  try { res.json(statusNotes.ingestEmailFile(Buffer.from(String(data), 'base64'), String(filename), { savedBy: String(savedBy || '').slice(0, 200) })); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.delete('/api/jiraReport/statusEmail', (req, res) => {
+  const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
+  res.json({ removed: statusNotes.removeEmail(String(req.query.id || '')) });
+});
 app.post('/api/jiraReport/notes', (req, res) => {
   const statusNotes = require(path.join(POLICY_DIR, 'scripts', 'statusNotes.js'));
   const { rows, text, source, savedBy } = req.body || {};

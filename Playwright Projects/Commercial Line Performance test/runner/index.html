@@ -1018,6 +1018,13 @@
       <div class="hint" id="jiraReportTypeHint"></div>
 
       <div id="jiraReportNotesBlock" style="display:none">
+      <div class="field-label">This week's status emails</div>
+      <div id="statusEmailDrop" tabindex="0" style="max-width:900px;border:2px dashed #9aa7bd;border-radius:8px;padding:16px;text-align:center;cursor:pointer;">
+        <b>Drag and drop the status emails here</b> (from Outlook, or saved .msg / .eml files) &mdash; or click to choose.
+        <div class="hint" style="margin-top:4px;">The CC/CM daily status (Vimal) and the OneInc update (Amanda). The deck combines them with live Jira data.</div>
+        <input type="file" id="statusEmailFile" accept=".msg,.eml" multiple style="display:none" />
+      </div>
+      <div id="statusEmailList" class="hint" style="margin:6px 0 12px;"></div>
       <div class="field-label">This week's blockers &amp; notes (optional)</div>
       <textarea id="jiraNotesInput" rows="5" placeholder="Paste the status table from your weekly email here (Key | Summary | Status | Notes) — or upload the email below" style="width:100%;max-width:900px;"></textarea>
       <div class="actions" style="margin-top:6px;">
@@ -3148,7 +3155,7 @@
 
   var JIRA_REPORT_TYPES = [
     { key: 'pending', label: 'Pending work (Excel)', hint: 'One Excel workbook of open work for the selected tracks, by sprint.' },
-    { key: 'statusDeck', label: 'Sprint status deck (PowerPoint)', hint: 'Management deck: Functional/Enhancement, SMARTCOMM and OneInc — completed this sprint, remaining and likely spillover, next sprint planned, open defects. Uses its own fixed queries, so no track selection.' },
+    { key: 'statusDeck', label: 'Sprint status deck (PowerPoint)', hint: 'One-page management deck: hours left for ClaimCenter, SMARTCOMM and OneInc (regression, performance and automation work excluded), what was completed this week and the remaining work, from live Jira plus the status emails you drop below. Uses its own fixed queries, so no track selection.' },
   ];
   function renderJiraReportTypes() {
     var box = document.getElementById('jiraReportTypeChips');
@@ -3167,6 +3174,53 @@
   try { var savedJiraType = localStorage.getItem('jiraReportType'); if (savedJiraType === 'statusDeck' || savedJiraType === 'pending') jiraReport.type = savedJiraType; } catch (_) { /* ignore */ }
 
   // ── Weekly notes (status deck) ──
+  // Status emails for the one-page deck: drop / choose .msg or .eml, list what's saved, remove one.
+  function loadStatusEmails() {
+    fetch('/api/jiraReport/statusEmails').then(function (r) { return r.json(); }).then(function (d) {
+      var el = document.getElementById('statusEmailList');
+      el.textContent = '';
+      if (!d.emails || !d.emails.length) { el.textContent = 'No status emails saved yet - the deck will use Jira only (plus the newest daily status in Outlook on this PC).'; return; }
+      d.emails.slice().reverse().forEach(function (e) {
+        var row = document.createElement('div');
+        var when = new Date(e.received).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        row.textContent = (e.fresh ? '\u2713 ' : '\u26A0 older than 10 days, not used - ') + e.from + ' - ' + e.subject + ' (' + when + '; ' + (e.cards ? e.cards + ' cards' : e.lines + ' status lines') + ') ';
+        var x = document.createElement('a');
+        x.href = '#'; x.textContent = 'remove'; x.style.color = 'inherit'; x.style.textDecoration = 'underline';
+        x.addEventListener('click', function (ev) { ev.preventDefault(); fetch('/api/jiraReport/statusEmail?id=' + encodeURIComponent(e.id), { method: 'DELETE' }).then(loadStatusEmails); });
+        row.appendChild(x);
+        el.appendChild(row);
+      });
+    }).catch(function () {});
+  }
+  function uploadStatusEmails(files) {
+    var el = document.getElementById('statusEmailList');
+    var list = Array.prototype.slice.call(files || []);
+    if (!list.length) return;
+    var errors = [];
+    var next = function () {
+      var f = list.shift();
+      if (!f) { loadStatusEmails(); if (errors.length) setTimeout(function () { var d = document.createElement('div'); d.style.color = '#b03a2e'; d.textContent = errors.join(' | '); el.appendChild(d); }, 400); return; }
+      el.textContent = 'Reading ' + f.name + '...';
+      var rd = new FileReader();
+      rd.onload = function () {
+        fetch('/api/jiraReport/statusEmail', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: f.name, data: String(rd.result).split(',')[1], savedBy: document.getElementById('jiraReportEmail').value.trim() }) })
+          .then(function (r) { return r.json().then(function (j) { if (!r.ok) errors.push(f.name + ': ' + (j.error || 'not saved')); }); })
+          .catch(function (e) { errors.push(f.name + ': ' + e.message); }).then(next);
+      };
+      rd.readAsDataURL(f);
+    };
+    next();
+  }
+  (function () {
+    var drop = document.getElementById('statusEmailDrop'), input = document.getElementById('statusEmailFile');
+    drop.addEventListener('click', function () { input.click(); });
+    input.addEventListener('change', function () { uploadStatusEmails(input.files); input.value = ''; });
+    ['dragenter', 'dragover'].forEach(function (n) { drop.addEventListener(n, function (e) { e.preventDefault(); drop.style.background = 'rgba(46,85,151,.12)'; }); });
+    ['dragleave', 'drop'].forEach(function (n) { drop.addEventListener(n, function (e) { e.preventDefault(); drop.style.background = ''; }); });
+    drop.addEventListener('drop', function (e) { uploadStatusEmails(e.dataTransfer.files); });
+    loadStatusEmails();
+  })();
   var jiraNotesRows = null; // rows of cells captured from a pasted / uploaded HTML table
   function tableRowsFromHtml(html) {
     try {

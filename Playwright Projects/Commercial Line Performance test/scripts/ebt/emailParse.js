@@ -82,6 +82,7 @@ function parseMsg(buf) {
     sent,
     messageId: prop('', '1035'),
     body: tidyBody(body),
+    html: (bin('', '1013') || Buffer.alloc(0)).toString('utf8') || prop('', '1013'), // PR_HTML (binary or string) — empty for RTF-only messages
     attachments: images,
   };
 }
@@ -149,6 +150,7 @@ function parseEml(buf) {
     sent: h.date ? new Date(h.date) : null,
     messageId: (h['message-id'] || '').trim(),
     body: tidyBody(out.text || htmlToText(out.html)),
+    html: out.html || '',
     attachments: out.attachments,
   };
 }
