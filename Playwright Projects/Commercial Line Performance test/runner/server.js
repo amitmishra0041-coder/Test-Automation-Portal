@@ -579,7 +579,8 @@ app.get('/api/oneInc/runs', (req, res) => {
     // not-selected rows every run report lists.
     const limit = Math.max(1, Math.min(200, parseInt(req.query.limit, 10) || 30));
     const agg = oneIncModule('reportService').aggregate();
-    res.json({ runs: agg.runs.slice(0, limit) });
+    // Only what the history table shows (aggregate() also carries each run's header for /overview).
+    res.json({ runs: agg.runs.slice(0, limit).map((r) => ({ runId: r.runId, startedAt: r.startedAt, durationMs: r.durationMs, scope: String(r.scope || '').slice(0, 200), complete: r.complete, tier: r.tier, counts: r.counts, byStory: r.byStory })) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -633,6 +634,112 @@ app.get('/api/oneInc/storyStatus', async (req, res) => {
     });
     stories.sort((a, b) => Number(a.story.replace(/\D/g, '')) - Number(b.story.replace(/\D/g, '')));
     res.json({ stories, jiraSite: data.jira.site });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// ── OneInc tab, story-first layout (2026-11-12) ─────────────────────────────────────────────────────────
+// The tab used to download every case, every story's cases and the whole latest run (about 1.9 MB) and draw all
+// 729 rows. Now: /overview (totals + one line per story + is a run in progress), /story/:key (that story's cases,
+// when it's clicked), /case (one case's last result, when "details" is opened), /currentRun (only the cases the
+// latest run selected). The older /scenarios, /storyStatus and /runs/:id routes stay for anything still using them.
+function oneIncLatestRun(agg) {
+  const r = agg.runs[0];
+  if (!r) return null;
+  // In progress: the run file says so (complete === false), or — for a run written before that flag existed —
+  // scenarios are still "Queued" and the file was rewritten in the last 10 minutes. A STOPPED run never writes
+  // complete=true, so 30 min without a write = not running.
+  const age = Date.now() - Date.parse(r.finishedAt || r.startedAt);
+  const inProgress = (r.completeFlag === false && age < 30 * 60 * 1000) || (r.completeFlag === undefined && r.queued > 0 && age < 10 * 60 * 1000);
+  const planned = r.planned || r.plannedCalc;
+  return { runId: r.runId, inProgress, planned, done: r.done != null ? r.done : planned - r.queued, summary: r.summary, counts: r.counts, startedAt: r.startedAt };
+}
+function oneIncStoryRow(st, scenarios, agg) {
+  const sc = scenarios.filter((x) => x.story === st.story);
+  const auto = sc.filter((x) => x.automation === 'AUTOMATED');
+  const latest = { PASS: 0, FAIL: 0, BLOCKED: 0, NEVER: 0 };
+  let lastTested = '';
+  for (const x of auto) { const l = agg.latest[x.scenarioId]; latest[l ? l.status : 'NEVER']++; if (l && l.at > lastTested) lastTested = l.at; }
+  const notAutomated = {};
+  sc.filter((x) => x.automation !== 'AUTOMATED').forEach((x) => { notAutomated[x.automation] = (notAutomated[x.automation] || 0) + 1; });
+  return { story: st.story, title: st.title, jira: st.jira, totalCases: sc.length, automated: auto.length, latest, notAutomated, lastTested };
+}
+app.get('/api/oneInc/overview', async (req, res) => {
+  try {
+    const data = await loadOneIncInventory(Boolean(req.query.refresh));
+    const agg = oneIncModule('reportService').aggregate();
+    const stories = data.stories.map((st) => oneIncStoryRow(st, data.scenarios, agg))
+      .sort((a, b) => Number(a.story.replace(/\D/g, '')) - Number(b.story.replace(/\D/g, '')));
+    const totals = { cases: data.scenarios.length, automated: 0, PASS: 0, FAIL: 0, BLOCKED: 0, NEVER: 0, notAutomated: 0 };
+    for (const s of stories) {
+      totals.automated += s.automated; totals.notAutomated += s.totalCases - s.automated;
+      for (const k of ['PASS', 'FAIL', 'BLOCKED', 'NEVER']) totals[k] += s.latest[k];
+    }
+    res.json({ totals, stories, jiraSite: data.jira.site, latestRun: oneIncLatestRun(agg), latestRunId: agg.runs[0] ? agg.runs[0].runId : null, runCount: agg.runs.length });
+  } catch (e) { res.status(500).json({ error: `OneInc inventory unavailable: ${e.message}` }); }
+});
+app.get('/api/oneInc/story/:key', async (req, res) => {
+  try {
+    const data = await loadOneIncInventory(false);
+    const st = data.stories.find((x) => x.story === req.params.key);
+    if (!st) return res.status(404).json({ error: `No OneInc story "${req.params.key}"` });
+    const agg = oneIncModule('reportService').aggregate();
+    const cases = data.scenarios.filter((x) => x.story === st.story).map((x) => {
+      const l = agg.latest[x.scenarioId];
+      return { scenarioId: x.scenarioId, name: x.name, description: x.description, automation: x.automation, reason: x.reason,
+        last: l ? { status: l.status, reason: l.reason, devNote: l.devNote, runId: l.runId, at: l.at, claim: l.claim } : null };
+    });
+    const runs = agg.runs.filter((r) => r.byStory[st.story]).slice(0, 15).map((r) => ({ runId: r.runId, startedAt: r.startedAt, counts: r.byStory[st.story] }));
+    res.json({ ...oneIncStoryRow(st, data.scenarios, agg), cases, runs });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// One run file is about 1 MB on the share — keep the last few parsed while their file is unchanged.
+const oneIncRunFileCache = new Map();
+function oneIncLoadRunCached(runId) {
+  const rs = oneIncModule('reportService');
+  if (!/^OneInc_[\w-]+$/.test(String(runId || ''))) return null;
+  const file = path.join(rs.RESULTS_DIR, 'Reports', `${runId}.json`);
+  let m = 0;
+  try { m = fs.statSync(file).mtimeMs; } catch (_) { return null; }
+  const hit = oneIncRunFileCache.get(runId);
+  if (hit && hit.m === m) return hit.run;
+  const run = rs.loadRun(runId);
+  if (run) { oneIncRunFileCache.set(runId, { m, run }); while (oneIncRunFileCache.size > 4) oneIncRunFileCache.delete(oneIncRunFileCache.keys().next().value); }
+  return run;
+}
+// Evidence paths become /reports/oneinc/... URLs so the UI can open them (same as /api/oneInc/runs/:id).
+function oneIncResultUrls(r, root) {
+  const toUrl = (f) => '/reports/oneinc/' + path.relative(root, f).split(path.sep).map(encodeURIComponent).join('/');
+  const out = { ...r };
+  out.evidenceUrls = (r.evidence || []).filter((f) => f.startsWith(root)).map(toUrl);
+  out.stepShotUrls = (r.stepShots || []).map((f) => (f && f.startsWith(root) ? toUrl(f) : null));
+  out.checks = (r.checks || []).map((c) => ({ ...c, screenshotUrl: c.screenshot && c.screenshot.startsWith(root) ? toUrl(c.screenshot) : null }));
+  const review = path.join(root, 'Reports', 'CaseReviews', `${String(r.scenarioId).replace(/[^A-Za-z0-9_-]+/g, '_')}.docx`);
+  out.reviewUrl = fs.existsSync(review) ? toUrl(review) : null;
+  return out;
+}
+app.get('/api/oneInc/case', (req, res) => {
+  try {
+    const id = String(req.query.id || '');
+    const last = oneIncModule('reportService').aggregate().latest[id];
+    if (!last) return res.json({ scenarioId: id, result: null });
+    const run = oneIncLoadRunCached(last.runId);
+    const r = run && run.results.find((x) => x.scenarioId === id);
+    res.json({ scenarioId: id, runId: last.runId, result: r ? oneIncResultUrls(r, oneIncResultsDir()) : null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/oneInc/currentRun', (req, res) => {
+  try {
+    const agg = oneIncModule('reportService').aggregate();
+    const lr = oneIncLatestRun(agg);
+    if (!lr) return res.json({ run: null });
+    const run = oneIncLoadRunCached(lr.runId);
+    const root = oneIncResultsDir();
+    const cases = ((run && run.results) || []).filter((r) => r.automation === 'AUTOMATED' && (/^(PASS|FAIL|BLOCKED)$/.test(r.status) || /^Queued/.test(r.reason || '')))
+      .map((r) => {
+        const review = path.join(root, 'Reports', 'CaseReviews', `${String(r.scenarioId).replace(/[^A-Za-z0-9_-]+/g, '_')}.docx`);
+        return { scenarioId: r.scenarioId, name: r.name, status: r.status, reason: r.reason || '', claim: r.claim || '', durationMs: r.durationMs || 0,
+          reviewUrl: /^(PASS|FAIL|BLOCKED)$/.test(r.status) && fs.existsSync(review) ? '/reports/oneinc/' + path.relative(root, review).split(path.sep).map(encodeURIComponent).join('/') : null };
+      });
+    res.json({ run: lr, cases });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/oneInc/runs/:id', (req, res) => {
