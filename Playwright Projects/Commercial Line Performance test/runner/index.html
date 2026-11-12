@@ -1125,7 +1125,8 @@
         </div>
         <div class="field-label">Summary (the Feedback ID is added in front)</div>
         <input type="text" id="ebtTitle" style="width:100%;max-width:900px">
-        <div class="field-label">Email text for the Jira description (edit if needed, e.g. trim long signatures)</div>
+        <div class="hint" id="ebtAssignee" style="margin-top:6px"></div>
+        <div class="field-label">Email text for the Jira description (signature and From / Sent / To / Subject lines already removed; edit if needed)</div>
         <textarea id="ebtBody" rows="10" style="width:100%;max-width:900px;"></textarea>
         <div class="field-label">Screenshots to attach (small signature logos are unticked)</div>
         <div id="ebtImages" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
@@ -3378,7 +3379,9 @@
   }
   function ebtShowResult(r) {
     var j = r.jira, t = r.tracker, h = '<b>' + ebtEsc(r.id) + '</b> → <a href="' + j.url + '" target="_blank">' + j.key + '</a>' +
-      (j.existing ? ' (existing bug — no new defect created)' : ' (assigned to ' + ebtEsc(j.assignee) + ', ' + j.attached.length + ' screenshot(s))');
+      (j.existing ? ' (existing bug — no new defect created)' : ' (assigned to ' + ebtEsc(j.assignee) + ', ' + j.attached.length + ' screenshot(s)' + (j.emailAttached ? ', email attached' : '') + ')');
+    if (j.assigneeNote) h += '<br><b>Assignee:</b> ' + ebtEsc(j.assigneeNote);
+    if (j.emailError) h += '<br><b>The email file could not be attached:</b> ' + ebtEsc(j.emailError);
     if (t.ok) {
       h += ' · tracker updated' + (t.row ? ' (row ' + t.row + ')' : '');
       if (t.statusChanges && t.statusChanges.length) h += '<br>JIRA statuses refreshed: ' + t.statusChanges.map(function (c) { return ebtEsc(c.id + ' (' + c.jiraId + ') ' + c.from + ' → ' + c.to); }).join('; ');
@@ -3409,6 +3412,9 @@
         document.getElementById('ebtWorkstream').value = s.workstream;
         document.getElementById('ebtTitle').value = s.title;
         document.getElementById('ebtBody').value = p.email.body;
+        // Document issues go to one person, everything else to another (names come from the server).
+        var ebtWho = function () { var a = p.assignees || {}; var f = document.getElementById('ebtFeature').value; var who = /document|template|smart\s*comm|letter/i.test(f) ? a.documents : a.other; document.getElementById('ebtAssignee').textContent = who ? 'The new defect will be assigned to ' + who + ', with this email attached.' : ''; };
+        document.getElementById('ebtFeature').onchange = ebtWho; ebtWho();
         document.getElementById('ebtComments').value = '';
         document.getElementById('ebtImages').innerHTML = p.images.filter(function (im) { return im.isImage; }).map(function (im) {
           return '<label style="border:1px solid var(--border,#ccc);border-radius:6px;padding:6px;max-width:240px;font-size:12px;"><input type="checkbox" class="ebtImg" value="' + im.i + '"' + (im.checked ? ' checked' : '') + '> ' + ebtEsc(im.filename) + ' (' + Math.round(im.size / 1024) + ' KB)' +

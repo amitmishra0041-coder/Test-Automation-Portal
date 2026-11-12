@@ -1,7 +1,9 @@
 // scripts/ebt/jiraDefect.js — file one EBT feedback email as a GCCM Bug (format of SMART-1750 / GCCM-1410):
 //   Summary   "EBT.GCCM.FD.007: <email subject>"     Label  EBT
-//   Assignee  the Jira user whose token the Runner uses (you)
-//   Description: who reported it and when, the email (From/Sent/Subject + body) and every chosen screenshot inline.
+//   Assignee  opts.assignee (document issues -> Ingrid Keough, others -> Brendan Lutz; see ebtFiling.assigneeFor);
+//             the Jira user whose token the Runner uses when that person can't be found
+//   Description: who reported it and when, the reporter's message (no e-mail header lines, no signature) and every
+//   chosen screenshot inline. The email file itself is attached to the defect.
 // Steps: create (v2, wiki-markup description without images) -> attach the screenshots -> set the final description
 // with !file! image macros (they only render once the attachments exist).
 'use strict';
@@ -45,14 +47,6 @@ function buildDescription({ id, email, lob, feature, workstream, body, images })
     `*LOB / Feature / Workstream:* ${wikiEscape([lob, feature, workstream].filter(Boolean).join(' / '))}`,
     '',
     '----',
-    // A forwarded email's body already starts with the business user's own From/Sent/To/Subject lines.
-    ...(email.forwardedBy ? [] : [
-      `*From:* ${wikiEscape(who)}`,
-      email.sent ? `*Sent:* ${wikiEscape(fmtSent(email.sent))}` : '',
-      email.to ? `*To:* ${wikiEscape(email.to)}` : '',
-      `*Subject:* ${wikiEscape(email.subject)}`,
-      '',
-    ]),
     wikiEscape(body),
   ].filter((l, i, a) => l !== '' || a[i - 1] !== '');
   if (images && images.length) {
@@ -65,9 +59,29 @@ function buildDescription({ id, email, lob, feature, workstream, body, images })
 let me = null;
 async function myself() { if (!me) me = await jira('GET', '/rest/api/3/myself'); return me; }
 
-// opts: { id, summary, email (parsed), body (edited text), lob, feature, workstream, priority, images: [{filename, contentType, data}] }
+// A person who can be assigned GCCM issues, by name ("Ingrid Keough"); the surname alone is tried when the full
+// name finds nobody (Jira has "Brendan", people write "Brendon"). null when there is no single clear match.
+const people = new Map();
+async function findAssignee(name) {
+  name = String(name || '').trim();
+  if (!name) return null;
+  if (people.has(name)) return people.get(name);
+  let hit = null;
+  for (const q of [name, name.split(/\s+/).pop()]) {
+    const list = (await jira('GET', `/rest/api/3/user/assignable/search?project=${PROJECT}&query=${encodeURIComponent(q)}`)).filter((u) => u.active !== false);
+    hit = list.find((u) => String(u.displayName).toLowerCase() === name.toLowerCase()) || (list.length === 1 ? list[0] : null);
+    if (hit) break;
+  }
+  people.set(name, hit);
+  return hit;
+}
+
+// opts: { id, summary, email (parsed), body (edited text), lob, feature, workstream, priority, assignee (name),
+//         images: [{filename, contentType, data}], emailFile: {filename, data} }
 async function createDefect(opts) {
-  const user = await myself();
+  let user = null, assigneeNote = '';
+  try { user = await findAssignee(opts.assignee); } catch (e) { assigneeNote = e.message; }
+  if (!user) { user = await myself(); if (opts.assignee) assigneeNote = `${opts.assignee} was not found in Jira${assigneeNote ? ` (${assigneeNote})` : ''} - assigned to ${user.displayName} instead`; }
   const sev = SEVERITIES.includes(opts.priority) ? opts.priority : opts.priority === 'Trivial' ? 'Low' : 'Medium';
   const fields = {
     project: { key: PROJECT },
@@ -97,7 +111,18 @@ async function createDefect(opts) {
   if (attached.length) {
     await jira('PUT', `/rest/api/2/issue/${key}`, { fields: { description: buildDescription({ ...opts, images: attached }) } });
   }
-  return { key, url: `https://${site()}/browse/${key}`, assignee: user.displayName, attached };
+  // The email itself, so the fixer can open the original (attached last: a failure here must not lose the defect).
+  let emailAttached = '', emailError = '';
+  if (opts.emailFile && opts.emailFile.data) {
+    try {
+      const fd = new FormData();
+      const type = /\.eml$/i.test(opts.emailFile.filename) ? 'message/rfc822' : 'application/vnd.ms-outlook';
+      fd.append('file', new Blob([opts.emailFile.data], { type }), opts.emailFile.filename);
+      const r = await jira('POST', `/rest/api/3/issue/${key}/attachments`, fd, { 'X-Atlassian-Token': 'no-check' });
+      emailAttached = (r[0] && r[0].filename) || opts.emailFile.filename;
+    } catch (e) { emailError = e.message; }
+  }
+  return { key, url: `https://${site()}/browse/${key}`, assignee: user.displayName, assigneeNote, attached, emailAttached, emailError };
 }
 
 // Jira status -> the tracker's Status list (Values!J). Names the tracker already has pass straight through.
@@ -136,4 +161,4 @@ async function findSimilar(subject, body = '', { projects = ['SMART', 'GCCM'], l
   }).filter((x) => x.score >= Math.max(Math.min(2, terms.length), Math.ceil(words.length * 0.4))).sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-module.exports = { createDefect, buildDescription, myself, getStatuses, trackerStatus, findSimilar };
+module.exports = { createDefect, buildDescription, myself, getStatuses, trackerStatus, findSimilar, findAssignee };

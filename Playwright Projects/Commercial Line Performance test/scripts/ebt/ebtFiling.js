@@ -38,6 +38,57 @@ function reporterName(n) {
   return parts.length > 1 ? `${parts.pop()}, ${parts.join(' ')}` : n;
 }
 
+// The defect shows the reporter's words only (QA lead, 2026-11-12): no From/Sent/To/Subject lines (the description
+// already says who reported it and when) and no e-mail signature. Fixed local rules; the result is shown in the
+// preview box, where it can still be edited before filing.
+const HEADER_LINE = /^\s*(From|Sent|To|Cc|Bcc|Subject|Date|Importance|Attachments)\s*:/i;
+const SIGN_OFF = /^\s*(many thanks|thanks(?: so much| again| a lot| in advance)?|thank you(?: so much| very much| in advance)?|thx|regards|best regards|kind regards|warm regards|best|sincerely|respectfully|cheers)\s*[,.!-]*\s*$/i;
+const SIG_DETAIL = /(\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}|\bext\.?\s*\d+|@donegalgroup\.com|www\.|donegal (insurance|mutual|group)|\b(manager|supervisor|adjuster|specialist|representative|analyst|director|examiner|claims? rep|vice president|coordinator|trainer)\b|\b(p|o|c|f|ph|tel|phone|office|cell|mobile|fax)\s*[:.]\s*\(?\d)/i;
+const DISCLAIMER = /(confidential|intended (only )?for the (named )?(recipient|addressee|use of)|if you (are not|have received)|caution: this e-?mail|external e-?mail)/i;
+const isBoundary = (lines, k) => /^\s*From:\s*\S/i.test(lines[k]) && lines.slice(k + 1, k + 5).some((l) => /^\s*(Sent|Date):/i.test(l));
+// One message's text without its signature: cut at a sign-off line ("Thanks,"), else at the sender's own name when
+// title / phone lines follow, else at a confidentiality notice.
+function dropSignature(msg, fromName) {
+  const names = String(fromName || '').toLowerCase().replace(/\(.*?\)/g, '').split(/[^a-z'-]+/).filter((w) => w.length > 1);
+  const isName = (l) => { const t = l.toLowerCase().replace(/[^a-z' -]+/g, ' ').trim().split(/\s+/).filter(Boolean); return names.length > 1 && t.length >= 2 && t.length <= 4 && names.every((n) => t.includes(n)); };
+  const hasText = (k) => msg.slice(0, k).some((l) => l.trim());
+  for (let k = 0; k < msg.length; k++) {
+    if (!hasText(k)) continue;
+    const rest = msg.slice(k + 1).filter((l) => l.trim());
+    if ((SIGN_OFF.test(msg[k]) && rest.length <= 12)
+      || (isName(msg[k]) && rest.length <= 12 && (!rest.length || rest.slice(0, 4).some((l) => SIG_DETAIL.test(l))))
+      || (DISCLAIMER.test(msg[k]) && rest.every((l) => DISCLAIMER.test(l) || SIG_DETAIL.test(l) || l.length > 60))) return msg.slice(0, k);
+  }
+  return msg;
+}
+// The whole thread is kept (the detail is often in the message a manager forwards on): each message loses its
+// From/Sent/To/Subject block and its signature; an earlier message is introduced by one line saying who wrote it.
+function stripEmailExtras(body, fromName) {
+  const lines = String(body || '').split('\n').filter((l) => !/^\s*-{2,}\s*(original|forwarded) message\s*-{2,}\s*$/i.test(l) && !/^_{10,}\s*$/.test(l));
+  const starts = [0];
+  for (let k = 1; k < lines.length; k++) if (isBoundary(lines, k)) starts.push(k);
+  const parts = [];
+  starts.forEach((st, n) => {
+    const seg = lines.slice(st, n + 1 < starts.length ? starts[n + 1] : lines.length);
+    let h = 0, who = n ? '' : fromName, sent = '';
+    while (h < seg.length && (!seg[h].trim() || HEADER_LINE.test(seg[h]))) {
+      const m = seg[h].match(/^\s*From:\s*"?([^"<\n]+?)"?\s*(<.*)?$/i); if (m && (n || !who)) who = m[1].trim();
+      const d = seg[h].match(/^\s*(?:Sent|Date):\s*(.+)$/i); if (d) sent = d[1].trim();
+      h++;
+    }
+    const text = dropSignature(seg.slice(h), who).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    if (!text) return;
+    parts.push(n ? `Earlier message from ${who || 'the thread'}${sent ? ` (${sent})` : ''}:\n${text}` : text);
+  });
+  // Never hand back an empty description because a rule misfired.
+  return parts.join('\n\n') || String(body || '').trim();
+}
+
+// Who fixes it (QA lead, 2026-11-12): document / template issues -> Ingrid Keough, everything else -> Brendan Lutz.
+// EBT_ASSIGNEE_DOCS / EBT_ASSIGNEE_OTHER override the names.
+const isDocumentIssue = (feature) => /document|template|smart\s*comm|letter/i.test(String(feature || ''));
+const assigneeFor = (feature) => (isDocumentIssue(feature) ? process.env.EBT_ASSIGNEE_DOCS || 'Ingrid Keough' : process.env.EBT_ASSIGNEE_OTHER || 'Brendan Lutz');
+
 const SMALL_IMAGE = 20 * 1024; // signature logos / icons (Donegal's are 8-15 KB) — offered but unticked
 
 async function preview(buf, name) {
@@ -50,8 +101,7 @@ async function preview(buf, name) {
   if (self && String(email.fromEmail).toLowerCase() === self) {
     const m = email.body.match(/^From:\s*"?([^"<\n]+?)"?\s*<([^>\s]+@[^>\s]+)>/m);
     if (m) {
-      // Start the description at the business user's own message (their From/Sent/To/Subject lines included) and
-      // date the feedback by when they sent it.
+      // Start the description at the business user's own message and date the feedback by when they sent it.
       email.forwardedBy = email.fromName; email.fromName = m[1].trim(); email.fromEmail = m[2].trim();
       email.body = email.body.slice(m.index);
       const sent = new Date((email.body.match(/^Sent:\s*(.+)$/m) || [])[1] || '');
@@ -59,13 +109,15 @@ async function preview(buf, name) {
       email.to = '';
     }
   }
+  email.body = stripEmailExtras(email.body, email.fromName);
   const subject = cleanSubject(email.subject);
   const t = await tracker.inspect({ subject });
   // Open SMART / GCCM bugs that may already cover this feedback (offered before a new defect is filed).
   let similar = [], similarError = '';
   try { similar = await findSimilar(subject, email.body); } catch (e) { similarError = e.message; }
   const token = crypto.randomUUID();
-  pending.set(token, { at: Date.now(), email, subject, similar });
+  // The email file itself is kept so it can be attached to the defect.
+  pending.set(token, { at: Date.now(), email, subject, similar, source: { filename: path.basename(String(name || 'EBT feedback email.msg')), data: buf } });
   return {
     token,
     similar,
@@ -77,6 +129,7 @@ async function preview(buf, name) {
       dataUrl: a.isImage && a.data.length < 6 * 1024 * 1024 ? `data:${a.contentType};base64,${a.data.toString('base64')}` : null,
     })),
     tracker: t,
+    assignees: { documents: assigneeFor('Documents'), other: assigneeFor('') },
     suggested: {
       id: t.nextId,
       title: subject,
@@ -130,6 +183,8 @@ async function file(token, form) {
     body: form.body != null ? String(form.body) : p.email.body,
     lob: form.lob, feature: form.feature, workstream: form.workstream, priority: form.priority,
     images,
+    assignee: assigneeFor(form.feature),
+    emailFile: p.source,
   });
   return finishTracker(p);
 }
@@ -163,4 +218,4 @@ async function syncTrackerStatuses() {
   return tracker.syncStatuses(statuses, { backupDir: BACKUP_DIR });
 }
 
-module.exports = { preview, file, retryTracker, syncTrackerStatuses, reporterName, guessFeature };
+module.exports = { preview, file, retryTracker, syncTrackerStatuses, reporterName, guessFeature, stripEmailExtras, assigneeFor };
