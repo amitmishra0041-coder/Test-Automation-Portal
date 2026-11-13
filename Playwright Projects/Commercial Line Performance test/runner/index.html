@@ -1106,7 +1106,7 @@
       <div class="actions">
         <button class="run" id="ebtSyncBtn" type="button">Refresh JIRA statuses in tracker</button>
         <button class="run" id="ebtDeckBtn" type="button">Refresh weekly deck (EBT + QA status)</button>
-        <span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Statuses: copies each tracker row's current JIRA status into the Status column (this also happens every time a bug is logged here). Deck: refreshes statuses, then takes the newest "EBT Status Summary*.pptx" in Desktop\EBT PPT and saves a dated copy next to it (your file is never overwritten). Slide 1 is the EBT summary: tiles, progress by team from the EBT test case workbook, and JIRA by status. Slide 2 is the weekly QA status page, rebuilt from Jira (same page as the Sprint status deck; nothing is emailed). Then the "EBT Feedback Log" slides listing every tracker entry with Jira links.</span></span>
+        <span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Statuses: copies each tracker row's current JIRA status into the Status column (this also happens every time a bug is logged here). Deck: refreshes statuses, then takes your newest status deck (Desktop\EBT PPT or Desktop\CC Cloud\Status reporting) and saves a dated copy next to it as "QA and EBT Status - MM-DD.pptx" (your file is never overwritten). Slide 1 is the weekly QA status: your wording in the three columns is kept; the hours tiles, the SMARTCOMM summary table and the open-defects table are updated from Jira. Slide 2 is the EBT status: your text is kept; the tiles, progress by team (EBT test case workbook) and JIRA by status are updated. Nothing is emailed.</span></span>
         <span class="hint" id="ebtToolsStatus"></span>
       </div>
       <div id="ebtPreview" style="display:none;margin-top:10px;">
@@ -3470,7 +3470,7 @@
     var st = document.getElementById('ebtToolsStatus'); st.textContent = 'Refreshing statuses and building both slides (a minute or two)...';
     ebtPost('/api/ebt/deck', {}).then(function (r) {
       st.textContent = 'Deck saved: ' + r.output + ' (' + r.observations + ' observations, ' + r.jira + ' in JIRA' + (r.scenarios ? ', ' + r.scenarios.completed + ' of ' + r.scenarios.scenarios + ' scenarios completed' : '') + ') · ' +
-        (r.weekly ? 'weekly QA status slide updated' : 'weekly QA status slide NOT updated: ' + (r.weeklyError || 'unknown reason')) + ' · ' +
+        (r.weeklyError ? 'weekly QA status slide NOT updated: ' + r.weeklyError : 'weekly QA status slide: ' + (r.weekly || 'updated') + (r.hours ? ' (' + r.hours.total + ' left)' : '')) + ' · ' +
         (r.casesError ? 'team progress not updated: ' + r.casesError + ' · ' : '') +
         (r.sync && r.sync.error ? 'status refresh skipped: ' + r.sync.error : 'tracker: ' + ebtChanges(r.sync && r.sync.changes));
     }).catch(function (e) { st.textContent = e.message; });

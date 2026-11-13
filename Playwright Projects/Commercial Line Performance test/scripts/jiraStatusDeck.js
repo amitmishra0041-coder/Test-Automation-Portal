@@ -642,7 +642,7 @@ async function generateStatusDeck(outputPath, { emailTo } = {}) {
   const summary = classic.summary;
   // Default (2026-11-11): the one-page management slide (jiraStatusOnePage.js). STATUS_DECK_LAYOUT=classic keeps
   // the three-slide deck (summary + day-by-day + week-by-week).
-  let pptx = classic.pptx;
+  let pptx = classic.pptx, refresh = null;
   if (!/^classic$/i.test(process.env.STATUS_DECK_LAYOUT || '')) {
     const onePage = require('./jiraStatusOnePage');
     // Status emails dropped on the Jira tab; Outlook's newest daily status only when none of them covers Jira keys.
@@ -650,7 +650,7 @@ async function generateStatusDeck(outputPath, { emailTo } = {}) {
     if (!emails.some((e) => Object.keys(e.byKey || {}).length)) { const o = onePage.outlookNotes(); if (o) emails.unshift(o); }
     for (const e of emails) console.log(`Status email: ${e.from} - "${e.subject}" (${Object.keys(e.byKey || {}).length} cards, ${(e.named || []).length} named lines)`);
     const r = onePage.buildOnePage({ ...data, emails });
-    pptx = r.pptx;
+    pptx = r.pptx; refresh = r.refresh;
     console.log(`One-page status: ${JSON.stringify(r.onePage)}`);
   }
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -659,7 +659,7 @@ async function generateStatusDeck(outputPath, { emailTo } = {}) {
   if (emailTo) {
     try { await sendEmail(outputPath, summary, emailTo); } catch (e) { throw new Error(`Deck was saved to ${outputPath} but emailing it to ${emailTo} failed: ${e.message}`); }
   }
-  return { outputPath, summary };
+  return { outputPath, summary, refresh };
 }
 
 if (require.main === module) {
