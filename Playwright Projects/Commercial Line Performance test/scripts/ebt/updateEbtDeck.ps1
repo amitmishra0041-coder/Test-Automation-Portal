@@ -6,14 +6,17 @@
 #   - a deck already in the new layout keeps its slide: only the data is refreshed (the three tracker tiles, the
 #     week label, and the right column - Progress so far / JIRA by status - which is redrawn), so the batch /
 #     updates text edited in PowerPoint stays as it is
-# After slide 1: "EBT Feedback Log" slide(s) listing every tracker entry (14 per slide), replacing any log slides
+# Slide 2: the weekly QA status one-pager ($WeeklyFile, a one-slide deck) - replaces the one from the last refresh;
+# without $WeeklyFile the existing one is kept where it is.
+# After that: "EBT Feedback Log" slide(s) listing every tracker entry (14 per slide), replacing any log slides
 # an earlier refresh added.
-param([Parameter(Mandatory)][string]$Source, [Parameter(Mandatory)][string]$Out, [Parameter(Mandatory)][string]$DataJson, [Parameter(Mandatory)][string]$SlideFile)
+param([Parameter(Mandatory)][string]$Source, [Parameter(Mandatory)][string]$Out, [Parameter(Mandatory)][string]$DataJson, [Parameter(Mandatory)][string]$SlideFile, [string]$WeeklyFile = '')
 $ErrorActionPreference = 'Stop'
 $data = Get-Content -Raw -Encoding UTF8 $DataJson | ConvertFrom-Json
 $entries = @($data.entries)
 $LOG_TAG = 'EBT Feedback Log'
 $PER_SLIDE = 14
+$WEEKLY_NAME = 'QA_WEEKLY_STATUS'
 
 Copy-Item -LiteralPath $Source -Destination $Out -Force
 $pp = New-Object -ComObject PowerPoint.Application
@@ -109,6 +112,16 @@ try {
       }
     }
   }
+  # ── slide 2: weekly QA status ──
+  $oldWeekly = @(); foreach ($sl in $deck.Slides) { if ($sl.Name -eq $WEEKLY_NAME) { $oldWeekly += $sl } }
+  if ($WeeklyFile) {
+    foreach ($sl in $oldWeekly) { $sl.Delete() }
+    [void]$deck.Slides.InsertFromFile($WeeklyFile, 1, 1, 1)
+    $w = $deck.Slides.Item(2)
+    $w.Name = $WEEKLY_NAME
+    # its own plain background, whatever the host deck's master carries
+    $w.FollowMasterBackground = 0; $w.Background.Fill.Solid(); $w.Background.Fill.ForeColor.RGB = 0xF2F2F2; $w.DisplayMasterShapes = 0
+  } elseif ($oldWeekly.Count) { $oldWeekly[0].MoveTo(2) }
   $deck.Save()
   $deck.Close()
   Write-Output "OK $Out converted=$converted"

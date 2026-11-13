@@ -1068,7 +1068,8 @@ app.post('/api/ebt/syncStatuses', async (req, res) => {
   try { res.json(await ebtFiling().syncTrackerStatuses()); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // Weekly deck: refresh tracker statuses from JIRA (best effort), then write a dated copy of the newest
-// "EBT Status Summary*.pptx" (scripts/ebt/deckUpdate.js; EBT_DECK_DIR, default Desktop\EBT PPT).
+// "EBT Status Summary*.pptx" (scripts/ebt/deckUpdate.js; EBT_DECK_DIR, default Desktop\EBT PPT) with the EBT slide
+// and the weekly QA status slide both refreshed.
 app.post('/api/ebt/deck', async (req, res) => {
   let sync = null, statuses = null;
   if (jiraConfigured()) {

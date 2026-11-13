@@ -3,7 +3,9 @@
 // Takes the NEWEST "EBT Status Summary*.pptx" in the deck folder (the user edits it between meetings), writes a
 // dated copy next to it (never overwrites: "... - 11-11 v2.pptx" if today's name is taken) and fills it via
 // PowerPoint (updateEbtDeck.ps1). Slide 1 is the layout in ebtSlide.js: put in once, then only its numbers and
-// its right column (progress by team, JIRA by status) are refreshed. Usage: node scripts/ebt/deckUpdate.js [deckFolderOrFile]
+// its right column (progress by team, JIRA by status) are refreshed.
+// Slide 2 is the weekly QA status one-pager (scripts/jiraStatusDeck.js), rebuilt from Jira on every refresh, so one
+// run gives both sets of numbers; then the EBT Feedback Log slides. Usage: node scripts/ebt/deckUpdate.js [deckFolderOrFile]
 'use strict';
 
 const fs = require('fs');
@@ -33,15 +35,31 @@ function outputName(src) {
   return out;
 }
 
+// The weekly QA status page as its own one-slide deck (no e-mail). Jira sign-in is read when that script loads, so
+// it is loaded fresh each time (the Settings tab may have changed it since).
+async function weeklyStatusSlide() {
+  if (!process.env.JIRA_EMAIL || !process.env.JIRA_API_TOKEN) throw new Error('Jira is not set up (Settings tab)');
+  if (!process.env.JIRA_SITE) process.env.JIRA_SITE = 'donegalgroup.atlassian.net';
+  for (const m of ['../jiraStatusDeck', '../jiraReport']) delete require.cache[require.resolve(m)];
+  const file = path.join(os.tmpdir(), `qa-status-${Date.now()}.pptx`);
+  const layout = process.env.STATUS_DECK_LAYOUT; delete process.env.STATUS_DECK_LAYOUT; // always the one-page layout here
+  try { await require('../jiraStatusDeck').generateStatusDeck(file); } finally { if (layout) process.env.STATUS_DECK_LAYOUT = layout; }
+  return file;
+}
+
 // statuses (optional): current JIRA statuses by key, applied over the tracker's Status column (used when the
 // tracker itself couldn't be refreshed, e.g. it's open in Excel).
-async function updateDeck(dirOrFile = DEFAULT_DIR, { statuses } = {}) {
+// weekly: false leaves the weekly QA status slide as it is in the source deck.
+async function updateDeck(dirOrFile = DEFAULT_DIR, { statuses, weekly = true } = {}) {
   const src = latestDeck(dirOrFile);
   const out = outputName(src);
   const entries = (await tracker.listEntries()).map((e) => (statuses && statuses[e.jiraId] ? { ...e, status: statuses[e.jiraId] } : e));
   // Scenario progress by team; the deck is still refreshed (with the feedback areas instead) when it can't be read.
   let cases = null, casesError = '';
   try { cases = readProgress(); if (!cases) casesError = 'test case workbook not found'; } catch (e) { casesError = e.message; }
+  // The EBT slide is still refreshed when the weekly page can't be built (Jira down, no active sprint).
+  let weeklyFile = '', weeklyError = '';
+  if (weekly) { try { weeklyFile = await weeklyStatusSlide(); } catch (e) { weeklyError = e.message; } }
   const tmp = path.join(os.tmpdir(), `ebt-deck-${Date.now()}.json`);
   // The slide-1 layout as a one-slide deck (used only when the source deck isn't in that layout yet).
   const slideFile = await writeSlide(path.join(os.tmpdir(), `ebt-slide-${Date.now()}.pptx`));
@@ -52,12 +70,12 @@ async function updateDeck(dirOrFile = DEFAULT_DIR, { statuses } = {}) {
   }), 'utf8');
   try {
     execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'updateEbtDeck.ps1'),
-      '-Source', src, '-Out', out, '-DataJson', tmp, '-SlideFile', slideFile], { stdio: 'pipe', timeout: 180000 });
+      '-Source', src, '-Out', out, '-DataJson', tmp, '-SlideFile', slideFile, ...(weeklyFile ? ['-WeeklyFile', weeklyFile] : [])], { stdio: 'pipe', timeout: 180000 });
   } catch (e) {
     throw new Error(`PowerPoint update failed: ${String(e.stderr || e.message).trim().split('\n').slice(0, 3).join(' ')}`);
-  } finally { fs.rmSync(tmp, { force: true }); fs.rmSync(slideFile, { force: true }); }
+  } finally { fs.rmSync(tmp, { force: true }); fs.rmSync(slideFile, { force: true }); if (weeklyFile) fs.rmSync(weeklyFile, { force: true }); }
   const jira = entries.filter((e) => /^[A-Z][A-Z0-9]+-\d+$/.test(e.jiraId)).length;
-  return { source: src, output: out, observations: entries.length, jira, scenarios: cases ? cases.total : null, casesError };
+  return { source: src, output: out, observations: entries.length, jira, scenarios: cases ? cases.total : null, casesError, weekly: Boolean(weeklyFile), weeklyError };
 }
 
 module.exports = { updateDeck, latestDeck };
