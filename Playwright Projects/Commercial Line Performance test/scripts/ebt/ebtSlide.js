@@ -1,30 +1,29 @@
-// scripts/ebt/ebtSlide.js — the weekly EBT summary slide (layout approved 2026-11-11): six tiles on top, then
-// Released for EBT (Batch 1 / Batch 2) | EBT updates this week | Top feedback areas + JIRA by status.
-// Writes a ONE-slide .pptx whose shapes are named (EBT_*). updateEbtDeck.ps1 inserts it as slide 1 the first time a
-// deck is refreshed in this layout; after that it only refreshes the named data shapes in place, so the text the
-// user edits each week in PowerPoint (batches, updates, the three left tiles) is never overwritten.
-// The bar rows here are placeholders (FEAT_ROWS / STATUS_ROWS of them) — the .ps1 fills, sizes and hides them.
+// scripts/ebt/ebtSlide.js — the weekly EBT summary slide (layout approved 2026-11-11, right column as the user
+// reworked it 2026-11-12): six tiles on top, then
+// Released for EBT (Batch 1 / Batch 2) | EBT updates this week | Progress so far (by team) + JIRA by status.
+// writeSlide writes a ONE-slide .pptx whose shapes are named (EBT_*). updateEbtDeck.ps1 inserts it as slide 1 the
+// first time a deck is refreshed in this layout; after that it only refreshes the tiles and the week label in place,
+// so the text the user edits each week in PowerPoint (batches, updates, the three left tiles) is never overwritten.
+// The right column is data only and is redrawn on every refresh from rightColumn().
 'use strict';
 
 const PptxGenJS = require('pptxgenjs');
 
-const N = '1F2A44', B = '2E5597', L = 'D9E2F3', A = 'E8A317', G = '4CAF50', T = '2A8C8C', D = '404040', GR = 'BFBFBF', F = 'Calibri';
+const N = '1F2A44', B = '2E5597', L = 'D9E2F3', A = 'E8A317', G = '4CAF50', T = '2A8C8C', D = '404040', GR = 'BFBFBF', RED = 'C0392B', F = 'Calibri';
 const FEAT_ROWS = 4, STATUS_ROWS = 6;
-const BAR = { x: 9.12, labelW: 1.45, maxW: 1.75, gap: 0.45 }; // inches; the .ps1 gets these in points
 
-// First-time text (week of 11/11/2026, from the user's own slide and the 11/5 EBT readiness deck). Edited in
+// First-time text (as on the user's 11/12 slide). Edited in
 // PowerPoint from then on.
 const SEED = {
   batch1Head: ['Batch 1  ', 'Released - 43 of 84 items'],
   batch1: [['FNOL:', 'Intake / FNOL incl. XML upload, website, mobile'], ['Claim handling:', 'Catastrophe, Evaluation, Loss Details, Notes, Activities, Close Claim, Search'],
     ['Other:', 'Reinsurance, Subrogation, SIU, Policy Search, Contacts'], ['New 11/4:', 'Exposure & Reserve Rules'], ['Integrations:', 'Intersuite, Email, Symbility, Metro, HIMarley'], ['SmartCOMM:', '205 letter templates']],
   batch2Head: ['Batch 2  ', 'Planned 11/16'],
-  batch2: [['Financials:', 'Reserves, Recovery, Recovery Reserves'], ['Claims:', 'ISO; Documents (Activity Assignment, Cotality)'], ['Integrations:', 'Verisk, ImageRight, Reporting, Cotality, WSAP, BOA, Survey API']],
-  later: '11/23 Salvage, CCC, ERAC, Careworks  |  11/30 Payments, One Inc, SmartCOMM, Applied, Mainframe',
+  batch2: [['Financials:', 'Reserves, Recovery, Recovery Reserves'], ['Claims:', 'ISO; Documents (Activity Assignment, Cotality)'], ['Integrations:', 'ImageRight, BOA, Claims Survey'], ['', 'Remaining CC document templates']],
+  later: '11/23 Salvage, CCC, ERAC, Careworks  |  11/30 Payments, One Inc, Applied, Mainframe',
   updates: [['Access:', 'Cloud CC (Test) logins and roles - FNOL, queues, team view, workplan, assignments'], ['Test data:', 'policies and claims shared for WC, Property, Auto, MI PIP'],
-    ['Scenarios:', 'teams picking first scenarios; deck examples as a guide'], ['Process:', 'tracker and DL reporting walked through'],
-    ['Feedback logged:', 'Service Center FNOL, Auto, Auto Medical, Motor Vehicle'], ['Starting this week:', 'Property, BI / GLPD, Subrogation, Workers Comp, Reinsurance, Claims Team'],
-    ['Risk:', 'teams test alongside daily claim work; weekly targets keep progress visible']],
+    ['Scenarios:', 'EBT scenarios identification in progress'], ['Process:', 'tracker and DL reporting walked through'],
+    ['Feedback logged:', 'Service Center FNOL, Auto, Auto Medical, Motor Vehicle']],
   target: 'all business testing and feedback complete by end of December 2026',
   tiles: [['43 of 84', 'CC / CM items released'], ['205 of 244', 'SmartCOMM templates'], ['35', 'Users participating in EBT']],
 };
@@ -53,7 +52,7 @@ async function writeSlide(file) {
   const para = (x, y, w, h, items, fs, name) => {
     const out = [];
     items.forEach(([label, text], i) => {
-      out.push({ text: `${label} `, options: { bold: true, color: N, bullet: { code: '25AA' } } });
+      out.push({ text: label ? `${label} ` : '', options: { bold: true, color: N, bullet: { code: '25AA' } } });
       out.push({ text, options: { color: D, breakLine: i < items.length - 1 } });
     });
     s.addText(out, { x, y, w, h, fontFace: F, fontSize: fs, valign: 'top', paraSpaceAfter: 5, isTextBox: true, objectName: name });
@@ -74,27 +73,72 @@ async function writeSlide(file) {
   para(4.7, top + 0.45, 4.08, 3.9, SEED.updates, 10.5, 'EBT_TXT_updates');
   s.addShape('rect', { x: 4.72, y: top + H - 0.72, w: 4.01, h: 0.6, fill: { color: L }, line: { color: L } });
   s.addText([{ text: 'Target: ', options: { bold: true, color: N } }, { text: SEED.target, options: { color: N } }], { x: 4.8, y: top + H - 0.72, w: 3.9, h: 0.6, fontFace: F, fontSize: 11, valign: 'middle', isTextBox: true, objectName: 'EBT_TXT_target' });
-  // right: the two graphs (placeholder rows)
-  const rows = (g, y, n) => {
-    for (let i = 1; i <= n; i++) {
-      const yy = y + (i - 1) * BAR.gap;
-      s.addText('-', { x: BAR.x, y: yy, w: BAR.labelW, h: 0.3, fontFace: F, fontSize: 10.5, color: D, isTextBox: true, margin: 0, wrap: false, objectName: `EBT_${g}_L${i}` });
-      s.addShape('rect', { x: BAR.x + BAR.labelW, y: yy + 0.04, w: 0.5, h: 0.22, fill: { color: B }, line: { color: 'FFFFFF', width: 0 }, objectName: `EBT_${g}_B${i}` });
-      s.addText('0', { x: BAR.x + BAR.labelW + 0.6, y: yy, w: 0.45, h: 0.3, fontFace: F, fontSize: 10.5, bold: true, color: N, isTextBox: true, margin: 0, objectName: `EBT_${g}_V${i}` });
-    }
-  };
-  box(9.0, top, 3.93, 2.5, 'Top feedback areas', 'EBT_feat_T'); rows('feat', top + 0.55, FEAT_ROWS);
-  box(9.0, top + 2.67, 3.93, 2.5, 'JIRA by status', 'EBT_status_T'); rows('status', top + 3.17, STATUS_ROWS);
-  s.addText('-', { x: BAR.x, y: top + 4.82, w: 3.7, h: 0.28, fontFace: F, fontSize: 10, color: '7F7F7F', isTextBox: true, margin: 0, objectName: 'EBT_status_N' });
+  // right: Progress so far + JIRA by status are drawn by the refresh itself (rightColumn below)
   await p.writeFile({ fileName: file });
   return file;
 }
 
-// The numbers the slide shows, from the tracker entries. Colours are BGR ints (what PowerPoint's COM API takes).
+// ── right column (format of the 11/12 deck): "Progress so far" = scenarios by team and status from the teams' test
+// case workbook, above "JIRA by status". It is all data, so it is drawn again on every refresh: this returns plain
+// rectangles and texts (points; colours as BGR ints, what PowerPoint's COM API takes) and updateEbtDeck.ps1 clears
+// the column and places them. Each team's bar is its own 100%, so a team with 10 scenarios reads as clearly as one
+// with 80. Without the workbook the top panel falls back to "Top feedback areas" from the tracker.
 const bgr = (hex) => parseInt(hex.slice(4, 6) + hex.slice(2, 4) + hex.slice(0, 2), 16);
+const COL = { x: 648, y: 153.4, w: 283, h: 372.2, head: 25.9, gap: 8.6, progressH: 222 };
+const SEG = [['completed', 'Completed', G], ['issue', 'Issue reported', RED], ['inProgress', 'In progress', B], ['blocked', 'Blocked', '7F7F7F'], ['notStarted', 'Not started', 'D9D9D9']];
+function rightColumn({ cases, feat, featTitle, status, statusTitle, note }) {
+  const out = [];
+  const rect = (x, y, w, h, fill, line) => out.push({ k: 'r', x, y, w, h, fill: bgr(fill), line: line ? bgr(line) : null });
+  // runs: 'text' or [[text, colour, bold], ...]
+  const text = (x, y, w, h, runs, size, align = 'l') => out.push({ k: 't', x, y, w, h, size, align, runs: (typeof runs === 'string' ? [[runs]] : runs).map(([t, c, b]) => ({ t: String(t), c: bgr(c || D), b: !!b })) });
+  const panel = (y, h, title) => { rect(COL.x, y, COL.w, h, 'FFFFFF', GR); rect(COL.x, y, COL.w, COL.head, B); text(COL.x + 8.6, y, COL.w - 14, COL.head, [[title, 'FFFFFF', true]], 13); };
+  const lx = COL.x + 8.6, inner = COL.w - 17;
+  // label | bar | count rows; they close up when there are more of them than fit at the normal spacing
+  const bars = (y, avail, rows, maxGap) => {
+    const gap = Math.min(maxGap, avail / Math.max(1, rows.length)), bh = Math.min(15.8, gap - 4), max = Math.max(1, ...rows.map((r) => r.n));
+    rows.forEach((r, i) => {
+      const yy = y + i * gap, w = Math.max(9, 126 * r.n / max);
+      text(lx, yy, 104, bh + 4, r.label, 10.5);
+      rect(COL.x + 113, yy + 2, w, bh, r.color);
+      text(COL.x + 113 + w + 5, yy, 32, bh + 4, [[r.n, N, true]], 10.5);
+    });
+  };
+
+  if (cases) {
+    const t = cases.total, pct = t.scenarios ? Math.round(100 * t.completed / t.scenarios) : 0;
+    panel(COL.y, COL.progressH, 'Progress so far');
+    text(lx, COL.y + 30, inner, 16, [[t.scenarios, N, true], [' scenarios  |  '], [t.completed, G, true], [' completed  |  '], [t.issue, RED, true], [` issue${t.issue === 1 ? '' : 's'}  |  `], [`${pct}%`, N, true], [' done']], 9.5);
+    const rowH = Math.min(14.6, 146 / cases.teams.length), bx = COL.x + 116, bw = 108, bh = Math.min(9, rowH - 4);
+    cases.teams.forEach((tm, i) => {
+      const y = COL.y + 50 + i * rowH, by = y + (rowH - bh) / 2;
+      text(lx, y, 106, rowH, tm.team.replace(/^Service Center\s+/i, ''), 9);
+      if (!tm.scenarios) { rect(bx, by, bw, bh, 'FFFFFF', 'D9D9D9'); text(bx + bw + 5, y, 46, rowH, [['none yet', 'A6A6A6']], 8.5); return; }
+      let x = bx;
+      SEG.forEach(([key, , color]) => { const w = bw * tm[key] / tm.scenarios; if (w > 0) { rect(x, by, w, bh, color); x += w; } });
+      text(bx + bw + 5, y, 46, rowH, [[tm.completed, N, true], [` of ${tm.scenarios}`]], 8.5);
+    });
+    // legend: only the statuses in use, so it stays on one line
+    let x = lx; const ly = COL.y + COL.progressH - 17;
+    SEG.filter(([key]) => t[key] || key === 'completed' || key === 'notStarted').forEach(([, label, color]) => {
+      rect(x, ly + 4, 6, 6, color);
+      const w = label.length * 3.5 + 3;
+      text(x + 9, ly, w, 14, [[label, '7F7F7F']], 7.5); x += 9 + w + 5;
+    });
+  } else {
+    panel(COL.y, COL.progressH, featTitle);
+    bars(COL.y + COL.head + 12, COL.progressH - COL.head - 20, feat, 32);
+  }
+  const sTop = COL.y + COL.progressH + COL.gap, sH = COL.y + COL.h - sTop;
+  panel(sTop, sH, statusTitle);
+  bars(sTop + COL.head + 8, sH - COL.head - 8 - 24, status, 28);
+  if (note) text(lx, sTop + sH - 23, inner, 18, [[note, '7F7F7F']], 10);
+  return out;
+}
+
+// The numbers the slide shows, from the tracker entries and (cases) the test case workbook's progress by team.
 const STATUS_COLOR = { Fixed: G, 'Ready for Retest': G, Closed: G, Rejected: GR, Deferred: GR, 'In Business Review': T };
 const DONE = new Set(['Fixed', 'Closed', 'Rejected', 'Deferred']);
-function slideData(entries, statusOrder, now = new Date()) {
+function slideData(entries, statusOrder, cases = null, now = new Date()) {
   const jira = entries.filter((e) => /^[A-Z][A-Z0-9]+-\d+$/.test(e.jiraId));
   const count = (list, f) => { const m = new Map(); for (const e of list) { const k = f(e) || 'Not set'; m.set(k, (m.get(k) || 0) + 1); } return [...m.entries()]; };
   // Top feedback areas: the biggest three + everything else as one bar, so the panel never outgrows its box.
@@ -109,9 +153,12 @@ function slideData(entries, statusOrder, now = new Date()) {
   return {
     kpi: { obs: entries.length, jira: jira.length, open: jira.filter((e) => !DONE.has(e.status)).length },
     week: `Week ${week}  |  ${now.toLocaleDateString('en-US')}`,
-    feat: { avail: 1.85 * 72, title: `Top feedback areas (${entries.length})`, rows: feat.map(([label, n], i) => ({ label, n, color: bgr(label === 'All other areas' ? GR : i < 2 ? B : T) })) },
-    status: { avail: 1.6 * 72, title: `JIRA by status (${jira.length})`, note: prio.map(([p, n]) => `${p} ${n}`).join('  |  '), rows: status.map(([label, n]) => ({ label, n, color: bgr(STATUS_COLOR[label] || A) })) },
-    bar: { maxW: BAR.maxW * 72, gap: BAR.gap * 72 },
+    region: { x: COL.x, y: COL.y },
+    right: rightColumn({
+      cases, note: prio.map(([p, n]) => `${p} ${n}`).join('  |  '),
+      featTitle: `Top feedback areas (${entries.length})`, feat: feat.map(([label, n], i) => ({ label, n, color: label === 'All other areas' ? GR : i < 2 ? B : T })),
+      statusTitle: `JIRA by status (${jira.length})`, status: status.map(([label, n]) => ({ label, n, color: STATUS_COLOR[label] || A })),
+    }),
   };
 }
 

@@ -3,8 +3,9 @@
 # source deck is only read.
 # Slide 1 (layout of scripts/ebt/ebtSlide.js, shapes named EBT_*):
 #   - a deck still in the old layout gets the new slide ($SlideFile) in place of its slide 1
-#   - a deck already in the new layout keeps its slide: only the data shapes are refreshed (the three tracker
-#     tiles, the week label, the two bar graphs), so the batch / updates text edited in PowerPoint stays as it is
+#   - a deck already in the new layout keeps its slide: only the data is refreshed (the three tracker tiles, the
+#     week label, and the right column - Progress so far / JIRA by status - which is redrawn), so the batch /
+#     updates text edited in PowerPoint stays as it is
 # After slide 1: "EBT Feedback Log" slide(s) listing every tracker entry (14 per slide), replacing any log slides
 # an earlier refresh added.
 param([Parameter(Mandatory)][string]$Source, [Parameter(Mandatory)][string]$Out, [Parameter(Mandatory)][string]$DataJson, [Parameter(Mandatory)][string]$SlideFile)
@@ -36,32 +37,31 @@ try {
   SetText 'EBT_KPI_open' $data.slide.kpi.open
   SetText 'EBT_WEEK' $data.slide.week
 
-  # ── bar graphs: one label / bar / value per row; rows the data doesn't need are hidden, not deleted ──
-  function Fill-Bars($g, $block) {
-    SetText "EBT_${g}_T" $block.title
-    $rows = @($block.rows)
-    $max = 1; foreach ($r in $rows) { if ($r.n -gt $max) { $max = $r.n } }
-    $first = Named $s1 "EBT_${g}_L1"
-    if (-not $first) { return }
-    $top = $first.Top
-    # Rows close up when there are more of them than fit at the normal spacing.
-    $gap = [Math]::Min($data.slide.bar.gap, $block.avail / [Math]::Max(1, $rows.Count))
-    for ($i = 1; $i -le 12; $i++) {
-      $lab = Named $s1 "EBT_${g}_L$i"; $bar = Named $s1 "EBT_${g}_B$i"; $val = Named $s1 "EBT_${g}_V$i"
-      if (-not $lab) { break }
-      $show = $i -le $rows.Count
-      foreach ($sh in @($lab, $bar, $val)) { if ($sh) { $sh.Visible = $(if ($show) { -1 } else { 0 }) } }
-      if (-not $show) { continue }
-      $r = $rows[$i - 1]
-      $y = $top + ($i - 1) * $gap
-      $lab.Top = $y; $lab.TextFrame.TextRange.Text = [string]$r.label
-      $bar.Top = $y + 3; $bar.Width = [Math]::Max(9, $data.slide.bar.maxW * $r.n / $max); $bar.Fill.ForeColor.RGB = [int]$r.color
-      $val.Top = $y; $val.Left = $bar.Left + $bar.Width + 5; $val.TextFrame.TextRange.Text = [string]$r.n
+  # ── right column: cleared and drawn again from the rectangles / texts ebtSlide.js worked out ──
+  # (everything in that column is data: panels, bars, a chart pasted in from the test case workbook)
+  $old = @(); foreach ($sh in $s1.Shapes) { if ($sh.Left -ge $data.slide.region.x - 2 -and $sh.Top -ge $data.slide.region.y - 2) { $old += $sh } }
+  foreach ($sh in $old) { $sh.Delete() }
+  $n = 0
+  foreach ($p in @($data.slide.right)) {
+    $n++
+    if ($p.k -eq 'r') {
+      $sh = $s1.Shapes.AddShape(1, [single]$p.x, [single]$p.y, [single]$p.w, [single]$p.h)
+      # plain flat shape: the deck's default shape style brings a gradient and a shadow
+      $sh.Fill.Solid(); $sh.Fill.ForeColor.RGB = [int]$p.fill; $sh.Shadow.Visible = 0
+      if ($null -ne $p.line) { $sh.Line.ForeColor.RGB = [int]$p.line; $sh.Line.Weight = 0.75 } else { $sh.Line.Visible = 0 }
+    } else {
+      $sh = $s1.Shapes.AddTextbox(1, [single]$p.x, [single]$p.y, [single]$p.w, [single]$p.h)
+      $tf = $sh.TextFrame
+      $tf.WordWrap = 0; $tf.AutoSize = 0; $tf.MarginLeft = 0; $tf.MarginRight = 0; $tf.MarginTop = 0; $tf.MarginBottom = 0; $tf.VerticalAnchor = 3
+      $sh.Width = [single]$p.w; $sh.Height = [single]$p.h
+      foreach ($r in @($p.runs)) {
+        $tr = $tf.TextRange.InsertAfter([string]$r.t)
+        $tr.Font.Name = 'Calibri'; $tr.Font.Size = [single]$p.size; $tr.Font.Bold = [int][bool]$r.b; $tr.Font.Color.RGB = [int]$r.c
+      }
+      $tf.TextRange.ParagraphFormat.Alignment = $(if ($p.align -eq 'r') { 3 } else { 1 })
     }
+    $sh.Name = "EBT_R_$n"
   }
-  Fill-Bars 'feat' $data.slide.feat
-  Fill-Bars 'status' $data.slide.status
-  SetText 'EBT_status_N' $data.slide.status.note
 
   # ── EBT Feedback Log slide(s) ──
   for ($i = $deck.Slides.Count; $i -ge 2; $i--) {

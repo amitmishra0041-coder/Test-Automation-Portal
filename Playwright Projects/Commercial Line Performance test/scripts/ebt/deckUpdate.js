@@ -1,8 +1,9 @@
-// scripts/ebt/deckUpdate.js — refresh the weekly "EBT Status Summary" deck from the EBT feedback tracker.
+// scripts/ebt/deckUpdate.js — refresh the weekly "EBT Status Summary" deck from the EBT feedback tracker and the
+// teams' test case workbook (scripts/ebt/testCases.js; EBT_CASES_PATH).
 // Takes the NEWEST "EBT Status Summary*.pptx" in the deck folder (the user edits it between meetings), writes a
 // dated copy next to it (never overwrites: "... - 11-11 v2.pptx" if today's name is taken) and fills it via
 // PowerPoint (updateEbtDeck.ps1). Slide 1 is the layout in ebtSlide.js: put in once, then only its numbers and
-// graphs are refreshed. Usage: node scripts/ebt/deckUpdate.js [deckFolderOrFile]
+// its right column (progress by team, JIRA by status) are refreshed. Usage: node scripts/ebt/deckUpdate.js [deckFolderOrFile]
 'use strict';
 
 const fs = require('fs');
@@ -11,6 +12,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const tracker = require('./tracker');
 const { writeSlide, slideData } = require('./ebtSlide');
+const { readProgress } = require('./testCases');
 
 const DEFAULT_DIR = process.env.EBT_DECK_DIR || path.join(os.homedir(), 'Desktop', 'EBT PPT');
 const STATUS_ORDER = ['New', 'Open', 'To Do', 'In Business Review', 'Fixed', 'Ready for Retest', 'Re-Open', 'Impeded', 'Deferred', 'Rejected', 'Closed'];
@@ -37,11 +39,14 @@ async function updateDeck(dirOrFile = DEFAULT_DIR, { statuses } = {}) {
   const src = latestDeck(dirOrFile);
   const out = outputName(src);
   const entries = (await tracker.listEntries()).map((e) => (statuses && statuses[e.jiraId] ? { ...e, status: statuses[e.jiraId] } : e));
+  // Scenario progress by team; the deck is still refreshed (with the feedback areas instead) when it can't be read.
+  let cases = null, casesError = '';
+  try { cases = readProgress(); if (!cases) casesError = 'test case workbook not found'; } catch (e) { casesError = e.message; }
   const tmp = path.join(os.tmpdir(), `ebt-deck-${Date.now()}.json`);
   // The slide-1 layout as a one-slide deck (used only when the source deck isn't in that layout yet).
   const slideFile = await writeSlide(path.join(os.tmpdir(), `ebt-slide-${Date.now()}.pptx`));
   fs.writeFileSync(tmp, JSON.stringify({
-    entries, statusOrder: STATUS_ORDER, slide: slideData(entries, STATUS_ORDER),
+    entries, statusOrder: STATUS_ORDER, slide: slideData(entries, STATUS_ORDER, cases),
     jiraSite: String(process.env.JIRA_SITE || 'donegalgroup.atlassian.net').replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
     refreshed: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
   }), 'utf8');
@@ -52,7 +57,7 @@ async function updateDeck(dirOrFile = DEFAULT_DIR, { statuses } = {}) {
     throw new Error(`PowerPoint update failed: ${String(e.stderr || e.message).trim().split('\n').slice(0, 3).join(' ')}`);
   } finally { fs.rmSync(tmp, { force: true }); fs.rmSync(slideFile, { force: true }); }
   const jira = entries.filter((e) => /^[A-Z][A-Z0-9]+-\d+$/.test(e.jiraId)).length;
-  return { source: src, output: out, observations: entries.length, jira };
+  return { source: src, output: out, observations: entries.length, jira, scenarios: cases ? cases.total : null, casesError };
 }
 
 module.exports = { updateDeck, latestDeck };
