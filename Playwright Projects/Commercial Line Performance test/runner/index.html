@@ -3385,6 +3385,9 @@
     if (t.ok) {
       h += ' · tracker updated' + (t.row ? ' (row ' + t.row + ')' : '');
       if (t.statusChanges && t.statusChanges.length) h += '<br>JIRA statuses refreshed: ' + t.statusChanges.map(function (c) { return ebtEsc(c.id + ' (' + c.jiraId + ') ' + c.from + ' → ' + c.to); }).join('; ');
+      var tc = r.testCases;
+      if (tc) h += tc.ok ? ' · test case sheet synced (' + tc.rows + ' defects' + (tc.unmapped && tc.unmapped.length ? '; no team for ' + ebtEsc(tc.unmapped.join(', ')) : '') + ')'
+        : '<br><b>Test case sheet not synced:</b> ' + ebtEsc(tc.skipped || '');
     }
     else {
       var row = t.row || {};

@@ -199,7 +199,7 @@ async function finishTracker(p) {
   try {
     const r = await tracker.addRow(trackerRow(p), { backupDir: BACKUP_DIR, statuses: await currentStatuses() });
     p.trackerDone = true;
-    return { id: p.id, jira: p.jira, tracker: { ok: true, row: r.row, file: r.file, statusChanges: r.statusChanges } };
+    return { id: p.id, jira: p.jira, tracker: { ok: true, row: r.row, file: r.file, statusChanges: r.statusChanges }, testCases: await syncTestCases() };
   } catch (e) {
     return { id: p.id, jira: p.jira, tracker: { ok: false, error: e.message, row: trackerRow(p) } };
   }
@@ -215,7 +215,14 @@ async function retryTracker(token) {
 // Status refresh on its own (Runner button / weekly deck refresh).
 async function syncTrackerStatuses() {
   const statuses = await getStatuses((await tracker.listEntries()).map((e) => e.jiraId));
-  return tracker.syncStatuses(statuses, { backupDir: BACKUP_DIR });
+  const r = await tracker.syncStatuses(statuses, { backupDir: BACKUP_DIR });
+  return { ...r, testCases: await syncTestCases() };
+}
+
+// Keep the "EBT Defects" tab of the business test case workbook in step with the tracker. Never fails a filing.
+async function syncTestCases() {
+  try { return await require('./testCases').syncDefects(await tracker.listEntries()); }
+  catch (e) { console.warn(`[ebt] test case sheet sync skipped: ${e.message}`); return { ok: false, skipped: e.message }; }
 }
 
 module.exports = { preview, file, retryTracker, syncTrackerStatuses, reporterName, guessFeature, stripEmailExtras, assigneeFor };
