@@ -1082,6 +1082,19 @@ app.post('/api/ebt/deck', async (req, res) => {
   try { res.json({ ...(await require(path.join(POLICY_DIR, 'scripts', 'ebt', 'deckUpdate.js')).updateDeck(undefined, { statuses })), sync }); }
   catch (e) { res.status(500).json({ error: e.message, sync }); }
 });
+// Weekly EBT status e-mail on demand: scripts/ebt/weeklyStatusDraft.ps1 builds it (weeklyStatus.js) and saves an
+// Outlook draft on this machine — the same thing the Sunday scheduled task does. Nothing is sent.
+app.post('/api/ebt/weeklyEmail', (req, res) => {
+  const ps1 = path.join(POLICY_DIR, 'scripts', 'ebt', 'weeklyStatusDraft.ps1');
+  require('child_process').execFile('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1], { cwd: POLICY_DIR, timeout: 300000, windowsHide: true }, (err, stdout, stderr) => {
+    const out = String(stdout || '');
+    const dir = (out.match(/\(([^()]*ebt-weekly[^()]*)\)/) || [])[1];
+    if (err || !/draft saved:/.test(out)) return res.status(500).json({ error: `E-mail not built: ${String(stderr || (err && err.message) || out).trim().split(/\r?\n/).slice(0, 3).join(' ')}` });
+    let meta = {};
+    try { meta = JSON.parse(fs.readFileSync(path.join(dir, 'meta.json'), 'utf8')); } catch { /* summary only */ }
+    res.json({ subject: meta.subject || out.replace(/^[\s\S]*draft saved:\s*/, '').trim(), done: meta.done, scen: meta.scen, issues: meta.issues, open: meta.open });
+  });
+});
 app.post('/api/ebt/retryTracker', async (req, res) => {
   try { res.json(await ebtFiling().retryTracker(String((req.body || {}).token || ''))); }
   catch (e) { res.status(500).json({ error: e.message }); }

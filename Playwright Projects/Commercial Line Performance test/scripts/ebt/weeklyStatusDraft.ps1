@@ -23,7 +23,7 @@ try {
   $m.HTMLBody = [IO.File]::ReadAllText("$out\email.html")
   $m.Save()
   Add-Content $log "$(Get-Date -Format s) draft saved: $($meta.subject) ($out)"
-  "draft saved: $($meta.subject)"
+  "draft saved: $($meta.subject) ($out)"
 } catch {
   Add-Content $log "$(Get-Date -Format s) FAILED: $($_.Exception.Message)"
   throw

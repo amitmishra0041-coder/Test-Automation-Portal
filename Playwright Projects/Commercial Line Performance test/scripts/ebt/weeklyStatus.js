@@ -120,7 +120,8 @@ async function build(runDate = new Date(Date.UTC(new Date().getFullYear(), new D
   const tot = { scen: all.length, done: all.filter((s) => s.status === 'completed').length, issue: all.filter((s) => s.status === 'issue').length };
   tot.notRun = tot.scen - tot.done - tot.issue;
   const loaded = teams.filter((t) => t.scen.length);
-  const prev = lastSnapshot(stamp);
+  // baseline = the last run on or before the reported week's Monday, so on-demand mid-week runs don't shift it
+  const prev = lastSnapshot(addDays(mon, 1).toISOString().slice(0, 10));
   const doneKeys = all.filter((s) => s.status === 'completed').map((s) => `${s.team}|${s.name}`);
   const newDone = prev ? doneKeys.filter((k) => !prev.doneKeys.includes(k)) : doneKeys;
 
