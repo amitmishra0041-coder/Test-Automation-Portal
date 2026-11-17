@@ -1,5 +1,6 @@
 import { Page } from '@playwright/test';
 import { logger } from '../logging/logger';
+import { dismissServerError } from './dismissServerError';
 
 /**
  * CONFIRMED, both platforms — the general-purpose left-nav click every
@@ -23,6 +24,8 @@ import { logger } from '../logging/logger';
  * just this one instance.
  */
 export async function clickNavItem(page: Page, text: string, callerLabel = 'clickNavItem'): Promise<boolean> {
+  // A modal on-prem server-error box left by the previous section blocks every click (see dismissServerError).
+  await dismissServerError(page, `${callerLabel} → ${text}`);
   const exact = new RegExp(`^${text}$`, 'i');
   const candidates = [
     page.getByRole('link', { name: exact }).first(),
@@ -49,7 +52,11 @@ export async function clickNavItem(page: Page, text: string, callerLabel = 'clic
     // leaving extraction reading whatever page was already open (confirmed
     // live: a failed "Documents" click left the page on "Notes", and its
     // extractor would have read Notes data under the Documents label).
-    if (clicked) return true;
+    if (clicked) {
+      await page.waitForTimeout(500);
+      await dismissServerError(page, `${callerLabel} → ${text} (after click)`);
+      return true;
+    }
   }
   return false;
 }

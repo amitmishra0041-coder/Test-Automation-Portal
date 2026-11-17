@@ -194,6 +194,10 @@ const JIRA_REPORTS_DIR = path.join(POLICY_DIR, 'reports', 'jira');
 const CC_UI_REPORTS_DIR = path.join(CLAIMS_DIR, 'results', 'ccUi');
 const S3_DOWNLOAD_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'downloadSmartCommFile.js');
 const S3_DOWNLOADS_DIR = path.join(CLAIMS_DIR, 'results', 's3Downloads');
+// SmartCOMM tool, "BillingCenter documents" view: scripts/sortBcSmartCommPdfs.js pulls every BC SmartCOMM PDF from
+// S3 (Inbound Pending > smartcomm > output > output > archive > processing) and files it per template on the team drive.
+const BC_DOCS_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'sortBcSmartCommPdfs.js');
+const BC_DOCS_DIR = process.env.BC_SORT_OUT || 'V:\\Amit Int\\SmartComm\\BillingCenter-Templates';
 const S3_ESTABLISH_SESSION_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'establishS3Session.js');
 // OneInc payment test designs (ClaimCenter-Automation's helpers/oneInc + scripts/runOneInc.js). The workbooks and
 // the AutomationResults folder live under ONEINC_DIR (default V:\Amit Int\OneInc, the team share).
@@ -490,6 +494,27 @@ app.use('/reports/pdf-compare', express.static(PDF_COMPARE_REPORTS_DIR));
 app.use('/reports/jira', express.static(JIRA_REPORTS_DIR));
 app.use('/reports/cc-ui', express.static(CC_UI_REPORTS_DIR));
 app.use('/reports/s3-download', express.static(S3_DOWNLOADS_DIR));
+app.use('/reports/bc-docs', express.static(BC_DOCS_DIR));
+// Template folders + their PDFs (newest first) for the BillingCenter documents view.
+app.get('/api/smartComm/bcDocs', (req, res) => {
+  try {
+    if (!fs.existsSync(BC_DOCS_DIR)) return res.json({ dir: BC_DOCS_DIR, templates: [], refreshedAt: null });
+    const idx = path.join(BC_DOCS_DIR, 'index.csv');
+    // index.csv (written by the script on every refresh) is the whole listing — one file read instead of
+    // stat-ing every PDF on the network drive (725 files took ~6 s that way). Columns: file,template,downloaded,re_line.
+    const byTemplate = {};
+    if (fs.existsSync(idx)) {
+      fs.readFileSync(idx, 'utf8').split(/\r?\n/).slice(1).forEach((l) => {
+        const m = l.match(/^([^,]+),([^,]+),([^,]*),"?(.*?)"?$/);
+        if (!m) return;
+        (byTemplate[m[2]] = byTemplate[m[2]] || []).push({ name: m[1], subject: m[4], mtime: Date.parse(m[3]) || 0 });
+      });
+    }
+    const templates = Object.keys(byTemplate).sort()
+      .map((name) => ({ name, files: byTemplate[name].sort((a, b) => b.mtime - a.mtime) }));
+    res.json({ dir: BC_DOCS_DIR, templates, refreshedAt: fs.existsSync(idx) ? fs.statSync(idx).mtimeMs : null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 // OneInc AutomationResults (Reports/Screenshots/Logs/Evidence/...) — the HTML reports link to their screenshots with
 // relative paths, so serving the whole folder keeps those links working from the browser.
 app.use('/reports/oneinc', (req, res, next) => {
@@ -1563,6 +1588,10 @@ function buildSmartCommJob(j) {
   if (j.mode === 'ui') return buildCcUiJob(j);
   if (j.mode === 's3') return buildS3DownloadJob(j);
   if (j.mode === 's3-session') return buildS3SessionJob();
+  if (j.mode === 'bcDocs') {
+    if (!fs.existsSync(BC_DOCS_SCRIPT)) throw new Error('sortBcSmartCommPdfs.js not found — git pull ClaimCenter-Automation');
+    return { label: 'SmartCOMM · BillingCenter documents refresh from S3', cwd: CLAIMS_DIR, cmd: 'node', args: [BC_DOCS_SCRIPT], env: { BC_SORT_OUT: BC_DOCS_DIR } };
+  }
   if (j.mode === 'bulk') return buildSmartCommBulkJob(j);
   const dig = String(j.templateId || '').trim();
   if (!dig) throw new Error('Template is required');

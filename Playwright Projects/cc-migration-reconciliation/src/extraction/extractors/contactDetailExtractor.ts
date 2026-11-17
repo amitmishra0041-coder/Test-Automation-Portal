@@ -4,6 +4,7 @@ import { FieldObservation } from '../FieldObservation';
 import { readDynamicFields } from '../genericFieldReader';
 import { clickNextGridPage } from '../pagination';
 import { logger } from '../../logging/logger';
+import { dismissServerError } from '../../navigation/dismissServerError';
 
 /**
  * Per-contact drill-down for the Parties Involved / Contacts grid
@@ -128,12 +129,16 @@ async function readOneContactDetail(ctx: ExtractionContext, rowIndex: number, la
     return {};
   }
   await ctx.page.waitForTimeout(700);
+  await dismissServerError(ctx.page, `${label} row ${rowIndex}`);
 
   const detail: Record<string, FieldObservation> = {};
   for (const tab of DETAIL_TABS) {
     const clicked = await clickDetailTab(ctx.page, tab);
     if (!clicked) continue; // a tab genuinely absent for this contact/LOB — not every contact has e.g. Hi Marley Case
     await ctx.page.waitForTimeout(600);
+    // On-prem raises a modal server error on some contacts' Hi Marley Case tab — OK it, so the next tab / contact /
+    // section still reads (it otherwise blanked the rest of the claim, 2026-11-15).
+    if (await dismissServerError(ctx.page, `${label} > ${tab}`)) continue;
     const fields = await readDynamicFields(ctx, `${label} > ${tab}`, `claim.parties[].detail.${tab.replace(/\s+/g, '')}`);
     for (const [key, value] of Object.entries(fields)) {
       detail[`${tab}.${key}`] = value;
