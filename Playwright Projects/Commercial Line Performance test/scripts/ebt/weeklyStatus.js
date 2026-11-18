@@ -2,7 +2,7 @@
 // business test case workbook (scenario progress) and the EBT feedback tracker (issues, statuses refreshed from JIRA).
 // weeklyStatusDraft.ps1 runs this every Sunday and saves the result as an Outlook draft for review — nothing is sent.
 //
-//   node scripts/ebt/weeklyStatus.js [--date YYYY-MM-DD]   -> prints the output folder (email.html, overall.png, meta.json)
+//   node scripts/ebt/weeklyStatus.js [--date YYYY-MM-DD]   -> prints the output folder (email.html, overall.png, areas.png, meta.json)
 //
 // The reported week is Monday-Sunday of the week before --date (default today), so a Sunday run reports that week.
 // Each run saves a snapshot (completed scenarios) next to its output; the next run compares against it for
@@ -103,7 +103,7 @@ async function renderPngs(svgs, outDir) {
   try {
     const pg = await br.newPage({ deviceScaleFactor: 2 });
     await pg.setContent(`<html><body style="margin:0;background:#fff">${svgs.join('')}</body></html>`);
-    for (const id of ['overall']) await (await pg.$('#' + id)).screenshot({ path: path.join(outDir, `${id}.png`) });
+    for (const id of ['overall', 'areas']) await (await pg.$('#' + id)).screenshot({ path: path.join(outDir, `${id}.png`) });
   } finally { await br.close(); }
 }
 
@@ -196,7 +196,7 @@ ${progRow('All teams', all, true)}
 <ul style="${f};margin-top:0">${hl.map((x) => `<li>${x}</li>`).join('\n')}</ul>
 <p style="${h}">Progress and issues</p>
 ${progTable}
-<br>${img('overall')}
+<br><table cellpadding="0" cellspacing="0"><tr><td valign="top">${img('overall')}</td><td width="20"></td><td valign="top">${img('areas')}</td></tr></table>
 ${noResults.length || notLoaded.length ? `<p style="${f}">${noResults.length ? `${esc(list(noResults))} ${noResults.length === 1 ? 'has' : 'have'} scenarios loaded but no results recorded yet. ` : ''}${notLoaded.length ? `${esc(list(notLoaded))} ${notLoaded.length === 1 ? 'has' : 'have'} not loaded scenarios yet.` : ''}</p>` : ''}
 <p style="${h}">Issues identified</p>
 <table cellpadding="0" cellspacing="0" width="860" style="border-collapse:collapse;${f}">
@@ -209,6 +209,7 @@ ${deptRows}
 
   await renderPngs([
     donutSvg([['Completed', tot.done, C.green], ['Issue found', tot.issue, C.red], ['Not run yet', tot.notRun, C.grey]], `${pct(tot.done, tot.scen)}%`, `of ${tot.scen} completed`, 'Overall scenario progress'),
+    areaSvg(areas, `Issues by area (${issues.length} logged)`),
   ], outDir);
   fs.writeFileSync(path.join(outDir, 'email.html'), html);
   fs.writeFileSync(path.join(outDir, 'preview.html'), html.replace(/cid:(\w+)\.png/g, '$1.png'));
