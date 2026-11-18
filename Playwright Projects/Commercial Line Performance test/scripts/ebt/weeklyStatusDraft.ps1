@@ -16,11 +16,19 @@ try {
   $ol = New-Object -ComObject Outlook.Application
   $m = $ol.CreateItem(0)
   $m.Subject = $meta.subject
-  foreach ($id in 'overall', 'areas') {
+  # the workbook goes along so teams can update it ("the sheet above"), like the 11/16 e-mail
+  if ($meta.workbook -and (Test-Path $meta.workbook)) { $m.Attachments.Add($meta.workbook) | Out-Null }
+  foreach ($id in @('overall')) {
     $a = $m.Attachments.Add("$out\$id.png", 1, 0)
     $a.PropertyAccessor.SetProperty('http://schemas.microsoft.com/mapi/proptag/0x3712001F', "$id.png")
   }
-  $m.HTMLBody = [IO.File]::ReadAllText("$out\email.html")
+  # opening the inspector makes Outlook insert the default signature; keep it under our body
+  $null = $m.GetInspector
+  $sig = $m.HTMLBody
+  $body = [IO.File]::ReadAllText("$out\email.html")
+  $sm = [regex]::Match($sig, '(?s)<body[^>]*>(.*)</body>')
+  if ($sm.Success) { $body = $body -replace '</body>', ($sm.Groups[1].Value.Replace('$', '$$') + '</body>') }
+  $m.HTMLBody = $body
   $m.Save()
   Add-Content $log "$(Get-Date -Format s) draft saved: $($meta.subject) ($out)"
   "draft saved: $($meta.subject) ($out)"

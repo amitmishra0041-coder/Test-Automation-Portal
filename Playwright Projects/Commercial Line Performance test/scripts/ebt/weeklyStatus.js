@@ -2,7 +2,7 @@
 // business test case workbook (scenario progress) and the EBT feedback tracker (issues, statuses refreshed from JIRA).
 // weeklyStatusDraft.ps1 runs this every Sunday and saves the result as an Outlook draft for review — nothing is sent.
 //
-//   node scripts/ebt/weeklyStatus.js [--date YYYY-MM-DD]   -> prints the output folder (email.html, overall.png, areas.png, meta.json)
+//   node scripts/ebt/weeklyStatus.js [--date YYYY-MM-DD]   -> prints the output folder (email.html, overall.png, meta.json)
 //
 // The reported week is Monday-Sunday of the week before --date (default today), so a Sunday run reports that week.
 // Each run saves a snapshot (completed scenarios) next to its output; the next run compares against it for
@@ -103,7 +103,7 @@ async function renderPngs(svgs, outDir) {
   try {
     const pg = await br.newPage({ deviceScaleFactor: 2 });
     await pg.setContent(`<html><body style="margin:0;background:#fff">${svgs.join('')}</body></html>`);
-    for (const id of ['overall', 'areas']) await (await pg.$('#' + id)).screenshot({ path: path.join(outDir, `${id}.png`) });
+    for (const id of ['overall']) await (await pg.$('#' + id)).screenshot({ path: path.join(outDir, `${id}.png`) });
   } finally { await br.close(); }
 }
 
@@ -139,9 +139,6 @@ async function build(runDate = new Date(Date.UTC(new Date().getFullYear(), new D
   const openArea = {}; open.forEach((i) => { openArea[i.area] = (openArea[i.area] || 0) + 1; });
   const topOpenArea = Object.entries(openArea).sort((a, b) => b[1] - a[1])[0];
 
-  // next week
-  const plannedNext = all.filter((s) => inWeek(s.week, next)).length;
-  const carried = all.filter((s) => s.status !== 'completed' && s.status !== 'issue' && weekBefore(s.week, next)).length;
 
   // ---- text ----
   const resolvedParts = Object.entries(RESOLVED).map(([st, label]) => [issues.filter((i) => i.status === st).length, label]).filter(([n]) => n);
@@ -153,64 +150,69 @@ async function build(runDate = new Date(Date.UTC(new Date().getFullYear(), new D
   const list = (a) => (a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0] || '');
 
   const hl = [];
-  hl.push(prev
-    ? `<b>${newDone.length} scenario${newDone.length === 1 ? '' : 's'} completed this week.</b> ${tot.done} of ${tot.scen} are now complete (${pct(tot.done, tot.scen)}%), up from ${prev.done}.`
-    : `<b>${tot.done} of ${tot.scen} scenarios completed so far (${pct(tot.done, tot.scen)}%).</b> ${loaded.length} teams have loaded scenarios and ${loaded.length - noResults.length} have reported results.`);
-  if (leading.length) hl.push(`<b>Leading teams:</b> ${list(leading.slice(0, 3).map((x) => `${esc(x.t)} (${x.d} of ${x.n}, ${pct(x.d, x.n)}%)`))}.`);
-  if (examples.length) hl.push(`<b>Completed successfully${prev ? ' this week' : ''}:</b> ${esc(list(examples.map((e) => e.replace(/\.$/, ''))))}.`);
-  hl.push(`<b>${thisWeek.length} issue${thisWeek.length === 1 ? '' : 's'} logged this week</b> (${issues.length} in total, ${open.length} still open).`
+  hl.push(prev && newDone.length
+    ? `${newDone.length} scenario${newDone.length === 1 ? '' : 's'} completed this week. ${tot.done} of ${tot.scen} are now complete (${pct(tot.done, tot.scen)}%), up from ${prev.done}.`
+    : `${tot.done} of ${tot.scen} scenarios completed so far (${pct(tot.done, tot.scen)}%). ${loaded.length} teams have loaded scenarios and ${loaded.length - noResults.length} have reported results.`);
+  if (leading.length) hl.push(`${list(leading.slice(0, 3).map((x) => `${esc(x.t)} (${x.d} of ${x.n}, ${pct(x.d, x.n)}%)`))}.`);
+  if (examples.length) hl.push(`Completed successfully${prev ? ' this week' : ''}: ${esc(list(examples.map((e) => e.replace(/\.$/, ''))))}.`);
+  hl.push(`${thisWeek.length} issue${thisWeek.length === 1 ? '' : 's'} logged this week (${issues.length} in total, ${open.length} still open).`
     + (resolvedN ? ` ${resolvedN} resolved so far (${list(resolvedParts.map(([n, l]) => `${n} ${l}`))}).` : '')
     + (retest.length ? ` ${retest.length} fix${retest.length === 1 ? ' is' : 'es are'} ready for the business to retest.` : '')
     + (topOpenArea ? ` Most open issues are about ${esc(topOpenArea[0].toLowerCase())}.` : ''));
-  hl.push('<span style="background:#FFF2CC">[Add release news or other updates for this week here, or delete this line.]</span>');
 
   const byDept = {}; issues.forEach((i) => { (byDept[i.dept] = byDept[i.dept] || []).push(i); });
-  const deptRows = Object.entries(byDept).sort((a, b) => b[1].filter(isOpen).length - a[1].filter(isOpen).length || b[1].length - a[1].length).map(([d, l], i) => {
+  const td = 'border:1px solid #BFBFBF;padding:2px 7px';
+  const tdn = td + ';white-space:nowrap';
+  const deptRows = Object.entries(byDept).sort((a, b) => b[1].filter(isOpen).length - a[1].filter(isOpen).length || b[1].length - a[1].length).map(([d, l]) => {
     const o = l.filter(isOpen);
     const themes = (o.length ? o : l).map((x) => x.text + (x.status === 'Ready for Retest' ? ' (fix ready for retest)' : '')).join('; ');
-    return `<tr${i % 2 ? ' style="background:#F2F2F2"' : ''}><td>${esc(d)}</td><td align="center">${l.length}</td><td align="center"><b style="color:${C.red}">${o.length}</b></td><td>${esc(o.length ? themes : `All resolved: ${themes}`)}</td></tr>`;
+    return `<tr><td style="${tdn}">${esc(d)}</td><td style="${td}" align="center">${l.length}</td><td style="${td}" align="center">${o.length}</td><td style="${td}">${esc(o.length ? themes : `All resolved: ${themes}`)}</td></tr>`;
   }).join('');
 
+  // team progress table, same columns as the e-mail sent on 11/16
+  const cnt = (l, k) => l.filter((s) => s.status === k).length;
+  const progRow = (name, l, bold) => {
+    const n = l.length, d = cnt(l, 'completed'), ns = cnt(l, 'notStarted');
+    const c = (v) => `<td style="${td}${bold ? ';font-weight:bold' : ''}" align="center">${v}</td>`;
+    return `<tr><td style="${td}${bold ? ';font-weight:bold' : ''}">${esc(name)}</td>${c(n)}${c(d)}${c(cnt(l, 'inProgress'))}${c(cnt(l, 'blocked'))}${c(ns)}${c(n ? pct(n - ns, n) + '%' : '')}${c(n ? pct(d, n) + '%' : '')}</tr>`;
+  };
+  const th = (t, left, w) => `<th style="background:#2E5597;color:#fff;padding:4px 7px;font-weight:normal;white-space:nowrap"${w ? ` width="${w}"` : ''} align="${left ? 'left' : 'center'}">${t}</th>`;
+  const progTable = `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#404040">
+<tr>${th('Team', 1)}${['Scenarios', 'Completed', 'In progress', 'Blocked', 'Not started', '% executed', '% completed'].map((x) => th(x)).join('')}</tr>
+${teams.map((t) => progRow(t.team, t.scen)).join('\n')}
+${progRow('All teams', all, true)}
+</table>`;
+
   const f = 'font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#404040';
-  const h = 'font-family:Calibri,Arial,sans-serif;font-size:14pt;font-weight:bold;color:#1F2A44;margin:18px 0 6px 0';
-  const tile = (n, l, c) => `<td width="25%" style="padding:10px 12px;border-left:4px solid ${c};background:#F2F2F2"><div style="font-family:Calibri,Arial;font-size:24pt;font-weight:bold;color:${c}">${n}</div><div style="font-family:Calibri,Arial;font-size:10pt;color:#404040">${l}</div></td>`;
+  const h = 'font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#404040;margin:14px 0 6px 0';
   const img = (id) => `<img src="cid:${id}.png" width="420" style="display:block;border:0" alt="${id}">`;
   const weekLabel = `week of ${md(mon)}`;
   const html = `<html><body style="${f}">
-<p style="${f}">Hi all,</p>
-<p style="${f}">Here is the ClaimCenter EBT status for the ${weekLabel}.</p>
-<table cellpadding="0" cellspacing="6" width="860" style="border-collapse:separate"><tr>
-${tile(tot.done, `scenarios completed (of ${tot.scen})`, C.green)}${tile(`${pct(tot.done, tot.scen)}%`, 'overall completion', C.blue)}${tile(issues.length, `issues logged (${open.length} still open)`, C.red)}${tile(`${loaded.length} of ${teams.length}`, 'teams with scenarios loaded', C.amber)}
-</tr></table>
-<div style="${h}">Highlights of last week</div>
+<p style="${f}">Good morning All,</p>
+<p style="${f}">Please see below the ClaimCenter EBT status for the ${weekLabel}.</p>
+<p style="${f}">The status is based on the test scenarios shared by each group last week.</p>
+<p style="${f}">Kindly review and update the sheet above with the latest progress and status for your respective group by the end of this week.</p>
+<p style="${h}">Highlights:</p>
 <ul style="${f};margin-top:0">${hl.map((x) => `<li>${x}</li>`).join('\n')}</ul>
-<div style="${h}">Progress and issues</div>
-<table cellpadding="0" cellspacing="0"><tr><td valign="top">${img('overall')}</td><td width="20"></td><td valign="top">${img('areas')}</td></tr></table>
-${noResults.length || notLoaded.length ? `<p style="${f};font-size:10pt;color:#8A8A8A">${noResults.length ? `${esc(list(noResults))} ${noResults.length === 1 ? 'has' : 'have'} scenarios loaded but no results recorded yet. ` : ''}${notLoaded.length ? `${esc(list(notLoaded))} ${notLoaded.length === 1 ? 'has' : 'have'} not loaded scenarios yet.` : ''}</p>` : ''}
-<div style="${h}">Issues identified</div>
-<table cellpadding="5" cellspacing="0" width="860" style="border-collapse:collapse;${f};font-size:10pt">
-<tr style="background:#1F2A44;color:#fff"><th align="left" width="190">Team</th><th width="60">Logged</th><th width="70">Still open</th><th align="left">Open issues</th></tr>
+<p style="${h}">Progress and issues</p>
+${progTable}
+<br>${img('overall')}
+${noResults.length || notLoaded.length ? `<p style="${f}">${noResults.length ? `${esc(list(noResults))} ${noResults.length === 1 ? 'has' : 'have'} scenarios loaded but no results recorded yet. ` : ''}${notLoaded.length ? `${esc(list(notLoaded))} ${notLoaded.length === 1 ? 'has' : 'have'} not loaded scenarios yet.` : ''}</p>` : ''}
+<p style="${h}">Issues identified</p>
+<table cellpadding="0" cellspacing="0" width="860" style="border-collapse:collapse;${f}">
+<tr>${th('Team', 1, 200)}${th('Logged')}${th('Still open')}${th('Open issues', 1)}</tr>
 ${deptRows}
-<tr style="border-top:2px solid #1F2A44"><td><b>Total</b></td><td align="center"><b>${issues.length}</b></td><td align="center"><b style="color:${C.red}">${open.length}</b></td><td></td></tr>
+<tr><td style="${td};font-weight:bold">Total</td><td style="${td};font-weight:bold" align="center">${issues.length}</td><td style="${td};font-weight:bold" align="center">${open.length}</td><td style="${td}"></td></tr>
 </table>
-<div style="${h}">This week (week of ${md(next)})</div>
-<ul style="${f};margin-top:0">
-<li>${plannedNext} scenario${plannedNext === 1 ? ' is' : 's are'} planned for this week${carried ? `, plus ${carried} from earlier weeks that are still to be run` : ''}.</li>
-${retest.length ? `<li>Please retest the fix${retest.length === 1 ? '' : 'es'} that ${retest.length === 1 ? 'is' : 'are'} ready: ${esc(list(retest.map((r) => `${r.text} (${r.jiraId})`)))}.</li>` : ''}
-<li><b>Help needed:</b> please update the Status and Target Week on your team's tab in the EBT test case workbook as you go${notLoaded.length ? ', and teams without scenarios yet, please add them' : ''}.</li>
-</ul>
 <p style="${f}">As always, please send any new findings through the usual EBT feedback process.</p>
-<p style="${f}">Thank you,<br>Amit</p>
-<p style="${f};font-size:9pt;color:#8A8A8A">Sources: Claims EBT Test cases workbook and the GW CC-CM Cloud Migration EBT Feedback Tracker (statuses from JIRA), as of ${md(runDate)}/${runDate.getUTCFullYear()}.</p>
 </body></html>`;
 
   await renderPngs([
     donutSvg([['Completed', tot.done, C.green], ['Issue found', tot.issue, C.red], ['Not run yet', tot.notRun, C.grey]], `${pct(tot.done, tot.scen)}%`, `of ${tot.scen} completed`, 'Overall scenario progress'),
-    areaSvg(areas, `Issues by area (${issues.length} logged)`),
   ], outDir);
   fs.writeFileSync(path.join(outDir, 'email.html'), html);
   fs.writeFileSync(path.join(outDir, 'preview.html'), html.replace(/cid:(\w+)\.png/g, '$1.png'));
-  const meta = { subject: `ClaimCenter EBT - Weekly Status (${weekLabel})`, runDate: stamp, done: tot.done, scen: tot.scen, issues: issues.length, open: open.length, doneKeys };
+  const meta = { subject: `ClaimCenter EBT - Weekly Status (${weekLabel})`, runDate: stamp, done: tot.done, scen: tot.scen, issues: issues.length, open: open.length, workbook: wbFile, doneKeys };
   fs.writeFileSync(path.join(outDir, 'meta.json'), JSON.stringify(meta, null, 1));
   return { outDir, ...meta };
 }
