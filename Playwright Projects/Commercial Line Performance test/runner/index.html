@@ -3559,6 +3559,7 @@
       st.textContent = 'Deck saved: ' + r.output + ' (' + r.observations + ' observations, ' + r.jira + ' in JIRA' + (r.scenarios ? ', ' + r.scenarios.completed + ' of ' + r.scenarios.scenarios + ' scenarios completed' : '') + ') · ' +
         (r.weeklyError ? 'weekly QA status slide NOT updated: ' + r.weeklyError : 'weekly QA status slide: ' + (r.weekly || 'updated') + (r.hours ? ' (' + r.hours.total + ' left)' : '')) + ' · ' +
         (r.casesError ? 'team progress not updated: ' + r.casesError + ' · ' : '') +
+        (r.thisWeek ? 'tested this week (' + r.thisWeek.label + '): ' + r.thisWeek.scenarios + ' scenarios · ' : '') +
         (r.sync && r.sync.error ? 'status refresh skipped: ' + r.sync.error : 'tracker: ' + ebtChanges(r.sync && r.sync.changes));
     }).catch(function (e) { st.textContent = e.message; });
   });

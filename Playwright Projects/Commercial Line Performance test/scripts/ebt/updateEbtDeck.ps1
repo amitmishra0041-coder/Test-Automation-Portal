@@ -44,6 +44,23 @@ try {
   SetText $s1 'EBT_KPI_open' $data.slide.kpi.open
   SetText $s1 'EBT_WEEK' $data.slide.week
 
+  # middle column: "Tested this week" from the test case workbook (header found by its text, the body by name);
+  # the body keeps its font, each team name bold
+  if ($data.slide.updates) {
+    foreach ($sh in $s1.Shapes) { if ((TextOf $sh) -match '^(EBT updates this week|Tested this week)') { $sh.TextFrame.TextRange.Text = [string]$data.slide.updates.head; break } }
+    $ub = Named $s1 'EBT_TXT_updates'
+    if ($ub) {
+      $paras = @($data.slide.updates.paras)
+      $tr = $ub.TextFrame.TextRange
+      $tr.Text = (($paras | ForEach-Object { [string]$_[0] + [string]$_[1] }) -join "`r")
+      $tr.Font.Bold = 0
+      for ($i = 1; $i -le $paras.Count; $i++) {
+        $label = [string]$paras[$i - 1][0]
+        if ($label.Length) { $tr.Paragraphs($i).Characters(1, $label.Length).Font.Bold = -1 }
+      }
+    }
+  }
+
   # right column: cleared and drawn again from the rectangles / texts ebtSlide.js worked out
   # (everything in that column is data: panels, bars, a chart pasted in from the test case workbook)
   $old = @(); foreach ($sh in $s1.Shapes) { if ($sh.Left -ge $data.slide.region.x - 2 -and $sh.Top -ge $data.slide.region.y - 2) { $old += $sh } }

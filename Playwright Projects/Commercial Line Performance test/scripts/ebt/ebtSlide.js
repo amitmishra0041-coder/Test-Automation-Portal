@@ -138,7 +138,21 @@ function rightColumn({ cases, feat, featTitle, status, statusTitle, note }) {
 // The numbers the slide shows, from the tracker entries and (cases) the test case workbook's progress by team.
 const STATUS_COLOR = { Fixed: G, 'Ready for Retest': G, Closed: G, Rejected: GR, Deferred: GR, 'In Business Review': T };
 const DONE = new Set(['Fixed', 'Closed', 'Rejected', 'Deferred']);
-function slideData(entries, statusOrder, cases = null, now = new Date()) {
+// Middle column "Tested this week": one line per team that worked scenarios this week (testCases.readThisWeek),
+// then an overall line. null leaves the column as the user wrote it.
+function weekUpdates(week, cases) {
+  if (!week) return null;
+  const paras = week.teams.map((t) => [`${t.team} (${t.n}): `, t.terms.slice(0, 4).join(', ') + (t.inProgress ? `; ${t.inProgress} in progress` : '')]);
+  if (!paras.length) paras.push(['', 'No scenario updates in the test case workbook yet this week']);
+  if (cases) {
+    const c = cases.total, idle = cases.teams.filter((t) => t.scenarios && !(t.completed + t.issue + t.inProgress)).map((t) => t.team);
+    paras.push(['Overall: ', `${c.completed} of ${c.scenarios} scenarios complete (${Math.round((100 * c.completed) / (c.scenarios || 1))}%)`
+      + (idle.length ? `; not started yet: ${idle.join(', ')}` : '')]);
+  }
+  return { head: `Tested this week (${week.label})`, paras };
+}
+
+function slideData(entries, statusOrder, cases = null, now = new Date(), tested = null) {
   const jira = entries.filter((e) => /^[A-Z][A-Z0-9]+-\d+$/.test(e.jiraId));
   const count = (list, f) => { const m = new Map(); for (const e of list) { const k = f(e) || 'Not set'; m.set(k, (m.get(k) || 0) + 1); } return [...m.entries()]; };
   // Top feedback areas: the biggest three + everything else as one bar, so the panel never outgrows its box.
@@ -154,6 +168,7 @@ function slideData(entries, statusOrder, cases = null, now = new Date()) {
     kpi: { obs: entries.length, jira: jira.length, open: jira.filter((e) => !DONE.has(e.status)).length },
     week: `Week ${week}  |  ${now.toLocaleDateString('en-US')}`,
     region: { x: COL.x, y: COL.y },
+    updates: weekUpdates(tested, cases),
     right: rightColumn({
       cases, note: prio.map(([p, n]) => `${p} ${n}`).join('  |  '),
       featTitle: `Top feedback areas (${entries.length})`, feat: feat.map(([label, n], i) => ({ label, n, color: label === 'All other areas' ? GR : i < 2 ? B : T })),

@@ -18,7 +18,7 @@ const { execFileSync } = require('child_process');
 const JSZip = require('jszip');
 const tracker = require('./tracker');
 const { writeSlide, slideData } = require('./ebtSlide');
-const { readProgress } = require('./testCases');
+const { readProgress, readThisWeek } = require('./testCases');
 
 const DEFAULT_DIR = process.env.EBT_DECK_DIR || path.join(os.homedir(), 'Desktop', 'EBT PPT');
 const STATUS_DIR = process.env.STATUS_DECK_DIR || path.join(os.homedir(), 'Desktop', 'CC Cloud', 'Status reporting');
@@ -84,8 +84,9 @@ async function updateDeck(dirOrFile, { statuses, weekly = true } = {}) {
   const out = outputName(src);
   const entries = (await tracker.listEntries()).map((e) => (statuses && statuses[e.jiraId] ? { ...e, status: statuses[e.jiraId] } : e));
   // Scenario progress by team; the deck is still refreshed (with the feedback areas instead) when it can't be read.
-  let cases = null, casesError = '';
+  let cases = null, casesError = '', week = null;
   try { cases = readProgress(); if (!cases) casesError = 'test case workbook not found'; } catch (e) { casesError = e.message; }
+  try { if (cases) week = readThisWeek(); } catch (e) { casesError = casesError || `this week's tests: ${e.message}`; }
   // The EBT slide is still refreshed when the weekly numbers can't be built (Jira down, no active sprint).
   let wk = null, weeklyError = '';
   if (weekly) { try { wk = await weeklyStatusSlide(); } catch (e) { weeklyError = e.message; } }
@@ -97,7 +98,7 @@ async function updateDeck(dirOrFile, { statuses, weekly = true } = {}) {
   const tmp = path.join(os.tmpdir(), `ebt-deck-${Date.now()}.json`);
   // The EBT layout as a one-slide deck (used only when no deck has an EBT slide yet).
   const slideFile = await writeSlide(path.join(os.tmpdir(), `ebt-slide-${Date.now()}.pptx`));
-  fs.writeFileSync(tmp, JSON.stringify({ slide: slideData(entries, STATUS_ORDER, cases), weekly: wk ? wk.refresh : null }), 'utf8');
+  fs.writeFileSync(tmp, JSON.stringify({ slide: slideData(entries, STATUS_ORDER, cases, new Date(), week), weekly: wk ? wk.refresh : null }), 'utf8');
   let result = '';
   try {
     result = String(execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'updateEbtDeck.ps1'),
@@ -110,6 +111,7 @@ async function updateDeck(dirOrFile, { statuses, weekly = true } = {}) {
   const jira = entries.filter((e) => /^[A-Z][A-Z0-9]+-\d+$/.test(e.jiraId)).length;
   return {
     source: src, output: out, observations: entries.length, jira, scenarios: cases ? cases.total : null, casesError,
+    thisWeek: week ? { label: week.label, scenarios: week.n, teams: week.teams.map((t) => `${t.team} (${t.n})`) } : null,
     weekly: (result.match(/weekly=([^;]+)/) || [])[1] || '', weeklyError, ebt: (result.match(/ebt=([^;]+)/) || [])[1] || '', ebtFrom,
     hours: wk ? wk.refresh.kpi : null,
   };
