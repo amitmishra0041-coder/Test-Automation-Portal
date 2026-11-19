@@ -2,7 +2,54 @@
 const { blinqClick } = require('../utils/blinqClick');
 const { randSSN } = require('./randomData');
 
+
+// 11/18: record the PolicyCenter job status (Quoted vs Rated investigation)
+async function logPcStatus(p, submissionNumber, when) {
+    try {
+        await p.waitForTimeout(1500);
+        const st = await p.evaluate(() => {
+            const hdr = document.body.innerText.match(/Submission \((\w[\w -]*)\)/);
+            if (hdr) return hdr[1];
+            const el = document.querySelector('[id*="JobWizardInfoBar-JobStatus"], [id*="InfoBar-Status"]');
+            if (el && el.innerText.trim()) return el.innerText.replace(/\s+/g, ' ').trim();
+            const m = document.body.innerText.match(/Status\s*:?\s*\n?\s*(Quoted|Rated|Draft|Quoting|Bound|Binding|Issued|Withdrawn|Declined|Not-taken|Rating)/i);
+            return m ? m[1] : 'UNKNOWN';
+        });
+        console.log(`PC STATUS [${submissionNumber}] ${when}: ${st}`);
+        await p.screenshot({ path: require('path').join(__dirname, '..', 'runtime-data', 'pc-status', `${submissionNumber}-${when.replace(/\W+/g,'_')}.png`), fullPage: true }).catch(() => {});
+    } catch (e) { console.log(`PC STATUS [${submissionNumber}] ${when}: error ${e?.message}`); }
+}
+
+
+// 11/18 Rated-vs-Quoted: open the submission in a separate PolicyCenter tab, record the status, close the tab
+async function pcStatusCheck(page, submissionNumber, policyCenterUrl, when) {
+    if (process.env.PC_STATUS_AFTER_BIND_ONLY === '1' && !when.startsWith('5')) return;
+    let pc;
+    try {
+        pc = await page.context().newPage();
+        await pc.goto(policyCenterUrl || 'http://test-policycenter.donegalgroup.com/pc/PolicyCenter.do');
+        const user = pc.getByRole('textbox', { name: 'Username' });
+        if (await user.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)) {
+            await user.fill('amitmish');
+            await pc.getByRole('textbox', { name: 'Password' }).fill('gw');
+            await pc.getByRole('textbox', { name: 'Password' }).press('Enter');
+            await pc.waitForTimeout(5000);
+        }
+        await pc.getByRole('menuitem', { name: 'Policy', exact: true }).click();
+        await pc.waitForTimeout(2000);
+        const box = pc.locator('input[name="TabBar-PolicyTab-PolicyTab_SubmissionNumberSearchItem"]');
+        if (!(await box.isVisible().catch(() => false))) await pc.locator('#TabBar-PolicyTab > .gw-action--expand-button > .gw-icon').click();
+        await box.fill(submissionNumber);
+        await pc.getByLabel('Sub #').getByRole('button', { name: 'gw-search-icon' }).click();
+        await pc.waitForTimeout(4000);
+        await logPcStatus(pc, submissionNumber, when);
+    } catch (e) { console.log(`PC STATUS [${submissionNumber}] ${when}: lookup failed ${e?.message}`); }
+    if (pc) await pc.close().catch(() => {});
+    await page.bringToFront().catch(() => {});
+}
+
 async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl, trackMilestone } = {}) {
+    await pcStatusCheck(page, submissionNumber, policyCenterUrl, '1 quoted in portal');
     page.setDefaultTimeout(60000);
 
     function isPageAlive(p) {
@@ -208,6 +255,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         await page.waitForLoadState('domcontentloaded');
 
         console.log('WriteBiz submission completed');
+        await pcStatusCheck(page, submissionNumber, policyCenterUrl, '2 after submit for approval');
         if (trackMilestone) trackMilestone('Submitting for Approval', 'PASSED');
 
         // ===== PART 2: PolicyCenter approval =====================================
@@ -222,10 +270,12 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         const pcUrl = policyCenterUrl || 'http://test-policycenter.donegalgroup.com/pc/PolicyCenter.do';
         await page1.goto(pcUrl);
 
-        await page1.getByRole('textbox', { name: 'Username' }).waitFor({ state: 'visible', timeout: 10000 });
-        await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
-        await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
-        await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
+        // already signed in when a PC status check tab ran earlier in this context
+        if (await page1.getByRole('textbox', { name: 'Username' }).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false)) {
+            await page1.getByRole('textbox', { name: 'Username' }).fill('amitmish');
+            await page1.getByRole('textbox', { name: 'Password' }).fill('gw');
+            await page1.getByRole('textbox', { name: 'Password' }).press('Enter');
+        }
         await page1.waitForLoadState('networkidle').catch(() => {});
         await page1.waitForTimeout(5000);
 
@@ -265,6 +315,7 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         await page1.waitForLoadState('networkidle').catch(() => {});
         await page1.waitForTimeout(3000);
         console.log('Submission search completed');
+        await logPcStatus(page1, submissionNumber, '3a PC approval - on open');
 
         const riskAnalysisLocators = [
             'internal:text="Risk Analysis"i',
@@ -367,24 +418,51 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
             } catch { }
         }
 
+        await logPcStatus(page1, submissionNumber, '3b after UW approve');
         if (trackMilestone) trackMilestone('UW Issues Approved in PolicyCenter', 'PASSED');
     }
 
     // ===== PART 3: Submit for issuance =======================================
     console.log('Step 3: Submitting for issuance in WriteBiz...');
 
-    if (page1) try {
-        const releaseLock = page1.locator('div[aria-label="Release Lock"]');
-        if (await releaseLock.count({ timeout: 2000 }).catch(() => 0)) {
-            await releaseLock.click({ timeout: 5000 });
-            await page1.waitForTimeout(500);
-        }
-    } catch (e) {
-        console.warn(`Release Lock not clicked (continuing): ${e?.message}`);
+    // TEST 11/18: after the UW issues are approved the submission stays LOCKED in PolicyCenter, and WriteBiz's Bind and Issue
+    // answers "Businessowners (<n>): has been locked. Please contact your underwriter". Release the lock - it was silently
+    // skipped before (single selector, count() with no wait) - and say in the log whether it happened.
+    if (page1) {
+        let released = false;
+        const direct = page1.locator('div[aria-label="Release Lock"], [aria-label="Release Lock"], a:has-text("Release Lock"), div[role="menuitem"]:has-text("Release Lock"), .gw-label:text-is("Release Lock")').first();
+        try {
+            if (await direct.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
+                await direct.click({ timeout: 5000 }); released = true;
+            } else {
+                // may sit under an Actions / Other Actions menu
+                const menu = page1.locator('div[aria-label="Actions"], [aria-label="Other Actions"], div.gw-action--inner:has-text("Actions")').first();
+                if (await menu.isVisible().catch(() => false)) {
+                    await menu.click({ timeout: 5000 }).catch(() => {});
+                    if (await direct.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) { await direct.click({ timeout: 5000 }); released = true; }
+                }
+            }
+            if (released) {
+                await page1.waitForLoadState('domcontentloaded').catch(() => {});
+                await page1.waitForTimeout(2000);
+                const ok = page1.locator('div[role="button"]:has-text("OK"), button:has-text("OK")').first();
+                if (await ok.isVisible().catch(() => false)) await ok.click({ timeout: 5000 }).catch(() => {});
+                await page1.waitForTimeout(1500);
+            }
+        } catch (e) { console.warn(`Release Lock error: ${e?.message}`); }
+        if (!released) await page1.screenshot({ path: require('path').join(__dirname, '..', 'runtime-data', `pc-no-release-lock-${submissionNumber}.png`), fullPage: true }).catch(() => {});
+        await logPcStatus(page1, submissionNumber, '3c after release lock');
+        console.log(`PolicyCenter Release Lock: ${released ? 'clicked' : 'NOT FOUND (screenshot runtime-data/pc-no-release-lock-' + submissionNumber + '.png)'}`);
     }
 
     if (page1) await page1.close();
     await page.bringToFront();
+    // STOP_BEFORE_ISSUANCE=1 (11/18): hand over an approved, unlocked submission - the user issues it in WriteBiz
+    if (process.env.STOP_BEFORE_ISSUANCE === '1') {
+        console.log(`READY FOR ISSUANCE: submission ${submissionNumber} (UW issues approved, lock released) - stopped before Bind and Issue`);
+        if (trackMilestone) trackMilestone('Ready for issuance (stopped before Bind and Issue)', 'PASSED', `Submission ${submissionNumber}`);
+        return `NOT ISSUED - submission ${submissionNumber} ready`;
+    }
     await page.waitForLoadState('load').catch(() => {});
     // Poll for the WB tab to actually be ready (was idle during PC approval)
     // instead of a blind 5s + 8s sleep - same 13s ceiling, exits as soon as ready.
@@ -491,8 +569,31 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         console.log('Include Deposit toggled to No');
     }
 
+    // QA 11/18: the Review Cart "Client Information" Federal ID Number can come up blank (not carried from the account) and
+    // Bind and Issue is then rejected with "Federal ID Number is required." - fill it when empty.
+    const fein = page.getByRole('textbox', { name: 'Federal ID Number' }).first();
+    if (await fein.isVisible().catch(() => false) && !(await fein.inputValue().catch(() => 'x')).trim()) {
+        await fein.fill(randSSN());
+        await fein.press('Tab').catch(() => {});
+        await page.waitForTimeout(800);
+        console.log('Review Cart: Federal ID Number was blank - filled');
+    }
+
     await dismissStatusModal();
+    // QA 11/18: screenshots right before / after Bind and Issue (no policy number came back - see what the portal shows)
+    const shotDir = require('path').join(__dirname, '..', 'runtime-data', 'bind-shots');
+    require('fs').mkdirSync(shotDir, { recursive: true });
+    const shotTag = `${submissionNumber || 'quote'}-${Date.now()}`;
+    await page.screenshot({ path: require('path').join(shotDir, `${shotTag}-1-before-bind.png`), fullPage: true }).catch(() => {});
+    await pcStatusCheck(page, submissionNumber, policyCenterUrl, '4 before Bind');
     await safeClickBtn(page.getByRole('button', { name: 'Bind and Issue' }), 'Bind and Issue');
+    await page.waitForTimeout(15000);
+    await pcStatusCheck(page, submissionNumber, policyCenterUrl, '5 after Bind');
+    for (const [n, ms] of [[2, 3000], [3, 15000], [4, 45000]]) {
+        await page.waitForTimeout(ms - (n === 2 ? 0 : n === 3 ? 3000 : 15000));
+        await page.screenshot({ path: require('path').join(shotDir, `${shotTag}-${n}-after-bind-${ms / 1000}s.png`), fullPage: true }).catch(() => {});
+    }
+    console.log(`Bind and Issue screenshots: ${shotDir}\\${shotTag}-*.png`);
     await page.waitForLoadState('domcontentloaded');
     // Wait for bind/issue to settle - poll for spinner instead of fixed 30s sleep
     await page.waitForFunction(() => {
@@ -532,6 +633,12 @@ async function submitPolicyForApproval(page, submissionNumber, { policyCenterUrl
         await issueResults.getByRole('button', { name: 'Close' }).click({ timeout: 10000 }).catch(() => {});
         if (trackMilestone) trackMilestone('Policy Issued Successfully', 'PASSED', `Policy #: ${issuedPolicy}`);
         return issuedPolicy;
+    }
+    // the same dialog can carry "Errors: ... has been locked ..." instead of a policy number - fail now, not after 10 min of polling
+    if (/Errors:/i.test(issuedText)) {
+        const msg = issuedText.replace(/\s+/g, ' ').replace(/^.*?Errors:\s*/i, '').replace(/\s*(Close|Finish)\s*/g, ' ').trim().slice(0, 300);
+        if (trackMilestone) trackMilestone('Policy Issued Successfully', 'FAILED', `Quote Issue Results error: ${msg}`);
+        throw new Error(`Quote Issue Results error: ${msg}`);
     }
     await dismissStatusModal();
 
