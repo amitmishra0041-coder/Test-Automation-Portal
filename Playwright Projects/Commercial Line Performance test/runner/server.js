@@ -198,6 +198,10 @@ const S3_DOWNLOADS_DIR = path.join(CLAIMS_DIR, 'results', 's3Downloads');
 // S3 (Inbound Pending > smartcomm > output > output > archive > processing) and files it per template on the team drive.
 const BC_DOCS_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'sortBcSmartCommPdfs.js');
 const BC_DOCS_DIR = process.env.BC_SORT_OUT || 'V:\\Amit Int\\SmartComm\\BillingCenter-Templates';
+// The same refresh also files the request payloads (scripts/sortBcPayloadsByEvent.js) by eventName; a payload has
+// the same guid as its PDF, so each document links to the XML it was generated from.
+const BC_REFRESH_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'refreshBcDocsAndPayloads.js');
+const BC_PAYLOAD_DIR = process.env.BC_PAYLOAD_OUT || 'V:\\Amit Int\\SmartComm\\BillingCenter-Payloads';
 const S3_ESTABLISH_SESSION_SCRIPT = path.join(CLAIMS_DIR, 'scripts', 'establishS3Session.js');
 // OneInc payment test designs (ClaimCenter-Automation's helpers/oneInc + scripts/runOneInc.js). The workbooks and
 // the AutomationResults folder live under ONEINC_DIR (default V:\Amit Int\OneInc, the team share).
@@ -495,6 +499,7 @@ app.use('/reports/jira', express.static(JIRA_REPORTS_DIR));
 app.use('/reports/cc-ui', express.static(CC_UI_REPORTS_DIR));
 app.use('/reports/s3-download', express.static(S3_DOWNLOADS_DIR));
 app.use('/reports/bc-docs', express.static(BC_DOCS_DIR));
+app.use('/reports/bc-payloads', express.static(BC_PAYLOAD_DIR, { setHeaders: (r) => r.type('text/plain') }));
 // Template folders + their PDFs (newest first) for the BillingCenter documents view.
 app.get('/api/smartComm/bcDocs', (req, res) => {
   try {
@@ -512,7 +517,14 @@ app.get('/api/smartComm/bcDocs', (req, res) => {
     }
     const templates = Object.keys(byTemplate).sort()
       .map((name) => ({ name, files: byTemplate[name].sort((a, b) => b.mtime - a.mtime) }));
-    res.json({ dir: BC_DOCS_DIR, templates, refreshedAt: fs.existsSync(idx) ? fs.statSync(idx).mtimeMs : null });
+    // Payloads: index.csv columns guid,eventName,account,channel,s3LastModified.
+    const pidx = path.join(BC_PAYLOAD_DIR, 'index.csv'), payloads = {}, events = {};
+    if (fs.existsSync(pidx)) fs.readFileSync(pidx, 'utf8').split(/\r?\n/).slice(1).forEach((l) => {
+      const [guid, event] = l.split(','); if (!guid || !event) return;
+      payloads[guid] = event; events[event] = (events[event] || 0) + 1;
+    });
+    res.json({ dir: BC_DOCS_DIR, templates, refreshedAt: fs.existsSync(idx) ? fs.statSync(idx).mtimeMs : null,
+      payloadDir: BC_PAYLOAD_DIR, payloads, payloadEvents: events, payloadsRefreshedAt: fs.existsSync(pidx) ? fs.statSync(pidx).mtimeMs : null });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // OneInc AutomationResults (Reports/Screenshots/Logs/Evidence/...) — the HTML reports link to their screenshots with
@@ -1589,8 +1601,9 @@ function buildSmartCommJob(j) {
   if (j.mode === 's3') return buildS3DownloadJob(j);
   if (j.mode === 's3-session') return buildS3SessionJob();
   if (j.mode === 'bcDocs') {
-    if (!fs.existsSync(BC_DOCS_SCRIPT)) throw new Error('sortBcSmartCommPdfs.js not found — git pull ClaimCenter-Automation');
-    return { label: 'SmartCOMM · BillingCenter documents refresh from S3', cwd: CLAIMS_DIR, cmd: 'node', args: [BC_DOCS_SCRIPT], env: { BC_SORT_OUT: BC_DOCS_DIR } };
+    const script = fs.existsSync(BC_REFRESH_SCRIPT) ? BC_REFRESH_SCRIPT : BC_DOCS_SCRIPT; // older CC checkout: PDFs only
+    if (!fs.existsSync(script)) throw new Error('sortBcSmartCommPdfs.js not found — git pull ClaimCenter-Automation');
+    return { label: 'SmartCOMM · BillingCenter documents + payloads refresh from S3', cwd: CLAIMS_DIR, cmd: 'node', args: [script], env: { BC_SORT_OUT: BC_DOCS_DIR, BC_PAYLOAD_OUT: BC_PAYLOAD_DIR } };
   }
   if (j.mode === 'bulk') return buildSmartCommBulkJob(j);
   const dig = String(j.templateId || '').trim();

@@ -926,7 +926,7 @@
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <button class="run" id="bcDocsRefreshBtn">Refresh from S3</button>
         <span class="hint" id="bcDocsStatus">Loading&hellip;</span>
-        <span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Refresh signs in to the S3 admin tool with the shared session, downloads any new PDF from BillingCenter &gt; Inbound Pending &gt; smartcomm &gt; output &gt; output &gt; archive &gt; processing, reads it and files it under its template on V:Amit IntSmartCommBillingCenter-Templates. Already-downloaded files are skipped, so a refresh takes a minute or two.</span></span>
+        <span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Refresh signs in to the S3 admin tool with the shared session, downloads any new PDF from BillingCenter &gt; Inbound Pending &gt; smartcomm &gt; output &gt; output &gt; archive &gt; processing, reads it and files it under its template on V:Amit IntSmartCommBillingCenter-Templates. The same refresh then pulls the request payloads (BillingCenter &gt; outbound-files &gt; smartcomm &gt; input) and files them by event on V:Amit IntSmartCommBillingCenter-Payloads; each PDF links to its payload. Already-downloaded files are skipped, so a refresh takes a few minutes.</span></span>
       </div>
       <input type="text" id="bcDocsFilter" placeholder="Filter by template, file name or subject" autocomplete="off" style="margin-top:12px" />
       <div id="bcDocsList" style="margin-top:10px"></div>
@@ -3178,7 +3178,8 @@
     var d = bcDocs.data; if (!d) return;
     var total = d.templates.reduce(function (n, t) { return n + t.files.length; }, 0);
     document.getElementById('bcDocsStatus').textContent = total + ' PDFs in ' + d.templates.length + ' templates' +
-      (d.refreshedAt ? ' · last refreshed ' + new Date(d.refreshedAt).toLocaleString() : ' · not refreshed yet');
+      (d.refreshedAt ? ' · last refreshed ' + new Date(d.refreshedAt).toLocaleString() : ' · not refreshed yet') +
+      ' · ' + Object.keys(d.payloads || {}).length + ' payloads in ' + Object.keys(d.payloadEvents || {}).length + ' events';
     var q = document.getElementById('bcDocsFilter').value.trim().toLowerCase();
     var box = document.getElementById('bcDocsList'); box.innerHTML = '';
     d.templates.forEach(function (t) {
@@ -3195,6 +3196,8 @@
         var href = '/reports/bc-docs/' + encodeURIComponent(t.name) + '/' + encodeURIComponent(f.name);
         row.innerHTML = '<a href="' + href + '" target="_blank">' + escapeHtml(f.name) + '</a> <span class="hint">' +
           new Date(f.mtime).toLocaleDateString() + (f.subject ? ' · ' + escapeHtml(f.subject) : '') + '</span>';
+        var guid = f.name.replace(/\.pdf$/i, ''), ev = (d.payloads || {})[guid];
+        if (ev) row.innerHTML += ' <a class="hint" href="/reports/bc-payloads/' + encodeURIComponent(ev) + '/' + encodeURIComponent(guid) + '.xml" target="_blank" title="Request payload (' + escapeHtml(ev) + ')">payload</a>';
         ul.appendChild(row);
       });
       det.appendChild(ul); box.appendChild(det);
