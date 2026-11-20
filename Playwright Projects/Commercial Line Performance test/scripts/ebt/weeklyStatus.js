@@ -99,7 +99,8 @@ function areaSvg(areas, title) {
 }
 async function renderPngs(svgs, outDir) {
   const { chromium } = require('playwright');
-  const br = await chromium.launch();
+  // channel 'chromium' = the full browser in headless mode; the packaged Runner ships without chrome-headless-shell.
+  const br = await chromium.launch({ channel: 'chromium' });
   try {
     const pg = await br.newPage({ deviceScaleFactor: 2 });
     await pg.setContent(`<html><body style="margin:0;background:#fff">${svgs.join('')}</body></html>`);
