@@ -18,7 +18,7 @@ try {
   $m.Subject = $meta.subject
   # the workbook goes along so teams can update it ("the sheet above"), like the 11/16 e-mail
   if ($meta.workbook -and (Test-Path $meta.workbook)) { $m.Attachments.Add($meta.workbook) | Out-Null }
-  foreach ($id in @('overall', 'areas')) {
+  foreach ($id in @('areas')) {
     $a = $m.Attachments.Add("$out\$id.png", 1, 0)
     $a.PropertyAccessor.SetProperty('http://schemas.microsoft.com/mapi/proptag/0x3712001F', "$id.png")
   }

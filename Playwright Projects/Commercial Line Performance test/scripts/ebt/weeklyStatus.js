@@ -198,8 +198,7 @@ ${progRow('All teams', all, true)}
 <p style="${h}">Highlights:</p>
 <ul style="${f};margin-top:0">${hl.map((x) => `<li>${x}</li>`).join('\n')}</ul>
 <p style="${h}">Progress and issues</p>
-${progTable}
-<br><table cellpadding="0" cellspacing="0"><tr><td valign="top">${img('overall')}</td><td width="20"></td><td valign="top">${img('areas')}</td></tr></table>
+<table cellpadding="0" cellspacing="0"><tr><td valign="top">${progTable}</td><td width="24"></td><td valign="top">${img('areas')}</td></tr></table>
 ${noResults.length || notLoaded.length ? `<p style="${f}">${noResults.length ? `${esc(list(noResults))} ${noResults.length === 1 ? 'has' : 'have'} scenarios loaded but no results recorded yet. ` : ''}${notLoaded.length ? `${esc(list(notLoaded))} ${notLoaded.length === 1 ? 'has' : 'have'} not loaded scenarios yet.` : ''}</p>` : ''}
 <p style="${h}">Issues identified</p>
 <table cellpadding="0" cellspacing="0" width="860" style="border-collapse:collapse;${f}">
