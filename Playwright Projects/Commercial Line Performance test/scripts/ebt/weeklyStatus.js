@@ -151,8 +151,10 @@ async function build(runDate = new Date(Date.UTC(new Date().getFullYear(), new D
   const list = (a) => (a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0] || '');
 
   const hl = [];
-  hl.push(prev && newDone.length
-    ? `${newDone.length} scenario${newDone.length === 1 ? '' : 's'} completed this week. ${tot.done} of ${tot.scen} are now complete (${pct(tot.done, tot.scen)}%), up from ${prev.done}.`
+  // Net change vs the last snapshot: renamed/re-keyed rows (e.g. a rebuilt team tab) would otherwise count as new.
+  const gained = prev ? tot.done - prev.done : 0;
+  hl.push(prev && gained > 0
+    ? `${gained} scenario${gained === 1 ? '' : 's'} completed this week. ${tot.done} of ${tot.scen} are now complete (${pct(tot.done, tot.scen)}%), up from ${prev.done}.`
     : `${tot.done} of ${tot.scen} scenarios completed so far (${pct(tot.done, tot.scen)}%). ${loaded.length} teams have loaded scenarios and ${loaded.length - noResults.length} have reported results.`);
   if (leading.length) hl.push(`${list(leading.slice(0, 3).map((x) => `${esc(x.t)} (${x.d} of ${x.n}, ${pct(x.d, x.n)}%)`))}.`);
   if (examples.length) hl.push(`Completed successfully${prev ? ' this week' : ''}: ${esc(list(examples.map((e) => e.replace(/\.$/, ''))))}.`);
