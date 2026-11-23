@@ -846,6 +846,7 @@
         <option value="">Select a template…</option>
       </select>
       <div id="smartCommTemplateMultiBlock" style="display:none; margin-top:8px;">
+        <label style="display:flex; align-items:center; gap:6px; margin-bottom:6px; font-weight:normal;"><input type="checkbox" id="smartCommSelectAll" style="width:auto; margin:0;" /> <span id="smartCommSelectAllLabel">Select all templates</span></label>
         <div class="chips" id="smartCommSelectedTemplateChips"></div>
         <div class="hint">Adds to your selection (doesn't replace it) — click a chip to remove.<span class="info-dot" tabindex="0" aria-label="More info">i<span class="tooltip-bubble">Picking a template (or typing its full ID) adds it to this run instead of replacing your selection — click a chip to remove it. Queue as many as you like; they run one after another.</span></span></div>
       </div>
@@ -2518,6 +2519,13 @@
     document.getElementById('smartCommTemplateFilter').addEventListener('input', function () {
       populateSmartCommTemplateOptions(this.value);
     });
+    // Select all: every template in the list, or only those matching the filter box when it has text.
+    document.getElementById('smartCommSelectAll').addEventListener('change', function () {
+      var shown = smartCommFilteredTemplates();
+      shown.forEach(function (t) { if (this.checked) smartComm.templateIds.add(t.digNumber); else smartComm.templateIds.delete(t.digNumber); }, this);
+      renderSmartCommSelectedTemplates();
+      updateSmartCommPreview();
+    });
     document.getElementById('smartCommTemplateFilter').addEventListener('blur', function () {
       if (!smartCommExactMatchTimer) return;
       clearTimeout(smartCommExactMatchTimer);
@@ -2585,7 +2593,26 @@
     updateSmartCommPreview();
   }
 
+  function smartCommFilteredTemplates() {
+    var q = (document.getElementById('smartCommTemplateFilter').value || '').trim().toLowerCase();
+    return !q ? smartCommTemplatesAll : smartCommTemplatesAll.filter(function (t) {
+      return t.digNumber.toLowerCase().indexOf(q) !== -1 || t.documentName.toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function syncSmartCommSelectAll() {
+    var cb = document.getElementById('smartCommSelectAll');
+    if (!cb) return;
+    var shown = smartCommFilteredTemplates();
+    var q = (document.getElementById('smartCommTemplateFilter').value || '').trim();
+    var picked = shown.filter(function (t) { return smartComm.templateIds.has(t.digNumber); }).length;
+    cb.checked = shown.length > 0 && picked === shown.length;
+    cb.indeterminate = picked > 0 && picked < shown.length;
+    document.getElementById('smartCommSelectAllLabel').textContent = (q ? 'Select all matching "' + q + '"' : 'Select all templates') + ' (' + shown.length + ')';
+  }
+
   function renderSmartCommSelectedTemplates() {
+    syncSmartCommSelectAll();
     var box = document.getElementById('smartCommSelectedTemplateChips');
     if (!box) return;
     box.innerHTML = '';
@@ -2607,6 +2634,7 @@
 
   function populateSmartCommTemplateOptions(filterText) {
     var sel = document.getElementById('smartCommTemplateSelect');
+    syncSmartCommSelectAll();
     var q = (filterText || '').trim().toLowerCase();
     var matches = !q ? smartCommTemplatesAll : smartCommTemplatesAll.filter(function (t) {
       return t.digNumber.toLowerCase().indexOf(q) !== -1 || t.documentName.toLowerCase().indexOf(q) !== -1;
