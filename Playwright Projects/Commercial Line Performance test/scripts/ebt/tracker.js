@@ -15,7 +15,14 @@ const path = require('path');
 const JSZip = require('jszip');
 
 const DEFAULT_TRACKER = 'S:\\Shared Folders\\Guidewire Cloud Initiative\\QA\\EBT\\GW CC-CM Cloud Migration EBT Feedback Tracker.xlsx';
-const trackerPath = () => process.env.EBT_TRACKER_PATH || DEFAULT_TRACKER;
+// S: is a Citrix ShareFile drive only the owner has. Everyone else reads a mirror on the team drive, refreshed by the
+// owner's Runner every time it reads or saves the real tracker. The mirror is read-only: saves there are refused.
+const MIRROR = process.env.EBT_TRACKER_MIRROR || 'V:\\Amit Int\\EBT\\Tracker\\GW CC-CM Cloud Migration EBT Feedback Tracker.xlsx';
+const trackerPath = () => process.env.EBT_TRACKER_PATH || (fs.existsSync(DEFAULT_TRACKER) || !fs.existsSync(MIRROR) ? DEFAULT_TRACKER : MIRROR);
+function refreshMirror(file) {
+  if (file === MIRROR) return;
+  try { fs.mkdirSync(path.dirname(MIRROR), { recursive: true }); fs.copyFileSync(file, MIRROR); } catch { /* V: not reachable: skip */ }
+}
 const LOG_SHEET = '--- Log ---';
 const COLS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 const FIELD_COL = { id: 'A', reported: 'B', lob: 'C', feature: 'D', system: 'E', description: 'F', priority: 'G', jiraId: 'H', reporter: 'I', workstream: 'J', status: 'K', comments: 'L' };
@@ -164,6 +171,7 @@ async function syncStatuses(statuses, { backupDir } = {}) {
 }
 
 async function save(file, zip, original, backupDir) {
+  if (file === MIRROR) throw new Error('Only the read-only team copy of the tracker is reachable (S: drive not connected) — JIRA statuses can be refreshed only by the tracker owner.');
   const pivots = Object.keys(zip.files).filter((n) => /^xl\/pivotCache\/pivotCacheDefinition\d+\.xml$/.test(n));
   for (const p of pivots) {
     const px = await zip.file(p).async('string');
@@ -179,6 +187,7 @@ async function save(file, zip, original, backupDir) {
     if (/EBUSY|EPERM|EACCES/.test(e.code || '')) throw new Error('The tracker is locked (open in Excel or read-only for you) — close it and retry.');
     throw e;
   }
+  refreshMirror(file);
 }
 
 // row: { id, reported (Date), lob, feature, system, description, priority, jiraId, reporter, workstream, status, comments }
@@ -237,6 +246,7 @@ async function addRow(row, { backupDir, statuses } = {}) {
 async function listEntries() {
   const file = trackerPath();
   if (!fs.existsSync(file)) throw new Error(`Tracker not found: ${file} (is the S: drive connected?)`);
+  refreshMirror(file);
   const { xml, ss } = await open(file);
   return readRows(xml, ss).filter((x) => x.r > 1 && ID_RE.test(x.vals.id) && x.vals.description).map((x) => {
     const n = Number(x.vals.reported);
