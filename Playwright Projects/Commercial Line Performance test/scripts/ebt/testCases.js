@@ -10,7 +10,10 @@ const os = require('os');
 const path = require('path');
 const XLSX = require('xlsx');
 
-const casesPath = () => process.env.EBT_CASES_PATH || path.join(os.homedir(), 'Desktop', 'EBT PPT', 'EBT Test cases', 'Claims EBT Test cases.xlsx');
+// Shared copy on the team drive (so the Runner works for everyone); the owner's Desktop copy only if V: isn't there.
+const SHARED_CASES = 'V:\\Amit Int\\EBT\\Test cases\\Claims EBT Test cases.xlsx';
+const casesPath = () => process.env.EBT_CASES_PATH || (fs.existsSync(SHARED_CASES) ? SHARED_CASES
+  : path.join(os.homedir(), 'Desktop', 'EBT PPT', 'EBT Test cases', 'Claims EBT Test cases.xlsx'));
 const KEYS = ['completed', 'issue', 'inProgress', 'blocked', 'notStarted'];
 
 function statusKey(s) {

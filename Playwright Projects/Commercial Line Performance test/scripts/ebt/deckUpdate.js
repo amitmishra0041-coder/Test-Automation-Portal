@@ -20,9 +20,13 @@ const tracker = require('./tracker');
 const { writeSlide, slideData } = require('./ebtSlide');
 const { readProgress, readThisWeek } = require('./testCases');
 
+// Team drive first: decks there are found and written by everyone's Runner. The owner's Desktop folders still count
+// (newest deck wins), but the dated copy is always written to the team drive when it is reachable.
+const SHARED_DIR = process.env.EBT_SHARED_DECK_DIR || 'V:\\Amit Int\\EBT\\Status decks';
 const DEFAULT_DIR = process.env.EBT_DECK_DIR || path.join(os.homedir(), 'Desktop', 'EBT PPT');
 const STATUS_DIR = process.env.STATUS_DECK_DIR || path.join(os.homedir(), 'Desktop', 'CC Cloud', 'Status reporting');
-const DECK_RE = /^(EBT Status Summary|QA_Sprint_Status|QA and EBT Status).*\.pptx$/i;
+const DECK_RE = /^(CC )?(EBT Status Summary|QA_Sprint_Status|QA and EBT Status).*\.pptx$/i;
+const DIRS = [SHARED_DIR, DEFAULT_DIR, STATUS_DIR];
 const STATUS_ORDER = ['New', 'Open', 'To Do', 'In Business Review', 'Fixed', 'Ready for Retest', 'Re-Open', 'Impeded', 'Deferred', 'Rejected', 'Closed'];
 
 // The decks in these folders, newest first.
@@ -32,7 +36,7 @@ function decksIn(dirs) {
 }
 function latestDeck(dirOrFile) {
   if (dirOrFile && /\.pptx$/i.test(dirOrFile)) return dirOrFile;
-  const dirs = dirOrFile ? [dirOrFile] : [DEFAULT_DIR, STATUS_DIR];
+  const dirs = dirOrFile ? [dirOrFile] : DIRS;
   const decks = decksIn(dirs);
   if (!decks.length) throw new Error(`No status deck ("EBT Status Summary*.pptx", "QA_Sprint_Status*.pptx" or "QA and EBT Status*.pptx") in ${dirs.join(' or ')}`);
   return decks[0];
@@ -40,7 +44,7 @@ function latestDeck(dirOrFile) {
 
 function outputName(src) {
   const d = new Date();
-  const base = path.join(path.dirname(src), `QA and EBT Status - ${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  const base = path.join(fs.existsSync(SHARED_DIR) ? SHARED_DIR : path.dirname(src), `QA and EBT Status - ${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
   let out = `${base}.pptx`, v = 2;
   while (fs.existsSync(out)) out = `${base} v${v++}.pptx`;
   return out;
@@ -93,7 +97,7 @@ async function updateDeck(dirOrFile, { statuses, weekly = true } = {}) {
   // A deck with no EBT slide of its own takes the one from the newest deck that has it.
   let ebtFrom = '', ebtIndex = 0;
   if (!(await ebtSlideIndex(src))) {
-    for (const f of decksIn([DEFAULT_DIR, STATUS_DIR])) { const i = await ebtSlideIndex(f); if (i) { ebtFrom = f; ebtIndex = i; break; } }
+    for (const f of decksIn(DIRS)) { const i = await ebtSlideIndex(f); if (i) { ebtFrom = f; ebtIndex = i; break; } }
   }
   const tmp = path.join(os.tmpdir(), `ebt-deck-${Date.now()}.json`);
   // The EBT layout as a one-slide deck (used only when no deck has an EBT slide yet).
