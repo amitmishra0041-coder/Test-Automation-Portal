@@ -94,6 +94,11 @@ async function updateDeck(dirOrFile, { statuses, weekly = true } = {}) {
   // The EBT slide is still refreshed when the weekly numbers can't be built (Jira down, no active sprint).
   let wk = null, weeklyError = '';
   if (weekly) { try { wk = await weeklyStatusSlide(); } catch (e) { weeklyError = e.message; } }
+  // The issues come back but without sprint data when the signed-in Jira account has no Jira Software access to the
+  // boards (seen for team members; the owner's account sees "SmartComm Sprint N"). The source deck's QA slide is kept.
+  if (/No active sprint/.test(weeklyError)) {
+    weeklyError = `kept as in ${path.basename(src)} — the Jira account in Settings (${process.env.JIRA_EMAIL || '?'}) can't see sprint data; ask a Jira admin for Jira Software access to the SMART / GCCM boards`;
+  }
   // A deck with no EBT slide of its own takes the one from the newest deck that has it.
   let ebtFrom = '', ebtIndex = 0;
   if (!(await ebtSlideIndex(src))) {
